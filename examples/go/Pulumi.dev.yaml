@@ -1,0 +1,7 @@
+encryptionsalt: ENCRYPTION_SALT
+config:
+  pve:pveUrl: PVE_URL
+  pve:pveUser: PVE_USER
+  pve:pveToken:
+    secure: ENCRYPTED_PVE_TOKEN
+  provider-pve:name: dev

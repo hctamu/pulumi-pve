@@ -1,0 +1,10 @@
+encryptionsalt: ENCRYPTIONSALT
+config:
+  pve:pveUrl: PVE_URL
+  pve:pveUser: PVE_USER
+  pve:pveToken:
+    secure: ENCRYPTED_PVE_TOKEN
+  provider-pve:name: dev
+  pve:sshUser: SSH_USER
+  pve:sshPass:
+    secure: ENCRYPTED_SSH_PASS

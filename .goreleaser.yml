@@ -1,0 +1,52 @@
+version: 2
+#
+archives:
+  - id: archive
+    name_template: '{{ .Binary }}-{{ .Tag }}-{{ .Os }}-{{ .Arch }}'
+before:
+  hooks:
+    - make build
+github_urls:
+  api: https://github.com/api/v3/
+  upload: https://github.com/api/uploads/
+  download: https://github.com/
+builds:
+  - binary: pulumi-resource-pve
+    dir: provider
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+    goarch:
+      - amd64
+    goos:
+      - linux
+    ldflags:
+      - -X github.com/hctamu/pulumi-pve/provider/Version=v{{.Tag }}
+    main: ./cmd/pulumi-resource-pve/
+source:
+  enabled: true
+changelog:
+  disable: true
+  use: github
+  filters:
+    exclude:
+      - "^docs"
+      - "^chore"
+  groups:
+    - title: "New Features"
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: "Bugfixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: Other Work
+      order: 999  
+release:
+  disable: false
+  prerelease: auto
+snapshot:
+  version_template: "{{ .Tag }}-SNAPSHOT"
+artifactories:
+  - name: umatch
+    target: https://cr.siemens.com/artifactory/hctamu/{{ .ProjectName }}/{{ .Version }}/
+    username: smo.devops.cloud.mobility.hu@siemens.com

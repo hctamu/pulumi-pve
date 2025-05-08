@@ -1,0 +1,283 @@
+{
+  "name": "pve",
+  "displayName": "pve",
+  "description": "PVE Provider",
+  "repository": "github.com/hctamu/pulumi-pve",
+  "language": {
+    "go": {
+      "importBasePath": "github.com/hctamu/pulumi-pve/sdk/go/pve",
+      "modulePath": "github.com/hctamu/pulumi-pve/sdk",
+      "generics": "generics-only"
+    }
+  },
+  "config": {
+    "variables": {
+      "pveToken": {
+        "type": "string",
+        "secret": true
+      },
+      "pveUrl": {
+        "type": "string"
+      },
+      "pveUser": {
+        "type": "string"
+      },
+      "sshPass": {
+        "type": "string",
+        "secret": true
+      },
+      "sshUser": {
+        "type": "string"
+      }
+    },
+    "defaults": [
+      "pveUrl",
+      "pveUser",
+      "pveToken",
+      "sshUser",
+      "sshPass"
+    ]
+  },
+  "types": {
+    "pve:storage:FileArgs": {
+      "properties": {
+        "contentType": {
+          "type": "string"
+        },
+        "datastoreId": {
+          "type": "string",
+          "description": "The datastore to upload the file to.  (e.g:ceph-ha)"
+        },
+        "overwrite": {
+          "type": "boolean",
+          "description": "Should be able to overwrite the existing file. Default: True",
+          "default": true
+        },
+        "sourceRaw": {
+          "$ref": "#/types/pve:storage:FileSourceRawArgs",
+          "description": "The raw source data"
+        }
+      },
+      "type": "object",
+      "required": [
+        "datastoreId",
+        "contentType",
+        "sourceRaw"
+      ]
+    },
+    "pve:storage:FileSourceRawArgs": {
+      "properties": {
+        "fileData": {
+          "type": "string",
+          "description": "The raw data in []byte"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The name of the file"
+        }
+      },
+      "type": "object",
+      "required": [
+        "fileData",
+        "fileName"
+      ]
+    }
+  },
+  "provider": {
+    "properties": {
+      "pveToken": {
+        "type": "string",
+        "secret": true
+      },
+      "pveUrl": {
+        "type": "string"
+      },
+      "pveUser": {
+        "type": "string"
+      },
+      "sshPass": {
+        "type": "string",
+        "secret": true
+      },
+      "sshUser": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "pveUrl",
+      "pveUser",
+      "pveToken",
+      "sshUser",
+      "sshPass"
+    ],
+    "inputProperties": {
+      "pveToken": {
+        "type": "string",
+        "secret": true
+      },
+      "pveUrl": {
+        "type": "string"
+      },
+      "pveUser": {
+        "type": "string"
+      },
+      "sshPass": {
+        "type": "string",
+        "secret": true
+      },
+      "sshUser": {
+        "type": "string"
+      }
+    },
+    "requiredInputs": [
+      "pveUrl",
+      "pveUser",
+      "pveToken",
+      "sshUser",
+      "sshPass"
+    ]
+  },
+  "resources": {
+    "pve:ha:Ha": {
+      "description": "A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.",
+      "properties": {
+        "group": {
+          "type": "string",
+          "description": "The HA group identifier."
+        },
+        "resourceId": {
+          "type": "integer",
+          "description": "The ID of the virtual machine that will be managed by HA (required)."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state of the HA resource (default: started).",
+          "default": "started"
+        }
+      },
+      "required": [
+        "resourceId"
+      ],
+      "inputProperties": {
+        "group": {
+          "type": "string",
+          "description": "The HA group identifier."
+        },
+        "resourceId": {
+          "type": "integer",
+          "description": "The ID of the virtual machine that will be managed by HA (required)."
+        },
+        "state": {
+          "type": "string",
+          "description": "The state of the HA resource (default: started).",
+          "default": "started"
+        }
+      },
+      "requiredInputs": [
+        "resourceId"
+      ]
+    },
+    "pve:index:Random": {
+      "properties": {
+        "length": {
+          "type": "integer"
+        },
+        "result": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "length",
+        "result"
+      ],
+      "inputProperties": {
+        "length": {
+          "type": "integer"
+        }
+      },
+      "requiredInputs": [
+        "length"
+      ]
+    },
+    "pve:index:RandomComponent": {
+      "properties": {
+        "length": {
+          "type": "integer"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "length",
+        "password"
+      ],
+      "inputProperties": {
+        "length": {
+          "type": "integer"
+        }
+      },
+      "requiredInputs": [
+        "length"
+      ],
+      "isComponent": true
+    },
+    "pve:pool:Pool": {
+      "description": "A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.",
+      "properties": {
+        "comment": {
+          "type": "string",
+          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
+          "default": "Default pool comment"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the Proxmox pool."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "inputProperties": {
+        "comment": {
+          "type": "string",
+          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
+          "default": "Default pool comment"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the Proxmox pool."
+        }
+      },
+      "requiredInputs": [
+        "name"
+      ]
+    },
+    "pve:storage:File": {
+      "properties": {
+        "fileArgs": {
+          "$ref": "#/types/pve:storage:FileArgs"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "fileArgs"
+      ],
+      "inputProperties": {
+        "fileArgs": {
+          "$ref": "#/types/pve:storage:FileArgs"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "requiredInputs": [
+        "name",
+        "fileArgs"
+      ]
+    }
+  }
+}

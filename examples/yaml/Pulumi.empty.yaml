@@ -1,0 +1,6 @@
+name: provider-pve
+runtime: yaml
+plugins:
+  providers:
+    - name: pve
+      path: ../../bin
