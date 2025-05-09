@@ -165,20 +165,20 @@ func (file *File) Diff(ctx context.Context, id string, olds FileOutput, news Fil
 
 	// Update if these are changed
 	if news.SourceRaw.FileData != olds.FileInput.SourceRaw.FileData {
-		diff["FileInput.sourceRaw.fileData"] = p.PropertyDiff{Kind: p.Update}
+		diff["FileInput.sourceRaw.fileData"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 
-	// Decide if a deletion before replacement is required
-	replaceRequired := false
-	for _, d := range diff {
-		if d.Kind == p.UpdateReplace {
-			replaceRequired = true
-			break
-		}
-	}
+	// // Decide if a deletion before replacement is required
+	// replaceRequired := false
+	// for _, d := range diff {
+	// 	if d.Kind == p.UpdateReplace {
+	// 		replaceRequired = true
+	// 		break
+	// 	}
+	// }
 
 	response = p.DiffResponse{
-		DeleteBeforeReplace: replaceRequired,
+		DeleteBeforeReplace: true,
 		HasChanges:          len(diff) > 0,
 		DetailedDiff:        diff,
 	}

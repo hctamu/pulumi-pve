@@ -48,5 +48,5 @@ snapshot:
   version_template: "{{ .Tag }}-SNAPSHOT"
 artifactories:
   - name: umatch
-    target: https://cr.siemens.com/artifactory/hctamu/{{ .ProjectName }}/{{ .Version }}/
+    target: https://cr.siemens.com/hctamu/{{ .ProjectName }}/{{ .Version }}/
     username: smo.devops.cloud.mobility.hu@siemens.com
