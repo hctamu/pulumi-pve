@@ -1,0 +1,6 @@
+name: provider-pve
+runtime: go
+plugins:
+  providers:
+    - name: pve
+      path: ../../bin

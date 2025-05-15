@@ -1,0 +1,19 @@
+name: provider-pve
+runtime: yaml
+plugins:
+  providers:
+    - name: pve
+      path: ../../bin
+
+resources:
+  myVM:
+    type: pve:vm:VM
+    properties:
+      name: "testVM"
+      description: "test VM"
+      cpu: 1
+      memory: 32
+      disks:
+        - storage: "ceph-ha"
+          size: "10G"
+          type: "sata"
