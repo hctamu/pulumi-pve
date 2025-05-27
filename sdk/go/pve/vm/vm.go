@@ -8,70 +8,69 @@ import (
 	"reflect"
 
 	"errors"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumix"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type Vm struct {
 	pulumi.CustomResourceState
 
-	Acpi         pulumix.Output[*int]                       `pulumi:"acpi"`
-	Affinity     pulumix.Output[*string]                    `pulumi:"affinity"`
-	Agent        pulumix.Output[*string]                    `pulumi:"agent"`
-	Audio0       pulumix.Output[*string]                    `pulumi:"audio0"`
-	Autostart    pulumix.Output[*int]                       `pulumi:"autostart"`
-	Balloon      pulumix.Output[*int]                       `pulumi:"balloon"`
-	Bios         pulumix.Output[*string]                    `pulumi:"bios"`
-	Boot         pulumix.Output[*string]                    `pulumi:"boot"`
-	Cicustom     pulumix.Output[*string]                    `pulumi:"cicustom"`
-	Cipassword   pulumix.Output[*string]                    `pulumi:"cipassword"`
-	Citype       pulumix.Output[*string]                    `pulumi:"citype"`
-	Ciupgrade    pulumix.Output[*int]                       `pulumi:"ciupgrade"`
-	Ciuser       pulumix.Output[*string]                    `pulumi:"ciuser"`
-	Clone        pulumix.GPtrOutput[VmClone, VmCloneOutput] `pulumi:"clone"`
-	Cores        pulumix.Output[*int]                       `pulumi:"cores"`
-	Cpu          pulumix.Output[*string]                    `pulumi:"cpu"`
-	Cpulimit     pulumix.Output[*string]                    `pulumi:"cpulimit"`
-	Cpuunits     pulumix.Output[*int]                       `pulumi:"cpuunits"`
-	Description  pulumix.Output[*string]                    `pulumi:"description"`
-	Digest       pulumix.Output[*string]                    `pulumi:"digest"`
-	Disks        pulumix.GArrayOutput[Disk, DiskOutput]     `pulumi:"disks"`
-	Efidisk0     pulumix.Output[*string]                    `pulumi:"efidisk0"`
-	Hookscript   pulumix.Output[*string]                    `pulumi:"hookscript"`
-	Hostpci0     pulumix.Output[*string]                    `pulumi:"hostpci0"`
-	Hotplug      pulumix.Output[*string]                    `pulumi:"hotplug"`
-	Hugepages    pulumix.Output[*string]                    `pulumi:"hugepages"`
-	Ipconfig0    pulumix.Output[*string]                    `pulumi:"ipconfig0"`
-	Kvm          pulumix.Output[*int]                       `pulumi:"kvm"`
-	Lock         pulumix.Output[*string]                    `pulumi:"lock"`
-	Machine      pulumix.Output[*string]                    `pulumi:"machine"`
-	Memory       pulumix.Output[*int]                       `pulumi:"memory"`
-	Name         pulumix.Output[string]                     `pulumi:"name"`
-	Nameserver   pulumix.Output[*string]                    `pulumi:"nameserver"`
-	Net0         pulumix.Output[*string]                    `pulumi:"net0"`
-	Node         pulumix.Output[*string]                    `pulumi:"node"`
-	Numa         pulumix.Output[*int]                       `pulumi:"numa"`
-	Numa0        pulumix.Output[*string]                    `pulumi:"numa0"`
-	Onboot       pulumix.Output[*int]                       `pulumi:"onboot"`
-	Ostype       pulumix.Output[*string]                    `pulumi:"ostype"`
-	Parallel0    pulumix.Output[*string]                    `pulumi:"parallel0"`
-	Protection   pulumix.Output[*int]                       `pulumi:"protection"`
-	Rng0         pulumix.Output[*string]                    `pulumi:"rng0"`
-	Scsihw       pulumix.Output[*string]                    `pulumi:"scsihw"`
-	Searchdomain pulumix.Output[*string]                    `pulumi:"searchdomain"`
-	Serial0      pulumix.Output[*string]                    `pulumi:"serial0"`
-	Smbios1      pulumix.Output[*string]                    `pulumi:"smbios1"`
-	Sockets      pulumix.Output[*int]                       `pulumi:"sockets"`
-	Sshkeys      pulumix.Output[*string]                    `pulumi:"sshkeys"`
-	Tablet       pulumix.Output[*int]                       `pulumi:"tablet"`
-	Tags         pulumix.Output[*string]                    `pulumi:"tags"`
-	Template     pulumix.Output[*int]                       `pulumi:"template"`
-	Tpmstate0    pulumix.Output[*string]                    `pulumi:"tpmstate0"`
-	Usb0         pulumix.Output[*string]                    `pulumi:"usb0"`
-	Vcpus        pulumix.Output[*int]                       `pulumi:"vcpus"`
-	Vga          pulumix.Output[*string]                    `pulumi:"vga"`
-	VmId         pulumix.Output[*int]                       `pulumi:"vmId"`
+	Acpi         pulumi.IntPtrOutput    `pulumi:"acpi"`
+	Affinity     pulumi.StringPtrOutput `pulumi:"affinity"`
+	Agent        pulumi.StringPtrOutput `pulumi:"agent"`
+	Audio0       pulumi.StringPtrOutput `pulumi:"audio0"`
+	Autostart    pulumi.IntPtrOutput    `pulumi:"autostart"`
+	Balloon      pulumi.IntPtrOutput    `pulumi:"balloon"`
+	Bios         pulumi.StringPtrOutput `pulumi:"bios"`
+	Boot         pulumi.StringPtrOutput `pulumi:"boot"`
+	Cicustom     pulumi.StringPtrOutput `pulumi:"cicustom"`
+	Cipassword   pulumi.StringPtrOutput `pulumi:"cipassword"`
+	Citype       pulumi.StringPtrOutput `pulumi:"citype"`
+	Ciupgrade    pulumi.IntPtrOutput    `pulumi:"ciupgrade"`
+	Ciuser       pulumi.StringPtrOutput `pulumi:"ciuser"`
+	Clone        VmClonePtrOutput       `pulumi:"clone"`
+	Cores        pulumi.IntPtrOutput    `pulumi:"cores"`
+	Cpu          pulumi.StringPtrOutput `pulumi:"cpu"`
+	Cpulimit     pulumi.StringPtrOutput `pulumi:"cpulimit"`
+	Cpuunits     pulumi.IntPtrOutput    `pulumi:"cpuunits"`
+	Description  pulumi.StringPtrOutput `pulumi:"description"`
+	Digest       pulumi.StringPtrOutput `pulumi:"digest"`
+	Disks        DiskArrayOutput        `pulumi:"disks"`
+	Efidisk0     pulumi.StringPtrOutput `pulumi:"efidisk0"`
+	Hookscript   pulumi.StringPtrOutput `pulumi:"hookscript"`
+	Hostpci0     pulumi.StringPtrOutput `pulumi:"hostpci0"`
+	Hotplug      pulumi.StringPtrOutput `pulumi:"hotplug"`
+	Hugepages    pulumi.StringPtrOutput `pulumi:"hugepages"`
+	Ipconfig0    pulumi.StringPtrOutput `pulumi:"ipconfig0"`
+	Kvm          pulumi.IntPtrOutput    `pulumi:"kvm"`
+	Lock         pulumi.StringPtrOutput `pulumi:"lock"`
+	Machine      pulumi.StringPtrOutput `pulumi:"machine"`
+	Memory       pulumi.IntPtrOutput    `pulumi:"memory"`
+	Name         pulumi.StringOutput    `pulumi:"name"`
+	Nameserver   pulumi.StringPtrOutput `pulumi:"nameserver"`
+	Net0         pulumi.StringPtrOutput `pulumi:"net0"`
+	Node         pulumi.StringPtrOutput `pulumi:"node"`
+	Numa         pulumi.IntPtrOutput    `pulumi:"numa"`
+	Numa0        pulumi.StringPtrOutput `pulumi:"numa0"`
+	Onboot       pulumi.IntPtrOutput    `pulumi:"onboot"`
+	Ostype       pulumi.StringPtrOutput `pulumi:"ostype"`
+	Parallel0    pulumi.StringPtrOutput `pulumi:"parallel0"`
+	Protection   pulumi.IntPtrOutput    `pulumi:"protection"`
+	Rng0         pulumi.StringPtrOutput `pulumi:"rng0"`
+	Scsihw       pulumi.StringPtrOutput `pulumi:"scsihw"`
+	Searchdomain pulumi.StringPtrOutput `pulumi:"searchdomain"`
+	Serial0      pulumi.StringPtrOutput `pulumi:"serial0"`
+	Smbios1      pulumi.StringPtrOutput `pulumi:"smbios1"`
+	Sockets      pulumi.IntPtrOutput    `pulumi:"sockets"`
+	Sshkeys      pulumi.StringPtrOutput `pulumi:"sshkeys"`
+	Tablet       pulumi.IntPtrOutput    `pulumi:"tablet"`
+	Tags         pulumi.StringPtrOutput `pulumi:"tags"`
+	Template     pulumi.IntPtrOutput    `pulumi:"template"`
+	Tpmstate0    pulumi.StringPtrOutput `pulumi:"tpmstate0"`
+	Usb0         pulumi.StringPtrOutput `pulumi:"usb0"`
+	Vcpus        pulumi.IntPtrOutput    `pulumi:"vcpus"`
+	Vga          pulumi.StringPtrOutput `pulumi:"vga"`
+	VmId         pulumi.IntPtrOutput    `pulumi:"vmId"`
 }
 
 // NewVm registers a new resource with the given unique name, arguments, and options.
@@ -88,7 +87,7 @@ func NewVm(ctx *pulumi.Context,
 		return nil, errors.New("invalid value for required argument 'Name'")
 	}
 	if args.Cores == nil {
-		args.Cores = pulumix.Ptr(1)
+		args.Cores = pulumi.IntPtr(1)
 	}
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource Vm
@@ -183,72 +182,141 @@ type vmArgs struct {
 
 // The set of arguments for constructing a Vm resource.
 type VmArgs struct {
-	Acpi         pulumix.Input[*int]
-	Affinity     pulumix.Input[*string]
-	Agent        pulumix.Input[*string]
-	Audio0       pulumix.Input[*string]
-	Autostart    pulumix.Input[*int]
-	Balloon      pulumix.Input[*int]
-	Bios         pulumix.Input[*string]
-	Boot         pulumix.Input[*string]
-	Cicustom     pulumix.Input[*string]
-	Cipassword   pulumix.Input[*string]
-	Citype       pulumix.Input[*string]
-	Ciupgrade    pulumix.Input[*int]
-	Ciuser       pulumix.Input[*string]
-	Clone        pulumix.Input[*VmCloneArgs]
-	Cores        pulumix.Input[*int]
-	Cpu          pulumix.Input[*string]
-	Cpulimit     pulumix.Input[*string]
-	Cpuunits     pulumix.Input[*int]
-	Description  pulumix.Input[*string]
-	Digest       pulumix.Input[*string]
-	Disks        pulumix.Input[[]*DiskArgs]
-	Efidisk0     pulumix.Input[*string]
-	Hookscript   pulumix.Input[*string]
-	Hostpci0     pulumix.Input[*string]
-	Hotplug      pulumix.Input[*string]
-	Hugepages    pulumix.Input[*string]
-	Ipconfig0    pulumix.Input[*string]
-	Kvm          pulumix.Input[*int]
-	Lock         pulumix.Input[*string]
-	Machine      pulumix.Input[*string]
-	Memory       pulumix.Input[*int]
-	Name         pulumix.Input[string]
-	Nameserver   pulumix.Input[*string]
-	Net0         pulumix.Input[*string]
-	Node         pulumix.Input[*string]
-	Numa         pulumix.Input[*int]
-	Numa0        pulumix.Input[*string]
-	Onboot       pulumix.Input[*int]
-	Ostype       pulumix.Input[*string]
-	Parallel0    pulumix.Input[*string]
-	Protection   pulumix.Input[*int]
-	Rng0         pulumix.Input[*string]
-	Scsihw       pulumix.Input[*string]
-	Searchdomain pulumix.Input[*string]
-	Serial0      pulumix.Input[*string]
-	Smbios1      pulumix.Input[*string]
-	Sockets      pulumix.Input[*int]
-	Sshkeys      pulumix.Input[*string]
-	Tablet       pulumix.Input[*int]
-	Tags         pulumix.Input[*string]
-	Template     pulumix.Input[*int]
-	Tpmstate0    pulumix.Input[*string]
-	Usb0         pulumix.Input[*string]
-	Vcpus        pulumix.Input[*int]
-	Vga          pulumix.Input[*string]
-	VmId         pulumix.Input[*int]
+	Acpi         pulumi.IntPtrInput
+	Affinity     pulumi.StringPtrInput
+	Agent        pulumi.StringPtrInput
+	Audio0       pulumi.StringPtrInput
+	Autostart    pulumi.IntPtrInput
+	Balloon      pulumi.IntPtrInput
+	Bios         pulumi.StringPtrInput
+	Boot         pulumi.StringPtrInput
+	Cicustom     pulumi.StringPtrInput
+	Cipassword   pulumi.StringPtrInput
+	Citype       pulumi.StringPtrInput
+	Ciupgrade    pulumi.IntPtrInput
+	Ciuser       pulumi.StringPtrInput
+	Clone        VmClonePtrInput
+	Cores        pulumi.IntPtrInput
+	Cpu          pulumi.StringPtrInput
+	Cpulimit     pulumi.StringPtrInput
+	Cpuunits     pulumi.IntPtrInput
+	Description  pulumi.StringPtrInput
+	Digest       pulumi.StringPtrInput
+	Disks        DiskArrayInput
+	Efidisk0     pulumi.StringPtrInput
+	Hookscript   pulumi.StringPtrInput
+	Hostpci0     pulumi.StringPtrInput
+	Hotplug      pulumi.StringPtrInput
+	Hugepages    pulumi.StringPtrInput
+	Ipconfig0    pulumi.StringPtrInput
+	Kvm          pulumi.IntPtrInput
+	Lock         pulumi.StringPtrInput
+	Machine      pulumi.StringPtrInput
+	Memory       pulumi.IntPtrInput
+	Name         pulumi.StringInput
+	Nameserver   pulumi.StringPtrInput
+	Net0         pulumi.StringPtrInput
+	Node         pulumi.StringPtrInput
+	Numa         pulumi.IntPtrInput
+	Numa0        pulumi.StringPtrInput
+	Onboot       pulumi.IntPtrInput
+	Ostype       pulumi.StringPtrInput
+	Parallel0    pulumi.StringPtrInput
+	Protection   pulumi.IntPtrInput
+	Rng0         pulumi.StringPtrInput
+	Scsihw       pulumi.StringPtrInput
+	Searchdomain pulumi.StringPtrInput
+	Serial0      pulumi.StringPtrInput
+	Smbios1      pulumi.StringPtrInput
+	Sockets      pulumi.IntPtrInput
+	Sshkeys      pulumi.StringPtrInput
+	Tablet       pulumi.IntPtrInput
+	Tags         pulumi.StringPtrInput
+	Template     pulumi.IntPtrInput
+	Tpmstate0    pulumi.StringPtrInput
+	Usb0         pulumi.StringPtrInput
+	Vcpus        pulumi.IntPtrInput
+	Vga          pulumi.StringPtrInput
+	VmId         pulumi.IntPtrInput
 }
 
 func (VmArgs) ElementType() reflect.Type {
 	return reflect.TypeOf((*vmArgs)(nil)).Elem()
 }
 
+type VmInput interface {
+	pulumi.Input
+
+	ToVmOutput() VmOutput
+	ToVmOutputWithContext(ctx context.Context) VmOutput
+}
+
+func (*Vm) ElementType() reflect.Type {
+	return reflect.TypeOf((**Vm)(nil)).Elem()
+}
+
+func (i *Vm) ToVmOutput() VmOutput {
+	return i.ToVmOutputWithContext(context.Background())
+}
+
+func (i *Vm) ToVmOutputWithContext(ctx context.Context) VmOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(VmOutput)
+}
+
+// VmArrayInput is an input type that accepts VmArray and VmArrayOutput values.
+// You can construct a concrete instance of `VmArrayInput` via:
+//
+//	VmArray{ VmArgs{...} }
+type VmArrayInput interface {
+	pulumi.Input
+
+	ToVmArrayOutput() VmArrayOutput
+	ToVmArrayOutputWithContext(context.Context) VmArrayOutput
+}
+
+type VmArray []VmInput
+
+func (VmArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*Vm)(nil)).Elem()
+}
+
+func (i VmArray) ToVmArrayOutput() VmArrayOutput {
+	return i.ToVmArrayOutputWithContext(context.Background())
+}
+
+func (i VmArray) ToVmArrayOutputWithContext(ctx context.Context) VmArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(VmArrayOutput)
+}
+
+// VmMapInput is an input type that accepts VmMap and VmMapOutput values.
+// You can construct a concrete instance of `VmMapInput` via:
+//
+//	VmMap{ "key": VmArgs{...} }
+type VmMapInput interface {
+	pulumi.Input
+
+	ToVmMapOutput() VmMapOutput
+	ToVmMapOutputWithContext(context.Context) VmMapOutput
+}
+
+type VmMap map[string]VmInput
+
+func (VmMap) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*Vm)(nil)).Elem()
+}
+
+func (i VmMap) ToVmMapOutput() VmMapOutput {
+	return i.ToVmMapOutputWithContext(context.Background())
+}
+
+func (i VmMap) ToVmMapOutputWithContext(ctx context.Context) VmMapOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(VmMapOutput)
+}
+
 type VmOutput struct{ *pulumi.OutputState }
 
 func (VmOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*Vm)(nil)).Elem()
+	return reflect.TypeOf((**Vm)(nil)).Elem()
 }
 
 func (o VmOutput) ToVmOutput() VmOutput {
@@ -259,294 +327,275 @@ func (o VmOutput) ToVmOutputWithContext(ctx context.Context) VmOutput {
 	return o
 }
 
-func (o VmOutput) ToOutput(ctx context.Context) pulumix.Output[Vm] {
-	return pulumix.Output[Vm]{
-		OutputState: o.OutputState,
-	}
+func (o VmOutput) Acpi() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Acpi }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Acpi() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Acpi })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Affinity() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Affinity }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Affinity() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Affinity })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Agent() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Agent }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Agent() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Agent })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Audio0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Audio0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Audio0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Audio0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Autostart() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Autostart }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Autostart() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Autostart })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Balloon() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Balloon }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Balloon() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Balloon })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Bios() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Bios }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Bios() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Bios })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Boot() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Boot }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Boot() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Boot })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Cicustom() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Cicustom }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Cicustom() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Cicustom })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Cipassword() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Cipassword }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Cipassword() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Cipassword })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Citype() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Citype }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Citype() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Citype })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Ciupgrade() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Ciupgrade }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Ciupgrade() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Ciupgrade })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Ciuser() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Ciuser }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Ciuser() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Ciuser })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Clone() VmClonePtrOutput {
+	return o.ApplyT(func(v *Vm) VmClonePtrOutput { return v.Clone }).(VmClonePtrOutput)
 }
 
-func (o VmOutput) Clone() pulumix.GPtrOutput[VmClone, VmCloneOutput] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.GPtrOutput[VmClone, VmCloneOutput] { return v.Clone })
-	unwrapped := pulumix.Flatten[*VmClone, pulumix.GPtrOutput[VmClone, VmCloneOutput]](value)
-	return pulumix.GPtrOutput[VmClone, VmCloneOutput]{OutputState: unwrapped.OutputState}
+func (o VmOutput) Cores() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Cores }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Cores() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Cores })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Cpu() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Cpu }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Cpu() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Cpu })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Cpulimit() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Cpulimit }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Cpulimit() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Cpulimit })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Cpuunits() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Cpuunits }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Cpuunits() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Cpuunits })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Description() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Description }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Description() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Description })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Digest() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Digest }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Digest() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Digest })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Disks() DiskArrayOutput {
+	return o.ApplyT(func(v *Vm) DiskArrayOutput { return v.Disks }).(DiskArrayOutput)
 }
 
-func (o VmOutput) Disks() pulumix.GArrayOutput[Disk, DiskOutput] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.GArrayOutput[Disk, DiskOutput] { return v.Disks })
-	unwrapped := pulumix.Flatten[[]Disk, pulumix.GArrayOutput[Disk, DiskOutput]](value)
-	return pulumix.GArrayOutput[Disk, DiskOutput]{OutputState: unwrapped.OutputState}
+func (o VmOutput) Efidisk0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Efidisk0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Efidisk0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Efidisk0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Hookscript() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Hookscript }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Hookscript() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Hookscript })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Hostpci0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Hostpci0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Hostpci0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Hostpci0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Hotplug() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Hotplug }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Hotplug() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Hotplug })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Hugepages() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Hugepages }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Hugepages() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Hugepages })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Ipconfig0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Ipconfig0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Ipconfig0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Ipconfig0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Kvm() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Kvm }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Kvm() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Kvm })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Lock() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Lock }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Lock() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Lock })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Machine() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Machine }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Machine() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Machine })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Memory() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Memory }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Memory() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Memory })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Name() pulumi.StringOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringOutput { return v.Name }).(pulumi.StringOutput)
 }
 
-func (o VmOutput) Name() pulumix.Output[string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[string] { return v.Name })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o VmOutput) Nameserver() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Nameserver }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Nameserver() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Nameserver })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Net0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Net0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Net0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Net0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Node() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Node }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Node() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Node })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Numa() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Numa }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Numa() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Numa })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Numa0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Numa0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Numa0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Numa0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Onboot() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Onboot }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Onboot() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Onboot })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Ostype() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Ostype }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Ostype() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Ostype })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Parallel0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Parallel0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Parallel0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Parallel0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Protection() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Protection }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Protection() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Protection })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Rng0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Rng0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Rng0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Rng0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Scsihw() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Scsihw }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Scsihw() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Scsihw })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Searchdomain() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Searchdomain }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Searchdomain() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Searchdomain })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Serial0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Serial0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Serial0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Serial0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Smbios1() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Smbios1 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Smbios1() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Smbios1 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Sockets() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Sockets }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Sockets() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Sockets })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Sshkeys() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Sshkeys }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Sshkeys() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Sshkeys })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Tablet() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Tablet }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Tablet() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Tablet })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Tags() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Tags }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Tags() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Tags })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Template() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Template }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Template() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Template })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Tpmstate0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Tpmstate0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Tpmstate0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Tpmstate0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Usb0() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Usb0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Usb0() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Usb0 })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) Vcpus() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.Vcpus }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) Vcpus() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.Vcpus })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+func (o VmOutput) Vga() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.StringPtrOutput { return v.Vga }).(pulumi.StringPtrOutput)
 }
 
-func (o VmOutput) Vga() pulumix.Output[*string] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*string] { return v.Vga })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o VmOutput) VmId() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Vm) pulumi.IntPtrOutput { return v.VmId }).(pulumi.IntPtrOutput)
 }
 
-func (o VmOutput) VmId() pulumix.Output[*int] {
-	value := pulumix.Apply[Vm](o, func(v Vm) pulumix.Output[*int] { return v.VmId })
-	return pulumix.Flatten[*int, pulumix.Output[*int]](value)
+type VmArrayOutput struct{ *pulumi.OutputState }
+
+func (VmArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*Vm)(nil)).Elem()
+}
+
+func (o VmArrayOutput) ToVmArrayOutput() VmArrayOutput {
+	return o
+}
+
+func (o VmArrayOutput) ToVmArrayOutputWithContext(ctx context.Context) VmArrayOutput {
+	return o
+}
+
+func (o VmArrayOutput) Index(i pulumi.IntInput) VmOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) *Vm {
+		return vs[0].([]*Vm)[vs[1].(int)]
+	}).(VmOutput)
+}
+
+type VmMapOutput struct{ *pulumi.OutputState }
+
+func (VmMapOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*Vm)(nil)).Elem()
+}
+
+func (o VmMapOutput) ToVmMapOutput() VmMapOutput {
+	return o
+}
+
+func (o VmMapOutput) ToVmMapOutputWithContext(ctx context.Context) VmMapOutput {
+	return o
+}
+
+func (o VmMapOutput) MapIndex(k pulumi.StringInput) VmOutput {
+	return pulumi.All(o, k).ApplyT(func(vs []interface{}) *Vm {
+		return vs[0].(map[string]*Vm)[vs[1].(string)]
+	}).(VmOutput)
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*VmInput)(nil)).Elem(), &Vm{})
+	pulumi.RegisterInputType(reflect.TypeOf((*VmArrayInput)(nil)).Elem(), VmArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*VmMapInput)(nil)).Elem(), VmMap{})
 	pulumi.RegisterOutputType(VmOutput{})
+	pulumi.RegisterOutputType(VmArrayOutput{})
+	pulumi.RegisterOutputType(VmMapOutput{})
 }

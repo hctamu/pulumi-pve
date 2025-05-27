@@ -1,0 +1,18 @@
+[project]
+  name = "pulumi_pve"
+  description = "PVE Provider"
+  dependencies = ["parver>=0.2.1", "pulumi>=3.142.0,<4.0.0", "semver>=2.8.1", "typing-extensions>=4.11; python_version < \"3.11\""]
+  readme = "README.md"
+  requires-python = ">=3.9"
+  version = "1.0.0a0+dev"
+  [project.urls]
+    Repository = "https://github.com/hctamu/pulumi-pve"
+
+[build-system]
+  requires = ["setuptools>=61.0"]
+  build-backend = "setuptools.build_meta"
+
+[tool]
+  [tool.setuptools]
+    [tool.setuptools.package-data]
+      pulumi_pve = ["py.typed", "pulumi-plugin.json"]

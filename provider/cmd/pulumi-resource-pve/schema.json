@@ -2,15 +2,39 @@
   "name": "pve",
   "displayName": "pve",
   "description": "PVE Provider",
-  "repository": "github.com/hctamu/pulumi-pve",
+  "repository": "https://github.com/hctamu/pulumi-pve",
   "meta": {
     "moduleFormat": "(.*)"
   },
   "language": {
+    "csharp": {
+      "packageReferences": {
+        "Pulumi": "3.*"
+      },
+      "respectSchemaVersion": true
+    },
     "go": {
+      "generateResourceContainerTypes": true,
       "importBasePath": "github.com/hctamu/pulumi-pve/sdk/go/pve",
-      "modulePath": "github.com/hctamu/pulumi-pve/sdk",
-      "generics": "generics-only"
+      "respectSchemaVersion": true
+    },
+    "java": {
+      "buildFiles": "gradle",
+      "dependencies": {
+        "com.google.code.findbugs:jsr305": "3.0.2",
+        "com.google.code.gson:gson": "2.8.9",
+        "com.pulumi:pulumi": "1.0.0"
+      },
+      "gradleNexusPublishPluginVersion": "2.0.0"
+    },
+    "nodejs": {
+      "respectSchemaVersion": true
+    },
+    "python": {
+      "pyproject": {
+        "enabled": true
+      },
+      "respectSchemaVersion": true
     }
   },
   "config": {

@@ -8,20 +8,19 @@ import (
 	"reflect"
 
 	"errors"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumix"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type File struct {
 	pulumi.CustomResourceState
 
 	// The type of the file (e.g: snippets)
-	ContentType pulumix.Output[string] `pulumi:"contentType"`
+	ContentType pulumi.StringOutput `pulumi:"contentType"`
 	// The datastore to upload the file to.  (e.g:ceph-ha)
-	DatastoreId pulumix.Output[string] `pulumi:"datastoreId"`
+	DatastoreId pulumi.StringOutput `pulumi:"datastoreId"`
 	// The raw source data
-	SourceRaw pulumix.GPtrOutput[FileSourceRaw, FileSourceRawOutput] `pulumi:"sourceRaw"`
+	SourceRaw FileSourceRawOutput `pulumi:"sourceRaw"`
 }
 
 // NewFile registers a new resource with the given unique name, arguments, and options.
@@ -84,21 +83,90 @@ type fileArgs struct {
 // The set of arguments for constructing a File resource.
 type FileArgs struct {
 	// The type of the file (e.g: snippets)
-	ContentType pulumix.Input[string]
+	ContentType pulumi.StringInput
 	// The datastore to upload the file to.  (e.g:ceph-ha)
-	DatastoreId pulumix.Input[string]
+	DatastoreId pulumi.StringInput
 	// The raw source data
-	SourceRaw pulumix.Input[*FileSourceRawArgs]
+	SourceRaw FileSourceRawInput
 }
 
 func (FileArgs) ElementType() reflect.Type {
 	return reflect.TypeOf((*fileArgs)(nil)).Elem()
 }
 
+type FileInput interface {
+	pulumi.Input
+
+	ToFileOutput() FileOutput
+	ToFileOutputWithContext(ctx context.Context) FileOutput
+}
+
+func (*File) ElementType() reflect.Type {
+	return reflect.TypeOf((**File)(nil)).Elem()
+}
+
+func (i *File) ToFileOutput() FileOutput {
+	return i.ToFileOutputWithContext(context.Background())
+}
+
+func (i *File) ToFileOutputWithContext(ctx context.Context) FileOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(FileOutput)
+}
+
+// FileArrayInput is an input type that accepts FileArray and FileArrayOutput values.
+// You can construct a concrete instance of `FileArrayInput` via:
+//
+//	FileArray{ FileArgs{...} }
+type FileArrayInput interface {
+	pulumi.Input
+
+	ToFileArrayOutput() FileArrayOutput
+	ToFileArrayOutputWithContext(context.Context) FileArrayOutput
+}
+
+type FileArray []FileInput
+
+func (FileArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*File)(nil)).Elem()
+}
+
+func (i FileArray) ToFileArrayOutput() FileArrayOutput {
+	return i.ToFileArrayOutputWithContext(context.Background())
+}
+
+func (i FileArray) ToFileArrayOutputWithContext(ctx context.Context) FileArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(FileArrayOutput)
+}
+
+// FileMapInput is an input type that accepts FileMap and FileMapOutput values.
+// You can construct a concrete instance of `FileMapInput` via:
+//
+//	FileMap{ "key": FileArgs{...} }
+type FileMapInput interface {
+	pulumi.Input
+
+	ToFileMapOutput() FileMapOutput
+	ToFileMapOutputWithContext(context.Context) FileMapOutput
+}
+
+type FileMap map[string]FileInput
+
+func (FileMap) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*File)(nil)).Elem()
+}
+
+func (i FileMap) ToFileMapOutput() FileMapOutput {
+	return i.ToFileMapOutputWithContext(context.Background())
+}
+
+func (i FileMap) ToFileMapOutputWithContext(ctx context.Context) FileMapOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(FileMapOutput)
+}
+
 type FileOutput struct{ *pulumi.OutputState }
 
 func (FileOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*File)(nil)).Elem()
+	return reflect.TypeOf((**File)(nil)).Elem()
 }
 
 func (o FileOutput) ToFileOutput() FileOutput {
@@ -109,31 +177,66 @@ func (o FileOutput) ToFileOutputWithContext(ctx context.Context) FileOutput {
 	return o
 }
 
-func (o FileOutput) ToOutput(ctx context.Context) pulumix.Output[File] {
-	return pulumix.Output[File]{
-		OutputState: o.OutputState,
-	}
-}
-
 // The type of the file (e.g: snippets)
-func (o FileOutput) ContentType() pulumix.Output[string] {
-	value := pulumix.Apply[File](o, func(v File) pulumix.Output[string] { return v.ContentType })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o FileOutput) ContentType() pulumi.StringOutput {
+	return o.ApplyT(func(v *File) pulumi.StringOutput { return v.ContentType }).(pulumi.StringOutput)
 }
 
 // The datastore to upload the file to.  (e.g:ceph-ha)
-func (o FileOutput) DatastoreId() pulumix.Output[string] {
-	value := pulumix.Apply[File](o, func(v File) pulumix.Output[string] { return v.DatastoreId })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o FileOutput) DatastoreId() pulumi.StringOutput {
+	return o.ApplyT(func(v *File) pulumi.StringOutput { return v.DatastoreId }).(pulumi.StringOutput)
 }
 
 // The raw source data
-func (o FileOutput) SourceRaw() pulumix.GPtrOutput[FileSourceRaw, FileSourceRawOutput] {
-	value := pulumix.Apply[File](o, func(v File) pulumix.GPtrOutput[FileSourceRaw, FileSourceRawOutput] { return v.SourceRaw })
-	unwrapped := pulumix.Flatten[*FileSourceRaw, pulumix.GPtrOutput[FileSourceRaw, FileSourceRawOutput]](value)
-	return pulumix.GPtrOutput[FileSourceRaw, FileSourceRawOutput]{OutputState: unwrapped.OutputState}
+func (o FileOutput) SourceRaw() FileSourceRawOutput {
+	return o.ApplyT(func(v *File) FileSourceRawOutput { return v.SourceRaw }).(FileSourceRawOutput)
+}
+
+type FileArrayOutput struct{ *pulumi.OutputState }
+
+func (FileArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*File)(nil)).Elem()
+}
+
+func (o FileArrayOutput) ToFileArrayOutput() FileArrayOutput {
+	return o
+}
+
+func (o FileArrayOutput) ToFileArrayOutputWithContext(ctx context.Context) FileArrayOutput {
+	return o
+}
+
+func (o FileArrayOutput) Index(i pulumi.IntInput) FileOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) *File {
+		return vs[0].([]*File)[vs[1].(int)]
+	}).(FileOutput)
+}
+
+type FileMapOutput struct{ *pulumi.OutputState }
+
+func (FileMapOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*File)(nil)).Elem()
+}
+
+func (o FileMapOutput) ToFileMapOutput() FileMapOutput {
+	return o
+}
+
+func (o FileMapOutput) ToFileMapOutputWithContext(ctx context.Context) FileMapOutput {
+	return o
+}
+
+func (o FileMapOutput) MapIndex(k pulumi.StringInput) FileOutput {
+	return pulumi.All(o, k).ApplyT(func(vs []interface{}) *File {
+		return vs[0].(map[string]*File)[vs[1].(string)]
+	}).(FileOutput)
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*FileInput)(nil)).Elem(), &File{})
+	pulumi.RegisterInputType(reflect.TypeOf((*FileArrayInput)(nil)).Elem(), FileArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*FileMapInput)(nil)).Elem(), FileMap{})
 	pulumi.RegisterOutputType(FileOutput{})
+	pulumi.RegisterOutputType(FileArrayOutput{})
+	pulumi.RegisterOutputType(FileMapOutput{})
 }
