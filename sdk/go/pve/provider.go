@@ -8,19 +8,18 @@ import (
 	"reflect"
 
 	"errors"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumix"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type Provider struct {
 	pulumi.ProviderResourceState
 
-	PveToken pulumix.Output[string] `pulumi:"pveToken"`
-	PveUrl   pulumix.Output[string] `pulumi:"pveUrl"`
-	PveUser  pulumix.Output[string] `pulumi:"pveUser"`
-	SshPass  pulumix.Output[string] `pulumi:"sshPass"`
-	SshUser  pulumix.Output[string] `pulumi:"sshUser"`
+	PveToken pulumi.StringOutput `pulumi:"pveToken"`
+	PveUrl   pulumi.StringOutput `pulumi:"pveUrl"`
+	PveUser  pulumi.StringOutput `pulumi:"pveUser"`
+	SshPass  pulumi.StringOutput `pulumi:"sshPass"`
+	SshUser  pulumi.StringOutput `pulumi:"sshUser"`
 }
 
 // NewProvider registers a new resource with the given unique name, arguments, and options.
@@ -46,12 +45,10 @@ func NewProvider(ctx *pulumi.Context,
 		return nil, errors.New("invalid value for required argument 'SshUser'")
 	}
 	if args.PveToken != nil {
-		untypedSecretValue := pulumi.ToSecret(args.PveToken.ToOutput(ctx.Context()).Untyped())
-		args.PveToken = pulumix.MustConvertTyped[string](untypedSecretValue)
+		args.PveToken = pulumi.ToSecret(args.PveToken).(pulumi.StringInput)
 	}
 	if args.SshPass != nil {
-		untypedSecretValue := pulumi.ToSecret(args.SshPass.ToOutput(ctx.Context()).Untyped())
-		args.SshPass = pulumix.MustConvertTyped[string](untypedSecretValue)
+		args.SshPass = pulumi.ToSecret(args.SshPass).(pulumi.StringInput)
 	}
 	secrets := pulumi.AdditionalSecretOutputs([]string{
 		"pveToken",
@@ -77,21 +74,40 @@ type providerArgs struct {
 
 // The set of arguments for constructing a Provider resource.
 type ProviderArgs struct {
-	PveToken pulumix.Input[string]
-	PveUrl   pulumix.Input[string]
-	PveUser  pulumix.Input[string]
-	SshPass  pulumix.Input[string]
-	SshUser  pulumix.Input[string]
+	PveToken pulumi.StringInput
+	PveUrl   pulumi.StringInput
+	PveUser  pulumi.StringInput
+	SshPass  pulumi.StringInput
+	SshUser  pulumi.StringInput
 }
 
 func (ProviderArgs) ElementType() reflect.Type {
 	return reflect.TypeOf((*providerArgs)(nil)).Elem()
 }
 
+type ProviderInput interface {
+	pulumi.Input
+
+	ToProviderOutput() ProviderOutput
+	ToProviderOutputWithContext(ctx context.Context) ProviderOutput
+}
+
+func (*Provider) ElementType() reflect.Type {
+	return reflect.TypeOf((**Provider)(nil)).Elem()
+}
+
+func (i *Provider) ToProviderOutput() ProviderOutput {
+	return i.ToProviderOutputWithContext(context.Background())
+}
+
+func (i *Provider) ToProviderOutputWithContext(ctx context.Context) ProviderOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(ProviderOutput)
+}
+
 type ProviderOutput struct{ *pulumi.OutputState }
 
 func (ProviderOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*Provider)(nil)).Elem()
+	return reflect.TypeOf((**Provider)(nil)).Elem()
 }
 
 func (o ProviderOutput) ToProviderOutput() ProviderOutput {
@@ -102,37 +118,27 @@ func (o ProviderOutput) ToProviderOutputWithContext(ctx context.Context) Provide
 	return o
 }
 
-func (o ProviderOutput) ToOutput(ctx context.Context) pulumix.Output[Provider] {
-	return pulumix.Output[Provider]{
-		OutputState: o.OutputState,
-	}
+func (o ProviderOutput) PveToken() pulumi.StringOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.PveToken }).(pulumi.StringOutput)
 }
 
-func (o ProviderOutput) PveToken() pulumix.Output[string] {
-	value := pulumix.Apply[Provider](o, func(v Provider) pulumix.Output[string] { return v.PveToken })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o ProviderOutput) PveUrl() pulumi.StringOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.PveUrl }).(pulumi.StringOutput)
 }
 
-func (o ProviderOutput) PveUrl() pulumix.Output[string] {
-	value := pulumix.Apply[Provider](o, func(v Provider) pulumix.Output[string] { return v.PveUrl })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o ProviderOutput) PveUser() pulumi.StringOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.PveUser }).(pulumi.StringOutput)
 }
 
-func (o ProviderOutput) PveUser() pulumix.Output[string] {
-	value := pulumix.Apply[Provider](o, func(v Provider) pulumix.Output[string] { return v.PveUser })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o ProviderOutput) SshPass() pulumi.StringOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.SshPass }).(pulumi.StringOutput)
 }
 
-func (o ProviderOutput) SshPass() pulumix.Output[string] {
-	value := pulumix.Apply[Provider](o, func(v Provider) pulumix.Output[string] { return v.SshPass })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
-}
-
-func (o ProviderOutput) SshUser() pulumix.Output[string] {
-	value := pulumix.Apply[Provider](o, func(v Provider) pulumix.Output[string] { return v.SshUser })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o ProviderOutput) SshUser() pulumi.StringOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.SshUser }).(pulumi.StringOutput)
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*ProviderInput)(nil)).Elem(), &Provider{})
 	pulumi.RegisterOutputType(ProviderOutput{})
 }

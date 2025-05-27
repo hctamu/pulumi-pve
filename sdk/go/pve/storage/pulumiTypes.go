@@ -7,9 +7,8 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumix"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 var _ = internal.GetEnvOrDefault
@@ -21,11 +20,22 @@ type FileSourceRaw struct {
 	FileName string `pulumi:"fileName"`
 }
 
+// FileSourceRawInput is an input type that accepts FileSourceRawArgs and FileSourceRawOutput values.
+// You can construct a concrete instance of `FileSourceRawInput` via:
+//
+//	FileSourceRawArgs{...}
+type FileSourceRawInput interface {
+	pulumi.Input
+
+	ToFileSourceRawOutput() FileSourceRawOutput
+	ToFileSourceRawOutputWithContext(context.Context) FileSourceRawOutput
+}
+
 type FileSourceRawArgs struct {
 	// The raw data in []byte
-	FileData pulumix.Input[string] `pulumi:"fileData"`
+	FileData pulumi.StringInput `pulumi:"fileData"`
 	// The name of the file
-	FileName pulumix.Input[string] `pulumi:"fileName"`
+	FileName pulumi.StringInput `pulumi:"fileName"`
 }
 
 func (FileSourceRawArgs) ElementType() reflect.Type {
@@ -38,10 +48,6 @@ func (i FileSourceRawArgs) ToFileSourceRawOutput() FileSourceRawOutput {
 
 func (i FileSourceRawArgs) ToFileSourceRawOutputWithContext(ctx context.Context) FileSourceRawOutput {
 	return pulumi.ToOutputWithContext(ctx, i).(FileSourceRawOutput)
-}
-
-func (i *FileSourceRawArgs) ToOutput(ctx context.Context) pulumix.Output[*FileSourceRawArgs] {
-	return pulumix.Val(i)
 }
 
 type FileSourceRawOutput struct{ *pulumi.OutputState }
@@ -58,22 +64,17 @@ func (o FileSourceRawOutput) ToFileSourceRawOutputWithContext(ctx context.Contex
 	return o
 }
 
-func (o FileSourceRawOutput) ToOutput(ctx context.Context) pulumix.Output[FileSourceRaw] {
-	return pulumix.Output[FileSourceRaw]{
-		OutputState: o.OutputState,
-	}
-}
-
 // The raw data in []byte
-func (o FileSourceRawOutput) FileData() pulumix.Output[string] {
-	return pulumix.Apply[FileSourceRaw](o, func(v FileSourceRaw) string { return v.FileData })
+func (o FileSourceRawOutput) FileData() pulumi.StringOutput {
+	return o.ApplyT(func(v FileSourceRaw) string { return v.FileData }).(pulumi.StringOutput)
 }
 
 // The name of the file
-func (o FileSourceRawOutput) FileName() pulumix.Output[string] {
-	return pulumix.Apply[FileSourceRaw](o, func(v FileSourceRaw) string { return v.FileName })
+func (o FileSourceRawOutput) FileName() pulumi.StringOutput {
+	return o.ApplyT(func(v FileSourceRaw) string { return v.FileName }).(pulumi.StringOutput)
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*FileSourceRawInput)(nil)).Elem(), FileSourceRawArgs{})
 	pulumi.RegisterOutputType(FileSourceRawOutput{})
 }
