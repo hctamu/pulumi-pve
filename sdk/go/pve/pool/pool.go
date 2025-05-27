@@ -8,9 +8,8 @@ import (
 	"reflect"
 
 	"errors"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumix"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.
@@ -18,9 +17,9 @@ type Pool struct {
 	pulumi.CustomResourceState
 
 	// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
-	Comment pulumix.Output[*string] `pulumi:"comment"`
+	Comment pulumi.StringPtrOutput `pulumi:"comment"`
 	// The name of the Proxmox pool.
-	Name pulumix.Output[string] `pulumi:"name"`
+	Name pulumi.StringOutput `pulumi:"name"`
 }
 
 // NewPool registers a new resource with the given unique name, arguments, and options.
@@ -34,7 +33,7 @@ func NewPool(ctx *pulumi.Context,
 		return nil, errors.New("invalid value for required argument 'Name'")
 	}
 	if args.Comment == nil {
-		args.Comment = pulumix.Ptr("Default pool comment")
+		args.Comment = pulumi.StringPtr("Default pool comment")
 	}
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource Pool
@@ -78,19 +77,88 @@ type poolArgs struct {
 // The set of arguments for constructing a Pool resource.
 type PoolArgs struct {
 	// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
-	Comment pulumix.Input[*string]
+	Comment pulumi.StringPtrInput
 	// The name of the Proxmox pool.
-	Name pulumix.Input[string]
+	Name pulumi.StringInput
 }
 
 func (PoolArgs) ElementType() reflect.Type {
 	return reflect.TypeOf((*poolArgs)(nil)).Elem()
 }
 
+type PoolInput interface {
+	pulumi.Input
+
+	ToPoolOutput() PoolOutput
+	ToPoolOutputWithContext(ctx context.Context) PoolOutput
+}
+
+func (*Pool) ElementType() reflect.Type {
+	return reflect.TypeOf((**Pool)(nil)).Elem()
+}
+
+func (i *Pool) ToPoolOutput() PoolOutput {
+	return i.ToPoolOutputWithContext(context.Background())
+}
+
+func (i *Pool) ToPoolOutputWithContext(ctx context.Context) PoolOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(PoolOutput)
+}
+
+// PoolArrayInput is an input type that accepts PoolArray and PoolArrayOutput values.
+// You can construct a concrete instance of `PoolArrayInput` via:
+//
+//	PoolArray{ PoolArgs{...} }
+type PoolArrayInput interface {
+	pulumi.Input
+
+	ToPoolArrayOutput() PoolArrayOutput
+	ToPoolArrayOutputWithContext(context.Context) PoolArrayOutput
+}
+
+type PoolArray []PoolInput
+
+func (PoolArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*Pool)(nil)).Elem()
+}
+
+func (i PoolArray) ToPoolArrayOutput() PoolArrayOutput {
+	return i.ToPoolArrayOutputWithContext(context.Background())
+}
+
+func (i PoolArray) ToPoolArrayOutputWithContext(ctx context.Context) PoolArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(PoolArrayOutput)
+}
+
+// PoolMapInput is an input type that accepts PoolMap and PoolMapOutput values.
+// You can construct a concrete instance of `PoolMapInput` via:
+//
+//	PoolMap{ "key": PoolArgs{...} }
+type PoolMapInput interface {
+	pulumi.Input
+
+	ToPoolMapOutput() PoolMapOutput
+	ToPoolMapOutputWithContext(context.Context) PoolMapOutput
+}
+
+type PoolMap map[string]PoolInput
+
+func (PoolMap) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*Pool)(nil)).Elem()
+}
+
+func (i PoolMap) ToPoolMapOutput() PoolMapOutput {
+	return i.ToPoolMapOutputWithContext(context.Background())
+}
+
+func (i PoolMap) ToPoolMapOutputWithContext(ctx context.Context) PoolMapOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(PoolMapOutput)
+}
+
 type PoolOutput struct{ *pulumi.OutputState }
 
 func (PoolOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*Pool)(nil)).Elem()
+	return reflect.TypeOf((**Pool)(nil)).Elem()
 }
 
 func (o PoolOutput) ToPoolOutput() PoolOutput {
@@ -101,24 +169,61 @@ func (o PoolOutput) ToPoolOutputWithContext(ctx context.Context) PoolOutput {
 	return o
 }
 
-func (o PoolOutput) ToOutput(ctx context.Context) pulumix.Output[Pool] {
-	return pulumix.Output[Pool]{
-		OutputState: o.OutputState,
-	}
-}
-
 // An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
-func (o PoolOutput) Comment() pulumix.Output[*string] {
-	value := pulumix.Apply[Pool](o, func(v Pool) pulumix.Output[*string] { return v.Comment })
-	return pulumix.Flatten[*string, pulumix.Output[*string]](value)
+func (o PoolOutput) Comment() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Pool) pulumi.StringPtrOutput { return v.Comment }).(pulumi.StringPtrOutput)
 }
 
 // The name of the Proxmox pool.
-func (o PoolOutput) Name() pulumix.Output[string] {
-	value := pulumix.Apply[Pool](o, func(v Pool) pulumix.Output[string] { return v.Name })
-	return pulumix.Flatten[string, pulumix.Output[string]](value)
+func (o PoolOutput) Name() pulumi.StringOutput {
+	return o.ApplyT(func(v *Pool) pulumi.StringOutput { return v.Name }).(pulumi.StringOutput)
+}
+
+type PoolArrayOutput struct{ *pulumi.OutputState }
+
+func (PoolArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*Pool)(nil)).Elem()
+}
+
+func (o PoolArrayOutput) ToPoolArrayOutput() PoolArrayOutput {
+	return o
+}
+
+func (o PoolArrayOutput) ToPoolArrayOutputWithContext(ctx context.Context) PoolArrayOutput {
+	return o
+}
+
+func (o PoolArrayOutput) Index(i pulumi.IntInput) PoolOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) *Pool {
+		return vs[0].([]*Pool)[vs[1].(int)]
+	}).(PoolOutput)
+}
+
+type PoolMapOutput struct{ *pulumi.OutputState }
+
+func (PoolMapOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*Pool)(nil)).Elem()
+}
+
+func (o PoolMapOutput) ToPoolMapOutput() PoolMapOutput {
+	return o
+}
+
+func (o PoolMapOutput) ToPoolMapOutputWithContext(ctx context.Context) PoolMapOutput {
+	return o
+}
+
+func (o PoolMapOutput) MapIndex(k pulumi.StringInput) PoolOutput {
+	return pulumi.All(o, k).ApplyT(func(vs []interface{}) *Pool {
+		return vs[0].(map[string]*Pool)[vs[1].(string)]
+	}).(PoolOutput)
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*PoolInput)(nil)).Elem(), &Pool{})
+	pulumi.RegisterInputType(reflect.TypeOf((*PoolArrayInput)(nil)).Elem(), PoolArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*PoolMapInput)(nil)).Elem(), PoolMap{})
 	pulumi.RegisterOutputType(PoolOutput{})
+	pulumi.RegisterOutputType(PoolArrayOutput{})
+	pulumi.RegisterOutputType(PoolMapOutput{})
 }
