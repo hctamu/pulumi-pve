@@ -1,7 +1,7 @@
 FROM pulumi/pulumi-provider-build-environment:3.159.0-amd64
 
 RUN apt-get update && apt-get install -y \
-    zip && \
+    zip \
     vim
 
 RUN go install github.com/go-delve/delve/cmd/dlv@latest

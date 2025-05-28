@@ -1,4 +1,5 @@
 template: native
+organization: hctamu
 provider: pve
 major-version: 0
 providerDefaultBranch: main
