@@ -150,8 +150,8 @@ install_java_sdk::
 	#target intentionally blank
 
 install_nodejs_sdk::
-	-yarn unlink --cwd $(WORKING_DIR)/sdk/nodejs/bin
-	yarn link --cwd $(WORKING_DIR)/sdk/nodejs/bin
+	-yarn --cwd $(WORKING_DIR)/sdk/nodejs/bin unlink 
+	yarn --cwd $(WORKING_DIR)/sdk/nodejs/bin link
 
 test:: tidy_examples test_provider
 	cd examples && go test -v -tags=all -timeout 2h
