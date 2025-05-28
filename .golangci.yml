@@ -82,6 +82,10 @@ linters-settings:
     allow-unused: true
 
 issues:
+  exclude-dirs:
+    - sdk
+    - provider
+    - examples
   exclude-use-default: false
   exclude-rules:
     # Don't warn on unused parameters.
