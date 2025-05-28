@@ -230,7 +230,7 @@ ci-mgmt: .ci-mgmt.yaml
 codegen: # Required by CI
 
 .PHONY: generate_schema
-generate_schema: ${SCHEMA_PATH} # Required by CI
+generate_schema: $(SCHEMA_FILE) # Required by CI
 
 .PHONY: build_go install_go_sdk
 generate_go: sdk/go # Required by CI
