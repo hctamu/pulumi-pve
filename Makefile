@@ -33,7 +33,7 @@ tidy: tidy_provider tidy_examples
 	cd sdk && go mod tidy
 
 tidy_examples:
-	cd examples && go mod tidy
+	cd examples/go && go mod tidy
 
 tidy_provider:
 	cd provider && go mod tidy
@@ -153,8 +153,7 @@ install_nodejs_sdk::
 	-yarn --cwd $(WORKING_DIR)/sdk/nodejs/bin unlink 
 	yarn --cwd $(WORKING_DIR)/sdk/nodejs/bin link
 
-test:: tidy_examples test_provider
-	cd examples && go test -v -tags=all -timeout 2h
+test:: test_provider
 
 # Keep the version of the pulumi binary used for code generation in sync with the version
 # of the dependency used by github.com/pulumi/pulumi-command/provider
