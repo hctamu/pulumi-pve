@@ -1,5 +1,5 @@
 {
-    "name": "@pulumi/pve",
+    "name": "@hctamu/pulumi-pve",
     "version": "1.0.0-alpha.0+dev",
     "repository": "https://github.com/hctamu/pulumi-pve",
     "scripts": {

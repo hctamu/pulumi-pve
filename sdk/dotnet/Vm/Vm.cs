@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Pve.Vm
+namespace Hctamu.Pve.Vm
 {
     [PveResourceType("pve:vm:Vm")]
     public partial class Vm : global::Pulumi.CustomResource

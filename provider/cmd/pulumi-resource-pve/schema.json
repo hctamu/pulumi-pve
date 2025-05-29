@@ -3,6 +3,7 @@
   "displayName": "pve",
   "description": "PVE Provider",
   "repository": "https://github.com/hctamu/pulumi-pve",
+  "namespace": "hctamu",
   "meta": {
     "moduleFormat": "(.*)"
   },
@@ -28,9 +29,11 @@
       "gradleNexusPublishPluginVersion": "2.0.0"
     },
     "nodejs": {
+      "packageName": "@hctamu/pulumi-pve",
       "respectSchemaVersion": true
     },
     "python": {
+      "packageName": "pulumi_pve",
       "pyproject": {
         "enabled": true
       },
