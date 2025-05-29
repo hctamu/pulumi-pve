@@ -234,23 +234,20 @@ generate_schema: $(SCHEMA_FILE) # Required by CI
 
 .PHONY: build_go install_go_sdk
 generate_go: sdk/go # Required by CI
-build_go: # Required by CI
+build_go: go_sdk # Required by CI
 
 .PHONY: build_java install_java_sdk
 generate_java: sdk/java # Required by CI
-build_java: # Required by CI
+build_java: java_sdk# Required by CI
 
 .PHONY: build_python install_python_sdk
 generate_python: sdk/python # Required by CI
-build_python: # Required by CI
+build_python: python_sdk# Required by CI
 
 .PHONY: build_nodejs install_nodejs_sdk
 generate_nodejs: sdk/nodejs # Required by CI
-build_nodejs: # Required by CI
+build_nodejs: nodejs_sdk # Required by CI
 
 .PHONY: build_dotnet install_dotnet_sdk
 generate_dotnet: sdk/dotnet # Required by CI
-build_dotnet: # Required by CI
-
-bin/pulumi-gen-${PACK}: # Required by CI
-	touch bin/pulumi-gen-${PACK}
+build_dotnet: dotnet_sdk # Required by CI
