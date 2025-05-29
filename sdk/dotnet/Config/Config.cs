@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Immutable;
 
-namespace Pulumi.Pve
+namespace Hctamu.Pve
 {
     public static class Config
     {

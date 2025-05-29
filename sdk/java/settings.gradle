@@ -10,5 +10,5 @@ pluginManagement {
   }
 }
 
-rootProject.name = "com.pulumi.pve"
+rootProject.name = "com.hctamu.pve"
 include("lib")

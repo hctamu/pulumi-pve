@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Pve.Storage
+namespace Hctamu.Pve.Storage
 {
     [PveResourceType("pve:storage:File")]
     public partial class File : global::Pulumi.CustomResource

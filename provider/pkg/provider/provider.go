@@ -45,6 +45,7 @@ func Provider() p.Provider {
 			"provider": "index",
 		},
 		Metadata: schema.Metadata{
+			Namespace:   "hctamu",
 			DisplayName: "pve",
 			Description: "PVE Provider",
 			LanguageMap: map[string]any{
@@ -61,12 +62,14 @@ func Provider() p.Provider {
 				},
 				"nodejs": map[string]any{
 					"respectSchemaVersion": true,
+					"packageName":          "@hctamu/pulumi-pve",
 				},
 				"python": map[string]any{
 					"respectSchemaVersion": true,
 					"pyproject": map[string]bool{
 						"enabled": true,
 					},
+					"packageName": "pulumi_pve",
 				},
 				"java": map[string]any{
 					"buildFiles":                      "gradle",

@@ -17,6 +17,28 @@ env:
   DOTNETVERSION: "9.0.x"
   JAVAVERSION: "11"
   PR_COMMIT_SHA: ${{ github.event.client_payload.pull_request.head.sha }}
+  # AZURE_SIGNING_CLIENT_ID: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+  # AZURE_SIGNING_CLIENT_SECRET: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
+  # AZURE_SIGNING_TENANT_ID: ${{ secrets.AZURE_SIGNING_TENANT_ID }}
+  # AZURE_SIGNING_KEY_VAULT_URI: ${{ secrets.AZURE_SIGNING_KEY_VAULT_URI }}
+  SKIP_SIGNING: ${{ secrets.AZURE_SIGNING_CLIENT_ID == '' &&
+    secrets.AZURE_SIGNING_CLIENT_SECRET == '' && secrets.AZURE_SIGNING_TENANT_ID
+    == '' && secrets.AZURE_SIGNING_KEY_VAULT_URI == '' }}
+  # PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+  # PULUMI_LOCAL_NUGET: ${{ github.workspace }}/nuget
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  # NUGET_PUBLISH_KEY: ${{ secrets.NUGET_PUBLISH_KEY }}
+  #PYPI_USERNAME: __token__
+  #PYPI_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+  TRAVIS_OS_NAME: linux
+  PULUMI_GO_DEP_ROOT: ${{ github.workspace }}/..
+  # PUBLISH_REPO_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+  # PUBLISH_REPO_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+  # SIGNING_KEY_ID: ${{ secrets.JAVA_SIGNING_KEY_ID }}
+  # SIGNING_KEY: ${{ secrets.JAVA_SIGNING_KEY }}
+  # SIGNING_PASSWORD: ${{ secrets.JAVA_SIGNING_PASSWORD }}
+  NO_TFGEN_PYTHON_PACKAGE: true
 jobs:
   prerequisites:
     runs-on: ubuntu-latest

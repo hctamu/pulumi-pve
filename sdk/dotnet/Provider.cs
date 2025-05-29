@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Pve
+namespace Hctamu.Pve
 {
     [PveResourceType("pulumi:providers:pve")]
     public partial class Provider : global::Pulumi.ProviderResource
