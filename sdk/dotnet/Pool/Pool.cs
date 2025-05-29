@@ -6,8 +6,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
+using Pulumi;
 
-namespace Pulumi.Pve.Pool
+namespace Hctamu.Pve.Pool
 {
     /// <summary>
     /// A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.
