@@ -45,9 +45,9 @@ func Provider() p.Provider {
 			"provider": "index",
 		},
 		Metadata: schema.Metadata{
-			Namespace:   "hctamu",
 			DisplayName: "pve",
 			Description: "PVE Provider",
+			Namespace:   "hctamu",
 			LanguageMap: map[string]any{
 				"csharp": map[string]any{
 					"respectSchemaVersion": true,
