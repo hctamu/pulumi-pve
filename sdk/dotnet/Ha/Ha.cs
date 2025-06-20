@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
-using Pulumi;
 
-namespace Hctamu.Pve.Ha
+namespace Pulumi.Pve.Ha
 {
     /// <summary>
     /// A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.

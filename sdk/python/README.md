@@ -30,21 +30,13 @@ You now have:
 
 This repository depends on the pulumi-go-provider library. For more details on building providers, please check the [Pulumi Go Provider](https://github.com/pulumi/pulumi-go-provider) docs.
 
+NPM repository: <https://www.npmjs.com/settings/hctamu/packages>
+
 ### Release new version
 
-```bash
-make release
-```
+To release new version create a new release on Github, with the following tag syntax: v*.\*.\*
 
-or
-
-```bash
-git add .
-git commit -m "feat: commit message"
-git tag -a v0.0.1 -m "Tag message to explain what you updated in this version"
-git tag -a sdk/v0.0.1 -m "Tag message to explain what you updated in this version"
-git push --follow-tags
-```
+A pipeline will automatically release the provider with the given version.
 
 
 ### Build the provider and install the plugin

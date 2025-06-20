@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
-using Pulumi;
 
-namespace Hctamu.Pve.Storage.Inputs
+namespace Pulumi.Pve.Storage.Inputs
 {
 
     public sealed class FileSourceRawArgs : global::Pulumi.ResourceArgs

@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
 using Pulumi.Serialization;
-using Pulumi;
 
-namespace Hctamu.Pve.Vm.Inputs
+namespace Pulumi.Pve.Vm.Inputs
 {
 
     public sealed class VmCloneArgs : global::Pulumi.ResourceArgs

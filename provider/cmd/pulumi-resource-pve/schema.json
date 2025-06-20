@@ -3,7 +3,6 @@
   "displayName": "pve",
   "description": "PVE Provider",
   "repository": "https://github.com/hctamu/pulumi-pve",
-  "namespace": "hctamu",
   "meta": {
     "moduleFormat": "(.*)"
   },
