@@ -4,7 +4,7 @@ PACK             := pve
 PACKDIR          := sdk
 PROJECT          := github.com/hctamu/pulumi-pve
 NODE_MODULE_NAME := @hctamu/pve
-NUGET_PKG_NAME   := Hctamu.Pve
+NUGET_PKG_NAME   := Pulumi.Pve
 
 PROVIDER        := pulumi-resource-${PACK}
 PROVIDER_PATH   := provider
