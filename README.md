@@ -31,6 +31,8 @@ You now have:
 This repository depends on the pulumi-go-provider library. For more details on building providers, please check the [Pulumi Go Provider](https://github.com/pulumi/pulumi-go-provider) docs.
 
 NPM repository: <https://www.npmjs.com/settings/hctamu/packages>
+Nuget repository: <https://www.nuget.org/packages/Hctamu.Pve>
+PyPi repository: <https://pypi.org/project/pulumi-pve/>
 
 ### Release new version
 
