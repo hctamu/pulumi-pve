@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 RUN curl -s "https://get.sdkman.io" | bash
-
+test
 RUN chmod a+x "$HOME/.sdkman/bin/sdkman-init.sh"
 
 RUN ["/bin/bash", "-c", "source $HOME/.sdkman/bin/sdkman-init.sh && \
