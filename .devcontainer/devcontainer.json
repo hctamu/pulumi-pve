@@ -8,7 +8,13 @@
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile"
 	},
-
+	"mounts": [],
+	// For this to work the user needs to have a valid SSH key in their home directory called id_ed25519.pub
+	"postStartCommand": "git config --global gpg.format ssh; git config --global user.signingkey /root/.ssh/id_ed25519.pub",
+	"runArgs": [
+		"--name", "pulumi-pve",
+		"-v", "${localEnv:HOME}/.ssh/id_ed25519.pub:/root/.ssh/id_ed25519.pub:Z"
+		],
 	"customizations": {
 			"vscode": {
 				"extensions": [
