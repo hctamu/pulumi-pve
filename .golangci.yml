@@ -84,7 +84,6 @@ linters-settings:
 issues:
   exclude-dirs:
     - sdk
-    - provider
     - examples
   exclude-use-default: false
   exclude-rules:
