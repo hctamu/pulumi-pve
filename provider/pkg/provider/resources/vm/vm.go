@@ -1,3 +1,17 @@
+// Copyright 2025, Pulumi Corporation.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+// 	http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package vm
 
 import (
@@ -15,44 +29,46 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
+// VM represents a Proxmox virtual machine resource.
 type VM struct{}
 
-var _ = (infer.CustomResource[VMInput, VMOutput])((*VM)(nil))
-var _ = (infer.CustomDelete[VMOutput])((*VM)(nil))
-var _ = (infer.CustomRead[VMInput, VMOutput])((*VM)(nil))
-var _ = (infer.CustomUpdate[VMInput, VMOutput])((*VM)(nil))
+var _ = (infer.CustomResource[Input, Output])((*VM)(nil))
+var _ = (infer.CustomDelete[Output])((*VM)(nil))
+var _ = (infer.CustomRead[Input, Output])((*VM)(nil))
+var _ = (infer.CustomUpdate[Input, Output])((*VM)(nil))
 
-type VMOutput struct {
-	VMInput
+// Output represents the output state of a Proxmox virtual machine resource.
+type Output struct {
+	Input
 }
 
 // Create creates a new virtual machine based on the provided inputs.
 func (vm *VM) Create(
 	ctx context.Context,
 	id string,
-	inputs VMInput,
+	inputs Input,
 	preview bool,
-) (idRet string, output VMOutput, err error) {
+) (idRet string, output Output, err error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Create VM: %v", inputs.VMID)
 
 	if preview {
-		return id, VMOutput{VMInput: inputs}, nil
+		return id, Output{Input: inputs}, nil
 	}
 
 	pxClient, err := client.GetProxmoxClient(ctx)
 	if err != nil {
-		return id, VMOutput{}, err
+		return id, Output{}, err
 	}
 
 	cluster, err := pxClient.Cluster(ctx)
 	if err != nil {
-		return id, VMOutput{}, err
+		return id, Output{}, err
 	}
 
 	nodeName, err := getNodeName(inputs, cluster)
 	if err != nil {
-		return id, VMOutput{}, err
+		return id, Output{}, err
 	}
 
 	inputs.Node = &nodeName
@@ -60,11 +76,11 @@ func (vm *VM) Create(
 	if inputs.VMID == nil {
 		if err = setNextVMId(ctx, cluster, &inputs); err != nil {
 			l.Errorf("error: %v", err)
-			return id, VMOutput{}, err
+			return id, Output{}, err
 		}
 	}
 
-	output = VMOutput{VMInput: inputs}
+	output = Output{Input: inputs}
 
 	l.Infof("Create VM '%v(%v)' on '%v'", *inputs.Name, *inputs.VMID, nodeName)
 	options := inputs.BuildOptions(*inputs.VMID)
@@ -73,33 +89,33 @@ func (vm *VM) Create(
 	var timeout time.Duration
 	if createTask, timeout, err = createVMTask(ctx, inputs, options); err != nil {
 		l.Errorf("error: %v", err)
-		return id, VMOutput{}, err
+		return id, Output{}, err
 	}
 
 	interval := 5 * time.Second
 	if err = createTask.Wait(ctx, interval, timeout); err != nil {
 		l.Errorf("error waiting for VM creation task: %v", err)
-		return id, VMOutput{}, err
+		return id, Output{}, err
 	}
 
 	if inputs.Clone != nil {
 		if err = finalizeClone(ctx, pxClient, inputs, options); err != nil {
 			l.Errorf("error: %v", err)
-			return id, VMOutput{}, err
+			return id, Output{}, err
 		}
 	}
 
 	// Read the current state of the VM after creation
 	if output, err = readCurrentOutput(ctx, vm, id, inputs, output); err != nil {
 		l.Errorf("error: %v", err)
-		return id, VMOutput{}, err
+		return id, Output{}, err
 	}
 
 	return id, output, nil
 }
 
 // setNextVMId sets the next available VM ID.
-func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *VMInput) error {
+func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *Input) error {
 	vmIDInt, err := cluster.NextID(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get next VM ID: %v", err)
@@ -111,7 +127,7 @@ func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *VMInput) err
 // createVMTask creates a task for creating a new VM or cloning an existing one.
 func createVMTask(
 	ctx context.Context,
-	inputs VMInput,
+	inputs Input,
 	options []api.VirtualMachineOption,
 ) (
 	createTask *api.Task,
@@ -123,13 +139,18 @@ func createVMTask(
 		timeout = time.Duration(inputs.Clone.Timeout) * time.Second
 	} else {
 		createTask, err = handleNewVM(ctx, inputs, options)
-		timeout = time.Duration(60 * time.Second)
+		timeout = 60 * time.Second
 	}
 	return createTask, timeout, err
 }
 
 // finalizeClone finalizes the cloning process by updating the disks and configuration.
-func finalizeClone(ctx context.Context, pxClient *px.Client, inputs VMInput, options []api.VirtualMachineOption) (err error) {
+func finalizeClone(
+	ctx context.Context,
+	pxClient *px.Client,
+	inputs Input,
+	options []api.VirtualMachineOption,
+) (err error) {
 	var virtualMachine *api.VirtualMachine
 	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *inputs.VMID, inputs.Node)
 	if err != nil {
@@ -146,7 +167,7 @@ func finalizeClone(ctx context.Context, pxClient *px.Client, inputs VMInput, opt
 		return fmt.Errorf("failed to update cloned VM: %v", err)
 	}
 
-	interval := time.Duration(5 * time.Second)
+	interval := 5 * time.Second
 	timeout := time.Duration(inputs.Clone.Timeout) * time.Second
 	if err = task.Wait(ctx, interval, timeout); err != nil {
 		return fmt.Errorf("failed to wait for cloned VM update: %v", err)
@@ -160,17 +181,17 @@ func readCurrentOutput(
 	ctx context.Context,
 	vm *VM,
 	id string,
-	inputs VMInput,
-	output VMOutput,
-) (currentOutput VMOutput, err error) {
+	inputs Input,
+	output Output,
+) (currentOutput Output, err error) {
 	if _, _, currentOutput, err = vm.Read(ctx, id, inputs, output); err != nil {
-		return VMOutput{}, fmt.Errorf("failed to read VM after creation: %v", err)
+		return Output{}, fmt.Errorf("failed to read VM after creation: %v", err)
 	}
 	return currentOutput, nil
 }
 
 // getNodeName returns the node name from the inputs or selects the first node from the cluster.
-func getNodeName(inputs VMInput, cluster *api.Cluster) (string, error) {
+func getNodeName(inputs Input, cluster *api.Cluster) (string, error) {
 	if inputs.Node != nil {
 		return *inputs.Node, nil
 	}
@@ -181,7 +202,7 @@ func getNodeName(inputs VMInput, cluster *api.Cluster) (string, error) {
 }
 
 // handleClone handles the cloning of a virtual machine.
-func handleClone(ctx context.Context, inputs VMInput) (createTask *api.Task, err error) {
+func handleClone(ctx context.Context, inputs Input) (createTask *api.Task, err error) {
 	pxc, err := client.GetProxmoxClient(ctx)
 	if err != nil {
 		return nil, err
@@ -214,7 +235,7 @@ func handleClone(ctx context.Context, inputs VMInput) (createTask *api.Task, err
 // handleNewVM handles the creation of a new virtual machine.
 func handleNewVM(
 	ctx context.Context,
-	inputs VMInput,
+	inputs Input,
 	options []api.VirtualMachineOption,
 ) (createTask *api.Task, err error) {
 	pxc, err := client.GetProxmoxClient(ctx)
@@ -239,12 +260,12 @@ func handleNewVM(
 func (vm *VM) Read(
 	ctx context.Context,
 	id string,
-	inputs VMInput,
-	output VMOutput,
+	inputs Input,
+	output Output,
 ) (
 	idRet string,
-	normalizedInputs VMInput,
-	normalizedOutputs VMOutput,
+	normalizedInputs Input,
+	normalizedOutputs Output,
 	err error,
 ) {
 	l := p.GetLogger(ctx)
@@ -254,32 +275,32 @@ func (vm *VM) Read(
 	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
 		err = fmt.Errorf("failed to get Proxmox client: %v", err)
 		l.Errorf("Error during getting Proxmox client: %v", err)
-		return "", VMInput{}, VMOutput{}, err
+		return "", Input{}, Output{}, err
 	}
 
 	var virtualMachine *api.VirtualMachine
 	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *inputs.VMID, inputs.Node); err != nil {
-		return "", VMInput{}, VMOutput{}, err
+		return "", Input{}, Output{}, err
 	}
 
-	if normalizedOutputs.VMInput, err = ConvertVMConfigToInputs(virtualMachine); err != nil {
+	if normalizedOutputs.Input, err = ConvertVMConfigToInputs(virtualMachine); err != nil {
 		err = fmt.Errorf("failed to convert VM to inputs %v", err)
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
-		return "", VMInput{}, VMOutput{}, err
+		return "", Input{}, Output{}, err
 	}
 
 	l.Debugf("VM: %v", virtualMachine)
-	return id, normalizedOutputs.VMInput, normalizedOutputs, nil
+	return id, normalizedOutputs.Input, normalizedOutputs, nil
 }
 
 // Update updates the state of the virtual machine.
 func (vm *VM) Update(
 	ctx context.Context,
 	id string,
-	output VMOutput,
-	inputs VMInput,
+	output Output,
+	inputs Input,
 	preview bool,
-) (outputRet VMOutput, err error) {
+) (outputRet Output, err error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Update VM with ID: %v", id)
 
@@ -293,7 +314,7 @@ func (vm *VM) Update(
 		inputs.Node = nodeID
 	}
 
-	outputRet.VMInput = inputs
+	outputRet.Input = inputs
 
 	if preview {
 		return outputRet, nil
@@ -309,7 +330,7 @@ func (vm *VM) Update(
 		return outputRet, err
 	}
 	l.Debugf("VM: %v", virtualMachine)
-	options := inputs.BuildOptionsDiff(*vmID, &output.VMInput)
+	options := inputs.BuildOptionsDiff(*vmID, &output.Input)
 
 	var task *api.Task
 	if task, err = virtualMachine.Config(ctx, options...); err != nil {
@@ -321,7 +342,7 @@ func (vm *VM) Update(
 }
 
 // Delete deletes the virtual machine.
-func (vm *VM) Delete(ctx context.Context, id string, output VMOutput) (err error) {
+func (vm *VM) Delete(ctx context.Context, id string, output Output) (err error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Deleting VM: %v", id)
 
@@ -345,7 +366,7 @@ func (vm *VM) Delete(ctx context.Context, id string, output VMOutput) (err error
 }
 
 // Annotate sets default values for the Args struct.
-func (inputs *VMInput) Annotate(a infer.Annotator) {
+func (inputs *Input) Annotate(a infer.Annotator) {
 	a.SetDefault(&inputs.Cores, 1)
 }
 
