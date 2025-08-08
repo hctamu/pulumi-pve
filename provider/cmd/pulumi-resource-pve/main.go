@@ -24,5 +24,7 @@ import (
 func main() {
 	provider := pve.Provider()
 
-	p.RunProvider(pve.Name, pve.Version, provider)
+	if err := p.RunProvider(pve.Name, pve.Version, provider); err != nil {
+		panic(err)
+	}
 }

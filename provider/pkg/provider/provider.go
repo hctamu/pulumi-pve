@@ -37,8 +37,8 @@ func Provider() p.Provider {
 		Resources: []infer.InferredResource{
 			infer.Resource[*pool.Pool, pool.PoolInput, pool.PoolOutput](),
 			infer.Resource[*storage.File, storage.FileInput, storage.FileOutput](),
-			infer.Resource[*ha.Ha, ha.HaInput, ha.HaOutput](),
-			infer.Resource[*vm.Vm, vm.VmInput, vm.VmOutput](),
+			infer.Resource[*ha.Ha, ha.Input, ha.Output](),
+			infer.Resource[*vm.VM, vm.VMInput, vm.VMOutput](),
 		},
 		Config: infer.Config[config.Config](),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
