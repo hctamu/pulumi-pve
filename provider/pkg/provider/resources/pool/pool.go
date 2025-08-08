@@ -1,16 +1,17 @@
-// Copyright 2025, Pulumi Corporation.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+/* Copyright 2025, Pulumi Corporation.
 
-// 	http://www.apache.org/licenses/LICENSE-2.0
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 // Package pool provides resources for managing Proxmox pools.
 package pool
@@ -31,11 +32,11 @@ import (
 // Pool represents a Proxmox pool resource.
 type Pool struct{}
 
-var _ = (infer.CustomResource[Input, PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomDelete[PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomRead[Input, PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomUpdate[Input, PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomDiff[Input, PoolOutput])((*Pool)(nil))
+var _ = (infer.CustomResource[Input, Output])((*Pool)(nil))
+var _ = (infer.CustomDelete[Output])((*Pool)(nil))
+var _ = (infer.CustomRead[Input, Output])((*Pool)(nil))
+var _ = (infer.CustomUpdate[Input, Output])((*Pool)(nil))
+var _ = (infer.CustomDiff[Input, Output])((*Pool)(nil))
 
 // Input defines the input properties for a Proxmox pool resource.
 type Input struct {
@@ -50,17 +51,17 @@ func (args *Input) Annotate(a infer.Annotator) {
 	a.Describe(&args.Comment, "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.")
 }
 
-// PoolOutput defines the output properties for a Proxmox pool resource.
-type PoolOutput struct {
+// Output defines the output properties for a Proxmox pool resource.
+type Output struct {
 	Input
 }
 
 // Create is used to create a new pool resource
 func (pool *Pool) Create(ctx context.Context, id string, inputs Input, preview bool) (
-	idRet string, state PoolOutput, err error) {
+	idRet string, state Output, err error) {
 
 	idRet = id
-	state = PoolOutput{inputs}
+	state = Output{inputs}
 	l := p.GetLogger(ctx)
 	l.Debugf("Create: %v, %v, %v", id, inputs, state)
 	if preview {
@@ -78,8 +79,8 @@ func (pool *Pool) Create(ctx context.Context, id string, inputs Input, preview b
 }
 
 // Read is used to read the state of a pool resource
-func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state PoolOutput) (
-	canonicalID string, normalizedInputs Input, normalizedOutput PoolOutput, err error) {
+func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state Output) (
+	canonicalID string, normalizedInputs Input, normalizedOutput Output, err error) {
 
 	canonicalID = id
 	normalizedInputs = inputs
@@ -107,7 +108,7 @@ func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state PoolO
 
 	l.Debugf("Successfully fetched pool: %+v", poolName)
 
-	normalizedOutput = PoolOutput{
+	normalizedOutput = Output{
 		Input: Input{
 			Name:    poolName,
 			Comment: existingPool.Comment,
@@ -121,7 +122,7 @@ func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state PoolO
 }
 
 // Delete is used to delete a pool resource
-func (pool *Pool) Delete(ctx context.Context, id string, output PoolOutput) (err error) {
+func (pool *Pool) Delete(ctx context.Context, id string, output Output) (err error) {
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
 		return err
@@ -147,8 +148,8 @@ func (pool *Pool) Delete(ctx context.Context, id string, output PoolOutput) (err
 }
 
 // Update is used to update a pool resource
-func (pool *Pool) Update(ctx context.Context, name string, poolState PoolOutput, poolArgs Input, preview bool) (
-	poolStateRet PoolOutput, err error) {
+func (pool *Pool) Update(ctx context.Context, name string, poolState Output, poolArgs Input, preview bool) (
+	poolStateRet Output, err error) {
 
 	poolStateRet = poolState
 	l := p.GetLogger(ctx)
@@ -178,7 +179,7 @@ func (pool *Pool) Update(ctx context.Context, name string, poolState PoolOutput,
 		return poolStateRet, err
 	}
 
-	poolStateRet = PoolOutput{poolArgs}
+	poolStateRet = Output{poolArgs}
 	return poolStateRet, nil
 }
 
@@ -186,7 +187,7 @@ func (pool *Pool) Update(ctx context.Context, name string, poolState PoolOutput,
 func (pool *Pool) Diff(
 	_ context.Context,
 	_ string,
-	olds PoolOutput,
+	olds Output,
 	news Input,
 ) (response p.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
