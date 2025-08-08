@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hctamu/pulumi-pve/provider/px"
@@ -12,6 +13,7 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
+// Pool represents a Proxmox pool resource.
 type Pool struct{}
 
 var _ = (infer.CustomResource[PoolInput, PoolOutput])((*Pool)(nil))
@@ -20,6 +22,7 @@ var _ = (infer.CustomRead[PoolInput, PoolOutput])((*Pool)(nil))
 var _ = (infer.CustomUpdate[PoolInput, PoolOutput])((*Pool)(nil))
 var _ = (infer.CustomDiff[PoolInput, PoolOutput])((*Pool)(nil))
 
+// PoolInput defines the input properties for a Proxmox pool resource.
 type PoolInput struct {
 	Name    string `pulumi:"name"`
 	Comment string `pulumi:"comment,optional"`
@@ -32,6 +35,7 @@ func (args *PoolInput) Annotate(a infer.Annotator) {
 	a.Describe(&args.Comment, "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.")
 }
 
+// PoolOutput defines the output properties for a Proxmox pool resource.
 type PoolOutput struct {
 	PoolInput
 }
@@ -74,7 +78,7 @@ func (pool *Pool) Read(ctx context.Context, id string, inputs PoolInput, state P
 
 	if id == "" {
 		l.Warningf("Missing Pool ID")
-		err = fmt.Errorf("missing pool ID")
+		err = errors.New("missing pool ID")
 		return canonicalID, normalizedInputs, normalizedOutput, err
 	}
 
@@ -90,7 +94,7 @@ func (pool *Pool) Read(ctx context.Context, id string, inputs PoolInput, state P
 
 	normalizedOutput = PoolOutput{
 		PoolInput: PoolInput{
-			Name:    string(poolName),
+			Name:    poolName,
 			Comment: existingPool.Comment,
 		},
 	}
@@ -164,7 +168,12 @@ func (pool *Pool) Update(ctx context.Context, name string, poolState PoolOutput,
 }
 
 // Diff is used to compute the difference between the current state and the desired state of a pool resource
-func (pool *Pool) Diff(_ context.Context, _ string, olds PoolOutput, news PoolInput) (response p.DiffResponse, err error) {
+func (pool *Pool) Diff(
+	_ context.Context,
+	_ string,
+	olds PoolOutput,
+	news PoolInput,
+) (response p.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 	if news.Name != olds.Name {
 		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}

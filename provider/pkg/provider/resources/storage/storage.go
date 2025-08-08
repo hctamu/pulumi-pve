@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	p "github.com/pulumi/pulumi-go-provider"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
@@ -18,12 +18,14 @@ var _ = (infer.CustomRead[FileInput, FileOutput])((*File)(nil))
 var _ = (infer.CustomUpdate[FileInput, FileOutput])((*File)(nil))
 var _ = (infer.CustomDiff[FileInput, FileOutput])((*File)(nil))
 
+// FileInput represents the input properties required to manage a file resource.
 type FileInput struct {
-	DataStoreId string        `pulumi:"datastoreId"`
+	DataStoreID string        `pulumi:"datastoreId"`
 	ContentType string        `pulumi:"contentType"`
 	SourceRaw   FileSourceRaw `pulumi:"sourceRaw"`
 }
 
+// File represents a Pulumi custom resource for managing files in a Proxmox datastore.
 type File struct {
 }
 
@@ -39,7 +41,7 @@ type FileOutput struct {
 // Annotate is used to annotate the input and output properties of the resource.
 // This is used to generate the schema for the resource and give default values.
 func (args *FileInput) Annotate(a infer.Annotator) {
-	a.Describe(&args.DataStoreId, "The datastore to upload the file to.  (e.g:ceph-ha)")
+	a.Describe(&args.DataStoreID, "The datastore to upload the file to.  (e.g:ceph-ha)")
 	a.Describe(&args.ContentType, "The type of the file (e.g: snippets)")
 	a.Describe(&args.SourceRaw, "The raw source data")
 }
@@ -52,7 +54,12 @@ func (args *FileSourceRaw) Annotate(a infer.Annotator) {
 }
 
 // Create creates a new file resource
-func (file *File) Create(ctx context.Context, id string, inputs FileInput, preview bool) (idRet string, output FileOutput, err error) {
+func (file *File) Create(
+	ctx context.Context,
+	id string,
+	inputs FileInput,
+	preview bool,
+) (idRet string, output FileOutput, err error) {
 	if preview {
 		return idRet, output, nil
 	}
@@ -63,10 +70,10 @@ func (file *File) Create(ctx context.Context, id string, inputs FileInput, previ
 		return "", FileOutput{}, fmt.Errorf("error getting ssh client: %v", err)
 	}
 
-	p.GetLogger(ctx).Infof("sending data to %s", sc.TargetIp)
+	p.GetLogger(ctx).Infof("sending data to %s", sc.TargetIP)
 
-	fileName := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreId, inputs.ContentType, inputs.SourceRaw.FileName)
-	fileData := string(inputs.SourceRaw.FileData)
+	fileName := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreID, inputs.ContentType, inputs.SourceRaw.FileName)
+	fileData := inputs.SourceRaw.FileData
 	if _, err = sc.Run(sc.Write(), fileName, fileData); err != nil {
 		return "", output, fmt.Errorf("error sending data via SSH: %v", err)
 	}
@@ -84,7 +91,12 @@ func (file *File) Delete(ctx context.Context, id string, output FileOutput) (err
 		return fmt.Errorf("error getting ssh client: %v", err)
 	}
 
-	filePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", output.FileInput.DataStoreId, output.FileInput.ContentType, output.FileInput.SourceRaw.FileName)
+	filePath := fmt.Sprintf(
+		"/mnt/pve/%s/%s/%s",
+		output.FileInput.DataStoreID,
+		output.FileInput.ContentType,
+		output.FileInput.SourceRaw.FileName,
+	)
 	if _, err = sshClient.Run(sshClient.Delete(), filePath); err != nil {
 		return fmt.Errorf("error removing file via SSH: %v", err)
 	}
@@ -93,7 +105,17 @@ func (file *File) Delete(ctx context.Context, id string, output FileOutput) (err
 }
 
 // Read reads a file resource
-func (file *File) Read(ctx context.Context, id string, inputs FileInput, outputs FileOutput) (canonicalID string, normalizedInputs FileInput, normalizedOutputs FileOutput, err error) {
+func (file *File) Read(
+	ctx context.Context,
+	id string,
+	inputs FileInput,
+	outputs FileOutput,
+) (
+	canonicalID string,
+	normalizedInputs FileInput,
+	normalizedOutputs FileOutput,
+	err error,
+) {
 	// Get SSH client
 	sshClient, err := client.GetSSHClient(ctx)
 	if err != nil {
@@ -101,7 +123,7 @@ func (file *File) Read(ctx context.Context, id string, inputs FileInput, outputs
 	}
 
 	// Construct the remote file path
-	filePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreId, inputs.ContentType, inputs.SourceRaw.FileName)
+	filePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreID, inputs.ContentType, inputs.SourceRaw.FileName)
 	p.GetLogger(ctx).Infof("Reading file from path: %s", filePath)
 
 	// Attempt to read the file content via SSH.
@@ -123,7 +145,13 @@ func (file *File) Read(ctx context.Context, id string, inputs FileInput, outputs
 }
 
 // Update updates a file resource
-func (file *File) Update(ctx context.Context, id string, outputs FileOutput, inputs FileInput, preview bool) (outputsRet FileOutput, err error) {
+func (file *File) Update(
+	ctx context.Context,
+	id string,
+	outputs FileOutput,
+	inputs FileInput,
+	preview bool,
+) (outputsRet FileOutput, err error) {
 	if preview {
 		return outputsRet, nil
 	}
@@ -134,12 +162,17 @@ func (file *File) Update(ctx context.Context, id string, outputs FileOutput, inp
 	}
 
 	// remove the file
-	filePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", outputs.FileInput.DataStoreId, outputs.FileInput.ContentType, outputs.FileInput.SourceRaw.FileName)
+	filePath := fmt.Sprintf(
+		"/mnt/pve/%s/%s/%s",
+		outputs.FileInput.DataStoreID,
+		outputs.FileInput.ContentType,
+		outputs.FileInput.SourceRaw.FileName,
+	)
 	if _, err = sshClient.Run(sshClient.Delete(), filePath); err != nil {
 		return outputsRet, fmt.Errorf("error removing file via SSH: %v", err)
 	}
 
-	newFilePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreId, inputs.ContentType, inputs.SourceRaw.FileName)
+	newFilePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreID, inputs.ContentType, inputs.SourceRaw.FileName)
 	if _, err = sshClient.Run(sshClient.Write(), newFilePath, inputs.SourceRaw.FileData); err != nil {
 		return outputsRet, fmt.Errorf("error creating file via SSH: %v", err)
 	}
@@ -150,10 +183,15 @@ func (file *File) Update(ctx context.Context, id string, outputs FileOutput, inp
 }
 
 // Diff computes the differences between the old and new state of a file resource.
-func (file *File) Diff(ctx context.Context, id string, olds FileOutput, news FileInput) (response p.DiffResponse, err error) {
+func (file *File) Diff(
+	ctx context.Context,
+	id string,
+	olds FileOutput,
+	news FileInput,
+) (response p.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 
-	if news.DataStoreId != olds.FileInput.DataStoreId {
+	if news.DataStoreID != olds.FileInput.DataStoreID {
 		diff["FileInput.dataStoreId"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 	if news.ContentType != olds.FileInput.ContentType {

@@ -18,13 +18,14 @@ var client *px.Client
 var once sync.Once
 
 // newClient creates a new Proxmox client
-func newClient(pveUrl string, pveUser string, pveToken string) (client *px.Client, err error) {
+func newClient(PveURL string, pveUser string, pveToken string) (client *px.Client, err error) {
 	transport := http.DefaultTransport.(*http.Transport)
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
 	httpClient := http.DefaultClient
 	httpClient.Transport = transport
 
-	apiClient := api.NewClient(pveUrl,
+	apiClient := api.NewClient(PveURL,
 		api.WithAPIToken(pveUser, pveToken),
 		api.WithHTTPClient(httpClient),
 	)
@@ -39,11 +40,11 @@ func GetProxmoxClient(ctx context.Context) (ret *px.Client, err error) {
 	once.Do(func() {
 		p.GetLogger(ctx).Debugf("Client is not initialized, initializing now")
 		pveConfig := infer.GetConfig[config.Config](ctx)
-		pveUrl := os.Getenv("PVE_API_URL")
-		if pveUrl != "" {
-			pveConfig.PveUrl = pveUrl
+		pveURL := os.Getenv("PVE_API_URL")
+		if pveURL != "" {
+			pveConfig.PveURL = pveURL
 		}
-		client, err = newClient(pveConfig.PveUrl, pveConfig.PveUser, pveConfig.PveToken)
+		client, err = newClient(pveConfig.PveURL, pveConfig.PveUser, pveConfig.PveToken)
 	})
 
 	if err != nil {

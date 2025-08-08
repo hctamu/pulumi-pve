@@ -39,22 +39,31 @@ func TestPoolCreate(t *testing.T) {
 	// Start the mock server
 	mockServer := mocha.New(t)
 	mockServer.Start()
-	defer mockServer.Close()
+	defer func() {
+		if err := mockServer.Close(); err != nil {
+			t.Errorf("failed to close mock server: %v", err)
+		}
+	}()
 
 	getPool := mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/pools/testpool")).Repeat(2).ReplyFunction(func(request *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-			r := strings.NewReader(`{
-            "data": {
-                "poolid": "testpool",
-                "comment": "updated comment" ,
-                "guests": []
-              }
-          }`)
-			return &reply.Response{
-				Status: http.StatusOK,
-				Body:   r,
-			}, nil
-		}))
+		mocha.Get(expect.URLPath("/pools/testpool")).
+			Repeat(2).
+			ReplyFunction(
+				func(request *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+					r := strings.NewReader(`{
+			"data": {
+				"poolid": "testpool",
+				"comment": "updated comment" ,
+				"guests": []
+			  }
+		  }`)
+					return &reply.Response{
+						Status: http.StatusOK,
+						Body:   r,
+					}, nil
+				},
+			),
+	)
 
 	createPool := mockServer.AddMocks(
 		mocha.Post(expect.URLPath("/pools")).Reply(reply.Created().BodyString(`{
@@ -88,7 +97,11 @@ func TestPoolCreate(t *testing.T) {
 
 	// Set environment variable to direct Proxmox API requests to the mock server
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-	defer os.Unsetenv("PVE_API_URL")
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
 
 	// Start the integration server with the mock setup
 	server := integration.NewServer("pve", semver.Version{Minor: 1}, provider.Provider())

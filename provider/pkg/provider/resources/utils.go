@@ -1,3 +1,4 @@
+// Package resources provides utility functions for resource management.
 package resources
 
 import (
@@ -17,7 +18,7 @@ func DifferPtr[T comparable](a, b *T) bool {
 
 // EndsWithLetter checks if the last character of a string is a letter.
 func EndsWithLetter(str string) bool {
-	if len(str) == 0 {
+	if str == "" {
 		return false // Handle empty string
 	}
 

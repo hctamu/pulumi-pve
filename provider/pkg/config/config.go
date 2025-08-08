@@ -1,8 +1,9 @@
+// Package config provides configuration structures for the PVE provider.
 package config
 
-// Define some provider-level configuration
+// Config holds the configuration for the PVE provider.
 type Config struct {
-	PveUrl   string `pulumi:"pveUrl"`
+	PveURL   string `pulumi:"pveUrl"`
 	PveUser  string `pulumi:"pveUser"`
 	PveToken string `pulumi:"pveToken" provider:"secret"`
 	SSHUser  string `pulumi:"sshUser"`
