@@ -1,3 +1,18 @@
+// Copyright 2025, Pulumi Corporation.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+// 	http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package pool provides resources for managing Proxmox pools.
 package pool
 
 import (
@@ -16,20 +31,20 @@ import (
 // Pool represents a Proxmox pool resource.
 type Pool struct{}
 
-var _ = (infer.CustomResource[PoolInput, PoolOutput])((*Pool)(nil))
+var _ = (infer.CustomResource[Input, PoolOutput])((*Pool)(nil))
 var _ = (infer.CustomDelete[PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomRead[PoolInput, PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomUpdate[PoolInput, PoolOutput])((*Pool)(nil))
-var _ = (infer.CustomDiff[PoolInput, PoolOutput])((*Pool)(nil))
+var _ = (infer.CustomRead[Input, PoolOutput])((*Pool)(nil))
+var _ = (infer.CustomUpdate[Input, PoolOutput])((*Pool)(nil))
+var _ = (infer.CustomDiff[Input, PoolOutput])((*Pool)(nil))
 
-// PoolInput defines the input properties for a Proxmox pool resource.
-type PoolInput struct {
+// Input defines the input properties for a Proxmox pool resource.
+type Input struct {
 	Name    string `pulumi:"name"`
 	Comment string `pulumi:"comment,optional"`
 }
 
 // Annotate is used to annotate the input and output properties of the resource.
-func (args *PoolInput) Annotate(a infer.Annotator) {
+func (args *Input) Annotate(a infer.Annotator) {
 	a.Describe(&args.Name, "The name of the Proxmox pool.")
 	a.SetDefault(&args.Comment, "Default pool comment")
 	a.Describe(&args.Comment, "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.")
@@ -37,11 +52,11 @@ func (args *PoolInput) Annotate(a infer.Annotator) {
 
 // PoolOutput defines the output properties for a Proxmox pool resource.
 type PoolOutput struct {
-	PoolInput
+	Input
 }
 
 // Create is used to create a new pool resource
-func (pool *Pool) Create(ctx context.Context, id string, inputs PoolInput, preview bool) (
+func (pool *Pool) Create(ctx context.Context, id string, inputs Input, preview bool) (
 	idRet string, state PoolOutput, err error) {
 
 	idRet = id
@@ -63,8 +78,8 @@ func (pool *Pool) Create(ctx context.Context, id string, inputs PoolInput, previ
 }
 
 // Read is used to read the state of a pool resource
-func (pool *Pool) Read(ctx context.Context, id string, inputs PoolInput, state PoolOutput) (
-	canonicalID string, normalizedInputs PoolInput, normalizedOutput PoolOutput, err error) {
+func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state PoolOutput) (
+	canonicalID string, normalizedInputs Input, normalizedOutput PoolOutput, err error) {
 
 	canonicalID = id
 	normalizedInputs = inputs
@@ -93,13 +108,13 @@ func (pool *Pool) Read(ctx context.Context, id string, inputs PoolInput, state P
 	l.Debugf("Successfully fetched pool: %+v", poolName)
 
 	normalizedOutput = PoolOutput{
-		PoolInput: PoolInput{
+		Input: Input{
 			Name:    poolName,
 			Comment: existingPool.Comment,
 		},
 	}
 
-	normalizedInputs = normalizedOutput.PoolInput
+	normalizedInputs = normalizedOutput.Input
 
 	l.Debugf("Returning updated state: %+v", normalizedOutput)
 	return canonicalID, normalizedInputs, normalizedOutput, nil
@@ -132,7 +147,7 @@ func (pool *Pool) Delete(ctx context.Context, id string, output PoolOutput) (err
 }
 
 // Update is used to update a pool resource
-func (pool *Pool) Update(ctx context.Context, name string, poolState PoolOutput, poolArgs PoolInput, preview bool) (
+func (pool *Pool) Update(ctx context.Context, name string, poolState PoolOutput, poolArgs Input, preview bool) (
 	poolStateRet PoolOutput, err error) {
 
 	poolStateRet = poolState
@@ -172,7 +187,7 @@ func (pool *Pool) Diff(
 	_ context.Context,
 	_ string,
 	olds PoolOutput,
-	news PoolInput,
+	news Input,
 ) (response p.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 	if news.Name != olds.Name {

@@ -1,3 +1,18 @@
+// Copyright 2025, Pulumi Corporation.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+// 	http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package vm provides virtual machine resource management for Proxmox VE.
 package vm
 
 import (
@@ -31,7 +46,8 @@ func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 	return
 }
 
-type VMInput struct {
+// Input represents the input configuration for a virtual machine.
+type Input struct {
 	Name        *string `pulumi:"name"`
 	Description *string `pulumi:"description,optional"`
 	Node        *string `pulumi:"node,optional"`
@@ -102,10 +118,11 @@ type VMInput struct {
 
 	IPConfig0 *string `pulumi:"ipconfig0,optional"`
 
-	Clone *VMClone `pulumi:"clone,optional"`
+	Clone *Clone `pulumi:"clone,optional"`
 }
 
-type VMClone struct {
+// Clone represents the configuration for cloning a virtual machine.
+type Clone struct {
 	VMID        int     `pulumi:"vmId"`
 	DataStoreID *string `pulumi:"dataStoreId,optional"`
 	FullClone   *bool   `pulumi:"fullClone,optional"`
@@ -114,7 +131,7 @@ type VMClone struct {
 }
 
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInput, error) {
+func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Input, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
@@ -122,18 +139,18 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInput, error) {
 	for diskInterface, diskStr := range diskMap {
 		disk := Disk{Interface: diskInterface}
 		if err := disk.ParseDiskConfig(diskStr); err != nil {
-			return VMInput{}, err
+			return Input{}, err
 		}
 		disks = append(disks, &disk)
 	}
 
 	var vmID int
 	if vm.VMID > math.MaxInt {
-		return VMInput{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
+		return Input{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
 	}
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
-	return VMInput{
+	return Input{
 		Name:        strOrNil(vmConfig.Name),
 		Description: strOrNil(vmConfig.Description),
 		VMID:        &vmID,
@@ -206,7 +223,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInput, error) {
 
 // BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the
 // current and new Args.
-func (inputs *VMInput) BuildOptionsDiff(vmID int, currentInputs *VMInput) (options []api.VirtualMachineOption) {
+func (inputs *Input) BuildOptionsDiff(vmID int, currentInputs *Input) (options []api.VirtualMachineOption) {
 	// Convert memory from MB to GB
 	*inputs.Memory *= 1024
 	*currentInputs.Memory *= 1024
@@ -251,7 +268,7 @@ func (inputs *VMInput) BuildOptionsDiff(vmID int, currentInputs *VMInput) (optio
 }
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
-func (inputs *VMInput) BuildOptions(vmId int) (options []api.VirtualMachineOption) {
+func (inputs *Input) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
 	*inputs.Memory *= 1024
 
 	addOption("name", &options, inputs.Name)
