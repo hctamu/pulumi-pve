@@ -17,9 +17,9 @@ limitations under the License.
 package main
 
 import (
-	p "github.com/pulumi/pulumi-go-provider"
-
 	pve "github.com/hctamu/pulumi-pve/provider/pkg/provider"
+
+	p "github.com/pulumi/pulumi-go-provider"
 )
 
 // Serve the provider against Pulumi's Provider protocol.

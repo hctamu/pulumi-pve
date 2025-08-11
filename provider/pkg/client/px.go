@@ -26,12 +26,15 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
+
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-var client *px.Client
-var once sync.Once
+var (
+	client *px.Client
+	once   sync.Once
+)
 
 // newClient creates a new Proxmox client
 func newClient(pveURL, pveUser, pveToken string) (client *px.Client, err error) {

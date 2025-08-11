@@ -21,19 +21,21 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	px2 "github.com/hctamu/pulumi-pve/provider/px"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // Ensure Ha implements the required interfaces
-var _ = (infer.CustomResource[Input, Output])((*Ha)(nil))
-var _ = (infer.CustomDelete[Output])((*Ha)(nil))
-var _ = (infer.CustomUpdate[Input, Output])((*Ha)(nil))
-var _ = (infer.CustomRead[Input, Output])((*Ha)(nil))
-var _ = (infer.CustomDiff[Input, Output])((*Ha)(nil))
+var (
+	_ = (infer.CustomResource[Input, Output])((*Ha)(nil))
+	_ = (infer.CustomDelete[Output])((*Ha)(nil))
+	_ = (infer.CustomUpdate[Input, Output])((*Ha)(nil))
+	_ = (infer.CustomRead[Input, Output])((*Ha)(nil))
+	_ = (infer.CustomDiff[Input, Output])((*Ha)(nil))
+)
 
 // Ha represents a Proxmox HA resource
 type Ha struct{}
@@ -124,8 +126,8 @@ func (ha *Ha) Delete(ctx context.Context, id string, output Output) (err error) 
 
 // Update updates an existing HA resource
 func (ha *Ha) Update(ctx context.Context, id string, haOutput Output, haInput Input, preview bool) (
-	haOutputRet Output, err error) {
-
+	haOutputRet Output, err error,
+) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Updating ha resource: %v", id)
 	haOutputRet = haOutput
@@ -157,8 +159,8 @@ func (ha *Ha) Update(ctx context.Context, id string, haOutput Output, haInput In
 
 // Read reads the current state of an HA resource
 func (ha *Ha) Read(ctx context.Context, id string, inputs Input, output Output) (
-	canonicalID string, normalizedInputs Input, normalizedOutputs Output, err error) {
-
+	canonicalID string, normalizedInputs Input, normalizedOutputs Output, err error,
+) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Reading ha resource: %v", id)
 	normalizedInputs = inputs

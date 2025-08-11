@@ -21,10 +21,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/px"
-
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
+
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
@@ -32,11 +32,13 @@ import (
 // Pool represents a Proxmox pool resource.
 type Pool struct{}
 
-var _ = (infer.CustomResource[Input, Output])((*Pool)(nil))
-var _ = (infer.CustomDelete[Output])((*Pool)(nil))
-var _ = (infer.CustomRead[Input, Output])((*Pool)(nil))
-var _ = (infer.CustomUpdate[Input, Output])((*Pool)(nil))
-var _ = (infer.CustomDiff[Input, Output])((*Pool)(nil))
+var (
+	_ = (infer.CustomResource[Input, Output])((*Pool)(nil))
+	_ = (infer.CustomDelete[Output])((*Pool)(nil))
+	_ = (infer.CustomRead[Input, Output])((*Pool)(nil))
+	_ = (infer.CustomUpdate[Input, Output])((*Pool)(nil))
+	_ = (infer.CustomDiff[Input, Output])((*Pool)(nil))
+)
 
 // Input defines the input properties for a Proxmox pool resource.
 type Input struct {
@@ -58,8 +60,8 @@ type Output struct {
 
 // Create is used to create a new pool resource
 func (pool *Pool) Create(ctx context.Context, id string, inputs Input, preview bool) (
-	idRet string, state Output, err error) {
-
+	idRet string, state Output, err error,
+) {
 	idRet = id
 	state = Output{inputs}
 	l := p.GetLogger(ctx)
@@ -80,8 +82,8 @@ func (pool *Pool) Create(ctx context.Context, id string, inputs Input, preview b
 
 // Read is used to read the state of a pool resource
 func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state Output) (
-	canonicalID string, normalizedInputs Input, normalizedOutput Output, err error) {
-
+	canonicalID string, normalizedInputs Input, normalizedOutput Output, err error,
+) {
 	canonicalID = id
 	normalizedInputs = inputs
 	l := p.GetLogger(ctx)
@@ -149,8 +151,8 @@ func (pool *Pool) Delete(ctx context.Context, id string, output Output) (err err
 
 // Update is used to update a pool resource
 func (pool *Pool) Update(ctx context.Context, name string, poolState Output, poolArgs Input, preview bool) (
-	poolStateRet Output, err error) {
-
+	poolStateRet Output, err error,
+) {
 	poolStateRet = poolState
 	l := p.GetLogger(ctx)
 	l.Debugf("Updating pool: %v", name)

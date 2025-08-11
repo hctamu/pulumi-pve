@@ -33,10 +33,12 @@ import (
 // VM represents a Proxmox virtual machine resource.
 type VM struct{}
 
-var _ = (infer.CustomResource[Input, Output])((*VM)(nil))
-var _ = (infer.CustomDelete[Output])((*VM)(nil))
-var _ = (infer.CustomRead[Input, Output])((*VM)(nil))
-var _ = (infer.CustomUpdate[Input, Output])((*VM)(nil))
+var (
+	_ = (infer.CustomResource[Input, Output])((*VM)(nil))
+	_ = (infer.CustomDelete[Output])((*VM)(nil))
+	_ = (infer.CustomRead[Input, Output])((*VM)(nil))
+	_ = (infer.CustomUpdate[Input, Output])((*VM)(nil))
+)
 
 // Output represents the output state of a Proxmox virtual machine resource.
 type Output struct {
