@@ -23,13 +23,16 @@ import (
 	"sync"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"golang.org/x/crypto/ssh"
+
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
-	"golang.org/x/crypto/ssh"
 )
 
-var sshClient *SSHClient
-var sshOnce sync.Once
+var (
+	sshClient *SSHClient
+	sshOnce   sync.Once
+)
 
 // SSHCommand represents a command that can be executed over SSH.
 type SSHCommand struct {

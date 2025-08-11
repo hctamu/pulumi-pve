@@ -20,12 +20,14 @@ import (
 	"fmt"
 
 	api "github.com/luthermonson/go-proxmox"
+
 	p "github.com/pulumi/pulumi-go-provider"
 )
 
 // FindVirtualMachine finds a virtual machine by its ID and returns the VM, node, and cluster information.
 func (client *Client) FindVirtualMachine(ctx context.Context, vmID int, lastKnowNode *string) (
-	vm *api.VirtualMachine, node *api.Node, cluster *api.Cluster, err error) {
+	vm *api.VirtualMachine, node *api.Node, cluster *api.Cluster, err error,
+) {
 	logger := p.GetLogger(ctx)
 
 	if cluster, err = client.Cluster(ctx); err != nil {
@@ -55,8 +57,8 @@ func (client *Client) FindVirtualMachine(ctx context.Context, vmID int, lastKnow
 
 // FindVirtualMachineOnNode finds a virtual machine by its ID on a specific node.
 func (client *Client) FindVirtualMachineOnNode(ctx context.Context, vmID int, nodeName string) (
-	vm *api.VirtualMachine, node *api.Node, err error) {
-
+	vm *api.VirtualMachine, node *api.Node, err error,
+) {
 	if node, err = client.Node(ctx, nodeName); err != nil {
 		return nil, nil, err
 	}

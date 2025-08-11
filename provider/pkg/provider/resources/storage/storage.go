@@ -21,18 +21,20 @@ import (
 	"fmt"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	p "github.com/pulumi/pulumi-go-provider"
 
+	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // Unimplemented fields are marked in the comments in the commit (hash): 2a127e9aaab17b21bebd027d3edf13e27b570cf9
 
-var _ = (infer.CustomResource[FileInput, FileOutput])((*File)(nil))
-var _ = (infer.CustomDelete[FileOutput])((*File)(nil))
-var _ = (infer.CustomRead[FileInput, FileOutput])((*File)(nil))
-var _ = (infer.CustomUpdate[FileInput, FileOutput])((*File)(nil))
-var _ = (infer.CustomDiff[FileInput, FileOutput])((*File)(nil))
+var (
+	_ = (infer.CustomResource[FileInput, FileOutput])((*File)(nil))
+	_ = (infer.CustomDelete[FileOutput])((*File)(nil))
+	_ = (infer.CustomRead[FileInput, FileOutput])((*File)(nil))
+	_ = (infer.CustomUpdate[FileInput, FileOutput])((*File)(nil))
+	_ = (infer.CustomDiff[FileInput, FileOutput])((*File)(nil))
+)
 
 // FileInput represents the input properties required to manage a file resource.
 type FileInput struct {
@@ -42,8 +44,7 @@ type FileInput struct {
 }
 
 // File represents a Pulumi custom resource for managing files in a Proxmox datastore.
-type File struct {
-}
+type File struct{}
 
 // FileSourceRaw represents the raw source data for a file upload.
 type FileSourceRaw struct {
@@ -111,9 +112,9 @@ func (file *File) Delete(ctx context.Context, id string, output FileOutput) (err
 
 	filePath := fmt.Sprintf(
 		"/mnt/pve/%s/%s/%s",
-		output.FileInput.DataStoreID,
-		output.FileInput.ContentType,
-		output.FileInput.SourceRaw.FileName,
+		output.DataStoreID,
+		output.ContentType,
+		output.SourceRaw.FileName,
 	)
 	if _, err = sshClient.Run(sshClient.Delete(), filePath); err != nil {
 		return fmt.Errorf("error removing file via SSH: %v", err)
@@ -152,7 +153,7 @@ func (file *File) Read(
 
 	// Update the outputs with the read file content.
 	outputs.FileInput = inputs
-	outputs.FileInput.SourceRaw.FileData = fileContent
+	outputs.SourceRaw.FileData = fileContent
 
 	// Return the canonical ID (unchanged) and the normalized inputs/outputs.
 	canonicalID = id
@@ -182,9 +183,9 @@ func (file *File) Update(
 	// remove the file
 	filePath := fmt.Sprintf(
 		"/mnt/pve/%s/%s/%s",
-		outputs.FileInput.DataStoreID,
-		outputs.FileInput.ContentType,
-		outputs.FileInput.SourceRaw.FileName,
+		outputs.DataStoreID,
+		outputs.ContentType,
+		outputs.SourceRaw.FileName,
 	)
 	if _, err = sshClient.Run(sshClient.Delete(), filePath); err != nil {
 		return outputsRet, fmt.Errorf("error removing file via SSH: %v", err)
@@ -209,17 +210,17 @@ func (file *File) Diff(
 ) (response p.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 
-	if news.DataStoreID != olds.FileInput.DataStoreID {
+	if news.DataStoreID != olds.DataStoreID {
 		diff["FileInput.dataStoreId"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
-	if news.ContentType != olds.FileInput.ContentType {
+	if news.ContentType != olds.ContentType {
 		diff["FileInput.contentType"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
-	if news.SourceRaw.FileName != olds.FileInput.SourceRaw.FileName {
+	if news.SourceRaw.FileName != olds.SourceRaw.FileName {
 		diff["FileInput.sourceRaw.fileName"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 
-	if news.SourceRaw.FileData != olds.FileInput.SourceRaw.FileData {
+	if news.SourceRaw.FileData != olds.SourceRaw.FileData {
 		diff["FileInput.sourceRaw.fileData"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 

@@ -23,13 +23,14 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
-	"github.com/pulumi/pulumi-go-provider/integration"
-	presource "github.com/pulumi/pulumi/sdk/v3/go/common/resource"
 	"github.com/stretchr/testify/assert"
 	"github.com/vitorsalgado/mocha/v3"
 	"github.com/vitorsalgado/mocha/v3/expect"
 	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
+
+	"github.com/pulumi/pulumi-go-provider/integration"
+	presource "github.com/pulumi/pulumi/sdk/v3/go/common/resource"
 )
 
 // Implement a custom PostAction
@@ -50,6 +51,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 	return nil
 }
 
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestPoolCreate(t *testing.T) {
 	// Start the mock server
 	mockServer := mocha.New(t)
