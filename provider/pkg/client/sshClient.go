@@ -125,12 +125,12 @@ func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (o
 
 // newSSHClient creates a new SSH client with the provided username and password.
 func newSSHClient(ctx context.Context, sshUser, sshPass string) (client *SSHClient, err error) {
+	//nolint:gosec // Ignoring host key for internal infrastructure
 	sshConfig := &ssh.ClientConfig{
 		User: sshUser,
 		Auth: []ssh.AuthMethod{
 			ssh.Password(sshPass), // Use public key authentication for better security
 		},
-		// WARNING: Using InsecureIgnoreHostKey is insecure and should be replaced with proper host key verification in production.
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 

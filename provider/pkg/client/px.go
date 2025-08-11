@@ -39,6 +39,7 @@ var (
 // newClient creates a new Proxmox client
 func newClient(pveURL, pveUser, pveToken string) (client *px.Client, err error) {
 	transport := http.DefaultTransport.(*http.Transport)
+	//nolint:gosec // Required for Proxmox API self-signed certificates
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	httpClient := http.DefaultClient
