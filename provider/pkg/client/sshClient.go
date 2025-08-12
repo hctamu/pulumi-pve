@@ -1,48 +1,70 @@
+/* Copyright 2025, Pulumi Corporation.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package client
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"io"
-	"math/rand"
+	"math/big"
 	"sync"
-	"time"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"golang.org/x/crypto/ssh"
+
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
-	"golang.org/x/crypto/ssh"
 )
 
-var sshClient *SSHClient
-var sshOnce sync.Once
+var (
+	sshClient *SSHClient
+	sshOnce   sync.Once
+)
 
-type sshCommand struct {
+// SSHCommand represents a command that can be executed over SSH.
+type SSHCommand struct {
 	string
 }
 
+// SSHClient represents an SSH client connection and its configuration.
 type SSHClient struct {
 	Client   *ssh.Client
 	Config   *ssh.ClientConfig
-	TargetIp string
+	TargetIP string
 }
 
-func (sc SSHClient) Delete() sshCommand {
-	return sshCommand{"rm"}
+// Delete returns an SSHCommand for removing files.
+func (sc SSHClient) Delete() SSHCommand {
+	return SSHCommand{"rm"}
 }
 
-func (sc SSHClient) Read() sshCommand {
-	return sshCommand{"cat"}
+// Read returns an SSHCommand for reading files.
+func (sc SSHClient) Read() SSHCommand {
+	return SSHCommand{"cat"}
 }
 
-func (sc SSHClient) Write() sshCommand {
-	return sshCommand{"cat >"}
+// Write returns an SSHCommand for writing to files.
+func (sc SSHClient) Write() SSHCommand {
+	return SSHCommand{"cat >"}
 }
 
 // Run executes a command on the remote host and returns its output.
-func (sc *SSHClient) Run(command sshCommand, filePath string, data ...string) (output string, err error) {
+func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (output string, err error) {
 	// Dial a new SSH connection
-	sc.Client, err = ssh.Dial("tcp", fmt.Sprintf("%s:22", sc.TargetIp), sc.Config)
+	sc.Client, err = ssh.Dial("tcp", sc.TargetIP+":22", sc.Config)
 	if err != nil {
 		return output, fmt.Errorf("error creating ssh client: %v", err)
 	}
@@ -53,7 +75,11 @@ func (sc *SSHClient) Run(command sshCommand, filePath string, data ...string) (o
 	if err != nil {
 		return output, fmt.Errorf("error creating new ssh session: %v", err)
 	}
-	defer session.Close()
+	defer func() {
+		if cerr := session.Close(); cerr != nil {
+			fmt.Printf("error closing SSH session: %v\n", cerr)
+		}
+	}()
 
 	var out []byte
 	if len(data) < 1 {
@@ -76,13 +102,15 @@ func (sc *SSHClient) Run(command sshCommand, filePath string, data ...string) (o
 		}
 
 		// Write data to the remote process.
-		_, err = io.WriteString(stdin, fmt.Sprintf("%s\n", data[0]))
+		_, err = fmt.Fprintf(stdin, "%s\n", data[0])
 		if err != nil {
 			return output, fmt.Errorf("error writing string: %v", err)
 		}
 
 		// Closing stdin signals EOF to the remote command.
-		stdin.Close()
+		if closeErr := stdin.Close(); closeErr != nil {
+			return output, fmt.Errorf("error closing stdin: %v", closeErr)
+		}
 
 		err = session.Wait()
 		if err != nil {
@@ -97,6 +125,7 @@ func (sc *SSHClient) Run(command sshCommand, filePath string, data ...string) (o
 
 // newSSHClient creates a new SSH client with the provided username and password.
 func newSSHClient(ctx context.Context, sshUser, sshPass string) (client *SSHClient, err error) {
+	//nolint:gosec // Ignoring host key for internal infrastructure
 	sshConfig := &ssh.ClientConfig{
 		User: sshUser,
 		Auth: []ssh.AuthMethod{
@@ -105,14 +134,14 @@ func newSSHClient(ctx context.Context, sshUser, sshPass string) (client *SSHClie
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	sshIp, err := generateSSHHost(ctx)
+	sshIP, err := generateSSHHost(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error getting random host: %v", err)
 	}
 
 	client = &SSHClient{
 		Config:   sshConfig,
-		TargetIp: sshIp,
+		TargetIP: sshIP,
 	}
 
 	return client, nil
@@ -143,8 +172,12 @@ func generateSSHHost(ctx context.Context) (host string, err error) {
 		return "", fmt.Errorf("error getting nodes: %v", err)
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	selectedNodeStatus := nodes[r.Intn(len(nodes))]
+	nodeCount := big.NewInt(int64(len(nodes)))
+	nBig, err := rand.Int(rand.Reader, nodeCount)
+	if err != nil {
+		return "", fmt.Errorf("error generating secure random index: %v", err)
+	}
+	selectedNodeStatus := nodes[nBig.Int64()]
 	nodeObject, err := proxmoxClient.Node(ctx, selectedNodeStatus.Node)
 	if err != nil {
 		return "", fmt.Errorf("error getting selected node %s: %v", selectedNodeStatus.ID, err)

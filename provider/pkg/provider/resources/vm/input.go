@@ -1,7 +1,24 @@
+/* Copyright 2025, Pulumi Corporation.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package vm provides virtual machine resource management for Proxmox VE.
 package vm
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -10,17 +27,19 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// Disk represents a virtual machine disk configuration.
 type Disk struct {
 	Storage   string `pulumi:"storage"`
 	Size      int    `pulumi:"size"`      // Size in Gigabytes.
 	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
-	FileId    string `pulumi:"filename,optional"`
+	FileID    string `pulumi:"filename,optional"`
 }
 
+// ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
 func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 	fullDiskPath := fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
-	if disk.FileId != "" {
-		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, disk.FileId)
+	if disk.FileID != "" {
+		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, disk.FileID)
 	}
 
 	diskKey = disk.Interface
@@ -28,11 +47,12 @@ func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 	return
 }
 
-type VmInput struct {
+// Input represents the input configuration for a virtual machine.
+type Input struct {
 	Name        *string `pulumi:"name"`
 	Description *string `pulumi:"description,optional"`
 	Node        *string `pulumi:"node,optional"`
-	VmId        *int    `pulumi:"vmId,optional"`
+	VMID        *int    `pulumi:"vmId,optional"`
 	Hookscript  *string `pulumi:"hookscript,optional"`
 	Hotplug     *string `pulumi:"hotplug,optional"`
 	Template    *int    `pulumi:"template,optional"`
@@ -99,19 +119,20 @@ type VmInput struct {
 
 	IPConfig0 *string `pulumi:"ipconfig0,optional"`
 
-	Clone *VmClone `pulumi:"clone,optional"`
+	Clone *Clone `pulumi:"clone,optional"`
 }
 
-type VmClone struct {
-	VmId        int     `pulumi:"vmId"`
-	DataStoreId *string `pulumi:"dataStoreId,optional"`
+// Clone represents the configuration for cloning a virtual machine.
+type Clone struct {
+	VMID        int     `pulumi:"vmId"`
+	DataStoreID *string `pulumi:"dataStoreId,optional"`
 	FullClone   *bool   `pulumi:"fullClone,optional"`
-	NodeId      *string `pulumi:"node,optional"`
+	NodeID      *string `pulumi:"node,optional"`
 	Timeout     int     `pulumi:"timeout,optional"`
 }
 
-// ConvertVmConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVmConfigToInputs(vm *api.VirtualMachine) (VmInput, error) {
+// ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
+func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Input, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
@@ -119,17 +140,21 @@ func ConvertVmConfigToInputs(vm *api.VirtualMachine) (VmInput, error) {
 	for diskInterface, diskStr := range diskMap {
 		disk := Disk{Interface: diskInterface}
 		if err := disk.ParseDiskConfig(diskStr); err != nil {
-			return VmInput{}, err
+			return Input{}, err
 		}
 		disks = append(disks, &disk)
 	}
 
-	vmId := int(vm.VMID)
+	var vmID int
+	if vm.VMID > math.MaxInt {
+		return Input{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
+	}
+	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
-	return VmInput{
+	return Input{
 		Name:        strOrNil(vmConfig.Name),
 		Description: strOrNil(vmConfig.Description),
-		VmId:        &vmId,
+		VMID:        &vmID,
 		Hookscript:  strOrNil(vmConfig.Hookscript),
 		Hotplug:     strOrNil(vmConfig.Hotplug),
 		Template:    intOrNil(vmConfig.Template),
@@ -197,11 +222,12 @@ func ConvertVmConfigToInputs(vm *api.VirtualMachine) (VmInput, error) {
 	}, nil
 }
 
-// BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the current and new Args.
-func (inputs *VmInput) BuildOptionsDiff(vmId int, currentInputs *VmInput) (options []api.VirtualMachineOption) {
+// BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the
+// current and new Args.
+func (inputs *Input) BuildOptionsDiff(vmID int, currentInputs *Input) (options []api.VirtualMachineOption) {
 	// Convert memory from MB to GB
-	*inputs.Memory = *inputs.Memory * 1024
-	*currentInputs.Memory = *currentInputs.Memory * 1024
+	*inputs.Memory *= 1024
+	*currentInputs.Memory *= 1024
 
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
@@ -243,8 +269,8 @@ func (inputs *VmInput) BuildOptionsDiff(vmId int, currentInputs *VmInput) (optio
 }
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
-func (inputs *VmInput) BuildOptions(vmId int) (options []api.VirtualMachineOption) {
-	*inputs.Memory = *inputs.Memory * 1024
+func (inputs *Input) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
+	*inputs.Memory *= 1024
 
 	addOption("name", &options, inputs.Name)
 	addOption("memory", &options, inputs.Memory)
@@ -323,7 +349,7 @@ func (disk *Disk) ParseDiskConfig(diskConfig string) (err error) {
 			// Handle disk file configuration
 			diskFile := strings.Split(kv[0], ":")
 			disk.Storage = diskFile[0]
-			disk.FileId = diskFile[1]
+			disk.FileID = diskFile[1]
 		} else {
 			key, value := kv[0], kv[1]
 			switch key {
@@ -331,7 +357,7 @@ func (disk *Disk) ParseDiskConfig(diskConfig string) (err error) {
 				// Handle file configuration
 				diskFile := strings.Split(value, ":")
 				disk.Storage = diskFile[0]
-				disk.FileId = diskFile[1]
+				disk.FileID = diskFile[1]
 			case "size":
 				// Parse and set disk size
 				var size int
