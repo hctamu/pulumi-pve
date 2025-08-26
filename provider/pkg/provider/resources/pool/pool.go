@@ -33,170 +33,159 @@ import (
 type Pool struct{}
 
 var (
-	_ = (infer.CustomResource[Input, Output])((*Pool)(nil))
-	_ = (infer.CustomDelete[Output])((*Pool)(nil))
-	_ = (infer.CustomRead[Input, Output])((*Pool)(nil))
-	_ = (infer.CustomUpdate[Input, Output])((*Pool)(nil))
-	_ = (infer.CustomDiff[Input, Output])((*Pool)(nil))
+	_ = (infer.CustomResource[PoolInputs, PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomDelete[PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomRead[PoolInputs, PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomUpdate[PoolInputs, PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomDiff[PoolInputs, PoolOutputs])((*Pool)(nil))
 )
 
-// Input defines the input properties for a Proxmox pool resource.
-type Input struct {
+// PoolInputs defines the input properties for a Proxmox pool resource.
+type PoolInputs struct {
 	Name    string `pulumi:"name"`
 	Comment string `pulumi:"comment,optional"`
 }
 
 // Annotate is used to annotate the input and output properties of the resource.
-func (args *Input) Annotate(a infer.Annotator) {
+func (args *PoolInputs) Annotate(a infer.Annotator) {
 	a.Describe(&args.Name, "The name of the Proxmox pool.")
 	a.SetDefault(&args.Comment, "Default pool comment")
 	a.Describe(&args.Comment, "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.")
 }
 
-// Output defines the output properties for a Proxmox pool resource.
-type Output struct {
-	Input
+// PoolOutputs defines the output properties for a Proxmox pool resource.
+type PoolOutputs struct {
+	PoolInputs
 }
 
 // Create is used to create a new pool resource
-func (pool *Pool) Create(ctx context.Context, id string, inputs Input, preview bool) (
-	idRet string, state Output, err error,
-) {
-	idRet = id
-	state = Output{inputs}
+func (pool *Pool) Create(ctx context.Context, request infer.CreateRequest[PoolInputs]) (response infer.CreateResponse[PoolOutputs], err error) {
+	response.ID = request.Name
+	response.Output = PoolOutputs{PoolInputs: request.Inputs}
 	l := p.GetLogger(ctx)
-	l.Debugf("Create: %v, %v, %v", id, inputs, state)
-	if preview {
-		return idRet, state, nil
+	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+	if request.DryRun {
+		return response, nil
 	}
 
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-		return idRet, state, err
+		return response, err
 	}
 
-	err = pxc.NewPool(ctx, inputs.Name, inputs.Comment)
+	err = pxc.NewPool(ctx, request.Inputs.Name, request.Inputs.Comment)
 
-	return idRet, state, err
+	return response, err
 }
 
 // Read is used to read the state of a pool resource
-func (pool *Pool) Read(ctx context.Context, id string, inputs Input, state Output) (
-	canonicalID string, normalizedInputs Input, normalizedOutput Output, err error,
-) {
-	canonicalID = id
-	normalizedInputs = inputs
+func (pool *Pool) Read(ctx context.Context, request infer.ReadRequest[PoolInputs, PoolOutputs]) (response infer.ReadResponse[PoolInputs, PoolOutputs], err error) {
+	response.ID = request.ID
+	response.Inputs = request.Inputs
 	l := p.GetLogger(ctx)
-	l.Debugf("Read called for Pool with ID: %s, Inputs: %+v, State: %+v", id, inputs, state)
+	l.Debugf("Read called for Pool with ID: %s, Inputs: %+v, State: %+v", request.ID, request.Inputs, request.State)
 
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-		return canonicalID, normalizedInputs, normalizedOutput, err
+		return response, err
 	}
 
-	if id == "" {
+	if request.ID == "" {
 		l.Warningf("Missing Pool ID")
 		err = errors.New("missing pool ID")
-		return canonicalID, normalizedInputs, normalizedOutput, err
+		return response, err
 	}
 
 	var existingPool *api.Pool
-	if existingPool, err = pxc.Pool(ctx, normalizedInputs.Name); err != nil {
-		err = fmt.Errorf("failed to get pool %s: %v", normalizedInputs.Name, err)
-		return canonicalID, normalizedInputs, normalizedOutput, err
+	if existingPool, err = pxc.Pool(ctx, response.Inputs.Name); err != nil {
+		err = fmt.Errorf("failed to get pool %s: %v", response.Inputs.Name, err)
+		return response, err
 	}
 
 	poolName := existingPool.PoolID
 
 	l.Debugf("Successfully fetched pool: %+v", poolName)
 
-	normalizedOutput = Output{
-		Input: Input{
+	response.State = PoolOutputs{
+		PoolInputs: PoolInputs{
 			Name:    poolName,
 			Comment: existingPool.Comment,
 		},
 	}
 
-	normalizedInputs = normalizedOutput.Input
+	response.Inputs = response.State.PoolInputs
 
-	l.Debugf("Returning updated state: %+v", normalizedOutput)
-	return canonicalID, normalizedInputs, normalizedOutput, nil
+	l.Debugf("Returning updated state: %+v", response.State)
+	return response, nil
 }
 
 // Delete is used to delete a pool resource
-func (pool *Pool) Delete(ctx context.Context, id string, output Output) (err error) {
+func (pool *Pool) Delete(ctx context.Context, request infer.DeleteRequest[PoolOutputs]) (response infer.DeleteResponse, err error) {
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-		return err
+		return response, err
 	}
 
 	l := p.GetLogger(ctx)
-	l.Debugf("Deleting pool %v", output.Name)
+	l.Debugf("Deleting pool %v", request.State.Name)
 
 	var existingPool *api.Pool
-	if existingPool, err = pxc.Pool(ctx, output.Name); err != nil {
-		err = fmt.Errorf("failed to get pool %s: %v", output.Name, err)
+	if existingPool, err = pxc.Pool(ctx, request.State.Name); err != nil {
+		err = fmt.Errorf("failed to get pool %s: %v", request.State.Name, err)
 		l.Error(err.Error())
-		return err
+		return response, err
 	}
 
 	if err = existingPool.Delete(ctx); err != nil {
-		err = fmt.Errorf("failed to delete pool %s: %v", output.Name, err)
+		err = fmt.Errorf("failed to delete pool %s: %v", request.State.Name, err)
 		l.Error(err.Error())
-		return err
+		return response, err
 	}
 
-	return nil
+	return response, nil
 }
 
 // Update is used to update a pool resource
-func (pool *Pool) Update(ctx context.Context, name string, poolState Output, poolArgs Input, preview bool) (
-	poolStateRet Output, err error,
-) {
-	poolStateRet = poolState
+func (pool *Pool) Update(ctx context.Context, request infer.UpdateRequest[PoolInputs, PoolOutputs]) (response infer.UpdateResponse[PoolOutputs], err error) {
+	response.Output = request.State
 	l := p.GetLogger(ctx)
-	l.Debugf("Updating pool: %v", name)
+	l.Debugf("Updating pool: %v", request.State.Name)
 
-	if preview {
-		return poolStateRet, nil
+	if request.DryRun {
+		return response, nil
 	}
 
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-		return poolStateRet, err
+		return response, err
 	}
 
 	var existingPool *api.Pool
-	if existingPool, err = pxc.Pool(ctx, poolState.Name); err != nil {
-		err = fmt.Errorf("failed to get pool %s: %v", poolState.Name, err)
-		return poolStateRet, err
+	if existingPool, err = pxc.Pool(ctx, request.State.Name); err != nil {
+		err = fmt.Errorf("failed to get pool %s: %v", request.State.Name, err)
+		return response, err
 	}
 
 	poolUpdateOption := &api.PoolUpdateOption{
-		Comment: poolArgs.Comment,
+		Comment: request.Inputs.Comment,
 	}
 
 	if err = existingPool.Update(ctx, poolUpdateOption); err != nil {
-		err = fmt.Errorf("failed to update pool %s: %v", poolState.Name, err)
-		return poolStateRet, err
+		err = fmt.Errorf("failed to update pool %s: %v", request.State.Name, err)
+		return response, err
 	}
 
-	poolStateRet = Output{poolArgs}
-	return poolStateRet, nil
+	response.Output = PoolOutputs{request.Inputs}
+	return response, nil
 }
 
 // Diff is used to compute the difference between the current state and the desired state of a pool resource
-func (pool *Pool) Diff(
-	_ context.Context,
-	_ string,
-	olds Output,
-	news Input,
-) (response p.DiffResponse, err error) {
+func (pool *Pool) Diff(_ context.Context, request infer.DiffRequest[PoolInputs, PoolOutputs]) (response infer.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
-	if news.Name != olds.Name {
+	if request.Inputs.Name != request.State.Name {
 		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
-	if news.Comment != olds.Comment {
+	if request.Inputs.Comment != request.State.Comment {
 		diff["comment"] = p.PropertyDiff{Kind: p.Update}
 	}
 

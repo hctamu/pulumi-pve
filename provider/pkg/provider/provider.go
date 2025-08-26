@@ -36,16 +36,16 @@ var Version string
 const Name string = "pve"
 
 // Provider returns a new instance of the PVE provider.
-func Provider() p.Provider {
+func NewProvider() p.Provider {
 	// We tell the provider what resources it needs to support.
 	return infer.Provider(infer.Options{
 		Resources: []infer.InferredResource{
-			infer.Resource[*pool.Pool, pool.Input, pool.Output](),
-			infer.Resource[*storage.File, storage.FileInput, storage.FileOutput](),
-			infer.Resource[*ha.Ha, ha.Input, ha.Output](),
-			infer.Resource[*vm.VM, vm.Input, vm.Output](),
+			infer.Resource(&pool.Pool{}),
+			infer.Resource(&storage.File{}),
+			infer.Resource(&ha.Ha{}),
+			infer.Resource(&vm.VM{}),
 		},
-		Config: infer.Config[config.Config](),
+		Config: infer.Config[config.Config](config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
 			"provider": "index",
 		},

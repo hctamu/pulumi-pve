@@ -37,11 +37,11 @@ export class Pool extends pulumi.CustomResource {
     /**
      * An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
      */
-    public readonly comment!: pulumi.Output<string | undefined>;
+    declare public readonly comment: pulumi.Output<string | undefined>;
     /**
      * The name of the Proxmox pool.
      */
-    public readonly name!: pulumi.Output<string>;
+    declare public readonly name: pulumi.Output<string>;
 
     /**
      * Create a Pool resource with the given unique name, arguments, and options.
@@ -54,11 +54,11 @@ export class Pool extends pulumi.CustomResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            if ((!args || args.name === undefined) && !opts.urn) {
+            if (args?.name === undefined && !opts.urn) {
                 throw new Error("Missing required property 'name'");
             }
-            resourceInputs["comment"] = (args ? args.comment : undefined) ?? "Default pool comment";
-            resourceInputs["name"] = args ? args.name : undefined;
+            resourceInputs["comment"] = (args?.comment) ?? "Default pool comment";
+            resourceInputs["name"] = args?.name;
         } else {
             resourceInputs["comment"] = undefined /*out*/;
             resourceInputs["name"] = undefined /*out*/;

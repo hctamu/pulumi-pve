@@ -19,18 +19,18 @@ export namespace storage {
 }
 
 export namespace vm {
-    export interface DiskArgs {
-        filename?: pulumi.Input<string>;
-        interface: pulumi.Input<string>;
-        size: pulumi.Input<number>;
-        storage: pulumi.Input<string>;
-    }
-
-    export interface VmCloneArgs {
+    export interface CloneArgs {
         dataStoreId?: pulumi.Input<string>;
         fullClone?: pulumi.Input<boolean>;
         node?: pulumi.Input<string>;
         timeout?: pulumi.Input<number>;
         vmId: pulumi.Input<number>;
+    }
+
+    export interface DiskArgs {
+        filename?: pulumi.Input<string>;
+        interface: pulumi.Input<string>;
+        size: pulumi.Input<number>;
+        storage: pulumi.Input<string>;
     }
 }
