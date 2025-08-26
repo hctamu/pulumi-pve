@@ -24,7 +24,7 @@ import (
 	p "github.com/pulumi/pulumi-go-provider"
 )
 
-// Serve the provider against Pulumi's Provider protocol.
+// Serve the provider against Pulumi's Provider protocol.a
 func main() {
 	provider := pve.NewProvider()
 
