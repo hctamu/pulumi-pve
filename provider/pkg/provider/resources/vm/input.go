@@ -47,8 +47,8 @@ func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 	return
 }
 
-// Input represents the input configuration for a virtual machine.
-type VMInputs struct {
+// Inputs represents the input configuration for a virtual machine.
+type Inputs struct {
 	Name        *string `pulumi:"name"`
 	Description *string `pulumi:"description,optional"`
 	Node        *string `pulumi:"node,optional"`
@@ -132,7 +132,7 @@ type Clone struct {
 }
 
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInputs, error) {
+func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
@@ -140,18 +140,18 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInputs, error) {
 	for diskInterface, diskStr := range diskMap {
 		disk := Disk{Interface: diskInterface}
 		if err := disk.ParseDiskConfig(diskStr); err != nil {
-			return VMInputs{}, err
+			return Inputs{}, err
 		}
 		disks = append(disks, &disk)
 	}
 
 	var vmID int
 	if vm.VMID > math.MaxInt {
-		return VMInputs{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
+		return Inputs{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
 	}
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
-	return VMInputs{
+	return Inputs{
 		Name:        strOrNil(vmConfig.Name),
 		Description: strOrNil(vmConfig.Description),
 		VMID:        &vmID,
@@ -224,7 +224,10 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInputs, error) {
 
 // BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the
 // current and new Args.
-func (inputs *VMInputs) BuildOptionsDiff(vmID int, currentInputs *VMInputs) (options []api.VirtualMachineOption) {
+func (inputs *Inputs) BuildOptionsDiff(
+	vmID int,
+	currentInputs *Inputs,
+) (options []api.VirtualMachineOption) {
 	// Convert memory from MB to GB
 	*inputs.Memory *= 1024
 	*currentInputs.Memory *= 1024
@@ -269,7 +272,7 @@ func (inputs *VMInputs) BuildOptionsDiff(vmID int, currentInputs *VMInputs) (opt
 }
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
-func (inputs *VMInputs) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
+func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
 	*inputs.Memory *= 1024
 
 	addOption("name", &options, inputs.Name)
@@ -310,7 +313,10 @@ func (inputs *VMInputs) BuildOptions(vmID int) (options []api.VirtualMachineOpti
 }
 
 // getDiskOption returns the disk option with the specified interface.
-func getDiskOption(options []api.VirtualMachineOption, diskInterface string) (diskOption *api.VirtualMachineOption) {
+func getDiskOption(
+	options []api.VirtualMachineOption,
+	diskInterface string,
+) (diskOption *api.VirtualMachineOption) {
 	for index := range options {
 		if options[index].Name == diskInterface {
 			diskOption = &options[index]
@@ -402,7 +408,11 @@ func parseDiskSize(value string) (size int, err error) {
 }
 
 // compareAndAddOption compares the new value with the current value and adds the option if they differ.
-func compareAndAddOption[T comparable](name string, options *[]api.VirtualMachineOption, newValue, currentValue *T) {
+func compareAndAddOption[T comparable](
+	name string,
+	options *[]api.VirtualMachineOption,
+	newValue, currentValue *T,
+) {
 	if resources.DifferPtr(newValue, currentValue) {
 		*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
 	}

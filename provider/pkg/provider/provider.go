@@ -35,7 +35,7 @@ var Version string
 // Name is the name of the PVE provider.
 const Name string = "pve"
 
-// Provider returns a new instance of the PVE provider.
+// NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	// We tell the provider what resources it needs to support.
 	return infer.Provider(infer.Options{

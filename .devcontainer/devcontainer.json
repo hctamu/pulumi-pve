@@ -30,8 +30,19 @@
 					"github.copilot",
 					"ms-azuretools.vscode-docker",
 					"github.vscode-github-actions",
-					"pulumi.pulumi-vscode-tools"
-				]
+					"pulumi.pulumi-vscode-tools",
+          "emeraldwalk.runonsave"
+				],
+        "settings": {
+          "emeraldwalk.runonsave": {
+              "commands": [
+                  {
+                      "match": "\\.go$",
+                      "cmd": "golines ${file} -w -m 120 -t 2"
+                  }
+              ]
+          }
+        }
 			}
 		}
 

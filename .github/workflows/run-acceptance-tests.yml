@@ -11,7 +11,8 @@ on:
   workflow_dispatch: {}
 env:
   PROVIDER: pve
-  GOVERSION: "1.23.x"
+  GOVERSION: "1.24.x"
+  GOLANGCI_LINT_VERSION : "2.3.0"
   NODEVERSION: "22.x"
   PYTHONVERSION: "3.12.9"
   DOTNETVERSION: "9.0.x"

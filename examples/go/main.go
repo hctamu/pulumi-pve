@@ -11,7 +11,6 @@ func main() {
 			Name:    pulumi.String("myPool"),
 			Comment: pulumi.String("myPool").ToStringPtrOutput(),
 		})
-
 		if err != nil {
 			return err
 		}
