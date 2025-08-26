@@ -33,35 +33,41 @@ import (
 type Pool struct{}
 
 var (
-	_ = (infer.CustomResource[PoolInputs, PoolOutputs])((*Pool)(nil))
-	_ = (infer.CustomDelete[PoolOutputs])((*Pool)(nil))
-	_ = (infer.CustomRead[PoolInputs, PoolOutputs])((*Pool)(nil))
-	_ = (infer.CustomUpdate[PoolInputs, PoolOutputs])((*Pool)(nil))
-	_ = (infer.CustomDiff[PoolInputs, PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomResource[Inputs, Outputs])((*Pool)(nil))
+	_ = (infer.CustomDelete[Outputs])((*Pool)(nil))
+	_ = (infer.CustomRead[Inputs, Outputs])((*Pool)(nil))
+	_ = (infer.CustomUpdate[Inputs, Outputs])((*Pool)(nil))
+	_ = (infer.CustomDiff[Inputs, Outputs])((*Pool)(nil))
 )
 
-// PoolInputs defines the input properties for a Proxmox pool resource.
-type PoolInputs struct {
+// Inputs defines the input properties for a Proxmox pool resource.
+type Inputs struct {
 	Name    string `pulumi:"name"`
 	Comment string `pulumi:"comment,optional"`
 }
 
 // Annotate is used to annotate the input and output properties of the resource.
-func (args *PoolInputs) Annotate(a infer.Annotator) {
+func (args *Inputs) Annotate(a infer.Annotator) {
 	a.Describe(&args.Name, "The name of the Proxmox pool.")
 	a.SetDefault(&args.Comment, "Default pool comment")
-	a.Describe(&args.Comment, "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.")
+	a.Describe(
+		&args.Comment,
+		"An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
+	)
 }
 
-// PoolOutputs defines the output properties for a Proxmox pool resource.
-type PoolOutputs struct {
-	PoolInputs
+// Outputs defines the output properties for a Proxmox pool resource.
+type Outputs struct {
+	Inputs
 }
 
 // Create is used to create a new pool resource
-func (pool *Pool) Create(ctx context.Context, request infer.CreateRequest[PoolInputs]) (response infer.CreateResponse[PoolOutputs], err error) {
+func (pool *Pool) Create(
+	ctx context.Context,
+	request infer.CreateRequest[Inputs],
+) (response infer.CreateResponse[Outputs], err error) {
 	response.ID = request.Name
-	response.Output = PoolOutputs{PoolInputs: request.Inputs}
+	response.Output = Outputs{Inputs: request.Inputs}
 	l := p.GetLogger(ctx)
 	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
 	if request.DryRun {
@@ -79,11 +85,19 @@ func (pool *Pool) Create(ctx context.Context, request infer.CreateRequest[PoolIn
 }
 
 // Read is used to read the state of a pool resource
-func (pool *Pool) Read(ctx context.Context, request infer.ReadRequest[PoolInputs, PoolOutputs]) (response infer.ReadResponse[PoolInputs, PoolOutputs], err error) {
+func (pool *Pool) Read(
+	ctx context.Context,
+	request infer.ReadRequest[Inputs, Outputs],
+) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	response.ID = request.ID
 	response.Inputs = request.Inputs
 	l := p.GetLogger(ctx)
-	l.Debugf("Read called for Pool with ID: %s, Inputs: %+v, State: %+v", request.ID, request.Inputs, request.State)
+	l.Debugf(
+		"Read called for Pool with ID: %s, Inputs: %+v, State: %+v",
+		request.ID,
+		request.Inputs,
+		request.State,
+	)
 
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
@@ -106,21 +120,24 @@ func (pool *Pool) Read(ctx context.Context, request infer.ReadRequest[PoolInputs
 
 	l.Debugf("Successfully fetched pool: %+v", poolName)
 
-	response.State = PoolOutputs{
-		PoolInputs: PoolInputs{
+	response.State = Outputs{
+		Inputs: Inputs{
 			Name:    poolName,
 			Comment: existingPool.Comment,
 		},
 	}
 
-	response.Inputs = response.State.PoolInputs
+	response.Inputs = response.State.Inputs
 
 	l.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
 }
 
 // Delete is used to delete a pool resource
-func (pool *Pool) Delete(ctx context.Context, request infer.DeleteRequest[PoolOutputs]) (response infer.DeleteResponse, err error) {
+func (pool *Pool) Delete(
+	ctx context.Context,
+	request infer.DeleteRequest[Outputs],
+) (response infer.DeleteResponse, err error) {
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
 		return response, err
@@ -146,7 +163,10 @@ func (pool *Pool) Delete(ctx context.Context, request infer.DeleteRequest[PoolOu
 }
 
 // Update is used to update a pool resource
-func (pool *Pool) Update(ctx context.Context, request infer.UpdateRequest[PoolInputs, PoolOutputs]) (response infer.UpdateResponse[PoolOutputs], err error) {
+func (pool *Pool) Update(
+	ctx context.Context,
+	request infer.UpdateRequest[Inputs, Outputs],
+) (response infer.UpdateResponse[Outputs], err error) {
 	response.Output = request.State
 	l := p.GetLogger(ctx)
 	l.Debugf("Updating pool: %v", request.State.Name)
@@ -175,12 +195,15 @@ func (pool *Pool) Update(ctx context.Context, request infer.UpdateRequest[PoolIn
 		return response, err
 	}
 
-	response.Output = PoolOutputs{request.Inputs}
+	response.Output = Outputs{request.Inputs}
 	return response, nil
 }
 
 // Diff is used to compute the difference between the current state and the desired state of a pool resource
-func (pool *Pool) Diff(_ context.Context, request infer.DiffRequest[PoolInputs, PoolOutputs]) (response infer.DiffResponse, err error) {
+func (pool *Pool) Diff(
+	_ context.Context,
+	request infer.DiffRequest[Inputs, Outputs],
+) (response infer.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 	if request.Inputs.Name != request.State.Name {
 		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
@@ -202,5 +225,8 @@ func (pool *Pool) Diff(_ context.Context, request infer.DiffRequest[PoolInputs, 
 // This is used to provide documentation for the resource in the Pulumi schema
 // and to provide default values for the resource properties.
 func (pool *Pool) Annotate(a infer.Annotator) {
-	a.Describe(pool, "A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.")
+	a.Describe(
+		pool,
+		"A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.",
+	)
 }

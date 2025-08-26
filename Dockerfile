@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y \
     vim
 
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
+RUN go install mvdan.cc/gofumpt@latest
+RUN go install github.com/segmentio/golines@latest
 
 RUN curl -s "https://get.sdkman.io" | bash
 

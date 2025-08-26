@@ -30,11 +30,11 @@ import (
 
 // Ensure Ha implements the required interfaces
 var (
-	_ = (infer.CustomResource[HaInputs, HaOutputs])((*Ha)(nil))
-	_ = (infer.CustomDelete[HaOutputs])((*Ha)(nil))
-	_ = (infer.CustomUpdate[HaInputs, HaOutputs])((*Ha)(nil))
-	_ = (infer.CustomRead[HaInputs, HaOutputs])((*Ha)(nil))
-	_ = (infer.CustomDiff[HaInputs, HaOutputs])((*Ha)(nil))
+	_ = (infer.CustomResource[Inputs, Outputs])((*Ha)(nil))
+	_ = (infer.CustomDelete[Outputs])((*Ha)(nil))
+	_ = (infer.CustomUpdate[Inputs, Outputs])((*Ha)(nil))
+	_ = (infer.CustomRead[Inputs, Outputs])((*Ha)(nil))
+	_ = (infer.CustomDiff[Inputs, Outputs])((*Ha)(nil))
 )
 
 // Ha represents a Proxmox HA resource
@@ -64,31 +64,31 @@ func (state State) ValidateState(ctx context.Context) (err error) {
 	}
 }
 
-// Input represents the input properties for the HA resource
-type HaInputs struct {
+// Inputs represents the input properties for the HA resource
+type Inputs struct {
 	Group      string `pulumi:"group,optional"`
 	State      State  `pulumi:"state,optional"`
 	ResourceID int    `pulumi:"resourceId"`
 }
 
-// Output represents the output properties for the HA resource
-type HaOutputs struct {
-	HaInputs
+// Outputs represents the output properties for the HA resource
+type Outputs struct {
+	Inputs
 }
 
 // Create creates a new HA resource
 func (ha *Ha) Create(
 	ctx context.Context,
-	request infer.CreateRequest[HaInputs],
-) (response infer.CreateResponse[HaOutputs], err error) {
+	request infer.CreateRequest[Inputs],
+) (response infer.CreateResponse[Outputs], err error) {
 	inputs := request.Inputs
 	preview := request.DryRun
 
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Creating ha resource: %v", inputs)
-	response = infer.CreateResponse[HaOutputs]{
+	response = infer.CreateResponse[Outputs]{
 		ID:     request.Name,
-		Output: HaOutputs{HaInputs: inputs},
+		Output: Outputs{Inputs: inputs},
 	}
 
 	if preview {
@@ -110,7 +110,10 @@ func (ha *Ha) Create(
 }
 
 // Delete deletes an existing HA resource
-func (ha *Ha) Delete(ctx context.Context, request infer.DeleteRequest[HaOutputs]) (response infer.DeleteResponse, err error) {
+func (ha *Ha) Delete(
+	ctx context.Context,
+	request infer.DeleteRequest[Outputs],
+) (response infer.DeleteResponse, err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting ha resource: %v", request.State)
 
@@ -129,7 +132,10 @@ func (ha *Ha) Delete(ctx context.Context, request infer.DeleteRequest[HaOutputs]
 }
 
 // Update updates an existing HA resource
-func (ha *Ha) Update(ctx context.Context, request infer.UpdateRequest[HaInputs, HaOutputs]) (response infer.UpdateResponse[HaOutputs], err error) {
+func (ha *Ha) Update(
+	ctx context.Context,
+	request infer.UpdateRequest[Inputs, Outputs],
+) (response infer.UpdateResponse[Outputs], err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Updating ha resource: %v", request.ID)
 	response.Output = request.State
@@ -143,7 +149,7 @@ func (ha *Ha) Update(ctx context.Context, request infer.UpdateRequest[HaInputs, 
 		return response, err
 	}
 
-	response.Output.HaInputs = request.Inputs
+	response.Output.Inputs = request.Inputs
 
 	haResource := px2.HaResource{
 		State: string(request.Inputs.State),
@@ -160,7 +166,10 @@ func (ha *Ha) Update(ctx context.Context, request infer.UpdateRequest[HaInputs, 
 }
 
 // Read reads the current state of an HA resource
-func (ha *Ha) Read(ctx context.Context, request infer.ReadRequest[HaInputs, HaOutputs]) (response infer.ReadResponse[HaInputs, HaOutputs], err error) {
+func (ha *Ha) Read(
+	ctx context.Context,
+	request infer.ReadRequest[Inputs, Outputs],
+) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Reading ha resource: %v", request.ID)
 	response.Inputs = request.Inputs
@@ -190,7 +199,10 @@ func (ha *Ha) Read(ctx context.Context, request infer.ReadRequest[HaInputs, HaOu
 }
 
 // Diff computes the difference between the desired and actual state of an HA resource
-func (ha *Ha) Diff(ctx context.Context, request infer.DiffRequest[HaInputs, HaOutputs]) (response infer.DiffResponse, err error) {
+func (ha *Ha) Diff(
+	ctx context.Context,
+	request infer.DiffRequest[Inputs, Outputs],
+) (response infer.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 	if request.State.ResourceID != request.Inputs.ResourceID {
 		diff["resourceId"] = p.PropertyDiff{Kind: p.UpdateReplace}
@@ -215,13 +227,19 @@ func (ha *Ha) Diff(ctx context.Context, request infer.DiffRequest[HaInputs, HaOu
 
 // Annotate adds descriptions to the HA resource and its properties
 func (ha *Ha) Annotate(a infer.Annotator) {
-	a.Describe(ha, "A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.")
+	a.Describe(
+		ha,
+		"A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.",
+	)
 }
 
 // Annotate adds descriptions to the Input properties for documentation and schema generation.
-func (inputs *HaInputs) Annotate(a infer.Annotator) {
+func (inputs *Inputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Group, "The HA group identifier.")
-	a.Describe(&inputs.ResourceID, "The ID of the virtual machine that will be managed by HA (required).")
+	a.Describe(
+		&inputs.ResourceID,
+		"The ID of the virtual machine that will be managed by HA (required).",
+	)
 	a.Describe(&inputs.State, "The state of the HA resource (default: started).")
 	a.SetDefault(&inputs.State, "started")
 }
