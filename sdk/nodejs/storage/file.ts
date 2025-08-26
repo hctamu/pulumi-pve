@@ -36,15 +36,15 @@ export class File extends pulumi.CustomResource {
     /**
      * The type of the file (e.g: snippets)
      */
-    public readonly contentType!: pulumi.Output<string>;
+    declare public readonly contentType: pulumi.Output<string>;
     /**
      * The datastore to upload the file to.  (e.g:ceph-ha)
      */
-    public readonly datastoreId!: pulumi.Output<string>;
+    declare public readonly datastoreId: pulumi.Output<string>;
     /**
      * The raw source data
      */
-    public readonly sourceRaw!: pulumi.Output<outputs.storage.FileSourceRaw>;
+    declare public readonly sourceRaw: pulumi.Output<outputs.storage.FileSourceRaw>;
 
     /**
      * Create a File resource with the given unique name, arguments, and options.
@@ -57,24 +57,26 @@ export class File extends pulumi.CustomResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            if ((!args || args.contentType === undefined) && !opts.urn) {
+            if (args?.contentType === undefined && !opts.urn) {
                 throw new Error("Missing required property 'contentType'");
             }
-            if ((!args || args.datastoreId === undefined) && !opts.urn) {
+            if (args?.datastoreId === undefined && !opts.urn) {
                 throw new Error("Missing required property 'datastoreId'");
             }
-            if ((!args || args.sourceRaw === undefined) && !opts.urn) {
+            if (args?.sourceRaw === undefined && !opts.urn) {
                 throw new Error("Missing required property 'sourceRaw'");
             }
-            resourceInputs["contentType"] = args ? args.contentType : undefined;
-            resourceInputs["datastoreId"] = args ? args.datastoreId : undefined;
-            resourceInputs["sourceRaw"] = args ? args.sourceRaw : undefined;
+            resourceInputs["contentType"] = args?.contentType;
+            resourceInputs["datastoreId"] = args?.datastoreId;
+            resourceInputs["sourceRaw"] = args?.sourceRaw;
         } else {
             resourceInputs["contentType"] = undefined /*out*/;
             resourceInputs["datastoreId"] = undefined /*out*/;
             resourceInputs["sourceRaw"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
+        const replaceOnChanges = { replaceOnChanges: ["contentType", "datastoreId", "sourceRaw.fileData", "sourceRaw.fileName"] };
+        opts = pulumi.mergeOptions(opts, replaceOnChanges);
         super(File.__pulumiType, name, resourceInputs, opts);
     }
 }

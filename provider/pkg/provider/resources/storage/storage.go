@@ -29,17 +29,16 @@ import (
 // Unimplemented fields are marked in the comments in the commit (hash): 2a127e9aaab17b21bebd027d3edf13e27b570cf9
 
 var (
-	_ = (infer.CustomResource[FileInput, FileOutput])((*File)(nil))
-	_ = (infer.CustomDelete[FileOutput])((*File)(nil))
-	_ = (infer.CustomRead[FileInput, FileOutput])((*File)(nil))
-	_ = (infer.CustomUpdate[FileInput, FileOutput])((*File)(nil))
-	_ = (infer.CustomDiff[FileInput, FileOutput])((*File)(nil))
+	_ = (infer.CustomResource[FileInputs, FileOutputs])((*File)(nil))
+	_ = (infer.CustomDelete[FileOutputs])((*File)(nil))
+	_ = (infer.CustomRead[FileInputs, FileOutputs])((*File)(nil))
+	_ = (infer.CustomUpdate[FileInputs, FileOutputs])((*File)(nil))
 )
 
-// FileInput represents the input properties required to manage a file resource.
-type FileInput struct {
-	DataStoreID string        `pulumi:"datastoreId"`
-	ContentType string        `pulumi:"contentType"`
+// FileInputs represents the input properties required to manage a file resource.
+type FileInputs struct {
+	DataStoreID string        `pulumi:"datastoreId" provider:"replaceOnChanges"`
+	ContentType string        `pulumi:"contentType" provider:"replaceOnChanges"`
 	SourceRaw   FileSourceRaw `pulumi:"sourceRaw"`
 }
 
@@ -48,18 +47,18 @@ type File struct{}
 
 // FileSourceRaw represents the raw source data for a file upload.
 type FileSourceRaw struct {
-	FileData string `pulumi:"fileData"`
-	FileName string `pulumi:"fileName"`
+	FileData string `pulumi:"fileData" provider:"replaceOnChanges"`
+	FileName string `pulumi:"fileName" provider:"replaceOnChanges"`
 }
 
-// FileOutput represents the output properties of a file resource.
-type FileOutput struct {
-	FileInput
+// FileOutputs represents the output properties of a file resource.
+type FileOutputs struct {
+	FileInputs
 }
 
 // Annotate is used to annotate the input and output properties of the resource.
 // This is used to generate the schema for the resource and give default values.
-func (args *FileInput) Annotate(a infer.Annotator) {
+func (args *FileInputs) Annotate(a infer.Annotator) {
 	a.Describe(&args.DataStoreID, "The datastore to upload the file to.  (e.g:ceph-ha)")
 	a.Describe(&args.ContentType, "The type of the file (e.g: snippets)")
 	a.Describe(&args.SourceRaw, "The raw source data")
@@ -73,20 +72,24 @@ func (args *FileSourceRaw) Annotate(a infer.Annotator) {
 }
 
 // Create creates a new file resource
-func (file *File) Create(
-	ctx context.Context,
-	id string,
-	inputs FileInput,
-	preview bool,
-) (idRet string, output FileOutput, err error) {
-	if preview {
-		return idRet, output, nil
+func (file *File) Create(ctx context.Context, request infer.CreateRequest[FileInputs]) (response infer.CreateResponse[FileOutputs], err error) {
+	response = infer.CreateResponse[FileOutputs]{
+		ID: request.Name,
+		Output: FileOutputs{
+			FileInputs: request.Inputs,
+		},
+	}
+
+	inputs := request.Inputs
+
+	if request.DryRun {
+		return response, nil
 	}
 
 	p.GetLogger(ctx).Infof("getting ssh client")
 	sc, err := client.GetSSHClient(ctx)
 	if err != nil {
-		return "", FileOutput{}, fmt.Errorf("error getting ssh client: %v", err)
+		return response, fmt.Errorf("error getting ssh client: %v", err)
 	}
 
 	p.GetLogger(ctx).Infof("sending data to %s", sc.TargetIP)
@@ -94,51 +97,56 @@ func (file *File) Create(
 	fileName := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreID, inputs.ContentType, inputs.SourceRaw.FileName)
 	fileData := inputs.SourceRaw.FileData
 	if _, err = sc.Run(sc.Write(), fileName, fileData); err != nil {
-		return "", output, fmt.Errorf("error sending data via SSH: %v", err)
+		return response, fmt.Errorf("error sending data via SSH: %v", err)
 	}
 
-	output.FileInput = inputs
-	idRet = id
+	response.Output.FileInputs = inputs
+	response.ID = request.Name
 
-	return idRet, output, err
+	return response, err
 }
 
 // Delete deletes a file resource
-func (file *File) Delete(ctx context.Context, id string, output FileOutput) (err error) {
+func (file *File) Delete(ctx context.Context, request infer.DeleteRequest[FileOutputs]) (response infer.DeleteResponse, err error) {
+	state := request.State
+
 	sshClient, err := client.GetSSHClient(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting ssh client: %v", err)
+		return response, fmt.Errorf("error getting ssh client: %v", err)
 	}
 
 	filePath := fmt.Sprintf(
 		"/mnt/pve/%s/%s/%s",
-		output.DataStoreID,
-		output.ContentType,
-		output.SourceRaw.FileName,
+		state.DataStoreID,
+		state.ContentType,
+		state.SourceRaw.FileName,
 	)
 	if _, err = sshClient.Run(sshClient.Delete(), filePath); err != nil {
-		return fmt.Errorf("error removing file via SSH: %v", err)
+		return response, fmt.Errorf("error removing file via SSH: %v", err)
 	}
 
-	return err
+	return response, err
 }
 
 // Read reads a file resource
-func (file *File) Read(
-	ctx context.Context,
-	id string,
-	inputs FileInput,
-	outputs FileOutput,
-) (
-	canonicalID string,
-	normalizedInputs FileInput,
-	normalizedOutputs FileOutput,
+func (file *File) Read(ctx context.Context, request infer.ReadRequest[FileInputs, FileOutputs]) (
+	response infer.ReadResponse[FileInputs, FileOutputs],
 	err error,
 ) {
+
+	inputs := request.Inputs
+	state := request.State
+
+	response = infer.ReadResponse[FileInputs, FileOutputs]{
+		ID:     request.ID,
+		Inputs: inputs,
+		State:  state,
+	}
+
 	// Get SSH client
 	sshClient, err := client.GetSSHClient(ctx)
 	if err != nil {
-		return "", inputs, outputs, fmt.Errorf("error getting ssh client: %v", err)
+		return response, fmt.Errorf("error getting ssh client: %v", err)
 	}
 
 	// Construct the remote file path
@@ -148,82 +156,55 @@ func (file *File) Read(
 	// Attempt to read the file content via SSH.
 	fileContent, err := sshClient.Run(sshClient.Read(), filePath)
 	if err != nil {
-		return "", inputs, outputs, fmt.Errorf("error reading file via SSH: %v", err)
+		return response, fmt.Errorf("error reading file via SSH: %v", err)
 	}
 
 	// Update the outputs with the read file content.
-	outputs.FileInput = inputs
-	outputs.SourceRaw.FileData = fileContent
+	response.State.FileInputs = inputs
+	response.State.SourceRaw.FileData = fileContent
 
-	// Return the canonical ID (unchanged) and the normalized inputs/outputs.
-	canonicalID = id
-	normalizedInputs = inputs
-	normalizedOutputs = outputs
-	p.GetLogger(ctx).Debugf("Read file state: %+v", normalizedOutputs)
-	return
+	p.GetLogger(ctx).Debugf("Read file state: %+v", response.State)
+	return response, nil
 }
 
 // Update updates a file resource
-func (file *File) Update(
-	ctx context.Context,
-	id string,
-	outputs FileOutput,
-	inputs FileInput,
-	preview bool,
-) (outputsRet FileOutput, err error) {
-	if preview {
-		return outputsRet, nil
+func (file *File) Update(ctx context.Context, request infer.UpdateRequest[FileInputs, FileOutputs]) (
+	response infer.UpdateResponse[FileOutputs],
+	err error,
+) {
+	state := request.State
+	inputs := request.Inputs
+
+	response = infer.UpdateResponse[FileOutputs]{
+		Output: request.State,
+	}
+
+	if request.DryRun {
+		return response, nil
 	}
 
 	sshClient, err := client.GetSSHClient(ctx)
 	if err != nil {
-		return outputsRet, fmt.Errorf("error getting ssh client: %v", err)
+		return response, fmt.Errorf("error getting ssh client: %v", err)
 	}
 
 	// remove the file
 	filePath := fmt.Sprintf(
 		"/mnt/pve/%s/%s/%s",
-		outputs.DataStoreID,
-		outputs.ContentType,
-		outputs.SourceRaw.FileName,
+		state.DataStoreID,
+		state.ContentType,
+		state.SourceRaw.FileName,
 	)
 	if _, err = sshClient.Run(sshClient.Delete(), filePath); err != nil {
-		return outputsRet, fmt.Errorf("error removing file via SSH: %v", err)
+		return response, fmt.Errorf("error removing file via SSH: %v", err)
 	}
 
 	newFilePath := fmt.Sprintf("/mnt/pve/%s/%s/%s", inputs.DataStoreID, inputs.ContentType, inputs.SourceRaw.FileName)
 	if _, err = sshClient.Run(sshClient.Write(), newFilePath, inputs.SourceRaw.FileData); err != nil {
-		return outputsRet, fmt.Errorf("error creating file via SSH: %v", err)
+		return response, fmt.Errorf("error creating file via SSH: %v", err)
 	}
 
-	outputsRet.FileInput = inputs
+	response.Output.FileInputs = inputs
 
-	return outputsRet, err
-}
-
-// Diff computes the differences between the old and new state of a file resource.
-func (file *File) Diff(
-	ctx context.Context,
-	id string,
-	olds FileOutput,
-	news FileInput,
-) (response p.DiffResponse, err error) {
-	diff := map[string]p.PropertyDiff{}
-
-	if news.DataStoreID != olds.DataStoreID {
-		diff["FileInput.dataStoreId"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-	if news.ContentType != olds.ContentType {
-		diff["FileInput.contentType"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-	if news.SourceRaw.FileName != olds.SourceRaw.FileName {
-		diff["FileInput.sourceRaw.fileName"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-
-	if news.SourceRaw.FileData != olds.SourceRaw.FileData {
-		diff["FileInput.sourceRaw.fileData"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-
-	response.DetailedDiff = diff
 	return response, err
 }

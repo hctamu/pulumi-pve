@@ -48,7 +48,7 @@ func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 }
 
 // Input represents the input configuration for a virtual machine.
-type Input struct {
+type VMInputs struct {
 	Name        *string `pulumi:"name"`
 	Description *string `pulumi:"description,optional"`
 	Node        *string `pulumi:"node,optional"`
@@ -132,7 +132,7 @@ type Clone struct {
 }
 
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Input, error) {
+func ConvertVMConfigToInputs(vm *api.VirtualMachine) (VMInputs, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
@@ -140,18 +140,18 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Input, error) {
 	for diskInterface, diskStr := range diskMap {
 		disk := Disk{Interface: diskInterface}
 		if err := disk.ParseDiskConfig(diskStr); err != nil {
-			return Input{}, err
+			return VMInputs{}, err
 		}
 		disks = append(disks, &disk)
 	}
 
 	var vmID int
 	if vm.VMID > math.MaxInt {
-		return Input{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
+		return VMInputs{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
 	}
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
-	return Input{
+	return VMInputs{
 		Name:        strOrNil(vmConfig.Name),
 		Description: strOrNil(vmConfig.Description),
 		VMID:        &vmID,
@@ -224,7 +224,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Input, error) {
 
 // BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the
 // current and new Args.
-func (inputs *Input) BuildOptionsDiff(vmID int, currentInputs *Input) (options []api.VirtualMachineOption) {
+func (inputs *VMInputs) BuildOptionsDiff(vmID int, currentInputs *VMInputs) (options []api.VirtualMachineOption) {
 	// Convert memory from MB to GB
 	*inputs.Memory *= 1024
 	*currentInputs.Memory *= 1024
@@ -269,7 +269,7 @@ func (inputs *Input) BuildOptionsDiff(vmID int, currentInputs *Input) (options [
 }
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
-func (inputs *Input) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
+func (inputs *VMInputs) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
 	*inputs.Memory *= 1024
 
 	addOption("name", &options, inputs.Name)

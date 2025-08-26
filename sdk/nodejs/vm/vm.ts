@@ -6,163 +6,163 @@ import * as inputs from "../types/input";
 import * as outputs from "../types/output";
 import * as utilities from "../utilities";
 
-export class Vm extends pulumi.CustomResource {
+export class VM extends pulumi.CustomResource {
     /**
-     * Get an existing Vm resource's state with the given name, ID, and optional extra
+     * Get an existing VM resource's state with the given name, ID, and optional extra
      * properties used to qualify the lookup.
      *
      * @param name The _unique_ name of the resulting resource.
      * @param id The _unique_ provider ID of the resource to lookup.
      * @param opts Optional settings to control the behavior of the CustomResource.
      */
-    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): Vm {
-        return new Vm(name, undefined as any, { ...opts, id: id });
+    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): VM {
+        return new VM(name, undefined as any, { ...opts, id: id });
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'pve:vm:Vm';
+    public static readonly __pulumiType = 'pve:vm:VM';
 
     /**
-     * Returns true if the given object is an instance of Vm.  This is designed to work even
+     * Returns true if the given object is an instance of VM.  This is designed to work even
      * when multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is Vm {
+    public static isInstance(obj: any): obj is VM {
         if (obj === undefined || obj === null) {
             return false;
         }
-        return obj['__pulumiType'] === Vm.__pulumiType;
+        return obj['__pulumiType'] === VM.__pulumiType;
     }
 
-    public readonly acpi!: pulumi.Output<number | undefined>;
-    public readonly affinity!: pulumi.Output<string | undefined>;
-    public readonly agent!: pulumi.Output<string | undefined>;
-    public readonly audio0!: pulumi.Output<string | undefined>;
-    public readonly autostart!: pulumi.Output<number | undefined>;
-    public readonly balloon!: pulumi.Output<number | undefined>;
-    public readonly bios!: pulumi.Output<string | undefined>;
-    public readonly boot!: pulumi.Output<string | undefined>;
-    public readonly cicustom!: pulumi.Output<string | undefined>;
-    public readonly cipassword!: pulumi.Output<string | undefined>;
-    public readonly citype!: pulumi.Output<string | undefined>;
-    public readonly ciupgrade!: pulumi.Output<number | undefined>;
-    public readonly ciuser!: pulumi.Output<string | undefined>;
-    public readonly clone!: pulumi.Output<outputs.vm.VmClone | undefined>;
-    public readonly cores!: pulumi.Output<number | undefined>;
-    public readonly cpu!: pulumi.Output<string | undefined>;
-    public readonly cpulimit!: pulumi.Output<string | undefined>;
-    public readonly cpuunits!: pulumi.Output<number | undefined>;
-    public readonly description!: pulumi.Output<string | undefined>;
-    public readonly digest!: pulumi.Output<string | undefined>;
-    public readonly disks!: pulumi.Output<outputs.vm.Disk[]>;
-    public readonly efidisk0!: pulumi.Output<string | undefined>;
-    public readonly hookscript!: pulumi.Output<string | undefined>;
-    public readonly hostpci0!: pulumi.Output<string | undefined>;
-    public readonly hotplug!: pulumi.Output<string | undefined>;
-    public readonly hugepages!: pulumi.Output<string | undefined>;
-    public readonly ipconfig0!: pulumi.Output<string | undefined>;
-    public readonly kvm!: pulumi.Output<number | undefined>;
-    public readonly lock!: pulumi.Output<string | undefined>;
-    public readonly machine!: pulumi.Output<string | undefined>;
-    public readonly memory!: pulumi.Output<number | undefined>;
-    public readonly name!: pulumi.Output<string>;
-    public readonly nameserver!: pulumi.Output<string | undefined>;
-    public readonly net0!: pulumi.Output<string | undefined>;
-    public readonly node!: pulumi.Output<string | undefined>;
-    public readonly numa!: pulumi.Output<number | undefined>;
-    public readonly numa0!: pulumi.Output<string | undefined>;
-    public readonly onboot!: pulumi.Output<number | undefined>;
-    public readonly ostype!: pulumi.Output<string | undefined>;
-    public readonly parallel0!: pulumi.Output<string | undefined>;
-    public readonly protection!: pulumi.Output<number | undefined>;
-    public readonly rng0!: pulumi.Output<string | undefined>;
-    public readonly scsihw!: pulumi.Output<string | undefined>;
-    public readonly searchdomain!: pulumi.Output<string | undefined>;
-    public readonly serial0!: pulumi.Output<string | undefined>;
-    public readonly smbios1!: pulumi.Output<string | undefined>;
-    public readonly sockets!: pulumi.Output<number | undefined>;
-    public readonly sshkeys!: pulumi.Output<string | undefined>;
-    public readonly tablet!: pulumi.Output<number | undefined>;
-    public readonly tags!: pulumi.Output<string | undefined>;
-    public readonly template!: pulumi.Output<number | undefined>;
-    public readonly tpmstate0!: pulumi.Output<string | undefined>;
-    public readonly usb0!: pulumi.Output<string | undefined>;
-    public readonly vcpus!: pulumi.Output<number | undefined>;
-    public readonly vga!: pulumi.Output<string | undefined>;
-    public readonly vmId!: pulumi.Output<number | undefined>;
+    declare public readonly acpi: pulumi.Output<number | undefined>;
+    declare public readonly affinity: pulumi.Output<string | undefined>;
+    declare public readonly agent: pulumi.Output<string | undefined>;
+    declare public readonly audio0: pulumi.Output<string | undefined>;
+    declare public readonly autostart: pulumi.Output<number | undefined>;
+    declare public readonly balloon: pulumi.Output<number | undefined>;
+    declare public readonly bios: pulumi.Output<string | undefined>;
+    declare public readonly boot: pulumi.Output<string | undefined>;
+    declare public readonly cicustom: pulumi.Output<string | undefined>;
+    declare public readonly cipassword: pulumi.Output<string | undefined>;
+    declare public readonly citype: pulumi.Output<string | undefined>;
+    declare public readonly ciupgrade: pulumi.Output<number | undefined>;
+    declare public readonly ciuser: pulumi.Output<string | undefined>;
+    declare public readonly clone: pulumi.Output<outputs.vm.Clone | undefined>;
+    declare public readonly cores: pulumi.Output<number | undefined>;
+    declare public readonly cpu: pulumi.Output<string | undefined>;
+    declare public readonly cpulimit: pulumi.Output<string | undefined>;
+    declare public readonly cpuunits: pulumi.Output<number | undefined>;
+    declare public readonly description: pulumi.Output<string | undefined>;
+    declare public readonly digest: pulumi.Output<string | undefined>;
+    declare public readonly disks: pulumi.Output<outputs.vm.Disk[]>;
+    declare public readonly efidisk0: pulumi.Output<string | undefined>;
+    declare public readonly hookscript: pulumi.Output<string | undefined>;
+    declare public readonly hostpci0: pulumi.Output<string | undefined>;
+    declare public readonly hotplug: pulumi.Output<string | undefined>;
+    declare public readonly hugepages: pulumi.Output<string | undefined>;
+    declare public readonly ipconfig0: pulumi.Output<string | undefined>;
+    declare public readonly kvm: pulumi.Output<number | undefined>;
+    declare public readonly lock: pulumi.Output<string | undefined>;
+    declare public readonly machine: pulumi.Output<string | undefined>;
+    declare public readonly memory: pulumi.Output<number | undefined>;
+    declare public readonly name: pulumi.Output<string>;
+    declare public readonly nameserver: pulumi.Output<string | undefined>;
+    declare public readonly net0: pulumi.Output<string | undefined>;
+    declare public readonly node: pulumi.Output<string | undefined>;
+    declare public readonly numa: pulumi.Output<number | undefined>;
+    declare public readonly numa0: pulumi.Output<string | undefined>;
+    declare public readonly onboot: pulumi.Output<number | undefined>;
+    declare public readonly ostype: pulumi.Output<string | undefined>;
+    declare public readonly parallel0: pulumi.Output<string | undefined>;
+    declare public readonly protection: pulumi.Output<number | undefined>;
+    declare public readonly rng0: pulumi.Output<string | undefined>;
+    declare public readonly scsihw: pulumi.Output<string | undefined>;
+    declare public readonly searchdomain: pulumi.Output<string | undefined>;
+    declare public readonly serial0: pulumi.Output<string | undefined>;
+    declare public readonly smbios1: pulumi.Output<string | undefined>;
+    declare public readonly sockets: pulumi.Output<number | undefined>;
+    declare public readonly sshkeys: pulumi.Output<string | undefined>;
+    declare public readonly tablet: pulumi.Output<number | undefined>;
+    declare public readonly tags: pulumi.Output<string | undefined>;
+    declare public readonly template: pulumi.Output<number | undefined>;
+    declare public readonly tpmstate0: pulumi.Output<string | undefined>;
+    declare public readonly usb0: pulumi.Output<string | undefined>;
+    declare public readonly vcpus: pulumi.Output<number | undefined>;
+    declare public readonly vga: pulumi.Output<string | undefined>;
+    declare public readonly vmId: pulumi.Output<number | undefined>;
 
     /**
-     * Create a Vm resource with the given unique name, arguments, and options.
+     * Create a VM resource with the given unique name, arguments, and options.
      *
      * @param name The _unique_ name of the resource.
      * @param args The arguments to use to populate this resource's properties.
      * @param opts A bag of options that control this resource's behavior.
      */
-    constructor(name: string, args: VmArgs, opts?: pulumi.CustomResourceOptions) {
+    constructor(name: string, args: VMArgs, opts?: pulumi.CustomResourceOptions) {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            if ((!args || args.disks === undefined) && !opts.urn) {
+            if (args?.disks === undefined && !opts.urn) {
                 throw new Error("Missing required property 'disks'");
             }
-            if ((!args || args.name === undefined) && !opts.urn) {
+            if (args?.name === undefined && !opts.urn) {
                 throw new Error("Missing required property 'name'");
             }
-            resourceInputs["acpi"] = args ? args.acpi : undefined;
-            resourceInputs["affinity"] = args ? args.affinity : undefined;
-            resourceInputs["agent"] = args ? args.agent : undefined;
-            resourceInputs["audio0"] = args ? args.audio0 : undefined;
-            resourceInputs["autostart"] = args ? args.autostart : undefined;
-            resourceInputs["balloon"] = args ? args.balloon : undefined;
-            resourceInputs["bios"] = args ? args.bios : undefined;
-            resourceInputs["boot"] = args ? args.boot : undefined;
-            resourceInputs["cicustom"] = args ? args.cicustom : undefined;
-            resourceInputs["cipassword"] = args ? args.cipassword : undefined;
-            resourceInputs["citype"] = args ? args.citype : undefined;
-            resourceInputs["ciupgrade"] = args ? args.ciupgrade : undefined;
-            resourceInputs["ciuser"] = args ? args.ciuser : undefined;
-            resourceInputs["clone"] = args ? args.clone : undefined;
-            resourceInputs["cores"] = (args ? args.cores : undefined) ?? 1;
-            resourceInputs["cpu"] = args ? args.cpu : undefined;
-            resourceInputs["cpulimit"] = args ? args.cpulimit : undefined;
-            resourceInputs["cpuunits"] = args ? args.cpuunits : undefined;
-            resourceInputs["description"] = args ? args.description : undefined;
-            resourceInputs["digest"] = args ? args.digest : undefined;
-            resourceInputs["disks"] = args ? args.disks : undefined;
-            resourceInputs["efidisk0"] = args ? args.efidisk0 : undefined;
-            resourceInputs["hookscript"] = args ? args.hookscript : undefined;
-            resourceInputs["hostpci0"] = args ? args.hostpci0 : undefined;
-            resourceInputs["hotplug"] = args ? args.hotplug : undefined;
-            resourceInputs["hugepages"] = args ? args.hugepages : undefined;
-            resourceInputs["ipconfig0"] = args ? args.ipconfig0 : undefined;
-            resourceInputs["kvm"] = args ? args.kvm : undefined;
-            resourceInputs["lock"] = args ? args.lock : undefined;
-            resourceInputs["machine"] = args ? args.machine : undefined;
-            resourceInputs["memory"] = args ? args.memory : undefined;
-            resourceInputs["name"] = args ? args.name : undefined;
-            resourceInputs["nameserver"] = args ? args.nameserver : undefined;
-            resourceInputs["net0"] = args ? args.net0 : undefined;
-            resourceInputs["node"] = args ? args.node : undefined;
-            resourceInputs["numa"] = args ? args.numa : undefined;
-            resourceInputs["numa0"] = args ? args.numa0 : undefined;
-            resourceInputs["onboot"] = args ? args.onboot : undefined;
-            resourceInputs["ostype"] = args ? args.ostype : undefined;
-            resourceInputs["parallel0"] = args ? args.parallel0 : undefined;
-            resourceInputs["protection"] = args ? args.protection : undefined;
-            resourceInputs["rng0"] = args ? args.rng0 : undefined;
-            resourceInputs["scsihw"] = args ? args.scsihw : undefined;
-            resourceInputs["searchdomain"] = args ? args.searchdomain : undefined;
-            resourceInputs["serial0"] = args ? args.serial0 : undefined;
-            resourceInputs["smbios1"] = args ? args.smbios1 : undefined;
-            resourceInputs["sockets"] = args ? args.sockets : undefined;
-            resourceInputs["sshkeys"] = args ? args.sshkeys : undefined;
-            resourceInputs["tablet"] = args ? args.tablet : undefined;
-            resourceInputs["tags"] = args ? args.tags : undefined;
-            resourceInputs["template"] = args ? args.template : undefined;
-            resourceInputs["tpmstate0"] = args ? args.tpmstate0 : undefined;
-            resourceInputs["usb0"] = args ? args.usb0 : undefined;
-            resourceInputs["vcpus"] = args ? args.vcpus : undefined;
-            resourceInputs["vga"] = args ? args.vga : undefined;
-            resourceInputs["vmId"] = args ? args.vmId : undefined;
+            resourceInputs["acpi"] = args?.acpi;
+            resourceInputs["affinity"] = args?.affinity;
+            resourceInputs["agent"] = args?.agent;
+            resourceInputs["audio0"] = args?.audio0;
+            resourceInputs["autostart"] = args?.autostart;
+            resourceInputs["balloon"] = args?.balloon;
+            resourceInputs["bios"] = args?.bios;
+            resourceInputs["boot"] = args?.boot;
+            resourceInputs["cicustom"] = args?.cicustom;
+            resourceInputs["cipassword"] = args?.cipassword;
+            resourceInputs["citype"] = args?.citype;
+            resourceInputs["ciupgrade"] = args?.ciupgrade;
+            resourceInputs["ciuser"] = args?.ciuser;
+            resourceInputs["clone"] = args?.clone;
+            resourceInputs["cores"] = (args?.cores) ?? 1;
+            resourceInputs["cpu"] = args?.cpu;
+            resourceInputs["cpulimit"] = args?.cpulimit;
+            resourceInputs["cpuunits"] = args?.cpuunits;
+            resourceInputs["description"] = args?.description;
+            resourceInputs["digest"] = args?.digest;
+            resourceInputs["disks"] = args?.disks;
+            resourceInputs["efidisk0"] = args?.efidisk0;
+            resourceInputs["hookscript"] = args?.hookscript;
+            resourceInputs["hostpci0"] = args?.hostpci0;
+            resourceInputs["hotplug"] = args?.hotplug;
+            resourceInputs["hugepages"] = args?.hugepages;
+            resourceInputs["ipconfig0"] = args?.ipconfig0;
+            resourceInputs["kvm"] = args?.kvm;
+            resourceInputs["lock"] = args?.lock;
+            resourceInputs["machine"] = args?.machine;
+            resourceInputs["memory"] = args?.memory;
+            resourceInputs["name"] = args?.name;
+            resourceInputs["nameserver"] = args?.nameserver;
+            resourceInputs["net0"] = args?.net0;
+            resourceInputs["node"] = args?.node;
+            resourceInputs["numa"] = args?.numa;
+            resourceInputs["numa0"] = args?.numa0;
+            resourceInputs["onboot"] = args?.onboot;
+            resourceInputs["ostype"] = args?.ostype;
+            resourceInputs["parallel0"] = args?.parallel0;
+            resourceInputs["protection"] = args?.protection;
+            resourceInputs["rng0"] = args?.rng0;
+            resourceInputs["scsihw"] = args?.scsihw;
+            resourceInputs["searchdomain"] = args?.searchdomain;
+            resourceInputs["serial0"] = args?.serial0;
+            resourceInputs["smbios1"] = args?.smbios1;
+            resourceInputs["sockets"] = args?.sockets;
+            resourceInputs["sshkeys"] = args?.sshkeys;
+            resourceInputs["tablet"] = args?.tablet;
+            resourceInputs["tags"] = args?.tags;
+            resourceInputs["template"] = args?.template;
+            resourceInputs["tpmstate0"] = args?.tpmstate0;
+            resourceInputs["usb0"] = args?.usb0;
+            resourceInputs["vcpus"] = args?.vcpus;
+            resourceInputs["vga"] = args?.vga;
+            resourceInputs["vmId"] = args?.vmId;
         } else {
             resourceInputs["acpi"] = undefined /*out*/;
             resourceInputs["affinity"] = undefined /*out*/;
@@ -222,14 +222,14 @@ export class Vm extends pulumi.CustomResource {
             resourceInputs["vmId"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        super(Vm.__pulumiType, name, resourceInputs, opts);
+        super(VM.__pulumiType, name, resourceInputs, opts);
     }
 }
 
 /**
- * The set of arguments for constructing a Vm resource.
+ * The set of arguments for constructing a VM resource.
  */
-export interface VmArgs {
+export interface VMArgs {
     acpi?: pulumi.Input<number>;
     affinity?: pulumi.Input<string>;
     agent?: pulumi.Input<string>;
@@ -243,7 +243,7 @@ export interface VmArgs {
     citype?: pulumi.Input<string>;
     ciupgrade?: pulumi.Input<number>;
     ciuser?: pulumi.Input<string>;
-    clone?: pulumi.Input<inputs.vm.VmCloneArgs>;
+    clone?: pulumi.Input<inputs.vm.CloneArgs>;
     cores?: pulumi.Input<number>;
     cpu?: pulumi.Input<string>;
     cpulimit?: pulumi.Input<string>;

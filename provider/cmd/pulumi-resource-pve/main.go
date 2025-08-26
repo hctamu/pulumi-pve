@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"context"
+
 	pve "github.com/hctamu/pulumi-pve/provider/pkg/provider"
 
 	p "github.com/pulumi/pulumi-go-provider"
@@ -24,9 +26,9 @@ import (
 
 // Serve the provider against Pulumi's Provider protocol.
 func main() {
-	provider := pve.Provider()
+	provider := pve.NewProvider()
 
-	if err := p.RunProvider(pve.Name, pve.Version, provider); err != nil {
+	if err := p.RunProvider(context.Background(), pve.Name, pve.Version, provider); err != nil {
 		panic(err)
 	}
 }

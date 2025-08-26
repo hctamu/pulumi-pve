@@ -3,8 +3,8 @@
 
 package com.hctamu.pve.vm;
 
+import com.hctamu.pve.vm.inputs.CloneArgs;
 import com.hctamu.pve.vm.inputs.DiskArgs;
-import com.hctamu.pve.vm.inputs.VmCloneArgs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.core.internal.Codegen;
@@ -17,9 +17,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
-public final class VmArgs extends com.pulumi.resources.ResourceArgs {
+public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
-    public static final VmArgs Empty = new VmArgs();
+    public static final VMArgs Empty = new VMArgs();
 
     @Import(name="acpi")
     private @Nullable Output<Integer> acpi;
@@ -113,9 +113,9 @@ public final class VmArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     @Import(name="clone")
-    private @Nullable Output<VmCloneArgs> clone;
+    private @Nullable Output<CloneArgs> clone;
 
-    public Optional<Output<VmCloneArgs>> clone_() {
+    public Optional<Output<CloneArgs>> clone_() {
         return Optional.ofNullable(this.clone);
     }
 
@@ -413,9 +413,9 @@ public final class VmArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.vmId);
     }
 
-    private VmArgs() {}
+    private VMArgs() {}
 
-    private VmArgs(VmArgs $) {
+    private VMArgs(VMArgs $) {
         this.acpi = $.acpi;
         this.affinity = $.affinity;
         this.agent = $.agent;
@@ -477,19 +477,19 @@ public final class VmArgs extends com.pulumi.resources.ResourceArgs {
     public static Builder builder() {
         return new Builder();
     }
-    public static Builder builder(VmArgs defaults) {
+    public static Builder builder(VMArgs defaults) {
         return new Builder(defaults);
     }
 
     public static final class Builder {
-        private VmArgs $;
+        private VMArgs $;
 
         public Builder() {
-            $ = new VmArgs();
+            $ = new VMArgs();
         }
 
-        public Builder(VmArgs defaults) {
-            $ = new VmArgs(Objects.requireNonNull(defaults));
+        public Builder(VMArgs defaults) {
+            $ = new VMArgs(Objects.requireNonNull(defaults));
         }
 
         public Builder acpi(@Nullable Output<Integer> acpi) {
@@ -609,12 +609,12 @@ public final class VmArgs extends com.pulumi.resources.ResourceArgs {
             return ciuser(Output.of(ciuser));
         }
 
-        public Builder clone_(@Nullable Output<VmCloneArgs> clone) {
+        public Builder clone_(@Nullable Output<CloneArgs> clone) {
             $.clone = clone;
             return this;
         }
 
-        public Builder clone_(VmCloneArgs clone) {
+        public Builder clone_(CloneArgs clone) {
             return clone_(Output.of(clone));
         }
 
@@ -1000,13 +1000,13 @@ public final class VmArgs extends com.pulumi.resources.ResourceArgs {
             return vmId(Output.of(vmId));
         }
 
-        public VmArgs build() {
+        public VMArgs build() {
             $.cores = Codegen.integerProp("cores").output().arg($.cores).def(1).getNullable();
             if ($.disks == null) {
-                throw new MissingRequiredPropertyException("VmArgs", "disks");
+                throw new MissingRequiredPropertyException("VMArgs", "disks");
             }
             if ($.name == null) {
-                throw new MissingRequiredPropertyException("VmArgs", "name");
+                throw new MissingRequiredPropertyException("VMArgs", "name");
             }
             return $;
         }

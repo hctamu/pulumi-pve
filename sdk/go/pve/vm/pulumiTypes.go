@@ -13,6 +13,199 @@ import (
 
 var _ = internal.GetEnvOrDefault
 
+type Clone struct {
+	DataStoreId *string `pulumi:"dataStoreId"`
+	FullClone   *bool   `pulumi:"fullClone"`
+	Node        *string `pulumi:"node"`
+	Timeout     *int    `pulumi:"timeout"`
+	VmId        int     `pulumi:"vmId"`
+}
+
+// CloneInput is an input type that accepts CloneArgs and CloneOutput values.
+// You can construct a concrete instance of `CloneInput` via:
+//
+//	CloneArgs{...}
+type CloneInput interface {
+	pulumi.Input
+
+	ToCloneOutput() CloneOutput
+	ToCloneOutputWithContext(context.Context) CloneOutput
+}
+
+type CloneArgs struct {
+	DataStoreId pulumi.StringPtrInput `pulumi:"dataStoreId"`
+	FullClone   pulumi.BoolPtrInput   `pulumi:"fullClone"`
+	Node        pulumi.StringPtrInput `pulumi:"node"`
+	Timeout     pulumi.IntPtrInput    `pulumi:"timeout"`
+	VmId        pulumi.IntInput       `pulumi:"vmId"`
+}
+
+func (CloneArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*Clone)(nil)).Elem()
+}
+
+func (i CloneArgs) ToCloneOutput() CloneOutput {
+	return i.ToCloneOutputWithContext(context.Background())
+}
+
+func (i CloneArgs) ToCloneOutputWithContext(ctx context.Context) CloneOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CloneOutput)
+}
+
+func (i CloneArgs) ToClonePtrOutput() ClonePtrOutput {
+	return i.ToClonePtrOutputWithContext(context.Background())
+}
+
+func (i CloneArgs) ToClonePtrOutputWithContext(ctx context.Context) ClonePtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CloneOutput).ToClonePtrOutputWithContext(ctx)
+}
+
+// ClonePtrInput is an input type that accepts CloneArgs, ClonePtr and ClonePtrOutput values.
+// You can construct a concrete instance of `ClonePtrInput` via:
+//
+//	        CloneArgs{...}
+//
+//	or:
+//
+//	        nil
+type ClonePtrInput interface {
+	pulumi.Input
+
+	ToClonePtrOutput() ClonePtrOutput
+	ToClonePtrOutputWithContext(context.Context) ClonePtrOutput
+}
+
+type clonePtrType CloneArgs
+
+func ClonePtr(v *CloneArgs) ClonePtrInput {
+	return (*clonePtrType)(v)
+}
+
+func (*clonePtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**Clone)(nil)).Elem()
+}
+
+func (i *clonePtrType) ToClonePtrOutput() ClonePtrOutput {
+	return i.ToClonePtrOutputWithContext(context.Background())
+}
+
+func (i *clonePtrType) ToClonePtrOutputWithContext(ctx context.Context) ClonePtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(ClonePtrOutput)
+}
+
+type CloneOutput struct{ *pulumi.OutputState }
+
+func (CloneOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*Clone)(nil)).Elem()
+}
+
+func (o CloneOutput) ToCloneOutput() CloneOutput {
+	return o
+}
+
+func (o CloneOutput) ToCloneOutputWithContext(ctx context.Context) CloneOutput {
+	return o
+}
+
+func (o CloneOutput) ToClonePtrOutput() ClonePtrOutput {
+	return o.ToClonePtrOutputWithContext(context.Background())
+}
+
+func (o CloneOutput) ToClonePtrOutputWithContext(ctx context.Context) ClonePtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v Clone) *Clone {
+		return &v
+	}).(ClonePtrOutput)
+}
+
+func (o CloneOutput) DataStoreId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Clone) *string { return v.DataStoreId }).(pulumi.StringPtrOutput)
+}
+
+func (o CloneOutput) FullClone() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Clone) *bool { return v.FullClone }).(pulumi.BoolPtrOutput)
+}
+
+func (o CloneOutput) Node() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Clone) *string { return v.Node }).(pulumi.StringPtrOutput)
+}
+
+func (o CloneOutput) Timeout() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v Clone) *int { return v.Timeout }).(pulumi.IntPtrOutput)
+}
+
+func (o CloneOutput) VmId() pulumi.IntOutput {
+	return o.ApplyT(func(v Clone) int { return v.VmId }).(pulumi.IntOutput)
+}
+
+type ClonePtrOutput struct{ *pulumi.OutputState }
+
+func (ClonePtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**Clone)(nil)).Elem()
+}
+
+func (o ClonePtrOutput) ToClonePtrOutput() ClonePtrOutput {
+	return o
+}
+
+func (o ClonePtrOutput) ToClonePtrOutputWithContext(ctx context.Context) ClonePtrOutput {
+	return o
+}
+
+func (o ClonePtrOutput) Elem() CloneOutput {
+	return o.ApplyT(func(v *Clone) Clone {
+		if v != nil {
+			return *v
+		}
+		var ret Clone
+		return ret
+	}).(CloneOutput)
+}
+
+func (o ClonePtrOutput) DataStoreId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Clone) *string {
+		if v == nil {
+			return nil
+		}
+		return v.DataStoreId
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o ClonePtrOutput) FullClone() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *Clone) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.FullClone
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o ClonePtrOutput) Node() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Clone) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Node
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o ClonePtrOutput) Timeout() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Clone) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Timeout
+	}).(pulumi.IntPtrOutput)
+}
+
+func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Clone) *int {
+		if v == nil {
+			return nil
+		}
+		return &v.VmId
+	}).(pulumi.IntPtrOutput)
+}
+
 type Disk struct {
 	Filename  *string `pulumi:"filename"`
 	Interface string  `pulumi:"interface"`
@@ -125,206 +318,13 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 	}).(DiskOutput)
 }
 
-type VmClone struct {
-	DataStoreId *string `pulumi:"dataStoreId"`
-	FullClone   *bool   `pulumi:"fullClone"`
-	Node        *string `pulumi:"node"`
-	Timeout     *int    `pulumi:"timeout"`
-	VmId        int     `pulumi:"vmId"`
-}
-
-// VmCloneInput is an input type that accepts VmCloneArgs and VmCloneOutput values.
-// You can construct a concrete instance of `VmCloneInput` via:
-//
-//	VmCloneArgs{...}
-type VmCloneInput interface {
-	pulumi.Input
-
-	ToVmCloneOutput() VmCloneOutput
-	ToVmCloneOutputWithContext(context.Context) VmCloneOutput
-}
-
-type VmCloneArgs struct {
-	DataStoreId pulumi.StringPtrInput `pulumi:"dataStoreId"`
-	FullClone   pulumi.BoolPtrInput   `pulumi:"fullClone"`
-	Node        pulumi.StringPtrInput `pulumi:"node"`
-	Timeout     pulumi.IntPtrInput    `pulumi:"timeout"`
-	VmId        pulumi.IntInput       `pulumi:"vmId"`
-}
-
-func (VmCloneArgs) ElementType() reflect.Type {
-	return reflect.TypeOf((*VmClone)(nil)).Elem()
-}
-
-func (i VmCloneArgs) ToVmCloneOutput() VmCloneOutput {
-	return i.ToVmCloneOutputWithContext(context.Background())
-}
-
-func (i VmCloneArgs) ToVmCloneOutputWithContext(ctx context.Context) VmCloneOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(VmCloneOutput)
-}
-
-func (i VmCloneArgs) ToVmClonePtrOutput() VmClonePtrOutput {
-	return i.ToVmClonePtrOutputWithContext(context.Background())
-}
-
-func (i VmCloneArgs) ToVmClonePtrOutputWithContext(ctx context.Context) VmClonePtrOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(VmCloneOutput).ToVmClonePtrOutputWithContext(ctx)
-}
-
-// VmClonePtrInput is an input type that accepts VmCloneArgs, VmClonePtr and VmClonePtrOutput values.
-// You can construct a concrete instance of `VmClonePtrInput` via:
-//
-//	        VmCloneArgs{...}
-//
-//	or:
-//
-//	        nil
-type VmClonePtrInput interface {
-	pulumi.Input
-
-	ToVmClonePtrOutput() VmClonePtrOutput
-	ToVmClonePtrOutputWithContext(context.Context) VmClonePtrOutput
-}
-
-type vmClonePtrType VmCloneArgs
-
-func VmClonePtr(v *VmCloneArgs) VmClonePtrInput {
-	return (*vmClonePtrType)(v)
-}
-
-func (*vmClonePtrType) ElementType() reflect.Type {
-	return reflect.TypeOf((**VmClone)(nil)).Elem()
-}
-
-func (i *vmClonePtrType) ToVmClonePtrOutput() VmClonePtrOutput {
-	return i.ToVmClonePtrOutputWithContext(context.Background())
-}
-
-func (i *vmClonePtrType) ToVmClonePtrOutputWithContext(ctx context.Context) VmClonePtrOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(VmClonePtrOutput)
-}
-
-type VmCloneOutput struct{ *pulumi.OutputState }
-
-func (VmCloneOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*VmClone)(nil)).Elem()
-}
-
-func (o VmCloneOutput) ToVmCloneOutput() VmCloneOutput {
-	return o
-}
-
-func (o VmCloneOutput) ToVmCloneOutputWithContext(ctx context.Context) VmCloneOutput {
-	return o
-}
-
-func (o VmCloneOutput) ToVmClonePtrOutput() VmClonePtrOutput {
-	return o.ToVmClonePtrOutputWithContext(context.Background())
-}
-
-func (o VmCloneOutput) ToVmClonePtrOutputWithContext(ctx context.Context) VmClonePtrOutput {
-	return o.ApplyTWithContext(ctx, func(_ context.Context, v VmClone) *VmClone {
-		return &v
-	}).(VmClonePtrOutput)
-}
-
-func (o VmCloneOutput) DataStoreId() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v VmClone) *string { return v.DataStoreId }).(pulumi.StringPtrOutput)
-}
-
-func (o VmCloneOutput) FullClone() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v VmClone) *bool { return v.FullClone }).(pulumi.BoolPtrOutput)
-}
-
-func (o VmCloneOutput) Node() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v VmClone) *string { return v.Node }).(pulumi.StringPtrOutput)
-}
-
-func (o VmCloneOutput) Timeout() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v VmClone) *int { return v.Timeout }).(pulumi.IntPtrOutput)
-}
-
-func (o VmCloneOutput) VmId() pulumi.IntOutput {
-	return o.ApplyT(func(v VmClone) int { return v.VmId }).(pulumi.IntOutput)
-}
-
-type VmClonePtrOutput struct{ *pulumi.OutputState }
-
-func (VmClonePtrOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((**VmClone)(nil)).Elem()
-}
-
-func (o VmClonePtrOutput) ToVmClonePtrOutput() VmClonePtrOutput {
-	return o
-}
-
-func (o VmClonePtrOutput) ToVmClonePtrOutputWithContext(ctx context.Context) VmClonePtrOutput {
-	return o
-}
-
-func (o VmClonePtrOutput) Elem() VmCloneOutput {
-	return o.ApplyT(func(v *VmClone) VmClone {
-		if v != nil {
-			return *v
-		}
-		var ret VmClone
-		return ret
-	}).(VmCloneOutput)
-}
-
-func (o VmClonePtrOutput) DataStoreId() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VmClone) *string {
-		if v == nil {
-			return nil
-		}
-		return v.DataStoreId
-	}).(pulumi.StringPtrOutput)
-}
-
-func (o VmClonePtrOutput) FullClone() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v *VmClone) *bool {
-		if v == nil {
-			return nil
-		}
-		return v.FullClone
-	}).(pulumi.BoolPtrOutput)
-}
-
-func (o VmClonePtrOutput) Node() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VmClone) *string {
-		if v == nil {
-			return nil
-		}
-		return v.Node
-	}).(pulumi.StringPtrOutput)
-}
-
-func (o VmClonePtrOutput) Timeout() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VmClone) *int {
-		if v == nil {
-			return nil
-		}
-		return v.Timeout
-	}).(pulumi.IntPtrOutput)
-}
-
-func (o VmClonePtrOutput) VmId() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VmClone) *int {
-		if v == nil {
-			return nil
-		}
-		return &v.VmId
-	}).(pulumi.IntPtrOutput)
-}
-
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*CloneInput)(nil)).Elem(), CloneArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
-	pulumi.RegisterInputType(reflect.TypeOf((*VmCloneInput)(nil)).Elem(), VmCloneArgs{})
-	pulumi.RegisterInputType(reflect.TypeOf((*VmClonePtrInput)(nil)).Elem(), VmCloneArgs{})
+	pulumi.RegisterOutputType(CloneOutput{})
+	pulumi.RegisterOutputType(ClonePtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
 	pulumi.RegisterOutputType(DiskArrayOutput{})
-	pulumi.RegisterOutputType(VmCloneOutput{})
-	pulumi.RegisterOutputType(VmClonePtrOutput{})
 }

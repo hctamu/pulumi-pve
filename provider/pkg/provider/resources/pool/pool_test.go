@@ -24,13 +24,14 @@ import (
 	"github.com/blang/semver"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
 	"github.com/vitorsalgado/mocha/v3/expect"
 	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/integration"
-	presource "github.com/pulumi/pulumi/sdk/v3/go/common/resource"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
 
 // Implement a custom PostAction
@@ -121,31 +122,39 @@ func TestPoolCreate(t *testing.T) {
 	}()
 
 	// Start the integration server with the mock setup
-	server := integration.NewServer("pve", semver.Version{Minor: 1}, provider.Provider())
+	server, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProvider()),
+	)
+	require.NoError(t, err)
+
+	outputMap := property.NewMap(map[string]property.Value{
+		"name":    property.New("testpool"),
+		"comment": property.New("updated comment"),
+	})
 
 	// Run the integration lifecycle tests
 	integration.LifeCycleTest{
 		Resource: "pve:pool:Pool",
 		Create: integration.Operation{
-			Inputs: presource.NewPropertyMapFromMap(map[string]interface{}{
-				"name":    "testpool",
-				"comment": "test pool comment",
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    property.New("testpool"),
+				"comment": property.New("test pool comment"),
 			}),
-			Hook: func(inputs, output presource.PropertyMap) {
+			Hook: func(inputs, output property.Map) {
 				t.Logf("Outputs after Create: %v", output)
-				assert.Equal(t, "testpool", output["name"].StringValue())
+				assert.Equal(t, "testpool", output.Get("name").AsString())
 			},
 		},
 		Updates: []integration.Operation{
 			{
-				Inputs: presource.NewPropertyMapFromMap(map[string]interface{}{
-					"name":    "testpool",
-					"comment": "updated comment",
+				Inputs: property.NewMap(map[string]property.Value{
+					"name":    property.New("testpool"),
+					"comment": property.New("updated comment"),
 				}),
-				ExpectedOutput: presource.NewPropertyMapFromMap(map[string]interface{}{
-					"name":    "testpool",
-					"comment": "updated comment",
-				}),
+				ExpectedOutput: &outputMap,
 			},
 		},
 	}.Run(t, server)

@@ -14,9 +14,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
-public final class VmCloneArgs extends com.pulumi.resources.ResourceArgs {
+public final class CloneArgs extends com.pulumi.resources.ResourceArgs {
 
-    public static final VmCloneArgs Empty = new VmCloneArgs();
+    public static final CloneArgs Empty = new CloneArgs();
 
     @Import(name="dataStoreId")
     private @Nullable Output<String> dataStoreId;
@@ -53,9 +53,9 @@ public final class VmCloneArgs extends com.pulumi.resources.ResourceArgs {
         return this.vmId;
     }
 
-    private VmCloneArgs() {}
+    private CloneArgs() {}
 
-    private VmCloneArgs(VmCloneArgs $) {
+    private CloneArgs(CloneArgs $) {
         this.dataStoreId = $.dataStoreId;
         this.fullClone = $.fullClone;
         this.node = $.node;
@@ -66,19 +66,19 @@ public final class VmCloneArgs extends com.pulumi.resources.ResourceArgs {
     public static Builder builder() {
         return new Builder();
     }
-    public static Builder builder(VmCloneArgs defaults) {
+    public static Builder builder(CloneArgs defaults) {
         return new Builder(defaults);
     }
 
     public static final class Builder {
-        private VmCloneArgs $;
+        private CloneArgs $;
 
         public Builder() {
-            $ = new VmCloneArgs();
+            $ = new CloneArgs();
         }
 
-        public Builder(VmCloneArgs defaults) {
-            $ = new VmCloneArgs(Objects.requireNonNull(defaults));
+        public Builder(CloneArgs defaults) {
+            $ = new CloneArgs(Objects.requireNonNull(defaults));
         }
 
         public Builder dataStoreId(@Nullable Output<String> dataStoreId) {
@@ -126,9 +126,9 @@ public final class VmCloneArgs extends com.pulumi.resources.ResourceArgs {
             return vmId(Output.of(vmId));
         }
 
-        public VmCloneArgs build() {
+        public CloneArgs build() {
             if ($.vmId == null) {
-                throw new MissingRequiredPropertyException("VmCloneArgs", "vmId");
+                throw new MissingRequiredPropertyException("CloneArgs", "vmId");
             }
             return $;
         }

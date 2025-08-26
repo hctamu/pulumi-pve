@@ -34,91 +34,86 @@ import (
 type VM struct{}
 
 var (
-	_ = (infer.CustomResource[Input, Output])((*VM)(nil))
-	_ = (infer.CustomDelete[Output])((*VM)(nil))
-	_ = (infer.CustomRead[Input, Output])((*VM)(nil))
-	_ = (infer.CustomUpdate[Input, Output])((*VM)(nil))
+	_ = (infer.CustomResource[VMInputs, VMOutputs])((*VM)(nil))
+	_ = (infer.CustomDelete[VMOutputs])((*VM)(nil))
+	_ = (infer.CustomRead[VMInputs, VMOutputs])((*VM)(nil))
+	_ = (infer.CustomUpdate[VMInputs, VMOutputs])((*VM)(nil))
 )
 
 // Output represents the output state of a Proxmox virtual machine resource.
-type Output struct {
-	Input
+type VMOutputs struct {
+	VMInputs
 }
 
 // Create creates a new virtual machine based on the provided inputs.
-func (vm *VM) Create(
-	ctx context.Context,
-	id string,
-	inputs Input,
-	preview bool,
-) (idRet string, output Output, err error) {
+func (vm *VM) Create(ctx context.Context, request infer.CreateRequest[VMInputs]) (response infer.CreateResponse[VMOutputs], err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Create VM: %v", inputs.VMID)
+	l.Debugf("Create VM: %v", request.Inputs.VMID)
 
-	if preview {
-		return id, Output{Input: inputs}, nil
+	response.Output = VMOutputs{request.Inputs}
+
+	if request.DryRun {
+		return response, nil
 	}
 
 	pxClient, err := client.GetProxmoxClient(ctx)
 	if err != nil {
-		return id, Output{}, err
+		return response, err
 	}
 
 	cluster, err := pxClient.Cluster(ctx)
 	if err != nil {
-		return id, Output{}, err
+		return response, err
 	}
 
-	nodeName, err := getNodeName(inputs, cluster)
+	nodeName, err := getNodeName(request.Inputs, cluster)
 	if err != nil {
-		return id, Output{}, err
+		return response, err
 	}
 
-	inputs.Node = &nodeName
+	request.Inputs.Node = &nodeName
 
-	if inputs.VMID == nil {
-		if err = setNextVMId(ctx, cluster, &inputs); err != nil {
+	if request.Inputs.VMID == nil {
+		if err = setNextVMId(ctx, cluster, &request.Inputs); err != nil {
 			l.Errorf("error: %v", err)
-			return id, Output{}, err
+			return response, err
 		}
 	}
 
-	output = Output{Input: inputs}
-
-	l.Infof("Create VM '%v(%v)' on '%v'", *inputs.Name, *inputs.VMID, nodeName)
-	options := inputs.BuildOptions(*inputs.VMID)
+	l.Infof("Create VM '%v(%v)' on '%v'", *request.Inputs.Name, *request.Inputs.VMID, nodeName)
+	options := request.Inputs.BuildOptions(*request.Inputs.VMID)
 
 	var createTask *api.Task
 	var timeout time.Duration
-	if createTask, timeout, err = createVMTask(ctx, inputs, options); err != nil {
+	if createTask, timeout, err = createVMTask(ctx, request.Inputs, options); err != nil {
 		l.Errorf("error: %v", err)
-		return id, Output{}, err
+		return response, err
 	}
 
 	interval := 5 * time.Second
 	if err = createTask.Wait(ctx, interval, timeout); err != nil {
 		l.Errorf("error waiting for VM creation task: %v", err)
-		return id, Output{}, err
+		return response, err
 	}
 
-	if inputs.Clone != nil {
-		if err = finalizeClone(ctx, pxClient, inputs, options); err != nil {
+	if request.Inputs.Clone != nil {
+		if err = finalizeClone(ctx, pxClient, request.Inputs, options); err != nil {
 			l.Errorf("error: %v", err)
-			return id, Output{}, err
+			return response, err
 		}
 	}
 
 	// Read the current state of the VM after creation
-	if output, err = readCurrentOutput(ctx, vm, id, inputs, output); err != nil {
+	if response.Output, err = readCurrentOutput(ctx, vm, request); err != nil {
 		l.Errorf("error: %v", err)
-		return id, Output{}, err
+		return response, err
 	}
 
-	return id, output, nil
+	return response, nil
 }
 
 // setNextVMId sets the next available VM ID.
-func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *Input) error {
+func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *VMInputs) error {
 	vmIDInt, err := cluster.NextID(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get next VM ID: %v", err)
@@ -130,7 +125,7 @@ func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *Input) error
 // createVMTask creates a task for creating a new VM or cloning an existing one.
 func createVMTask(
 	ctx context.Context,
-	inputs Input,
+	inputs VMInputs,
 	options []api.VirtualMachineOption,
 ) (
 	createTask *api.Task,
@@ -151,7 +146,7 @@ func createVMTask(
 func finalizeClone(
 	ctx context.Context,
 	pxClient *px.Client,
-	inputs Input,
+	inputs VMInputs,
 	options []api.VirtualMachineOption,
 ) (err error) {
 	var virtualMachine *api.VirtualMachine
@@ -183,18 +178,26 @@ func finalizeClone(
 func readCurrentOutput(
 	ctx context.Context,
 	vm *VM,
-	id string,
-	inputs Input,
-	output Output,
-) (currentOutput Output, err error) {
-	if _, _, currentOutput, err = vm.Read(ctx, id, inputs, output); err != nil {
-		return Output{}, fmt.Errorf("failed to read VM after creation: %v", err)
+	request infer.CreateRequest[VMInputs],
+) (currentOutput VMOutputs, err error) {
+	readRequest := infer.ReadRequest[VMInputs, VMOutputs]{
+		ID:     request.Name,
+		Inputs: request.Inputs,
+		State:  VMOutputs{VMInputs: request.Inputs},
 	}
+
+	var readResponse infer.ReadResponse[VMInputs, VMOutputs]
+
+	if readResponse, err = vm.Read(ctx, readRequest); err != nil {
+		return VMOutputs{}, fmt.Errorf("failed to read VM after creation: %v", err)
+	}
+
+	currentOutput = readResponse.State
 	return currentOutput, nil
 }
 
 // getNodeName returns the node name from the inputs or selects the first node from the cluster.
-func getNodeName(inputs Input, cluster *api.Cluster) (string, error) {
+func getNodeName(inputs VMInputs, cluster *api.Cluster) (string, error) {
 	if inputs.Node != nil {
 		return *inputs.Node, nil
 	}
@@ -205,7 +208,7 @@ func getNodeName(inputs Input, cluster *api.Cluster) (string, error) {
 }
 
 // handleClone handles the cloning of a virtual machine.
-func handleClone(ctx context.Context, inputs Input) (createTask *api.Task, err error) {
+func handleClone(ctx context.Context, inputs VMInputs) (createTask *api.Task, err error) {
 	pxc, err := client.GetProxmoxClient(ctx)
 	if err != nil {
 		return nil, err
@@ -238,7 +241,7 @@ func handleClone(ctx context.Context, inputs Input) (createTask *api.Task, err e
 // handleNewVM handles the creation of a new virtual machine.
 func handleNewVM(
 	ctx context.Context,
-	inputs Input,
+	inputs VMInputs,
 	options []api.VirtualMachineOption,
 ) (createTask *api.Task, err error) {
 	pxc, err := client.GetProxmoxClient(ctx)
@@ -260,116 +263,102 @@ func handleNewVM(
 }
 
 // Read reads the state of the virtual machine.
-func (vm *VM) Read(
-	ctx context.Context,
-	id string,
-	inputs Input,
-	output Output,
-) (
-	idRet string,
-	normalizedInputs Input,
-	normalizedOutputs Output,
-	err error,
-) {
+func (vm *VM) Read(ctx context.Context, request infer.ReadRequest[VMInputs, VMOutputs]) (response infer.ReadResponse[VMInputs, VMOutputs], err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Read VM with ID: %v", output.VMID)
+	l.Debugf("Read VM with ID: %v", request.Inputs.VMID)
 
 	var pxClient *px.Client
 	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
 		err = fmt.Errorf("failed to get Proxmox client: %v", err)
 		l.Errorf("Error during getting Proxmox client: %v", err)
-		return "", Input{}, Output{}, err
+		return response, err
 	}
 
 	var virtualMachine *api.VirtualMachine
-	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *inputs.VMID, inputs.Node); err != nil {
-		return "", Input{}, Output{}, err
+	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *request.Inputs.VMID, request.Inputs.Node); err != nil {
+		return response, err
 	}
 
-	if normalizedOutputs.Input, err = ConvertVMConfigToInputs(virtualMachine); err != nil {
+	if response.State.VMInputs, err = ConvertVMConfigToInputs(virtualMachine); err != nil {
 		err = fmt.Errorf("failed to convert VM to inputs %v", err)
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
-		return "", Input{}, Output{}, err
+		return response, err
 	}
 
 	l.Debugf("VM: %v", virtualMachine)
-	return id, normalizedOutputs.Input, normalizedOutputs, nil
+	return response, nil
 }
 
 // Update updates the state of the virtual machine.
-func (vm *VM) Update(
-	ctx context.Context,
-	id string,
-	output Output,
-	inputs Input,
-	preview bool,
-) (outputRet Output, err error) {
+func (vm *VM) Update(ctx context.Context, request infer.UpdateRequest[VMInputs, VMOutputs]) (response infer.UpdateResponse[VMOutputs], err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Update VM with ID: %v", id)
+	l.Debugf("Update VM with ID: %v", request.ID)
 
-	vmID := output.VMID
-	if inputs.VMID == nil {
-		inputs.VMID = vmID
+	vmID := request.State.VMID
+	if request.Inputs.VMID == nil {
+		request.Inputs.VMID = vmID
 	}
 
-	nodeID := output.Node
-	if inputs.Node == nil {
-		inputs.Node = nodeID
+	nodeID := request.State.Node
+	if request.Inputs.Node == nil {
+		request.Inputs.Node = nodeID
 	}
 
-	outputRet.Input = inputs
+	response.Output = VMOutputs{
+		VMInputs: request.Inputs,
+	}
 
-	if preview {
-		return outputRet, nil
+	if request.DryRun {
+		return response, nil
 	}
 
 	var pxClient *px.Client
 	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
-		return outputRet, err
+		return response, err
 	}
 
 	var virtualMachine *api.VirtualMachine
-	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, output.Node); err != nil {
-		return outputRet, err
+	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.State.Node); err != nil {
+		return response, err
 	}
 	l.Debugf("VM: %v", virtualMachine)
-	options := inputs.BuildOptionsDiff(*vmID, &output.Input)
+	options := request.Inputs.BuildOptionsDiff(*vmID, &response.Output.VMInputs)
 
 	var task *api.Task
 	if task, err = virtualMachine.Config(ctx, options...); err != nil {
-		return outputRet, err
+		return response, err
 	}
 
 	l.Debugf("Update VM Task: %v", task)
-	return outputRet, nil
+	return response, nil
 }
 
 // Delete deletes the virtual machine.
-func (vm *VM) Delete(ctx context.Context, id string, output Output) (err error) {
+func (vm *VM) Delete(ctx context.Context, request infer.DeleteRequest[VMOutputs]) (response infer.DeleteResponse, err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Deleting VM: %v", id)
+	l.Debugf("Deleting VM: %v", request.ID)
 
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-		return fmt.Errorf("failed to get Proxmox client: %v", err)
+		return response, fmt.Errorf("failed to get Proxmox client: %v", err)
 	}
 
 	var virtualMachine *api.VirtualMachine
-	if virtualMachine, _, _, err = pxc.FindVirtualMachine(ctx, *output.VMID, output.Node); err != nil {
-		return err
+	if virtualMachine, _, _, err = pxc.FindVirtualMachine(ctx, *request.State.VMID, request.State.Node); err != nil {
+		return response, err
 	}
 
 	var task *api.Task
 	if task, err = virtualMachine.Delete(ctx); err != nil {
-		return fmt.Errorf("failed to delete VM %d: %v", *output.VMID, err)
+		return response, fmt.Errorf("failed to delete VM %d: %v", *request.State.VMID, err)
 	}
 
 	l.Debugf("Delete VM Task: %v", task)
-	return nil
+	return response, nil
 }
 
 // Annotate sets default values for the Args struct.
-func (inputs *Input) Annotate(a infer.Annotator) {
+func (inputs *VMInputs) Annotate(a infer.Annotator) {
 	a.SetDefault(&inputs.Cores, 1)
 }
 
