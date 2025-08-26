@@ -19,11 +19,11 @@ export class Provider extends pulumi.ProviderResource {
         return obj['__pulumiType'] === "pulumi:providers:" + Provider.__pulumiType;
     }
 
-    public readonly pveToken!: pulumi.Output<string>;
-    public readonly pveUrl!: pulumi.Output<string>;
-    public readonly pveUser!: pulumi.Output<string>;
-    public readonly sshPass!: pulumi.Output<string>;
-    public readonly sshUser!: pulumi.Output<string>;
+    declare public readonly pveToken: pulumi.Output<string>;
+    declare public readonly pveUrl: pulumi.Output<string>;
+    declare public readonly pveUser: pulumi.Output<string>;
+    declare public readonly sshPass: pulumi.Output<string>;
+    declare public readonly sshUser: pulumi.Output<string>;
 
     /**
      * Create a Provider resource with the given unique name, arguments, and options.
@@ -36,26 +36,26 @@ export class Provider extends pulumi.ProviderResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         {
-            if ((!args || args.pveToken === undefined) && !opts.urn) {
+            if (args?.pveToken === undefined && !opts.urn) {
                 throw new Error("Missing required property 'pveToken'");
             }
-            if ((!args || args.pveUrl === undefined) && !opts.urn) {
+            if (args?.pveUrl === undefined && !opts.urn) {
                 throw new Error("Missing required property 'pveUrl'");
             }
-            if ((!args || args.pveUser === undefined) && !opts.urn) {
+            if (args?.pveUser === undefined && !opts.urn) {
                 throw new Error("Missing required property 'pveUser'");
             }
-            if ((!args || args.sshPass === undefined) && !opts.urn) {
+            if (args?.sshPass === undefined && !opts.urn) {
                 throw new Error("Missing required property 'sshPass'");
             }
-            if ((!args || args.sshUser === undefined) && !opts.urn) {
+            if (args?.sshUser === undefined && !opts.urn) {
                 throw new Error("Missing required property 'sshUser'");
             }
             resourceInputs["pveToken"] = args?.pveToken ? pulumi.secret(args.pveToken) : undefined;
-            resourceInputs["pveUrl"] = args ? args.pveUrl : undefined;
-            resourceInputs["pveUser"] = args ? args.pveUser : undefined;
+            resourceInputs["pveUrl"] = args?.pveUrl;
+            resourceInputs["pveUser"] = args?.pveUser;
             resourceInputs["sshPass"] = args?.sshPass ? pulumi.secret(args.sshPass) : undefined;
-            resourceInputs["sshUser"] = args ? args.sshUser : undefined;
+            resourceInputs["sshUser"] = args?.sshUser;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
         const secretOpts = { additionalSecretOutputs: ["pveToken", "sshPass"] };

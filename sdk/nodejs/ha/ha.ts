@@ -37,15 +37,15 @@ export class Ha extends pulumi.CustomResource {
     /**
      * The HA group identifier.
      */
-    public readonly group!: pulumi.Output<string | undefined>;
+    declare public readonly group: pulumi.Output<string | undefined>;
     /**
      * The ID of the virtual machine that will be managed by HA (required).
      */
-    public readonly resourceId!: pulumi.Output<number>;
+    declare public readonly resourceId: pulumi.Output<number>;
     /**
      * The state of the HA resource (default: started).
      */
-    public readonly state!: pulumi.Output<string | undefined>;
+    declare public readonly state: pulumi.Output<string | undefined>;
 
     /**
      * Create a Ha resource with the given unique name, arguments, and options.
@@ -58,12 +58,12 @@ export class Ha extends pulumi.CustomResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            if ((!args || args.resourceId === undefined) && !opts.urn) {
+            if (args?.resourceId === undefined && !opts.urn) {
                 throw new Error("Missing required property 'resourceId'");
             }
-            resourceInputs["group"] = args ? args.group : undefined;
-            resourceInputs["resourceId"] = args ? args.resourceId : undefined;
-            resourceInputs["state"] = (args ? args.state : undefined) ?? "started";
+            resourceInputs["group"] = args?.group;
+            resourceInputs["resourceId"] = args?.resourceId;
+            resourceInputs["state"] = (args?.state) ?? "started";
         } else {
             resourceInputs["group"] = undefined /*out*/;
             resourceInputs["resourceId"] = undefined /*out*/;

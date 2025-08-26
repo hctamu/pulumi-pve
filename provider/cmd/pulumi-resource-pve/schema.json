@@ -2,6 +2,7 @@
   "name": "pve",
   "displayName": "pve",
   "description": "PVE Provider",
+  "license": "Apache-2.0",
   "repository": "https://github.com/hctamu/pulumi-pve",
   "namespace": "hctamu",
   "meta": {
@@ -73,17 +74,42 @@
       "properties": {
         "fileData": {
           "type": "string",
-          "description": "The raw data in []byte"
+          "description": "The raw data in []byte",
+          "replaceOnChanges": true
         },
         "fileName": {
           "type": "string",
-          "description": "The name of the file"
+          "description": "The name of the file",
+          "replaceOnChanges": true
         }
       },
       "type": "object",
       "required": [
         "fileData",
         "fileName"
+      ]
+    },
+    "pve:vm:Clone": {
+      "properties": {
+        "dataStoreId": {
+          "type": "string"
+        },
+        "fullClone": {
+          "type": "boolean"
+        },
+        "node": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "integer"
+        },
+        "vmId": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "vmId"
       ]
     },
     "pve:vm:Disk": {
@@ -106,29 +132,6 @@
         "interface",
         "size",
         "storage"
-      ]
-    },
-    "pve:vm:VmClone": {
-      "properties": {
-        "dataStoreId": {
-          "type": "string"
-        },
-        "fullClone": {
-          "type": "boolean"
-        },
-        "node": {
-          "type": "string"
-        },
-        "timeout": {
-          "type": "integer"
-        },
-        "vmId": {
-          "type": "integer"
-        }
-      },
-      "type": "object",
-      "required": [
-        "vmId"
       ]
     }
   },
@@ -264,11 +267,13 @@
       "properties": {
         "contentType": {
           "type": "string",
-          "description": "The type of the file (e.g: snippets)"
+          "description": "The type of the file (e.g: snippets)",
+          "replaceOnChanges": true
         },
         "datastoreId": {
           "type": "string",
-          "description": "The datastore to upload the file to.  (e.g:ceph-ha)"
+          "description": "The datastore to upload the file to.  (e.g:ceph-ha)",
+          "replaceOnChanges": true
         },
         "sourceRaw": {
           "$ref": "#/types/pve:storage:FileSourceRaw",
@@ -284,11 +289,13 @@
       "inputProperties": {
         "contentType": {
           "type": "string",
-          "description": "The type of the file (e.g: snippets)"
+          "description": "The type of the file (e.g: snippets)",
+          "replaceOnChanges": true
         },
         "datastoreId": {
           "type": "string",
-          "description": "The datastore to upload the file to.  (e.g:ceph-ha)"
+          "description": "The datastore to upload the file to.  (e.g:ceph-ha)",
+          "replaceOnChanges": true
         },
         "sourceRaw": {
           "$ref": "#/types/pve:storage:FileSourceRaw",
@@ -301,7 +308,7 @@
         "sourceRaw"
       ]
     },
-    "pve:vm:Vm": {
+    "pve:vm:VM": {
       "properties": {
         "acpi": {
           "type": "integer"
@@ -343,7 +350,7 @@
           "type": "string"
         },
         "clone": {
-          "$ref": "#/types/pve:vm:VmClone"
+          "$ref": "#/types/pve:vm:Clone"
         },
         "cores": {
           "type": "integer",
@@ -522,7 +529,7 @@
           "type": "string"
         },
         "clone": {
-          "$ref": "#/types/pve:vm:VmClone"
+          "$ref": "#/types/pve:vm:Clone"
         },
         "cores": {
           "type": "integer",

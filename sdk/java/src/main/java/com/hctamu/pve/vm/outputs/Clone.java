@@ -13,14 +13,14 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 @CustomType
-public final class VmClone {
+public final class Clone {
     private @Nullable String dataStoreId;
     private @Nullable Boolean fullClone;
     private @Nullable String node;
     private @Nullable Integer timeout;
     private Integer vmId;
 
-    private VmClone() {}
+    private Clone() {}
     public Optional<String> dataStoreId() {
         return Optional.ofNullable(this.dataStoreId);
     }
@@ -41,7 +41,7 @@ public final class VmClone {
         return new Builder();
     }
 
-    public static Builder builder(VmClone defaults) {
+    public static Builder builder(Clone defaults) {
         return new Builder(defaults);
     }
     @CustomType.Builder
@@ -52,7 +52,7 @@ public final class VmClone {
         private @Nullable Integer timeout;
         private Integer vmId;
         public Builder() {}
-        public Builder(VmClone defaults) {
+        public Builder(Clone defaults) {
     	      Objects.requireNonNull(defaults);
     	      this.dataStoreId = defaults.dataStoreId;
     	      this.fullClone = defaults.fullClone;
@@ -88,13 +88,13 @@ public final class VmClone {
         @CustomType.Setter
         public Builder vmId(Integer vmId) {
             if (vmId == null) {
-              throw new MissingRequiredPropertyException("VmClone", "vmId");
+              throw new MissingRequiredPropertyException("Clone", "vmId");
             }
             this.vmId = vmId;
             return this;
         }
-        public VmClone build() {
-            final var _resultValue = new VmClone();
+        public Clone build() {
+            final var _resultValue = new Clone();
             _resultValue.dataStoreId = dataStoreId;
             _resultValue.fullClone = fullClone;
             _resultValue.node = node;

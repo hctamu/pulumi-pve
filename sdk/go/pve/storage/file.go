@@ -39,6 +39,13 @@ func NewFile(ctx *pulumi.Context,
 	if args.SourceRaw == nil {
 		return nil, errors.New("invalid value for required argument 'SourceRaw'")
 	}
+	replaceOnChanges := pulumi.ReplaceOnChanges([]string{
+		"contentType",
+		"datastoreId",
+		"sourceRaw.fileData",
+		"sourceRaw.fileName",
+	})
+	opts = append(opts, replaceOnChanges)
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource File
 	err := ctx.RegisterResource("pve:storage:File", name, args, &resource, opts...)

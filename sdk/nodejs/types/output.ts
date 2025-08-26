@@ -20,19 +20,19 @@ export namespace storage {
 }
 
 export namespace vm {
-    export interface Disk {
-        filename?: string;
-        interface: string;
-        size: number;
-        storage: string;
-    }
-
-    export interface VmClone {
+    export interface Clone {
         dataStoreId?: string;
         fullClone?: boolean;
         node?: string;
         timeout?: number;
         vmId: number;
+    }
+
+    export interface Disk {
+        filename?: string;
+        interface: string;
+        size: number;
+        storage: string;
     }
 
 }

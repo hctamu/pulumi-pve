@@ -1,8 +1,6 @@
 module provider-pve
 
-go 1.24
-
-toolchain go1.24.2
+go 1.24.5
 
 replace github.com/hctamu/pulumi-pve/sdk => ../../sdk
 
