@@ -47,20 +47,34 @@ linters:
     govet:
       enable:
         - nilness
+        # Reject comparisons of reflect.Value with DeepEqual or '=='.
         - reflectvaluecompare
+        # Reject sort.Slice calls with a non-slice argument.
         - sortslice
+        # Detect write to struct/arrays by-value that aren't read again.
         - unusedwrite
     nakedret:
+      # Make an issue if func has more lines of code than this setting, and it has naked returns.
+      # Default: 30
       max-func-lines: 60
     nolintlint:
+      # Some linter exclusions are added to generated or templated files
+      # pre-emptively.
+      # Don't complain about these.
       allow-unused: true
   exclusions:
     generated: lax
     rules:
       - linters:
+          # Don't warn on unused parameters.
+          # Parameter names are useful; replacing them with '_' is undesirable.
           - revive
         text: 'unused-parameter: parameter \S+ seems to be unused, consider removing or renaming it as _'
       - linters:
+          # staticcheck already has smarter checks for empty blocks.
+          # revive's empty-block linter has false positives.
+          # For example, as of writing this, the following is not allowed.
+          #   for foo() { }
           - revive
         text: 'empty-block: this block is empty, you can remove it'
       - linters:
@@ -79,11 +93,11 @@ formatters:
   settings:
     gci:
       sections:
-        - standard
-        - blank
-        - default
-        - prefix(github.com/pulumi/)
-        - prefix(github.com/pulumi/pulumi-dockerbuild/)
+      - standard # Standard section: captures all standard library packages.
+      - blank # Blank section: contains all blank imports.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(github.com/pulumi/) # Custom section: groups all imports with the github.com/pulumi/ prefix.
+      - prefix(github.com/pulumi/pulumi-dockerbuild/) # Custom section: local imports
       custom-order: true
   exclusions:
     generated: lax
