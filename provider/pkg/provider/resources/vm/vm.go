@@ -54,6 +54,7 @@ func (vm *VM) Create(
 	l.Debugf("Create VM: %v", request.Inputs.VMID)
 
 	response.Output = Outputs{request.Inputs}
+	response.ID = request.Name
 
 	if request.DryRun {
 		return response, nil
@@ -283,7 +284,9 @@ func (vm *VM) Read(
 	var virtualMachine *api.VirtualMachine
 	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *request.Inputs.VMID, request.Inputs.Node)
 	if err != nil {
+		l.Errorf("Error during finding VM %v: %v", request.Inputs.VMID, err)
 		return response, err
+
 	}
 
 	if response.State.Inputs, err = ConvertVMConfigToInputs(virtualMachine); err != nil {
@@ -291,6 +294,7 @@ func (vm *VM) Read(
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
 		return response, err
 	}
+	response.ID = request.ID
 
 	l.Debugf("VM: %v", virtualMachine)
 	return response, nil
