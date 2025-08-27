@@ -18,6 +18,9 @@ export GOPATH   := $(shell go env GOPATH)
 WORKING_DIR     := $(shell pwd)
 TESTPARALLELISM := 4
 
+EXAMPLES_DIR    := ${WORKING_DIR}/examples/yaml
+
+
 # Override during CI using `make [TARGET] PROVIDER_VERSION=""` or by setting a PROVIDER_VERSION environment variable
 # Local & branch builds will just used this fixed default version unless specified
 PROVIDER_VERSION ?= 1.0.0-alpha.0+dev
@@ -123,7 +126,8 @@ lint:
 
 
 install:: install_nodejs_sdk install_dotnet_sdk
-	cp $(WORKING_DIR)/bin/${PROVIDER} ${GOPATH}/bin
+	mkdir -p ${GOPATH}/bin && \
+	cp $(WORKING_DIR)/bin/${PROVIDER} ${GOPATH}/bin/${PROVIDER}
 
 
 GO_TEST := go test -v -count=1 -cover -timeout 2h -parallel ${TESTPARALLELISM}
@@ -251,3 +255,51 @@ build_nodejs: nodejs_sdk # Required by CI
 .PHONY: build_dotnet install_dotnet_sdk
 generate_dotnet: sdk/dotnet # Required by CI
 build_dotnet: dotnet_sdk # Required by CI
+
+define pulumi_login
+	if [ -z "$$PULUMI_CONFIG_PASSPHRASE" ]; then \
+		echo "Error: PULUMI_CONFIG_PASSPHRASE is not set"; \
+		exit 1; \
+	fi; \
+	pulumi login --local;
+endef
+
+stack_init::
+	$(call pulumi_login) \
+	cd ${EXAMPLES_DIR} && \
+	pulumi stack init dev && \
+	pulumi stack select dev && \
+	pulumi config set name dev
+
+up:: stack_init
+	cd ${EXAMPLES_DIR} && \
+	pulumi stack select dev && \
+	pulumi up -y
+
+update::
+	$(call pulumi_login) \
+	cd ${EXAMPLES_DIR} && \
+	pulumi stack select dev && \
+	pulumi config set name dev && \
+	pulumi up -y
+
+refresh::
+	$(call pulumi_login) \
+	cd ${EXAMPLES_DIR} && \
+	pulumi stack select dev && \
+	pulumi config set name dev && \
+	pulumi refresh -y
+
+preview::
+	$(call pulumi_login) \
+	cd ${EXAMPLES_DIR} && \
+	pulumi stack select dev && \
+	pulumi config set name dev && \
+	pulumi preview --diff --color always
+
+down::
+	$(call pulumi_login) \
+	cd ${EXAMPLES_DIR} && \
+	pulumi stack select dev && \
+	pulumi destroy -y && \
+	pulumi stack rm dev -y --preserve-config

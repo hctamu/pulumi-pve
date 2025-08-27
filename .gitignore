@@ -31,3 +31,5 @@ sdk/java/gradlew.bat
 sdk/python/venv
 
 coverage.txt
+pulumi-pve.code-workspace
+provider/cmd/pulumi-resource-pve/__debug_*

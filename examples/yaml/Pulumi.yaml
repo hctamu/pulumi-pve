@@ -17,7 +17,7 @@ resources:
         fileName: testfile01.yaml
 
   myVM:
-    type: pve:vm:Vm
+    type: pve:vm:VM
     properties:
       name: "testVM"
       description: "test VM"
