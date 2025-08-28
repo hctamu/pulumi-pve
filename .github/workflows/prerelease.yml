@@ -24,6 +24,10 @@ env:
   PYPI_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
   TRAVIS_OS_NAME: linux
   PULUMI_GO_DEP_ROOT: ${{ github.workspace }}/..
+  PUBLISH_REPO_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+  PUBLISH_REPO_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+  SIGNING_KEY: ${{ secrets.JAVA_SIGNING_KEY }}
+  SIGNING_PASSWORD: ${{ secrets.JAVA_SIGNING_PASSWORD }}
   IS_PRERELEASE: true
 jobs:
   prerequisites:
@@ -249,7 +253,7 @@ jobs:
     - name: Publish SDKs
       uses: pulumi/pulumi-package-publisher@v0.0.22
       with:
-        sdk: all,!java
+        sdk: all
         assertPrerelease: true
         version: ${{ steps.version.outputs.version }}
   publish_go_sdk:

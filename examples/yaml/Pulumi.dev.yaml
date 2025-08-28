@@ -1,10 +1,10 @@
-encryptionsalt: encryptionsalt
+encryptionsalt: v1:vbDBNBkaroU=:v1:vYk5zPx2ssOgYe/s:ReasCWXtzU7CN37HnE8KHXOen/D4jg==
 config:
-  pve:pveUrl: pve_api_endpoint
-  pve:pveUser: pve_user
+  pve:pveUrl: https://10.10.119.216:8006/api2/json
+  pve:pveUser: root@pam!pulumi-token
   pve:pveToken:
-    secure: encrypted_pve_token
+    secure: v1:VE8b1SFqAs021H80:ZlBv1r0fjx1JI7AZF6xrFcbvhzzagYs5QUwVhGOu9Lw3I0QdH+YJJKLjSenc+fVebYs30w==
   provider-pve:name: dev
-  pve:sshUser: ssh_user
+  pve:sshUser: root
   pve:sshPass:
-    secure: encrypted_ssh_pass
+    secure: v1:QI7XOY0BZLg71mJJ:EDupiR1rTI1PTpZmavnjJsQNDF32kfyEshEOs9R1IrWnZ6OwzHk=

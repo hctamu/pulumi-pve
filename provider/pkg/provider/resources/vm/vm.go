@@ -143,6 +143,7 @@ func createVMTask(
 		createTask, err = handleNewVM(ctx, inputs, options)
 		timeout = 60 * time.Second
 	}
+
 	return createTask, timeout, err
 }
 
