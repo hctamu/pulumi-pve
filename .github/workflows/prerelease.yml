@@ -253,7 +253,7 @@ jobs:
     - name: Publish SDKs
       uses: pulumi/pulumi-package-publisher@v0.0.22
       with:
-        sdk: all
+        sdk: all, !java
         assertPrerelease: true
         version: ${{ steps.version.outputs.version }}
   publish_go_sdk:
