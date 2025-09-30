@@ -1,0 +1,183 @@
+package group
+
+import (
+	"context"
+	"fmt"
+
+	"errors"
+	//"fmt"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/px"
+
+	api "github.com/luthermonson/go-proxmox"
+
+	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
+)
+
+// Group represents a Proxmox group resource.
+type Group struct{}
+
+// Inputs defines the input properties for a Proxmox group resource.
+type Inputs struct {
+	Name    string `pulumi:"name"`
+	Comment string `pulumi:"comment,optional"`
+}
+
+// Annotate is used to annotate the input and output properties of the resource.
+func (args *Inputs) Annotate(a infer.Annotator) {
+	a.Describe(&args.Name, "The name of the Proxmox group.")
+	a.SetDefault(&args.Comment, "Default group comment")
+	a.Describe(
+		&args.Comment,
+		"An optional comment for the group. If not provided, defaults to 'Default group comment'.",
+	)
+}
+
+// Outputs defines the output properties for a Proxmox group resource.
+type Outputs struct {
+	Inputs
+}
+
+// Create is used to create a new group resource
+func (group *Group) Create(
+	ctx context.Context,
+	request infer.CreateRequest[Inputs],
+) (response infer.CreateResponse[Outputs], err error) {
+	response.ID = request.Name
+	response.Output = Outputs{Inputs: request.Inputs}
+	l := p.GetLogger(ctx)
+	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+	if request.DryRun {
+		return response, nil
+	}
+
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+		return response, err
+	}
+
+	err = pxc.NewGroup(ctx, request.Inputs.Name, request.Inputs.Comment)
+
+	return response, err
+}
+
+// Delete is used to delete a group resource
+func (group *Group) Delete(
+	ctx context.Context,
+	request infer.DeleteRequest[Outputs],
+) (response infer.DeleteResponse, err error) {
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+		return response, err
+	}
+
+	l := p.GetLogger(ctx)
+	l.Debugf("Deleting group %v", request.State.Name)
+
+	var existingGroup *api.Group
+	if existingGroup, err = pxc.Group(ctx, request.State.Name); err != nil {
+		err = fmt.Errorf("failed to get group %s: %v", request.State.Name, err)
+		l.Error(err.Error())
+		return response, err
+	}
+
+	if err = existingGroup.Delete(ctx); err != nil {
+		err = fmt.Errorf("failed to delete group %s: %v", request.State.Name, err)
+		l.Error(err.Error())
+		return response, err
+	}
+
+	return response, nil
+}
+
+// Read is used to read the state of a group resource
+func (group *Group) Read(
+	ctx context.Context,
+	request infer.ReadRequest[Inputs, Outputs],
+) (response infer.ReadResponse[Inputs, Outputs], err error) {
+	response.ID = request.ID
+	response.Inputs = request.Inputs
+	l := p.GetLogger(ctx)
+	l.Debugf(
+		"Read called for Group with ID: %s, Inputs: %+v, State: %+v",
+		request.ID,
+		request.Inputs,
+		request.State,
+	)
+
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+		return response, err
+	}
+
+	if request.ID == "" {
+		l.Warningf("Missing Group ID")
+		err = errors.New("missing group ID")
+		return response, err
+	}
+
+	var existingGroup *api.Group
+	if existingGroup, err = pxc.Group(ctx, response.Inputs.Name); err != nil {
+		err = fmt.Errorf("failed to get group %s: %v", response.Inputs.Name, err)
+		return response, err
+	}
+
+	groupName := existingGroup.GroupID
+
+	l.Debugf("Successfully fetched group: %+v", groupName)
+
+	response.State = Outputs{
+		Inputs: Inputs{
+			Name:    groupName,
+			Comment: existingGroup.Comment,
+		},
+	}
+
+	response.Inputs = response.State.Inputs
+
+	l.Debugf("Returning updated state: %+v", response.State)
+	return response, nil
+}
+
+// // Update is used to update a group resource
+// func (group *Group) Update(
+// 	ctx context.Context,
+// 	request infer.UpdateRequest[Inputs, Outputs],
+// ) (response infer.UpdateResponse[Outputs], err error) {
+// 	response.Output = request.State
+// 	l := p.GetLogger(ctx)
+// 	l.Debugf("Updating group: %v", request.State.Name)
+
+// 	if request.DryRun {
+// 		return response, nil
+// 	}
+
+// 	var pxc *px.Client
+// 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+// 		return response, err
+// 	}
+
+// 	var existingGroup *api.Group
+// 	if existingGroup, err = pxc.Group(ctx, request.State.Name); err != nil {
+// 		err = fmt.Errorf("failed to get group %s: %v", request.State.Name, err)
+// 		return response, err
+// 	}
+
+// 	if existingGroup.Comment == request.Inputs.Comment {
+// 		l.Debugf("No changes needed for group %s", request.State.Name)
+// 		response.Output = Outputs{request.Inputs}
+// 		return response, nil
+// 	}
+
+// 	existingGroup.Comment = request.Inputs.Comment
+
+// 	if err = existingGroup.Update(ctx); err != nil {
+// 		err = fmt.Errorf("failed to update group %s: %v", request.State.Name, err)
+// 		return response, err
+// 	}
+
+// 	response.Output = Outputs{request.Inputs}
+// 	return response, nil
+// }
