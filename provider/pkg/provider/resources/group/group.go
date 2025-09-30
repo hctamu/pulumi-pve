@@ -19,6 +19,14 @@ import (
 // Group represents a Proxmox group resource.
 type Group struct{}
 
+var (
+	_ = (infer.CustomResource[Inputs, Outputs])((*Group)(nil))
+	_ = (infer.CustomDelete[Outputs])((*Group)(nil))
+	_ = (infer.CustomRead[Inputs, Outputs])((*Group)(nil))
+	_ = (infer.CustomUpdate[Inputs, Outputs])((*Group)(nil))
+	_ = (infer.CustomDiff[Inputs, Outputs])((*Group)(nil))
+)
+
 // Inputs defines the input properties for a Proxmox group resource.
 type Inputs struct {
 	Name    string `pulumi:"name"`
@@ -141,43 +149,65 @@ func (group *Group) Read(
 	return response, nil
 }
 
-// // Update is used to update a group resource
-// func (group *Group) Update(
-// 	ctx context.Context,
-// 	request infer.UpdateRequest[Inputs, Outputs],
-// ) (response infer.UpdateResponse[Outputs], err error) {
-// 	response.Output = request.State
-// 	l := p.GetLogger(ctx)
-// 	l.Debugf("Updating group: %v", request.State.Name)
+// Update is used to update a group resource
+func (group *Group) Update(
+	ctx context.Context,
+	request infer.UpdateRequest[Inputs, Outputs],
+) (response infer.UpdateResponse[Outputs], err error) {
+	response.Output = request.State
+	l := p.GetLogger(ctx)
+	l.Debugf("Updating group: %v", request.State.Name)
 
-// 	if request.DryRun {
-// 		return response, nil
-// 	}
+	if request.DryRun {
+		return response, nil
+	}
 
-// 	var pxc *px.Client
-// 	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-// 		return response, err
-// 	}
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+		return response, err
+	}
 
-// 	var existingGroup *api.Group
-// 	if existingGroup, err = pxc.Group(ctx, request.State.Name); err != nil {
-// 		err = fmt.Errorf("failed to get group %s: %v", request.State.Name, err)
-// 		return response, err
-// 	}
+	var existingGroup *api.Group
+	if existingGroup, err = pxc.Group(ctx, request.State.Name); err != nil {
+		err = fmt.Errorf("failed to get group %s: %v", request.State.Name, err)
+		return response, err
+	}
 
-// 	if existingGroup.Comment == request.Inputs.Comment {
-// 		l.Debugf("No changes needed for group %s", request.State.Name)
-// 		response.Output = Outputs{request.Inputs}
-// 		return response, nil
-// 	}
+	if existingGroup.Comment == request.Inputs.Comment {
+		l.Debugf("No changes needed for group %s", request.State.Name)
+		response.Output = Outputs{request.Inputs}
+		return response, nil
+	}
 
-// 	existingGroup.Comment = request.Inputs.Comment
+	existingGroup.Comment = request.Inputs.Comment
 
-// 	if err = existingGroup.Update(ctx); err != nil {
-// 		err = fmt.Errorf("failed to update group %s: %v", request.State.Name, err)
-// 		return response, err
-// 	}
+	if err = existingGroup.Update(ctx); err != nil {
+		err = fmt.Errorf("failed to update group %s: %v", request.State.Name, err)
+		return response, err
+	}
 
-// 	response.Output = Outputs{request.Inputs}
-// 	return response, nil
-// }
+	response.Output = Outputs{request.Inputs}
+	return response, nil
+}
+
+// Diff is used to compute the difference between the current state and the desired state of a group resource
+func (group *Group) Diff(
+	_ context.Context,
+	request infer.DiffRequest[Inputs, Outputs],
+) (response infer.DiffResponse, err error) {
+	diff := map[string]p.PropertyDiff{}
+	if request.Inputs.Name != request.State.Name {
+		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+	if request.Inputs.Comment != request.State.Comment {
+		diff["comment"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	response = p.DiffResponse{
+		DeleteBeforeReplace: true,
+		HasChanges:          len(diff) > 0,
+		DetailedDiff:        diff,
+	}
+
+	return response, nil
+}
