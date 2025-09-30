@@ -38,7 +38,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupCreate(t *testing.T) {
+func TestGroupHealthyLifeCycle(t *testing.T) {
 	// Start the mock server
 	mockServer := mocha.New(t)
 	mockServer.Start()
@@ -144,69 +144,3 @@ func TestGroupCreate(t *testing.T) {
 		},
 	}.Run(t, server)
 }
-
-// //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-// func TestGroupCreateNewGroupError(t *testing.T) {
-// 	// Start the mock server
-// 	mockServer := mocha.New(t)
-// 	mockServer.Start()
-// 	defer func() {
-// 		if err := mockServer.Close(); err != nil {
-// 			t.Errorf("failed to close mock server: %v", err)
-// 		}
-// 	}()
-
-// 	// // Mock the authentication endpoint to succeed (needed for client setup)
-// 	// authMock := mockServer.AddMocks(
-// 	// 	mocha.Post(expect.URLPath("/access/ticket")).Reply(
-// 	// 		reply.OK().BodyString(`{
-// 	//             "data": {
-// 	//                 "ticket": "mock-ticket",
-// 	//                 "CSRFPreventionToken": "mock-csrf-token"
-// 	//             }
-// 	//         }`)),
-// 	// )
-
-// 	// Mock the POST /access/groups endpoint to return a 400 Bad Request
-// 	// This should cause pxc.NewGroup() to return an error
-// 	createGroupError := mockServer.AddMocks(
-// 		mocha.Post(expect.URLPath("/access/groups")).Reply(
-// 			reply.BadRequest().BodyString(`{
-//                 "errors": {
-//                     "groupid": "parameter verification failed - group 'testgroup' already exists"
-//                 }
-//             }`)),
-// 	)
-
-// 	// Enable both mocks
-// 	createGroupError.Enable()
-
-// 	// Set environment variable to direct Proxmox API requests to the mock server
-// 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-// 	defer func() {
-// 		if err := os.Unsetenv("PVE_API_URL"); err != nil {
-// 			t.Errorf("failed to unset PVE_API_URL: %v", err)
-// 		}
-// 	}()
-
-// 	// Start the integration server
-// 	server, err := integration.NewServer(
-// 		t.Context(),
-// 		provider.Name,
-// 		semver.Version{Minor: 1},
-// 		integration.WithProvider(provider.NewProvider()),
-// 	)
-// 	require.NoError(t, err)
-
-// 	// Test create operation that should fail
-// 	integration.LifeCycleTest{
-// 		Resource: "pve:group:Group",
-// 		Create: integration.Operation{
-// 			Inputs: property.NewMap(map[string]property.Value{
-// 				"name":    property.New("testgroup"),
-// 				"comment": property.New("test group comment"),
-// 			}),
-// 			ExpectFailure: true,
-// 		},
-// 	}.Run(t, server)
-// }
