@@ -17,6 +17,7 @@ package group_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -261,4 +262,135 @@ func TestGroupReadBackendErrorWithSeam(t *testing.T) {
 	_, err := group.Read(context.Background(), request)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get group")
+}
+
+//nolint:paralleltest // mutates seam
+func TestGroupUpdateClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client boom") }
+
+	group := &res.Group{}
+	request := infer.UpdateRequest[res.Inputs, res.Outputs]{
+		State:  res.Outputs{Inputs: res.Inputs{Name: "g1", Comment: "old"}},
+		Inputs: res.Inputs{Name: "g1", Comment: "new"},
+	}
+	_, err := group.Update(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client boom")
+}
+
+//nolint:paralleltest // shares env + seam
+func TestGroupUpdateFetchError(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+	// Return 500 so pxc.Group errors
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/groups/g1")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError}, nil
+			}),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("unset env: %v", err)
+		}
+	}()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	group := &res.Group{}
+	request := infer.UpdateRequest[res.Inputs, res.Outputs]{
+		State:  res.Outputs{Inputs: res.Inputs{Name: "g1", Comment: "old"}},
+		Inputs: res.Inputs{Name: "g1", Comment: "new"},
+	}
+	_, err := group.Update(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get group")
+}
+
+//nolint:paralleltest // shares env + seam
+func TestGroupUpdateChangeSuccess(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+	// First GET returns old comment so update branch triggers
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/groups/g1")).
+			Reply(reply.OK().BodyString(`{"data":{"groupid":"g1","comment":"old"}}`)),
+	).Enable()
+	mockServer.AddMocks(
+		mocha.Put(expect.URLPath("/access/groups/g1")).Reply(reply.OK()),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("unset env: %v", err)
+		}
+	}()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	group := &res.Group{}
+	request := infer.UpdateRequest[res.Inputs, res.Outputs]{
+		State:  res.Outputs{Inputs: res.Inputs{Name: "g1", Comment: "old"}},
+		Inputs: res.Inputs{Name: "g1", Comment: "new"},
+	}
+	resp, err := group.Update(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, "new", resp.Output.Comment)
+}
+
+//nolint:paralleltest // shares env + seam
+func TestGroupUpdateChangeError(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/groups/g1")).
+			Reply(reply.OK().BodyString(`{"data":{"groupid":"g1","comment":"old"}}`)),
+	).Enable()
+	mockServer.AddMocks(
+		mocha.Put(expect.URLPath("/access/groups/g1")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError}, nil
+			}),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("unset env: %v", err)
+		}
+	}()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	group := &res.Group{}
+	request := infer.UpdateRequest[res.Inputs, res.Outputs]{
+		State:  res.Outputs{Inputs: res.Inputs{Name: "g1", Comment: "old"}},
+		Inputs: res.Inputs{Name: "g1", Comment: "new"},
+	}
+	_, err := group.Update(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update group")
 }
