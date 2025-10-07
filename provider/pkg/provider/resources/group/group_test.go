@@ -28,7 +28,6 @@ import (
 	res "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
-	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -36,6 +35,7 @@ import (
 	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
 
+	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/pulumi/pulumi-go-provider/integration"
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
@@ -179,7 +179,11 @@ func TestGroupReadSuccessWithSeam(t *testing.T) {
 	).Enable()
 
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-	defer os.Unsetenv("PVE_API_URL")
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
 
 	// Override seam
 	original := client.GetProxmoxClientFn
@@ -208,7 +212,11 @@ func TestGroupReadMissingIDWithSeam(t *testing.T) {
 	mockServer.Start()
 	defer func() { _ = mockServer.Close() }()
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-	defer os.Unsetenv("PVE_API_URL")
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
 
 	original := client.GetProxmoxClientFn
 	defer func() { client.GetProxmoxClientFn = original }()
@@ -234,11 +242,16 @@ func TestGroupReadBackendErrorWithSeam(t *testing.T) {
 		mocha.Get(expect.URLPath("/access/groups/badgroup")).Reply(reply.OK().BodyString(`{"data": {`)),
 	).Enable()
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-	defer os.Unsetenv("PVE_API_URL")
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
 
 	original := client.GetProxmoxClientFn
 	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return client.GetProxmoxClient(ctx) }
+
+	client.GetProxmoxClientFn = client.GetProxmoxClient
 
 	group := &res.Group{}
 	request := infer.ReadRequest[res.Inputs, res.Outputs]{
