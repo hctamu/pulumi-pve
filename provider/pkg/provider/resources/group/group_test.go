@@ -16,13 +16,19 @@ limitations under the License.
 package group_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/blang/semver"
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
+	res "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
+	"github.com/hctamu/pulumi-pve/provider/px"
+	api "github.com/luthermonson/go-proxmox"
+	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -158,4 +164,88 @@ func TestGroupHealthyLifeCycle(t *testing.T) {
 			},
 		},
 	}.Run(t, server)
+}
+
+//nolint:paralleltest // shares env mutation
+func TestGroupReadSuccessWithSeam(t *testing.T) {
+	// Reuse mock server style but override client getter to avoid config context
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/groups/readgroup")).Reply(reply.OK().BodyString(`{
+			"data": {"groupid":"readgroup","comment":"read comment","guests":[]}
+		}`)),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer os.Unsetenv("PVE_API_URL")
+
+	// Override seam
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(os.Getenv("PVE_API_URL"), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	group := &res.Group{}
+	request := infer.ReadRequest[res.Inputs, res.Outputs]{
+		ID:     "readgroup",
+		Inputs: res.Inputs{Name: "readgroup"},
+		State:  res.Outputs{Inputs: res.Inputs{Name: "readgroup", Comment: "stale"}},
+	}
+
+	resp, err := group.Read(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, "readgroup", resp.State.Name)
+	assert.Equal(t, "read comment", resp.State.Comment)
+}
+
+//nolint:paralleltest // shares env mutation
+func TestGroupReadMissingIDWithSeam(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer os.Unsetenv("PVE_API_URL")
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return &px.Client{}, nil }
+
+	group := &res.Group{}
+	request := infer.ReadRequest[res.Inputs, res.Outputs]{
+		ID:     "", // triggers missing ID branch
+		Inputs: res.Inputs{Name: "whatever"},
+	}
+	_, err := group.Read(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing group ID")
+}
+
+//nolint:paralleltest // shares env mutation
+func TestGroupReadBackendErrorWithSeam(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+	// Malformed JSON to force error in underlying client lib
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/groups/badgroup")).Reply(reply.OK().BodyString(`{"data": {`)),
+	).Enable()
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer os.Unsetenv("PVE_API_URL")
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return client.GetProxmoxClient(ctx) }
+
+	group := &res.Group{}
+	request := infer.ReadRequest[res.Inputs, res.Outputs]{
+		ID:     "badgroup",
+		Inputs: res.Inputs{Name: "badgroup"},
+	}
+	_, err := group.Read(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get group")
 }
