@@ -75,7 +75,7 @@ func (group *Group) Create(
 	}
 
 	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
@@ -90,7 +90,7 @@ func (group *Group) Delete(
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
 	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
@@ -129,7 +129,7 @@ func (group *Group) Read(
 	)
 
 	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
@@ -176,7 +176,7 @@ func (group *Group) Update(
 	}
 
 	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
