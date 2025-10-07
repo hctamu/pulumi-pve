@@ -44,4 +44,4 @@ snapshot:
 changelog:
   disable: true
 release:
-  disable: true
+  disable: false
