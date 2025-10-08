@@ -36,6 +36,10 @@ var (
 	once   sync.Once
 )
 
+// GetProxmoxClientFn is a hook that can be overridden in tests to supply a mock client.
+// By default it points to GetProxmoxClient.
+var GetProxmoxClientFn = GetProxmoxClient
+
 // newClient creates a new Proxmox client
 func newClient(pveURL, pveUser, pveToken string) (client *px.Client, err error) {
 	transport := http.DefaultTransport.(*http.Transport)
