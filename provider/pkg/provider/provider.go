@@ -21,6 +21,7 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/ha"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/pool"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/storage"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 
@@ -46,6 +47,7 @@ func NewProvider() p.Provider {
 			infer.Resource(&ha.Ha{}),
 			infer.Resource(&vm.VM{}),
 			infer.Resource(&group.Group{}),
+			infer.Resource(&role.Role{}),
 		},
 		Config: infer.Config[config.Config](config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
