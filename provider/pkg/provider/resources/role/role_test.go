@@ -1,18 +1,3 @@
-/* Copyright 2025, Pulumi Corporation.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package role_test
 
 import (
@@ -270,4 +255,241 @@ func TestRoleReadNotFoundMarksDeleted(t *testing.T) {
 	// When not found we expect empty response (ID unset) signalling deletion
 	assert.Empty(t, resp.ID)
 	assert.Equal(t, roleResource.Outputs{}, resp.State)
+}
+
+//nolint:paralleltest // env and global seam mutations
+func TestRoleUpdateSpecialRoleAttemptChangeIgnored(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	// Return special role with original privileges
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"special","privs":"Datastore.Allocate,VM.PowerMgmt","special":1}]}`)),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	r := &roleResource.Role{}
+	// Attempt to change privileges (remove one)
+	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{Name: "special", Privileges: []string{"Datastore.Allocate"}},
+		State: roleResource.Outputs{
+			Inputs: roleResource.Inputs{Name: "special", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
+		},
+	}
+	resp, err := r.Update(context.Background(), req)
+	require.NoError(t, err)
+	// Output should remain original (sorted)
+	assert.Equal(t, []string{"Datastore.Allocate", "VM.PowerMgmt"}, resp.Output.Privileges)
+}
+
+//nolint:paralleltest // env and global seam mutations
+func TestRoleUpdateNoChangeNormalRole(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	// Non-special role privileges identical
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal","privs":"Datastore.Allocate,VM.PowerMgmt","special":0}]}`)),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	r := &roleResource.Role{}
+	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
+		State: roleResource.Outputs{
+			Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
+		},
+	}
+	resp, err := r.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Datastore.Allocate", "VM.PowerMgmt"}, resp.Output.Privileges)
+}
+
+//nolint:paralleltest // env and global seam mutations
+func TestRoleUpdateChangeFailure(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal","privs":"VM.PowerMgmt","special":0}]}`)),
+		// Simulate backend failure on update
+		mocha.Put(expect.URLPath("/access/roles/normal")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
+			}),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	r := &roleResource.Role{}
+	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}}},
+	}
+	_, err := r.Update(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update role")
+}
+
+//nolint:paralleltest // env and global seam mutations
+func TestRoleUpdateGetRoleFailure(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	// Simulate list roles endpoint failure -> GetRole should error
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
+			}),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	r := &roleResource.Role{}
+	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}}},
+	}
+	_, err := r.Update(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get role")
+}
+
+//nolint:paralleltest // env and global seam mutations
+func TestRoleUpdateClientAcquisitionFailure(t *testing.T) {
+	// Override seam to return error
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, assert.AnError }
+
+	r := &roleResource.Role{}
+	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}}},
+	}
+	_, err := r.Update(context.Background(), req)
+	require.Error(t, err)
+}
+
+// //nolint:paralleltest // env and seam mutation
+func TestRoleDeleteClientAcquisitionFailure(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, assert.AnError }
+
+	r := &roleResource.Role{}
+	req := infer.DeleteRequest[roleResource.Outputs]{
+		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "deleterole"}},
+	}
+	_, err := r.Delete(context.Background(), req)
+	require.Error(t, err)
+}
+
+//nolint:paralleltest // env and seam mutation
+func TestRoleDeleteGetRoleListError(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	// List returns 500
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
+			}),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	r := &roleResource.Role{}
+	req := infer.DeleteRequest[roleResource.Outputs]{
+		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "any"}},
+	}
+	_, err := r.Delete(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get role")
+}
+
+//nolint:paralleltest // env and seam mutation
+func TestRoleDeleteBackendFailure(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"deleterole","privs":"VM.PowerMgmt","special":0}]}`)),
+		mocha.Delete(expect.URLPath("/access/roles/deleterole")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
+			}),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	r := &roleResource.Role{}
+	req := infer.DeleteRequest[roleResource.Outputs]{
+		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "deleterole"}},
+	}
+	_, err := r.Delete(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete role")
 }
