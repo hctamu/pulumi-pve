@@ -16,13 +16,18 @@ limitations under the License.
 package role_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings" // Still needed for mock server body
 	"testing"
 
 	"github.com/blang/semver"
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
+	roleResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
+	"github.com/hctamu/pulumi-pve/provider/px"
+	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -30,6 +35,7 @@ import (
 	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
 
+	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/pulumi/pulumi-go-provider/integration"
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
@@ -164,4 +170,104 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 			},
 		},
 	}.Run(t, server)
+}
+
+//nolint:paralleltest // shares env mutation
+func TestRoleReadSuccessWithSeam(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	// List endpoint returns our target role with privileges unsorted to test normalization
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).Reply(reply.OK().BodyString(`{
+			"data": [
+				{"roleid":"readrole","privs":"VM.PowerMgmt,Datastore.Allocate","special":0}
+			]
+		}`)),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
+
+	// Override client seam to avoid Pulumi config plumbing
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	role := &roleResource.Role{}
+	req := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID:     "readrole",
+		Inputs: roleResource.Inputs{Name: "readrole"},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "readrole", Privileges: []string{"VM.PowerMgmt"}}},
+	}
+
+	resp, err := role.Read(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "readrole", resp.State.Name)
+	// Privileges should be sorted alphabetically by implementation
+	assert.Equal(t, []string{"Datastore.Allocate", "VM.PowerMgmt"}, resp.State.Privileges)
+}
+
+//nolint:paralleltest // shares env mutation
+func TestRoleReadMissingIDWithSeam(t *testing.T) {
+	// Override seam to avoid provider config dependency
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return &px.Client{}, nil }
+
+	role := &roleResource.Role{}
+	req := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID:    "", // triggers missing ID branch
+		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "anything"}},
+	}
+	_, err := role.Read(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "missing role ID")
+}
+
+//nolint:paralleltest // shares env mutation
+func TestRoleReadNotFoundMarksDeleted(t *testing.T) {
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() { _ = mockServer.Close() }()
+
+	// List endpoint returns a different role so target is not found
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			Reply(reply.OK().BodyString(`{"data": [{"roleid":"other","privs":"VM.PowerMgmt","special":0}]}`)),
+	).Enable()
+
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
+
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
+		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
+		return &px.Client{Client: apiClient}, nil
+	}
+
+	role := &roleResource.Role{}
+	req := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID:     "missingrole",
+		Inputs: roleResource.Inputs{Name: "missingrole"},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "missingrole"}},
+	}
+	resp, err := role.Read(context.Background(), req)
+	require.NoError(t, err)
+	// When not found we expect empty response (ID unset) signalling deletion
+	assert.Empty(t, resp.ID)
+	assert.Equal(t, roleResource.Outputs{}, resp.State)
 }
