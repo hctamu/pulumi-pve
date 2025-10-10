@@ -1,0 +1,167 @@
+/* Copyright 2025, Pulumi Corporation.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package role_test
+
+import (
+	"net/http"
+	"os"
+	"strings" // Still needed for mock server body
+	"testing"
+
+	"github.com/blang/semver"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/vitorsalgado/mocha/v3"
+	"github.com/vitorsalgado/mocha/v3/expect"
+	"github.com/vitorsalgado/mocha/v3/params"
+	"github.com/vitorsalgado/mocha/v3/reply"
+
+	"github.com/pulumi/pulumi-go-provider/integration"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
+)
+
+// Implement a custom PostAction
+type toggleMocksPostAction struct {
+	toDisable []*mocha.Scoped
+	toEnable  []*mocha.Scoped
+}
+
+func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
+	for _, m := range a.toDisable {
+		m.Disable()
+	}
+
+	for _, m := range a.toEnable {
+		m.Enable()
+	}
+
+	return nil
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleHealthyLifeCycle(t *testing.T) {
+	// Start the mock server
+	mockServer := mocha.New(t)
+	mockServer.Start()
+	defer func() {
+		if err := mockServer.Close(); err != nil {
+			t.Errorf("failed to close mock server: %v", err)
+		}
+	}()
+
+	// List roles endpoint used by GetRole via pxc.Roles(ctx).
+	listCall := 0
+	listRoles := mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles")).
+			Repeat(4).
+			ReplyFunction(func(request *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				listCall++
+				apiPrivs := "VM.PowerMgmt" // Initial privileges as returned by API (comma-separated string)
+				if listCall >= 2 {         // After update, we expect two privileges
+					apiPrivs = "VM.PowerMgmt,Datastore.Allocate" // API returns comma-separated string
+				}
+				body := strings.NewReader(`{"data":[{"roleid":"testrole","privs":"` + apiPrivs + `","special":0}]}`)
+				return &reply.Response{Status: http.StatusOK, Body: body}, nil
+			}),
+	)
+
+	createRole := mockServer.AddMocks(
+		mocha.Post(expect.URLPath("/access/roles")).
+			// The API will receive a comma-separated string from our provider
+			// and return it in the response.
+			Reply(reply.Created().BodyString(`{
+				"data": {"roleid": "testrole", "name": "testrole", "privs": "VM.PowerMgmt", "special": 0}}
+			`)).PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{listRoles}}),
+	)
+
+	deleteRole := mockServer.AddMocks(
+		mocha.Delete(expect.URLPath("/access/roles/testrole")).Reply(
+			reply.OK()))
+
+	updateRole := mockServer.AddMocks(
+		mocha.Put(expect.URLPath("/access/roles/testrole")).
+			// The API will receive "VM.PowerMgmt,Datastore.Allocate" from our provider
+			// and return it in the response.
+			Reply(reply.OK().BodyString(`{
+	            "data": {"roleid":"testrole","name": "testrole", "privs": "VM.PowerMgmt,Datastore.Allocate", "special":0}}
+	    `)))
+
+	// Enable initial state
+	createRole.Enable()
+	deleteRole.Enable()
+	listRoles.Enable()
+	updateRole.Enable()
+
+	// Set environment variable to direct Proxmox API requests to the mock server
+	_ = os.Setenv("PVE_API_URL", mockServer.URL())
+	defer func() {
+		if err := os.Unsetenv("PVE_API_URL"); err != nil {
+			t.Errorf("failed to unset PVE_API_URL: %v", err)
+		}
+	}()
+
+	// Start the integration server with the mock setup
+	server, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProvider()),
+	)
+	require.NoError(t, err)
+
+	outputMap := property.NewMap(map[string]property.Value{
+		"name": property.New("testrole"),
+		"privileges": property.New(property.NewArray([]property.Value{
+			property.New("Datastore.Allocate"), // Sorted alphabetically
+			property.New("VM.PowerMgmt"),       // Sorted alphabetically
+		})),
+	})
+
+	// Run the integration lifecycle tests
+	integration.LifeCycleTest{
+		Resource: "pve:role:Role",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name": property.New("testrole"),
+				"privileges": property.New(property.NewArray([]property.Value{
+					property.New("VM.PowerMgmt"), // Input order doesn't strictly matter, provider sorts for API
+				})),
+			}),
+			Hook: func(inputs, output property.Map) {
+				assert.Equal(t, "testrole", output.Get("name").AsString())
+
+				// Using AsArray().AsSlice() as a workaround if AsArray() alone is still problematic
+				outputPrivileges := output.Get("privileges").AsArray().AsSlice()
+
+				require.Len(t, outputPrivileges, 1)
+				assert.Equal(t, "VM.PowerMgmt", outputPrivileges[0].AsString())
+			},
+		},
+		Updates: []integration.Operation{
+			{
+				Inputs: property.NewMap(map[string]property.Value{
+					"name": property.New("testrole"),
+					"privileges": property.New(property.NewArray([]property.Value{
+						property.New("VM.PowerMgmt"),
+						property.New("Datastore.Allocate"),
+					})),
+				}),
+				ExpectedOutput: &outputMap, // This will check against the sorted array (and now without 'special')
+			},
+		},
+	}.Run(t, server)
+}
