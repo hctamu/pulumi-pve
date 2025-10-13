@@ -1,3 +1,18 @@
+/* Copyright 2025, Pulumi Corporation.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package role_test
 
 import (
@@ -65,7 +80,8 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 				if listCall >= 2 {         // After update, we expect two privileges
 					apiPrivs = "VM.PowerMgmt,Datastore.Allocate" // API returns comma-separated string
 				}
-				body := strings.NewReader(`{"data":[{"roleid":"testrole","privs":"` + apiPrivs + `","special":0}]}`)
+				body := strings.NewReader(`{"data":[{"roleid":
+				"testrole","privs":"` + apiPrivs + `","special":0}]}`)
 				return &reply.Response{Status: http.StatusOK, Body: body}, nil
 			}),
 	)
@@ -75,7 +91,8 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 			// The API will receive a comma-separated string from our provider
 			// and return it in the response.
 			Reply(reply.Created().BodyString(`{
-				"data": {"roleid": "testrole", "name": "testrole", "privs": "VM.PowerMgmt", "special": 0}}
+				"data": {"roleid": "testrole", "name": "testrole", 
+				"privs": "VM.PowerMgmt", "special": 0}}
 			`)).PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{listRoles}}),
 	)
 
@@ -88,7 +105,8 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 			// The API will receive "VM.PowerMgmt,Datastore.Allocate" from our provider
 			// and return it in the response.
 			Reply(reply.OK().BodyString(`{
-	            "data": {"roleid":"testrole","name": "testrole", "privs": "VM.PowerMgmt,Datastore.Allocate", "special":0}}
+	            "data": {"roleid":"testrole","name": "testrole",
+				"privs": "VM.PowerMgmt,Datastore.Allocate", "special":0}}
 	    `)))
 
 	// Enable initial state
@@ -227,7 +245,8 @@ func TestRoleReadNotFoundMarksDeleted(t *testing.T) {
 	// List endpoint returns a different role so target is not found
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data": [{"roleid":"other","privs":"VM.PowerMgmt","special":0}]}`)),
+			Reply(reply.OK().BodyString(`{"data": [{"roleid":"other",
+			"privs":"VM.PowerMgmt","special":0}]}`)),
 	).Enable()
 
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
@@ -266,7 +285,8 @@ func TestRoleUpdateSpecialRoleAttemptChangeIgnored(t *testing.T) {
 	// Return special role with original privileges
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"special","privs":"Datastore.Allocate,VM.PowerMgmt","special":1}]}`)),
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"special",
+			"privs":"Datastore.Allocate,VM.PowerMgmt","special":1}]}`)),
 	).Enable()
 
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
@@ -302,7 +322,8 @@ func TestRoleUpdateNoChangeNormalRole(t *testing.T) {
 	// Non-special role privileges identical
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal","privs":"Datastore.Allocate,VM.PowerMgmt","special":0}]}`)),
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal",
+			"privs":"Datastore.Allocate,VM.PowerMgmt","special":0}]}`)),
 	).Enable()
 
 	_ = os.Setenv("PVE_API_URL", mockServer.URL())
@@ -335,7 +356,8 @@ func TestRoleUpdateChangeFailure(t *testing.T) {
 
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal","privs":"VM.PowerMgmt","special":0}]}`)),
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal",
+			"privs":"VM.PowerMgmt","special":0}]}`)),
 		// Simulate backend failure on update
 		mocha.Put(expect.URLPath("/access/roles/normal")).
 			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
@@ -468,7 +490,8 @@ func TestRoleDeleteBackendFailure(t *testing.T) {
 
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"deleterole","privs":"VM.PowerMgmt","special":0}]}`)),
+			Reply(reply.OK().BodyString(`{"data":[{"roleid":"deleterole",
+			"privs":"VM.PowerMgmt","special":0}]}`)),
 		mocha.Delete(expect.URLPath("/access/roles/deleterole")).
 			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
 				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
