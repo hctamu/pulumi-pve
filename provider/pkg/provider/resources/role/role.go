@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -40,7 +39,6 @@ var (
 	_ = (infer.CustomDelete[Outputs])((*Role)(nil))
 	_ = (infer.CustomRead[Inputs, Outputs])((*Role)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*Role)(nil))
-	_ = (infer.CustomDiff[Inputs, Outputs])((*Role)(nil))
 )
 
 // ErrRoleNotFound is returned when a role cannot be found in Proxmox.
@@ -48,7 +46,7 @@ var ErrRoleNotFound = errors.New("role not found")
 
 // Inputs defines the input properties for a Proxmox role resource.
 type Inputs struct {
-	Name       string   `pulumi:"name"`
+	Name       string   `pulumi:"name"                provider:"replaceOnChanges"`
 	Privileges []string `pulumi:"privileges,optional"`
 }
 
@@ -74,7 +72,7 @@ func (role *Role) Create(
 	response.ID = request.Name
 	response.Output = Outputs{Inputs: Inputs{
 		Name:       request.Inputs.Name,
-		Privileges: stringToPrivileges(privilegesToString(request.Inputs.Privileges)),
+		Privileges: sort.StringSlice(request.Inputs.Privileges),
 	}}
 
 	l := p.GetLogger(ctx)
@@ -201,62 +199,18 @@ func (role *Role) Update(
 		return response, fmt.Errorf("failed to get role: %w", err)
 	}
 
-	// Handle special roles: their privileges cannot be updated
-	if existingRole.Special {
-		// Compare current state's privileges with the desired input privileges after sorting.
-		normalizedInputPrivs := stringToPrivileges(privilegesToString(request.Inputs.Privileges))
-		if !reflect.DeepEqual(normalizedInputPrivs, request.State.Privileges) {
-			l.Warningf("Attempted to update privileges on special role %s. Changes will be ignored.", request.State.Name)
-			// Revert privileges to original state, which should already be sorted from Read
-			response.Output = Outputs{Inputs: request.State.Inputs}
-			return response, nil
-		}
-	}
+	existingRole.Privs = privilegesToString(request.Inputs.Privileges)
 
-	// Convert current and desired privileges to canonical forms for comparison
-	currentPrivs := stringToPrivileges(existingRole.Privs)
-	desiredPrivs := stringToPrivileges(privilegesToString(request.Inputs.Privileges))
-
-	// Only update if privileges have actually changed
-	if !reflect.DeepEqual(currentPrivs, desiredPrivs) {
-		l.Debugf("Privileges for role %s have changed. Updating...", request.State.Name)
-		// privilegesToString will sort the desiredPrivs before sending to API
-		existingRole.Privs = privilegesToString(request.Inputs.Privileges)
-
-		if err = existingRole.Update(ctx); err != nil {
-			return response, fmt.Errorf("failed to update role %s: %w", request.State.Name, err)
-		}
-	} else {
-		l.Debugf("No changes needed for privileges of role %s", request.State.Name)
+	// Update the role in Proxmox
+	if err = existingRole.Update(ctx); err != nil {
+		return response, fmt.Errorf("failed to update role %s: %w", request.State.Name, err)
 	}
 
 	// Set the output to the canonical (sorted) representation of the inputs
 	response.Output = Outputs{Inputs: Inputs{
 		Name:       request.Inputs.Name,
-		Privileges: stringToPrivileges(privilegesToString(request.Inputs.Privileges)),
+		Privileges: sort.StringSlice(request.Inputs.Privileges),
 	}}
-	return response, nil
-}
-
-// Diff is used to compute the difference between the current state and the desired state of a role resource
-func (role *Role) Diff(
-	_ context.Context,
-	request infer.DiffRequest[Inputs, Outputs],
-) (response infer.DiffResponse, err error) {
-	diff := map[string]p.PropertyDiff{}
-	if request.Inputs.Name != request.State.Name {
-		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-	if !reflect.DeepEqual(request.Inputs.Privileges, request.State.Privileges) {
-		diff["privileges"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	response = p.DiffResponse{
-		DeleteBeforeReplace: true,
-		HasChanges:          len(diff) > 0,
-		DetailedDiff:        diff,
-	}
-
 	return response, nil
 }
 
