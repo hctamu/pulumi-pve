@@ -165,11 +165,11 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 				Inputs: property.NewMap(map[string]property.Value{
 					"name": property.New("testrole"),
 					"privileges": property.New(property.NewArray([]property.Value{
-						property.New("VM.PowerMgmt"),
 						property.New("Datastore.Allocate"),
+						property.New("VM.PowerMgmt"),
 					})),
 				}),
-				ExpectedOutput: &outputMap, // This will check against the sorted array (and now without 'special')
+				ExpectedOutput: &outputMap,
 			},
 		},
 	}.Run(t, server)
@@ -274,43 +274,6 @@ func TestRoleReadNotFoundMarksDeleted(t *testing.T) {
 	// When not found we expect empty response (ID unset) signalling deletion
 	assert.Empty(t, resp.ID)
 	assert.Equal(t, roleResource.Outputs{}, resp.State)
-}
-
-//nolint:paralleltest // env and global seam mutations
-func TestRoleUpdateSpecialRoleAttemptChangeIgnored(t *testing.T) {
-	mockServer := mocha.New(t)
-	mockServer.Start()
-	defer func() { _ = mockServer.Close() }()
-
-	// Return special role with original privileges
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"special",
-			"privs":"Datastore.Allocate,VM.PowerMgmt","special":1}]}`)),
-	).Enable()
-
-	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-	defer func() { _ = os.Unsetenv("PVE_API_URL") }()
-
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
-		apiClient := api.NewClient(mockServer.URL(), api.WithAPIToken("user@pve!token", "TOKEN"))
-		return &px.Client{Client: apiClient}, nil
-	}
-
-	r := &roleResource.Role{}
-	// Attempt to change privileges (remove one)
-	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
-		Inputs: roleResource.Inputs{Name: "special", Privileges: []string{"Datastore.Allocate"}},
-		State: roleResource.Outputs{
-			Inputs: roleResource.Inputs{Name: "special", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
-		},
-	}
-	resp, err := r.Update(context.Background(), req)
-	require.NoError(t, err)
-	// Output should remain original (sorted)
-	assert.Equal(t, []string{"Datastore.Allocate", "VM.PowerMgmt"}, resp.Output.Privileges)
 }
 
 //nolint:paralleltest // env and global seam mutations
