@@ -37,12 +37,11 @@ var (
 	_ = (infer.CustomDelete[Outputs])((*Group)(nil))
 	_ = (infer.CustomRead[Inputs, Outputs])((*Group)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*Group)(nil))
-	_ = (infer.CustomDiff[Inputs, Outputs])((*Group)(nil))
 )
 
 // Inputs defines the input properties for a Proxmox group resource.
 type Inputs struct {
-	Name    string `pulumi:"name"`
+	Name    string `pulumi:"name"             provider:"replaceOnChanges"`
 	Comment string `pulumi:"comment,optional"`
 }
 
@@ -200,27 +199,5 @@ func (group *Group) Update(
 	}
 
 	response.Output = Outputs{request.Inputs}
-	return response, nil
-}
-
-// Diff is used to compute the difference between the current state and the desired state of a group resource
-func (group *Group) Diff(
-	_ context.Context,
-	request infer.DiffRequest[Inputs, Outputs],
-) (response infer.DiffResponse, err error) {
-	diff := map[string]p.PropertyDiff{}
-	if request.Inputs.Name != request.State.Name {
-		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-	if request.Inputs.Comment != request.State.Comment {
-		diff["comment"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	response = p.DiffResponse{
-		DeleteBeforeReplace: true,
-		HasChanges:          len(diff) > 0,
-		DetailedDiff:        diff,
-	}
-
 	return response, nil
 }
