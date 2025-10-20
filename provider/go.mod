@@ -6,7 +6,7 @@ go 1.24.5
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/luthermonson/go-proxmox v0.2.2
+	github.com/luthermonson/go-proxmox v0.2.3
 	github.com/pulumi/pulumi-go-provider v1.1.1
 	github.com/pulumi/pulumi/sdk/v3 v3.190.0
 	github.com/stretchr/testify v1.10.0
