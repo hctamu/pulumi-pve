@@ -33,81 +33,15 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
 
-//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLHealthyLifeCycle(t *testing.T) {
+// aclHealthyLifeCycleHelper is used to test healthy lifecycle of ACL resource for different types.
+func aclLHealthyLifeCycleHelper(t *testing.T, typ, bodystring, ugid string) {
 	mock, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
-	// Validate group existence during Create
+	// Validate 'type' existence during Create
 	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).
-			Reply(reply.OK().BodyString(`{"data":{"groupid":"testgroup","comment":"c","guests":[]}}`)),
-	).Enable()
-
-	// Create (and later Delete) use PUT /access/acl
-	mock.AddMocks(
-		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.OK()),
-		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.OK()), // delete call
-	).Enable()
-
-	// Read + Delete re-fetch list ACLs. Repeat enough times.
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/acl")).Repeat(10).Reply( // increased for multi-pass reads
-			reply.OK().BodyString(`{
-				"data":[
-					{
-						"path":"/vms",
-						"roleid":"PVEVMAdmin",
-						"type":"group",
-						"ugid":"testgroup",
-						"propagate":1
-					}
-				]
-			}`)),
-	).Enable()
-
-	// env + client already configured by helper
-
-	server, err := integration.NewServer(
-		context.Background(),
-		provider.Name,
-		semver.Version{Minor: 1},
-		integration.WithProvider(provider.NewProvider()),
-	)
-	if err != nil {
-		t.Fatalf("server init: %v", err)
-	}
-
-	createInputs := property.NewMap(map[string]property.Value{
-		"path":      property.New("/vms"),
-		"roleid":    property.New("PVEVMAdmin"),
-		"type":      property.New("group"),
-		"ugid":      property.New("testgroup"),
-		"propagate": property.New(true),
-	})
-
-	integration.LifeCycleTest{
-		Resource: "pve:acl:ACL",
-		Create: integration.Operation{
-			Inputs: createInputs,
-			Hook: func(inputs, outputs property.Map) {
-				if got := outputs.Get("ugid").AsString(); got != "testgroup" {
-					t.Fatalf("unexpected ugid %s", got)
-				}
-			},
-		},
-	}.Run(t, server)
-}
-
-//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLHealthyLifeCycleUser(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// Validate user existence during Create (use same ugid string everywhere)
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/testuser")).
-			Reply(reply.OK().BodyString(`{"data":{"userid":"testuser","comment":"c"}}`)),
+		mocha.Get(expect.URLPath("/access/" + typ + "s/" + ugid)).
+			Reply(reply.OK().BodyString(bodystring)),
 	).Enable()
 
 	// Create + Delete
@@ -122,10 +56,10 @@ func TestACLHealthyLifeCycleUser(t *testing.T) {
 			reply.OK().BodyString(`{
 				"data":[
 					{
-						"path":"/nodes",
+						"path":"/",
 						"roleid":"PVEAdmin",
-						"type":"user",
-						"ugid":"testuser",
+						"type": "` + typ + `",
+						"ugid":"` + ugid + `",
 						"propagate":1
 					}
 				]
@@ -148,15 +82,15 @@ func TestACLHealthyLifeCycleUser(t *testing.T) {
 		Resource: "pve:acl:ACL",
 		Create: integration.Operation{
 			Inputs: property.NewMap(map[string]property.Value{
-				"path":      property.New("/nodes"),
+				"path":      property.New("/"),
 				"roleid":    property.New("PVEAdmin"),
-				"type":      property.New("user"),
-				"ugid":      property.New("testuser"),
+				"type":      property.New(typ),
+				"ugid":      property.New(ugid),
 				"propagate": property.New(true),
 			}),
 			Hook: func(_, outputs property.Map) {
-				if outputs.Get("type").AsString() != "user" || outputs.Get("ugid").AsString() != "testuser" {
-					t.Fatalf("expected user ugid=testuser got %s", outputs.Get("ugid").AsString())
+				if outputs.Get("type").AsString() != typ || outputs.Get("ugid").AsString() != ugid {
+					t.Fatalf("expected user ugid=%s got %s", ugid, outputs.Get("ugid").AsString())
 				}
 			},
 		},
@@ -164,60 +98,33 @@ func TestACLHealthyLifeCycleUser(t *testing.T) {
 }
 
 //nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLHealthyLifeCycleToken(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// No validation call for token type
-	mock.AddMocks(
-		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.OK()),
-		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.OK()),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/acl")).Repeat(10).Reply(
-			reply.OK().BodyString(`{
-				"data":[
-					{
-						"path":"/pool/dev",
-						"roleid":"PVEAuditor",
-						"type":"token",
-						"ugid":"svc!apitoken",
-						"propagate":0
-					}
-				]
-			}`)),
-	).Enable()
-
-	// env + client already configured
-
-	server, err := integration.NewServer(
-		context.Background(),
-		provider.Name,
-		semver.Version{Minor: 1},
-		integration.WithProvider(provider.NewProvider()),
+func TestACLHealthyLifeCycleGroup(t *testing.T) {
+	aclLHealthyLifeCycleHelper(
+		t,
+		"group",
+		`{"data":{"groupid":"testgroup","comment":"c"}}`,
+		"testgroup",
 	)
-	if err != nil {
-		t.Fatalf("server init: %v", err)
-	}
+}
 
-	integration.LifeCycleTest{
-		Resource: "pve:acl:ACL",
-		Create: integration.Operation{
-			Inputs: property.NewMap(map[string]property.Value{
-				"path":      property.New("/pool/dev"),
-				"roleid":    property.New("PVEAuditor"),
-				"type":      property.New("token"),
-				"ugid":      property.New("svc!apitoken"),
-				"propagate": property.New(false),
-			}),
-			Hook: func(_, outputs property.Map) {
-				if outputs.Get("type").AsString() != "token" || outputs.Get("ugid").AsString() != "svc!apitoken" {
-					t.Fatalf("expected token ugid=svc!apitoken")
-				}
-			},
-		},
-	}.Run(t, server)
+//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
+func TestACLHealthyLifeCycleUser(t *testing.T) {
+	aclLHealthyLifeCycleHelper(
+		t,
+		"user",
+		`{"data":{"userid":"testuser","comment":"c"}}`,
+		"testuser",
+	)
+}
+
+//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
+func TestACLHealthyLifeCycleToken(t *testing.T) {
+	aclLHealthyLifeCycleHelper(
+		t,
+		"token",
+		`{"data":{"userid":"svc!apitoken","comment":"c"}}`,
+		"svc!apitoken",
+	)
 }
 
 //nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
@@ -331,52 +238,46 @@ func TestACLCreateValidationErrors(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLCreateGroupNotFound(t *testing.T) {
+// aclCreateTypeNotFoundHelper is used to test Create failure when the specified type entity is not found.
+func aclCreateTypeNotFoundHelper(t *testing.T, typ string) {
 	mock, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
 	// Group lookup returns 404 -> causes early error
 	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/missing")),
+		mocha.Get(expect.URLPath("/access/" + typ + "s/missing")),
 	).Enable()
 
 	// env + client already configured
 
 	res := &aclResource.ACL{}
 	_, err := res.Create(context.Background(), infer.CreateRequest[aclResource.Inputs]{
-		Name:   "groupMissing",
-		Inputs: aclResource.Inputs{Path: "/vms", RoleID: "PVEVMAdmin", Type: "group", UGID: "missing", Propagate: true},
+		Name: typ + "Missing",
+		Inputs: aclResource.Inputs{
+			Path:      "/",
+			RoleID:    "PVEAdmin",
+			Type:      typ,
+			UGID:      "missing",
+			Propagate: true,
+		},
 	})
-	if err == nil || !strings.Contains(err.Error(), "failed to find group") {
-		t.Fatalf("expected group not found error, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "failed to find "+typ) {
+		t.Fatalf("expected "+typ+" not found error, got %v", err)
 	}
+}
+
+//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
+func TestACLCreateGroupNotFound(t *testing.T) {
+	aclCreateTypeNotFoundHelper(t, "group")
 }
 
 //nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
 func TestACLCreateUserNotFound(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// User lookup returns 404 -> early error
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/missing")),
-	).Enable()
-
-	// env + client already configured
-
-	res := &aclResource.ACL{}
-	_, err := res.Create(context.Background(), infer.CreateRequest[aclResource.Inputs]{
-		Name:   "userMissing",
-		Inputs: aclResource.Inputs{Path: "/nodes", RoleID: "PVEAdmin", Type: "user", UGID: "missing", Propagate: true},
-	})
-	if err == nil || !strings.Contains(err.Error(), "failed to find user") {
-		t.Fatalf("expected user not found error, got %v", err)
-	}
+	aclCreateTypeNotFoundHelper(t, "user")
 }
 
 //nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLCreateUpdateACLFailureToken(t *testing.T) {
+func TestACLCreateUpdateACLFailure(t *testing.T) {
 	mock, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
