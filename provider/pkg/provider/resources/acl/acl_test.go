@@ -161,27 +161,24 @@ func TestACLReadSuccess(t *testing.T) {
 }
 
 //nolint:paralleltest // overrides GetProxmoxClientFn (global state)
-func TestACLReadVanished(t *testing.T) {
+func TestACLReadGetACLFailure(t *testing.T) {
 	mock, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
-	// Empty list -> resource considered gone
+	// GET /access/acl returns 500 to force failure in GetACL
 	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/acl")).Reply(reply.OK().BodyString(`{"data":[]}`)),
+		mocha.Get(expect.URLPath("/access/acl")).Reply(reply.InternalServerError()),
 	).Enable()
 
 	// env + client already configured
 
 	res := &aclResource.ACL{}
-	out, err := res.Read(context.Background(), infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
+	_, err := res.Read(context.Background(), infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
 		ID:     "/gone|PVEAdmin|group|ghost",
 		Inputs: aclResource.Inputs{Path: "/gone", RoleID: "PVEAdmin", Type: "group", UGID: "ghost", Propagate: true},
 	})
-	if err != nil {
-		t.Fatalf("read vanished branch errored: %v", err)
-	}
-	if out.ID != "" { // should be cleared to signal recreate
-		t.Fatalf("expected empty id for vanished resource, got %s", out.ID)
+	if err == nil || !strings.Contains(err.Error(), "failed to get ACL") {
+		t.Fatalf("expected error from GetACL failure, got %v", err)
 	}
 }
 
