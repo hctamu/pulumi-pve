@@ -88,16 +88,12 @@ func (acl *ACL) Create(
 	}
 
 	if err = validateInputs(request.Inputs); err != nil {
-		l.Warning(err.Error())
+		l.Error(err.Error())
 		return response, err
 	}
 
-	response.ID = composeACLID(
-		request.Inputs.Path,
-		request.Inputs.RoleID,
-		request.Inputs.Type,
-		request.Inputs.UGID,
-	)
+	response.ID = composeACLID(request.Inputs)
+
 	response.Output = Outputs{Inputs: request.Inputs}
 	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
 
@@ -156,10 +152,7 @@ func (acl *ACL) Delete(
 	// Always re-fetch to get the actual propagate flag (and verify existence)
 	existing, getErr := GetACL(
 		ctx,
-		request.State.Path,
-		request.State.RoleID,
-		request.State.Type,
-		request.State.UGID,
+		request.State.Inputs,
 		pxc,
 	)
 	if getErr != nil {
@@ -225,19 +218,13 @@ func (acl *ACL) Read(
 	}
 
 	var existingAPI *api.ACL
-	path, roleid, typ, ugid, err := decomposeACLID(request.ID)
+	decomposedACL, err := decomposeACLID(request.ID)
 	if err != nil {
 		l.Error(err.Error())
 		return response, err
 	}
 
-	if existingAPI, err = GetACL(ctx, path, roleid, typ, ugid, pxc); err != nil {
-		if errors.Is(err, ErrACLNotFound) {
-			// Signal to engine that resource vanished; triggers replacement on next update
-			l.Infof("ACL %s no longer exists in Proxmox; marking for recreation", request.ID)
-			response.ID = ""
-			return response, nil
-		}
+	if existingAPI, err = GetACL(ctx, decomposedACL, pxc); err != nil {
 		err = fmt.Errorf("failed to get ACL %s: %w", request.ID, err)
 		l.Error(err.Error())
 		return response, err
@@ -280,31 +267,41 @@ func validateInputs(inputs Inputs) error {
 }
 
 // composeACLID builds a stable composite ID.
-func composeACLID(path, roleID, typ, ugid string) string {
+func composeACLID(acl Inputs) string {
 	// Assumes components do not contain '|'
-	return strings.Join([]string{path, roleID, typ, ugid}, "|")
+	return strings.Join([]string{acl.Path, acl.RoleID, acl.Type, acl.UGID}, "|")
 }
 
 // decomposeACLID splits a composite ID into its components.
-func decomposeACLID(id string) (path, roleID, typ, ugid string, err error) {
+func decomposeACLID(id string) (acl Inputs, err error) {
 	parts := strings.Split(id, "|")
 	if len(parts) != 4 {
-		return "", "", "", "", fmt.Errorf("invalid ACL ID %q", id)
+		return Inputs{}, fmt.Errorf("invalid ACL ID %q", id)
 	}
-	return parts[0], parts[1], parts[2], parts[3], nil
+	acl = Inputs{
+		Path:      parts[0],
+		RoleID:    parts[1],
+		Type:      parts[2],
+		UGID:      parts[3],
+		Propagate: false,
+	}
+	return acl, nil
 }
 
 // GetACL is used to retrieve an ACL by its keys
 func GetACL(
 	ctx context.Context,
-	path string,
-	roleid string,
-	typ string,
-	ugid string,
+	aclparams Inputs,
 	pxc *px.Client,
 ) (acl *api.ACL, err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("GetACL called for ACL with keys: %s, %s, %s, %s", path, roleid, typ, ugid)
+	l.Debugf(
+		"GetACL called for ACL with keys: %s, %s, %s, %s",
+		aclparams.Path,
+		aclparams.RoleID,
+		aclparams.Type,
+		aclparams.UGID,
+	)
 
 	allACLs, err := pxc.ACL(ctx)
 	if err != nil {
@@ -314,7 +311,8 @@ func GetACL(
 	}
 
 	for _, r := range allACLs {
-		if r.Path == path && r.RoleID == roleid && r.Type == typ && r.UGID == ugid {
+		if r.Path == aclparams.Path && r.RoleID == aclparams.RoleID && r.Type == aclparams.Type &&
+			r.UGID == aclparams.UGID {
 			return r, nil
 		}
 	}
