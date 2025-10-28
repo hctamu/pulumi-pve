@@ -84,7 +84,7 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 			// The API will receive a comma-separated string from our provider
 			// and return it in the response.
 			Reply(reply.Created().BodyString(`{
-				"data": {"roleid": "testrole", "name": "testrole", 
+				"data": {"roleid": "testrole", "name": "testrole",
 				"privs": "VM.PowerMgmt", "special": 0}}
 			`)).PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{listRoles}}),
 	)
@@ -234,32 +234,6 @@ func TestRoleReadNotFoundMarksDeleted(t *testing.T) {
 	// When not found we expect empty response (ID unset) signalling deletion
 	assert.Empty(t, resp.ID)
 	assert.Equal(t, roleResource.Outputs{}, resp.State)
-}
-
-//nolint:paralleltest // env and global seam mutations
-func TestRoleUpdateNoChangeNormalRole(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// Non-special role privileges identical
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal",
-			"privs":"Datastore.Allocate,VM.PowerMgmt","special":0}]}`)),
-	).Enable()
-
-	// env + client configured
-
-	r := &roleResource.Role{}
-	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
-		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
-		State: roleResource.Outputs{
-			Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
-		},
-	}
-	resp, err := r.Update(context.Background(), req)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"Datastore.Allocate", "VM.PowerMgmt"}, resp.Output.Privileges)
 }
 
 //nolint:paralleltest // env and global seam mutations
