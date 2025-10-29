@@ -191,6 +191,11 @@ func (group *Group) Update(
 	l.Infof("Updating comment from %q to %q", existingGroup.Comment, request.Inputs.Comment)
 	existingGroup.Comment = request.Inputs.Comment
 
+	// pxc.Group GET method gives back the Members field too, but
+	// API does not support updating members directly.
+	// So we clear it here to avoid sending it back in the update.
+	existingGroup.Members = nil
+
 	if err = existingGroup.Update(ctx); err != nil {
 		err = fmt.Errorf("failed to update group %s: %v", request.State.Name, err)
 		return response, err
