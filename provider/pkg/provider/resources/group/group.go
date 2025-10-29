@@ -78,7 +78,10 @@ func (group *Group) Create(
 		return response, err
 	}
 
-	err = pxc.NewGroup(ctx, request.Inputs.Name, request.Inputs.Comment)
+	if err = pxc.NewGroup(ctx, request.Inputs.Name, request.Inputs.Comment); err != nil {
+		err = fmt.Errorf("failed to create group: %v", err)
+		l.Error(err.Error())
+	}
 
 	return response, err
 }
@@ -185,12 +188,7 @@ func (group *Group) Update(
 		return response, err
 	}
 
-	if existingGroup.Comment == request.Inputs.Comment {
-		l.Debugf("No changes needed for group %s", request.State.Name)
-		response.Output = Outputs{request.Inputs}
-		return response, nil
-	}
-
+	l.Infof("Updating comment from %q to %q", existingGroup.Comment, request.Inputs.Comment)
 	existingGroup.Comment = request.Inputs.Comment
 
 	if err = existingGroup.Update(ctx); err != nil {
