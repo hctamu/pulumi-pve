@@ -199,6 +199,7 @@ func (role *Role) Update(
 		return response, fmt.Errorf("failed to get role: %w", err)
 	}
 
+	l.Infof("Updating privileges from %q to %q", existingRole.Privs, request.Inputs.Privileges)
 	existingRole.Privs = privilegesToString(request.Inputs.Privileges)
 
 	// Update the role in Proxmox
