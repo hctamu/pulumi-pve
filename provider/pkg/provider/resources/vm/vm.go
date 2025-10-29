@@ -409,7 +409,7 @@ func updateDisksAfterClone(
 
 			// Resize disk if necessary
 			if disk.Size != currentDisk.Size {
-				if err = virtualMachine.ResizeDisk(ctx, diskInterface, strconv.Itoa(disk.Size)+"G"); err != nil {
+				if _, err = virtualMachine.ResizeDisk(ctx, diskInterface, strconv.Itoa(disk.Size)+"G"); err != nil {
 					return fmt.Errorf("failed to resize disk %v: %v", diskInterface, err)
 				}
 			}
