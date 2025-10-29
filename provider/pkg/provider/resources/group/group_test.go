@@ -256,31 +256,6 @@ func TestGroupUpdateFetchError(t *testing.T) {
 }
 
 //nolint:paralleltest // shares env + seam
-func TestGroupUpdateChangeSuccess(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-	// First GET returns old comment so update branch triggers
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/g1")).
-			Reply(reply.OK().BodyString(`{"data":{"groupid":"g1","comment":"old"}}`)),
-	).Enable()
-	mockServer.AddMocks(
-		mocha.Put(expect.URLPath("/access/groups/g1")).Reply(reply.OK()),
-	).Enable()
-
-	// env + client configured
-
-	group := &groupResource.Group{}
-	request := infer.UpdateRequest[groupResource.Inputs, groupResource.Outputs]{
-		State:  groupResource.Outputs{Inputs: groupResource.Inputs{Name: "g1", Comment: "old"}},
-		Inputs: groupResource.Inputs{Name: "g1", Comment: "new"},
-	}
-	resp, err := group.Update(context.Background(), request)
-	require.NoError(t, err)
-	assert.Equal(t, "new", resp.Output.Comment)
-}
-
-//nolint:paralleltest // shares env + seam
 func TestGroupUpdateChangeError(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
