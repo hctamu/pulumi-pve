@@ -237,10 +237,7 @@ func TestGroupUpdateFetchError(t *testing.T) {
 	defer cleanup()
 	// Return 500 so pxc.Group errors
 	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/g1")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusInternalServerError}, nil
-			}),
+		mocha.Put(expect.URLPath("/access/groups/g1")).Reply(reply.InternalServerError()),
 	).Enable()
 
 	// env + client configured
@@ -252,7 +249,7 @@ func TestGroupUpdateFetchError(t *testing.T) {
 	}
 	_, err := group.Update(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get group")
+	assert.Contains(t, err.Error(), "failed to update group")
 }
 
 //nolint:paralleltest // shares env + seam
