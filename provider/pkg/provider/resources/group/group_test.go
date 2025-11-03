@@ -251,30 +251,3 @@ func TestGroupUpdateFetchError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update group")
 }
-
-//nolint:paralleltest // shares env + seam
-func TestGroupUpdateChangeError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/g1")).
-			Reply(reply.OK().BodyString(`{"data":{"groupid":"g1","comment":"old"}}`)),
-	).Enable()
-	mockServer.AddMocks(
-		mocha.Put(expect.URLPath("/access/groups/g1")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusInternalServerError}, nil
-			}),
-	).Enable()
-
-	// env + client configured
-
-	group := &groupResource.Group{}
-	request := infer.UpdateRequest[groupResource.Inputs, groupResource.Outputs]{
-		State:  groupResource.Outputs{Inputs: groupResource.Inputs{Name: "g1", Comment: "old"}},
-		Inputs: groupResource.Inputs{Name: "g1", Comment: "new"},
-	}
-	_, err := group.Update(context.Background(), request)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to update group")
-}

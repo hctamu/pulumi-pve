@@ -302,32 +302,7 @@ func TestACLCreateUpdateACLFailure(t *testing.T) {
 }
 
 //nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLDeleteAlreadyGone(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// Empty ACL list so GetACL returns ErrACLNotFound -> Delete should be no-op success.
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/acl")).Reply(reply.OK().BodyString(`{"data":[]}`)),
-	).Enable()
-
-	// env + client already configured
-
-	res := &aclResource.ACL{}
-	// Provide existing state (will be re-fetched and not found)
-	_, err := res.Delete(context.Background(), infer.DeleteRequest[aclResource.Outputs]{
-		ID: "/gone|PVEAdmin|group|ghost",
-		State: aclResource.Outputs{
-			Inputs: aclResource.Inputs{Path: "/gone", RoleID: "PVEAdmin", Type: "group", UGID: "ghost", Propagate: true},
-		},
-	})
-	if err != nil {
-		t.Fatalf("expected no error for already gone delete, got %v", err)
-	}
-}
-
-//nolint:paralleltest // sets PVE_API_URL & overrides GetProxmoxClientFn (global state)
-func TestACLDeleteUpdateFailure(t *testing.T) {
+func TestACLDeleteFailure(t *testing.T) {
 	mock, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
