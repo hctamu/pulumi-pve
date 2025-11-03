@@ -141,32 +141,16 @@ func (acl *ACL) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
 
 	l := p.GetLogger(ctx)
 	l.Debugf("Deleting ACL %v", request.State)
 
-	// Always re-fetch to get the actual propagate flag (and verify existence)
-	existing, getErr := GetACL(
-		ctx,
-		request.State.Inputs,
-		pxc,
-	)
-	if getErr != nil {
-		if errors.Is(getErr, ErrACLNotFound) {
-			// Already gone: idempotent success
-			return response, nil
-		}
-		return response, fmt.Errorf("failed to re-fetch ACL before delete: %w", getErr)
-	}
-
+	// prepare deleted ACL structure
+	// ACL has no direct delete API, so we set Delete=true on PUT
 	deletedACL := &api.ACLOptions{
-		Path:      existing.Path,
-		Roles:     existing.RoleID,
-		Propagate: existing.Propagate,
+		Path:      request.State.Path,
+		Roles:     request.State.RoleID,
+		Propagate: api.IntOrBool(request.State.Propagate),
 		Delete:    api.IntOrBool(true),
 	}
 	switch request.State.Type {
@@ -180,12 +164,18 @@ func (acl *ACL) Delete(
 		return response, ErrInvalidACLType
 	}
 
-	if err = pxc.UpdateACL(ctx, *deletedACL); err != nil {
-		err = fmt.Errorf("failed to delete ACL %v: %w", request.State, err)
-		l.Error(err.Error())
+	// get client
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
+	// perform delete
+	if err = pxc.Put(ctx, "/access/acl", deletedACL, nil); err != nil {
+		return response, fmt.Errorf("failed to delete ACL %v: %w", deletedACL, err)
+	}
+
+	l.Debugf("Successfully deleted ACL %v", request.State)
 	return response, nil
 }
 
@@ -241,7 +231,6 @@ func (acl *ACL) Read(
 	}
 
 	response.Inputs = response.State.Inputs
-	l.Debugf("Returning updated state: %+v", response.State)
 
 	return response, nil
 }

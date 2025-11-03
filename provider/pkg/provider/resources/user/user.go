@@ -19,6 +19,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sort"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
@@ -105,26 +106,22 @@ func (user *User) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
+
+	l := p.GetLogger(ctx)
+	l.Debugf("Deleting user %s", request.State.Name)
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting user %v", request.State.Name)
-
-	var existingUser *api.User
-	if existingUser, err = pxc.User(ctx, request.State.Name); err != nil {
-		err = fmt.Errorf("failed to get user: %v", err)
-		return response, err
+	// perform delete
+	if err = pxc.Req(ctx, http.MethodDelete, "/access/users/"+request.State.Name, nil, nil); err != nil {
+		return response, fmt.Errorf("failed to delete user %s: %w", request.State.Name, err)
 	}
 
-	if err = existingUser.Delete(ctx); err != nil {
-		err = fmt.Errorf("failed to delete user %s: %v", request.State.Name, err)
-		l.Error(err.Error())
-		return response, err
-	}
-
+	l.Debugf("Successfully deleted user %s", request.State.Name)
 	return response, nil
 }
 
