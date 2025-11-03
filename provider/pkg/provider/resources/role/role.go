@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
@@ -101,26 +102,22 @@ func (role *Role) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
+
+	l := p.GetLogger(ctx)
+	l.Debugf("Deleting role %s", request.State.Name)
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting role %v", request.State.Name)
-
-	var existingRole *api.Role
-	if existingRole, err = GetRole(ctx, request.State.Name, pxc); err != nil {
-		err = fmt.Errorf("failed to get role: %v", err)
-		return response, err
+	// perform delete
+	if err = pxc.Req(ctx, http.MethodDelete, "/access/roles/"+request.State.Name, nil, nil); err != nil {
+		return response, fmt.Errorf("failed to delete role %s: %w", request.State.Name, err)
 	}
 
-	if err = existingRole.Delete(ctx); err != nil {
-		err = fmt.Errorf("failed to delete role %s: %v", request.State.Name, err)
-		l.Error(err.Error())
-		return response, err
-	}
-
+	l.Debugf("Successfully deleted role %s", request.State.Name)
 	return response, nil
 }
 
