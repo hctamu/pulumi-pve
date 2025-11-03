@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 
@@ -163,7 +163,7 @@ func (user *User) Read(
 			Expire:    existingUser.Expire,
 			Firstname: existingUser.Firstname,
 			Groups:    existingUser.Groups,
-			Keys:      stringToSlice(existingUser.Keys),
+			Keys:      utils.StringToSlice(existingUser.Keys),
 			Lastname:  existingUser.Lastname,
 			// Password:  existingUser.Password,
 		},
@@ -180,8 +180,8 @@ func (user *User) Update(
 	request infer.UpdateRequest[Inputs, Outputs],
 ) (response infer.UpdateResponse[Outputs], err error) {
 	response.Output = request.State
-	l := p.GetLogger(ctx)
 
+	l := p.GetLogger(ctx)
 	l.Debugf("Update called for User with ID: %s, Inputs: %+v, State: %+v",
 		request.State.Name,
 		request.Inputs,
@@ -192,99 +192,67 @@ func (user *User) Update(
 		return response, nil
 	}
 
+	// compare and update fields
+	if request.Inputs.Comment != request.State.Comment {
+		l.Infof("Updating comment from %q to %q", request.State.Comment, request.Inputs.Comment)
+		response.Output.Comment = request.Inputs.Comment
+	}
+	if request.Inputs.Email != request.State.Email {
+		l.Infof("Updating email from %q to %q", request.State.Email, request.Inputs.Email)
+		response.Output.Email = request.Inputs.Email
+	}
+	if request.Inputs.Enable != request.State.Enable {
+		l.Infof("Updating enable from %v to %v", request.State.Enable, request.Inputs.Enable)
+		response.Output.Enable = request.Inputs.Enable
+	}
+	if request.Inputs.Expire != request.State.Expire {
+		l.Infof("Updating expire from %d to %d", request.State.Expire, request.Inputs.Expire)
+		response.Output.Expire = request.Inputs.Expire
+	}
+	if request.Inputs.Firstname != request.State.Firstname {
+		l.Infof("Updating firstname from %q to %q", request.State.Firstname, request.Inputs.Firstname)
+		response.Output.Firstname = request.Inputs.Firstname
+	}
+	if utils.SliceToString(request.Inputs.Groups) != utils.SliceToString(request.State.Groups) {
+		sort.Strings(request.Inputs.Groups)
+		l.Infof("Updating groups from %q to %q", request.State.Groups, request.Inputs.Groups)
+		response.Output.Groups = request.Inputs.Groups
+	}
+	if utils.SliceToString(request.Inputs.Keys) != utils.SliceToString(request.State.Keys) {
+		sort.Strings(request.Inputs.Keys)
+		l.Infof("Updating keys from %q to %q", request.State.Keys, request.Inputs.Keys)
+		response.Output.Keys = request.Inputs.Keys
+	}
+	if request.Inputs.Lastname != request.State.Lastname {
+		l.Infof("Updating lastname from %q to %q", request.State.Lastname, request.Inputs.Lastname)
+		response.Output.Lastname = request.Inputs.Lastname
+	}
+
+	// prepare updated resource
+	updatedUser := &api.User{
+		UserID:    response.Output.Name,
+		Comment:   response.Output.Comment,
+		Email:     response.Output.Email,
+		Enable:    api.IntOrBool(response.Output.Enable),
+		Expire:    response.Output.Expire,
+		Firstname: response.Output.Firstname,
+		Groups:    response.Output.Groups,
+		Keys:      utils.SliceToString(response.Output.Keys),
+		Lastname:  response.Output.Lastname,
+		// Password:  response.Output.Password,
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	var existingUser *api.User
-	if existingUser, err = pxc.User(ctx, request.State.Name); err != nil {
-		err = fmt.Errorf("failed to get user: %v", err)
-		return response, err
-	}
-	l.Infof("'%v'", sliceToString(existingUser.Groups))
-	l.Infof("'%v'", sliceToString(request.Inputs.Groups))
-
-	if request.Inputs.Comment != existingUser.Comment {
-		l.Infof("Updating comment from %q to %q", existingUser.Comment, request.Inputs.Comment)
-		existingUser.Comment = request.Inputs.Comment
-	}
-	if request.Inputs.Email != existingUser.Email {
-		l.Infof("Updating email from %q to %q", existingUser.Email, request.Inputs.Email)
-		existingUser.Email = request.Inputs.Email
-	}
-	if request.Inputs.Enable != bool(existingUser.Enable) {
-		l.Infof("Updating enable from %v to %v", existingUser.Enable, request.Inputs.Enable)
-		existingUser.Enable = api.IntOrBool(request.Inputs.Enable)
-	}
-	if request.Inputs.Expire != existingUser.Expire {
-		l.Infof("Updating expire from %d to %d", existingUser.Expire, request.Inputs.Expire)
-		existingUser.Expire = request.Inputs.Expire
-	}
-	if request.Inputs.Firstname != existingUser.Firstname {
-		l.Infof("Updating firstname from %q to %q", existingUser.Firstname, request.Inputs.Firstname)
-		existingUser.Firstname = request.Inputs.Firstname
-	}
-	if sliceToString(request.Inputs.Groups) != sliceToString(existingUser.Groups) {
-		sort.Strings(request.Inputs.Groups)
-		l.Infof("Updating groups from %q to %q", existingUser.Groups, request.Inputs.Groups)
-		existingUser.Groups = request.Inputs.Groups
-	}
-	if sliceToString(request.Inputs.Keys) != existingUser.Keys {
-		l.Infof("Updating keys from %q to %q", existingUser.Keys, request.Inputs.Keys)
-		existingUser.Keys = sliceToString(request.Inputs.Keys)
-	}
-	// if !equalOrdered(request.Inputs.Groups, existingUser.Groups) {
-	// 	l.Infof("Updating groups from %q to %q", existingUser.Groups, request.Inputs.Groups)
-	// 	existingUser.Groups = append([]string(nil), request.Inputs.Groups...)
-	// }
-	// if !equalOrdered(request.Inputs.Keys, stringToSlice(existingUser.Keys)) {
-	// 	l.Infof("Updating keys from %q to %q", existingUser.Keys, request.Inputs.Keys)
-	// 	existingUser.Keys = sliceToString(request.Inputs.Keys)
-	// }
-	if request.Inputs.Lastname != existingUser.Lastname {
-		l.Infof("Updating lastname from %q to %q", existingUser.Lastname, request.Inputs.Lastname)
-		existingUser.Lastname = request.Inputs.Lastname
+	// perform update (avoid fmt.Sprintf for simple concatenation to satisfy perfsprint linter)
+	if err = pxc.Put(ctx, "/access/users/"+updatedUser.UserID, updatedUser, nil); err != nil {
+		return response, fmt.Errorf("failed to update user %s: %w", request.State.Name, err)
 	}
 
-	if err = existingUser.Update(ctx); err != nil {
-		err = fmt.Errorf("failed to update user %s: %v", request.State.Name, err)
-		l.Infof("%v", err.Error())
-		l.Error(err.Error())
-		return response, err
-	}
-
-	response.Output = Outputs{Inputs: request.Inputs}
-
+	l.Debugf("Successfully updated user %s", request.State.Name)
 	return response, nil
-}
-
-func sliceToString(slice []string) string {
-	if len(slice) == 0 {
-		return ""
-	}
-	// Sort for consistent output and easier comparison later
-	// sortedSlice := make([]string, len(slice))
-	// copy(sortedSlice, slice)
-	// sort.Strings(sortedSlice)
-	// return strings.Join(sortedSlice, ",")
-	sort.Strings(slice)
-	return strings.Join(slice, ",")
-}
-
-func stringToSlice(str string) []string {
-	if str == "" {
-		return []string{}
-	}
-	parts := strings.Split(str, ",")
-	slice := make([]string, 0, len(parts))
-	for _, p := range parts {
-		trimmed := strings.TrimSpace(p)
-		if trimmed != "" {
-			slice = append(slice, trimmed)
-		}
-	}
-	// Sort for consistent output and easier comparison
-	sort.Strings(slice)
-	return slice
 }

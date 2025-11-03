@@ -170,37 +170,41 @@ func (group *Group) Update(
 	request infer.UpdateRequest[Inputs, Outputs],
 ) (response infer.UpdateResponse[Outputs], err error) {
 	response.Output = request.State
+
 	l := p.GetLogger(ctx)
-	l.Debugf("Updating group: %v", request.State.Name)
+	l.Debugf("Update called for Group with ID: %s, Inputs: %+v, State: %+v",
+		request.State.Name,
+		request.Inputs,
+		request.State,
+	)
 
 	if request.DryRun {
 		return response, nil
 	}
 
+	// compare and update fields
+	if request.Inputs.Comment != request.State.Comment {
+		l.Infof("Updating comment from %q to %q", request.State.Comment, request.Inputs.Comment)
+		response.Output.Comment = request.Inputs.Comment
+	}
+
+	// prepare updated resource
+	updatedGroup := &api.Group{
+		GroupID: response.Output.Name,
+		Comment: response.Output.Comment,
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	var existingGroup *api.Group
-	if existingGroup, err = pxc.Group(ctx, request.State.Name); err != nil {
-		err = fmt.Errorf("failed to get group %s: %v", request.State.Name, err)
-		return response, err
+	// perform update
+	if err = pxc.Put(ctx, "/access/groups/"+updatedGroup.GroupID, updatedGroup, nil); err != nil {
+		return response, fmt.Errorf("failed to update group %s: %w", request.State.Name, err)
 	}
 
-	l.Infof("Updating comment from %q to %q", existingGroup.Comment, request.Inputs.Comment)
-	existingGroup.Comment = request.Inputs.Comment
-
-	// pxc.Group GET method gives back the Members field too, but
-	// API does not support updating members directly.
-	// So we clear it here to avoid sending it back in the update.
-	existingGroup.Members = nil
-
-	if err = existingGroup.Update(ctx); err != nil {
-		err = fmt.Errorf("failed to update group %s: %v", request.State.Name, err)
-		return response, err
-	}
-
-	response.Output = Outputs{request.Inputs}
+	l.Debugf("Successfully updated group %s", request.State.Name)
 	return response, nil
 }
