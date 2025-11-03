@@ -17,6 +17,8 @@ limitations under the License.
 package resources
 
 import (
+	"sort"
+	"strings"
 	"unicode"
 )
 
@@ -39,4 +41,32 @@ func EndsWithLetter(str string) bool {
 
 	lastChar := rune(str[len(str)-1])
 	return unicode.IsLetter(lastChar)
+}
+
+// SliceToString is used to convert a slice of strings to a comma-separated string
+func SliceToString(slice []string) string {
+	if len(slice) == 0 {
+		return ""
+	}
+	// Sort for consistent output and easier comparison
+	sort.Strings(slice)
+	return strings.Join(slice, ",")
+}
+
+// StringToSlice is used to convert a comma-separated string to a slice of strings
+func StringToSlice(str string) []string {
+	if str == "" {
+		return []string{}
+	}
+	parts := strings.Split(str, ",")
+	slice := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			slice = append(slice, trimmed)
+		}
+	}
+	// Sort for consistent output and easier comparison
+	sort.Strings(slice)
+	return slice
 }
