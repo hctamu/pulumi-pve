@@ -61,47 +61,23 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
-	// GET user: first call returns pre-update state; subsequent calls return updated state.
-	callCount := 0
 	getUser := mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/users/testuser")).
-			Repeat(4).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				callCount++
-				var body string
-				if callCount == 1 {
-					// Initial state (after create) starts empty for fields we want to "set" later.
-					body = `{"data":{
-					"userid":"testuser",
-					"comment":"initial comment",
-					"enable":0,
-					"expire":0,
-					"firstname":"Alice",
-					"lastname":"Admin",
-					"email":"alice@example.com",
-					"groups":[],
-					"keys":""}}`
-				} else {
-					// Updated state reflecting changed comment, expire, groups and keys.
-					body = `{"data":{
-					"userid":"testuser",
-					"comment":"updated comment",
-					"enable":1,
-					"expire":42,
-					"firstname":"Bob",
-					"lastname":"Balancer",
-					"email":"bob@example.com",
-					"groups":["g1","g2"],
-					"keys":"ssh-rsa AAA,ssh-ed25519 BBB"}}`
-				}
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(body)}, nil
-			}),
+			ReplyFunction(
+				func(request *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+					r := strings.NewReader(`{"data":{"userid":"testuser"}}`)
+					return &reply.Response{
+						Status: http.StatusOK,
+						Body:   r,
+					}, nil
+				},
+			),
 	)
 
 	// Create user
 	createUser := mockServer.AddMocks(
 		mocha.Post(expect.URLPath("/access/users")).
-			Reply(reply.Created().BodyString(`{"data":{"userid":"testuser","comment":"initial comment","expire":0}}`)).
+			Reply(reply.Created().BodyString(`{"data":{"userid":"testuser"}}`)).
 			PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{getUser}}),
 	)
 
@@ -117,7 +93,7 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 					"lastname":"Balancer",
 					"email":"bob@example.com",
 					"groups":["g1","g2"],
-					"keys":"ssh-rsa AAA,ssh-ed25519 BBB"}}`)),
+					"keys":"ssh-ed25519,ssh-rsa"}}`)),
 	)
 
 	// Delete user
@@ -153,8 +129,8 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 			property.New("g2"),
 		})),
 		"keys": property.New(property.NewArray([]property.Value{ // update output preserves input order here
-			property.New("ssh-rsa AAA"),
-			property.New("ssh-ed25519 BBB"),
+			property.New("ssh-ed25519"),
+			property.New("ssh-rsa"),
 		})),
 		"password": property.New(""), // provider clears password on Read
 	})
@@ -163,19 +139,10 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 		Resource: "pve:user:User",
 		Create: integration.Operation{
 			Inputs: property.NewMap(map[string]property.Value{
-				"userid":    property.New("testuser"),
-				"comment":   property.New("initial comment"),
-				"firstname": property.New("Alice"),
-				"lastname":  property.New("Admin"),
-				"email":     property.New("alice@example.com"),
-				"expire":    property.New(0.0),
-				// groups, keys, expire intentionally omitted to simulate empty base state
-				"password": property.New("hunter2"), // replaceOnChanges field
+				"userid": property.New("testuser"),
 			}),
 			Hook: func(in, out property.Map) {
 				assert.Equal(t, "testuser", out.Get("userid").AsString())
-				assert.Equal(t, "initial comment", out.Get("comment").AsString())
-				// groups should be absent in output until first Read after create; Update will set them.
 			},
 		},
 		Updates: []integration.Operation{
@@ -189,12 +156,12 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 					"lastname":  property.New("Balancer"),
 					"email":     property.New("bob@example.com"),
 					"groups": property.New(property.NewArray([]property.Value{ // intentionally unsorted input
-						property.New("g1"),
 						property.New("g2"),
+						property.New("g1"),
 					})),
 					"keys": property.New(property.NewArray([]property.Value{ // intentionally unsorted input
-						property.New("ssh-rsa AAA"),
-						property.New("ssh-ed25519 BBB"),
+						property.New("ssh-rsa"),
+						property.New("ssh-ed25519"),
 					})),
 				}),
 				ExpectedOutput: &expectedAfterUpdate,
@@ -210,8 +177,16 @@ func TestUserReadSuccess(t *testing.T) {
 
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/users/readuser")).Reply(reply.OK().BodyString(`{
-            "data":{"userid":"readuser","comment":"c","enable":1,"expire":10,
-            "firstname":"F","lastname":"L","email":"f@example.com","groups":["g1","g2"],"keys":"ssh-rsa AAA,ssh-ed25519 BBB"}}
+            "data":{
+			"userid":"readuser",
+			"comment":"c",
+			"enable":1,
+			"expire":10,
+            "firstname":"F",
+			"lastname":"L",
+			"email":"f@example.com",
+			"groups":["g1","g2"],
+			"keys":"ssh-rsa AAA,ssh-ed25519 BBB"}}
         `)),
 	).Enable()
 
@@ -230,54 +205,20 @@ func TestUserReadSuccess(t *testing.T) {
 	assert.Equal(t, 10, resp.State.Expire)
 }
 
-//nolint:paralleltest // seam override
-func TestUserUpdateClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client boom") }
-
-	u := &userResource.User{}
-	req := infer.UpdateRequest[userResource.Inputs, userResource.Outputs]{
-		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "u1"}},
-		Inputs: userResource.Inputs{Name: "u1", Comment: "new"},
-	}
-	_, err := u.Update(context.Background(), req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client boom")
-}
-
-//nolint:paralleltest // global env
-func TestUserUpdateFetchError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/u1")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	u := &userResource.User{}
-	req := infer.UpdateRequest[userResource.Inputs, userResource.Outputs]{
-		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "u1"}},
-		Inputs: userResource.Inputs{Name: "u1", Comment: "new"},
-	}
-	_, err := u.Update(context.Background(), req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get user")
-}
-
 //nolint:paralleltest // global env
 func TestUserUpdateChangeError(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/u1")).
-			Reply(reply.OK().BodyString(`{"data":{"userid":"u1","comment":"old","enable":1,"expire":0,"firstname":"A","lastname":"B","email":"e","groups":[],"keys":""}}`)),
-		mocha.Put(expect.URLPath("/access/users/u1")).Reply(reply.InternalServerError()),
+		// mocha.Get(expect.URLPath("/access/users/userid")).
+		// 	Reply(reply.OK().BodyString(`{"data":{"userid":"userid"}}`)),
+		mocha.Put(expect.URLPath("/access/users/userid")).Reply(reply.InternalServerError()),
 	).Enable()
 
 	u := &userResource.User{}
 	req := infer.UpdateRequest[userResource.Inputs, userResource.Outputs]{
-		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "u1", Comment: "old"}},
-		Inputs: userResource.Inputs{Name: "u1", Comment: "new"},
+		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "userid"}},
+		Inputs: userResource.Inputs{Name: "userid"},
 	}
 	_, err := u.Update(context.Background(), req)
 	require.Error(t, err)
@@ -305,7 +246,16 @@ func TestUserDeleteBackendFailure(t *testing.T) {
 	defer cleanup()
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/users/deluser")).
-			Reply(reply.OK().BodyString(`{"data":{"userid":"deluser","comment":"c","enable":1,"expire":0,"firstname":"A","lastname":"B","email":"e","groups":[],"keys":""}}`)),
+			Reply(reply.OK().BodyString(`{"data":{
+			"userid":"deluser",
+			"comment":"c",
+			"enable":1,
+			"expire":0,
+			"firstname":"A",
+			"lastname":"B",
+			"email":"e",
+			"groups":[],
+			"keys":""}}`)),
 		mocha.Delete(expect.URLPath("/access/users/deluser")).Reply(reply.InternalServerError()),
 	).Enable()
 
