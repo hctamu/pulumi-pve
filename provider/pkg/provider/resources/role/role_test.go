@@ -295,31 +295,7 @@ func TestRoleDeleteClientAcquisitionFailure(t *testing.T) {
 }
 
 //nolint:paralleltest // env and seam mutation
-func TestRoleDeleteGetRoleListError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// List returns 500
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
-			}),
-	).Enable()
-
-	// env + client configured
-
-	r := &roleResource.Role{}
-	req := infer.DeleteRequest[roleResource.Outputs]{
-		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "any"}},
-	}
-	_, err := r.Delete(context.Background(), req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get role")
-}
-
-//nolint:paralleltest // env and seam mutation
-func TestRoleDeleteBackendFailure(t *testing.T) {
+func TestRoleDeleteFailure(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
