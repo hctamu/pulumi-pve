@@ -21,9 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 
@@ -86,7 +86,7 @@ func (role *Role) Create(
 		return response, err
 	}
 
-	privsStr := privilegesToString(request.Inputs.Privileges)
+	privsStr := utils.SliceToString(request.Inputs.Privileges)
 
 	err = pxc.NewRole(ctx, request.Inputs.Name, privsStr)
 	if err != nil {
@@ -165,7 +165,7 @@ func (role *Role) Read(
 	response.State = Outputs{
 		Inputs: Inputs{
 			Name:       existingRole.RoleID,
-			Privileges: stringToPrivileges(existingRole.Privs),
+			Privileges: utils.StringToSlice(existingRole.Privs),
 		},
 	}
 
@@ -180,38 +180,44 @@ func (role *Role) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[Inputs, Outputs],
 ) (response infer.UpdateResponse[Outputs], err error) {
-	// Start with the current state, but then update the privileges to the canonical form
 	response.Output = request.State
+
 	l := p.GetLogger(ctx)
-	l.Debugf("Updating role: %v", request.State.Name)
+	l.Debugf("Update called for Role with ID: %s, Inputs: %+v, State: %+v",
+		request.State.Name,
+		request.Inputs,
+		request.State,
+	)
 
 	if request.DryRun {
 		return response, nil
 	}
 
+	// compare and update fields
+	if utils.SliceToString(request.Inputs.Privileges) != utils.SliceToString(request.State.Privileges) {
+		sort.Strings(request.Inputs.Privileges)
+		l.Infof("Updating privileges from %q to %q", request.State.Privileges, request.Inputs.Privileges)
+		response.Output.Privileges = request.Inputs.Privileges
+	}
+
+	// prepare updated resource
+	updatedRole := &api.Role{
+		RoleID: response.Output.Name,
+		Privs:  utils.SliceToString(response.Output.Privileges),
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	var existingRole *api.Role
-	if existingRole, err = GetRole(ctx, request.State.Name, pxc); err != nil {
-		return response, fmt.Errorf("failed to get role: %w", err)
-	}
-
-	l.Infof("Updating privileges from %q to %q", existingRole.Privs, request.Inputs.Privileges)
-	existingRole.Privs = privilegesToString(request.Inputs.Privileges)
-
-	// Update the role in Proxmox
-	if err = existingRole.Update(ctx); err != nil {
+	// perform update
+	if err = pxc.Put(ctx, "/access/roles/"+updatedRole.RoleID, updatedRole, nil); err != nil {
 		return response, fmt.Errorf("failed to update role %s: %w", request.State.Name, err)
 	}
 
-	// Set the output to the canonical (sorted) representation of the inputs
-	response.Output = Outputs{Inputs: Inputs{
-		Name:       request.Inputs.Name,
-		Privileges: sort.StringSlice(request.Inputs.Privileges),
-	}}
+	l.Debugf("Successfully updated role %s", request.State.Name)
 	return response, nil
 }
 
@@ -237,34 +243,4 @@ func GetRole(
 		}
 	}
 	return nil, ErrRoleNotFound
-}
-
-// privilegesToString is used to convert a slice of privilege strings to a comma-separated string.
-func privilegesToString(privs []string) string {
-	if len(privs) == 0 {
-		return ""
-	}
-	// Sort for consistent output and easier comparison later
-	sortedPrivs := make([]string, len(privs))
-	copy(sortedPrivs, privs)
-	sort.Strings(sortedPrivs)
-	return strings.Join(sortedPrivs, ",")
-}
-
-// stringToPrivileges is used to convert a comma-separated privilege string to a slice of strings.
-func stringToPrivileges(privsStr string) []string {
-	if privsStr == "" {
-		return []string{}
-	}
-	parts := strings.Split(privsStr, ",")
-	result := make([]string, 0, len(parts))
-	for _, p := range parts {
-		trimmed := strings.TrimSpace(p)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	// Sort for consistent output and easier comparison
-	sort.Strings(result)
-	return result
 }
