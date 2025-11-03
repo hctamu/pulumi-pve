@@ -241,7 +241,7 @@ func TestUserDeleteClientAcquisitionFailure(t *testing.T) {
 }
 
 //nolint:paralleltest // env
-func TestUserDeleteBackendFailure(t *testing.T) {
+func TestUserDeleteFailure(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 	mockServer.AddMocks(
