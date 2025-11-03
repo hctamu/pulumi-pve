@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/px"
@@ -91,27 +92,22 @@ func (group *Group) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
+
+	l := p.GetLogger(ctx)
+	l.Debugf("Deleting group %s", request.State.Name)
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting group %v", request.State.Name)
-
-	var existingGroup *api.Group
-	if existingGroup, err = pxc.Group(ctx, request.State.Name); err != nil {
-		err = fmt.Errorf("failed to get group %s: %v", request.State.Name, err)
-		l.Error(err.Error())
-		return response, err
+	// perform delete
+	if err = pxc.Req(ctx, http.MethodDelete, "/access/groups/"+request.State.Name, nil, nil); err != nil {
+		return response, fmt.Errorf("failed to delete group %s: %w", request.State.Name, err)
 	}
 
-	if err = existingGroup.Delete(ctx); err != nil {
-		err = fmt.Errorf("failed to delete group %s: %v", request.State.Name, err)
-		l.Error(err.Error())
-		return response, err
-	}
-
+	l.Debugf("Successfully deleted group %s", request.State.Name)
 	return response, nil
 }
 
