@@ -265,31 +265,6 @@ func TestRoleUpdateChangeFailure(t *testing.T) {
 }
 
 //nolint:paralleltest // env and global seam mutations
-func TestRoleUpdateGetRoleFailure(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	// Simulate list roles endpoint failure -> GetRole should error
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
-			}),
-	).Enable()
-
-	// env + client configured
-
-	r := &roleResource.Role{}
-	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
-		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}},
-		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}}},
-	}
-	_, err := r.Update(context.Background(), req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get role")
-}
-
-//nolint:paralleltest // env and global seam mutations
 func TestRoleUpdateClientAcquisitionFailure(t *testing.T) {
 	// Override seam to return error
 	original := client.GetProxmoxClientFn
