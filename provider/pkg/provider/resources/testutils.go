@@ -31,7 +31,7 @@ import (
 // Not safe for parallel tests due to global/env mutation.
 func NewAPIMock(
 	t *testing.T,
-) (mock *mocha.Mocha, cleanup func()) { //nolint:thelper // shared helper (not in *_test.go) still wants t.Helper
+) (mock *mocha.Mocha, cleanup func()) {
 	// helper defined outside *_test.go for cross-package reuse; needs t.Helper for clearer failures
 	t.Helper()
 	mock = mocha.New(t)
@@ -58,7 +58,7 @@ func NewAPIMock(
 func OverrideClient(
 	t *testing.T,
 	apiURL string,
-) (cleanup func()) { //nolint:thelper // shared helper (not in *_test.go) still wants t.Helper
+) (cleanup func()) {
 	// central shared test helper; uses t.Helper for better stack trace
 	t.Helper()
 	orig := client.GetProxmoxClientFn
