@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -38,6 +39,7 @@ var (
 	_ = (infer.CustomDelete[Outputs])((*VM)(nil))
 	_ = (infer.CustomRead[Inputs, Outputs])((*VM)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*VM)(nil))
+	_ = (infer.CustomDiff[Inputs, Outputs])((*VM)(nil))
 )
 
 // Outputs represents the output state of a Proxmox virtual machine resource.
@@ -198,6 +200,11 @@ func readCurrentOutput(
 	}
 
 	currentOutput = readResponse.State
+	// Preserve clone configuration (not returned by Read) if user supplied it.
+	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
+		currentOutput.Clone = request.Inputs.Clone
+	}
+
 	return currentOutput, nil
 }
 
@@ -295,6 +302,11 @@ func (vm *VM) Read(
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
 		return response, err
 	}
+	// Preserve clone info from prior state (not derivable from VM config).
+	if request.State.Clone != nil && response.State.Clone == nil {
+		response.State.Clone = request.State.Clone
+	}
+
 	response.ID = request.ID
 
 	l.Debugf("VM: %v", virtualMachine)
@@ -373,6 +385,100 @@ func (vm *VM) Delete(
 
 	l.Debugf("Delete VM Task: %v", task)
 	return response, nil
+}
+
+// Diff implements a custom diff so that computed fields like vmId (and node when auto-selected)
+// do not force spurious updates when they were not explicitly set by the user. All other
+// properties follow a pointer/value comparison semantics: changed value -> Update; for vmId a
+// change triggers Replace. Clearing a property (state non-nil, input nil) counts as an update
+// unless the property is computed.
+func (vm *VM) Diff(
+	ctx context.Context,
+	request infer.DiffRequest[Inputs, Outputs],
+) (response infer.DiffResponse, err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Diff VM: id=%s", request.ID)
+
+	diff := map[string]p.PropertyDiff{}
+
+	// Properties considered computed when absent in user inputs.
+	computed := map[string]struct{}{"vmId": {}, "node": {}}
+
+	inVal := reflect.ValueOf(request.Inputs)
+	stateVal := reflect.ValueOf(request.State.Inputs)
+	inType := inVal.Type()
+
+	for i := 0; i < inType.NumField(); i++ {
+		field := inType.Field(i)
+		tag := field.Tag.Get("pulumi")
+		if tag == "" {
+			continue
+		}
+		// Extract the Pulumi property name before first comma
+		name := tag
+		if comma := len(tag); comma > 0 {
+			// pulumi tag formats like "name" or "name,optional"
+			if idx := indexRune(tag, ','); idx != -1 {
+				name = tag[:idx]
+			}
+		}
+		if name == "" {
+			continue
+		}
+
+		inField := inVal.Field(i)
+		stateField := stateVal.Field(i)
+		// Only pointer comparable types here; treat others generically
+		if inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer {
+			inNil := inField.IsNil()
+			stateNil := stateField.IsNil()
+
+			// Skip diff for computed property when user didn't provide (input nil) but state has a value
+			if _, isComputed := computed[name]; isComputed && inNil && !stateNil {
+				continue
+			}
+
+			// Clearing property (state had value, user sets nil) -> update (unless computed above)
+			if !inNil && stateNil {
+				diff[name] = p.PropertyDiff{Kind: p.Update}
+				continue
+			}
+			if inNil && !stateNil {
+				diff[name] = p.PropertyDiff{Kind: p.Update}
+				continue
+			}
+			if inNil && stateNil { // both nil => no change
+				continue
+			}
+			// Both non-nil: compare underlying values
+			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
+				// vmId changes require replacement
+				kind := p.Update
+				if name == "vmId" {
+					kind = p.UpdateReplace
+				}
+				diff[name] = p.PropertyDiff{Kind: kind}
+			}
+			continue
+		}
+	}
+
+	response = p.DiffResponse{
+		DeleteBeforeReplace: true,
+		HasChanges:          len(diff) > 0,
+		DetailedDiff:        diff,
+	}
+	return response, nil
+}
+
+// indexRune is a small helper avoiding strings import just for finding first comma in tag.
+func indexRune(s string, r rune) int {
+	for i, c := range s {
+		if c == r {
+			return i
+		}
+	}
+	return -1
 }
 
 // Annotate sets default values for the Args struct.

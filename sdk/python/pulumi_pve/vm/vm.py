@@ -42,7 +42,6 @@ class VMArgs:
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 digest: Optional[pulumi.Input[_builtins.str]] = None,
                  efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -122,8 +121,6 @@ class VMArgs:
             pulumi.set(__self__, "cpuunits", cpuunits)
         if description is not None:
             pulumi.set(__self__, "description", description)
-        if digest is not None:
-            pulumi.set(__self__, "digest", digest)
         if efidisk0 is not None:
             pulumi.set(__self__, "efidisk0", efidisk0)
         if hookscript is not None:
@@ -381,15 +378,6 @@ class VMArgs:
     @description.setter
     def description(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "description", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def digest(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "digest")
-
-    @digest.setter
-    def digest(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "digest", value)
 
     @_builtins.property
     @pulumi.getter
@@ -723,7 +711,6 @@ class VM(pulumi.CustomResource):
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 digest: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
                  efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
@@ -808,7 +795,6 @@ class VM(pulumi.CustomResource):
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 digest: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
                  efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
@@ -875,7 +861,6 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["cpulimit"] = cpulimit
             __props__.__dict__["cpuunits"] = cpuunits
             __props__.__dict__["description"] = description
-            __props__.__dict__["digest"] = digest
             if disks is None and not opts.urn:
                 raise TypeError("Missing required property 'disks'")
             __props__.__dict__["disks"] = disks
@@ -957,7 +942,6 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["cpulimit"] = None
         __props__.__dict__["cpuunits"] = None
         __props__.__dict__["description"] = None
-        __props__.__dict__["digest"] = None
         __props__.__dict__["disks"] = None
         __props__.__dict__["efidisk0"] = None
         __props__.__dict__["hookscript"] = None
@@ -1090,11 +1074,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def description(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "description")
-
-    @_builtins.property
-    @pulumi.getter
-    def digest(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "digest")
 
     @_builtins.property
     @pulumi.getter

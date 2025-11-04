@@ -21,6 +21,7 @@ dist/
 rsa*
 examples/**/venv/
 examples/**/__pycache__/
+examples/yaml/Pulumi.dev.yaml
 
 sdk/java/build
 sdk/java/.gradle
