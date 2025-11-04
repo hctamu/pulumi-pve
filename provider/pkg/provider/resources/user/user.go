@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
@@ -211,12 +210,10 @@ func (user *User) Update(
 		response.Output.Firstname = request.Inputs.Firstname
 	}
 	if utils.SliceToString(request.Inputs.Groups) != utils.SliceToString(request.State.Groups) {
-		sort.Strings(request.Inputs.Groups)
 		l.Infof("Updating groups from %q to %q", request.State.Groups, request.Inputs.Groups)
 		response.Output.Groups = request.Inputs.Groups
 	}
 	if utils.SliceToString(request.Inputs.Keys) != utils.SliceToString(request.State.Keys) {
-		sort.Strings(request.Inputs.Keys)
 		l.Infof("Updating keys from %q to %q", request.State.Keys, request.Inputs.Keys)
 		response.Output.Keys = request.Inputs.Keys
 	}
