@@ -96,7 +96,7 @@ func (ha *Ha) Create(
 	}
 
 	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, nil
 	}
 
@@ -118,7 +118,7 @@ func (ha *Ha) Delete(
 	logger.Debugf("Deleting ha resource: %v", request.State)
 
 	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
@@ -145,7 +145,7 @@ func (ha *Ha) Update(
 	}
 
 	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
@@ -177,7 +177,7 @@ func (ha *Ha) Read(
 	response.ID = request.ID
 
 	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
