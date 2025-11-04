@@ -49,8 +49,10 @@ func SliceToString(slice []string) string {
 		return ""
 	}
 	// Sort for consistent output and easier comparison
-	sort.Strings(slice)
-	return strings.Join(slice, ",")
+	sortedSlice := make([]string, len(slice))
+	copy(sortedSlice, slice)
+	sort.Strings(sortedSlice)
+	return strings.Join(sortedSlice, ",")
 }
 
 // StringToSlice is used to convert a comma-separated string to a slice of strings
