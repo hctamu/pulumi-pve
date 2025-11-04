@@ -102,7 +102,6 @@ func (role *Role) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
-
 	l := p.GetLogger(ctx)
 	l.Debugf("Deleting role %s", request.State.Name)
 
@@ -192,7 +191,6 @@ func (role *Role) Update(
 
 	// compare and update fields
 	if utils.SliceToString(request.Inputs.Privileges) != utils.SliceToString(request.State.Privileges) {
-		sort.Strings(request.Inputs.Privileges)
 		l.Infof("Updating privileges from %q to %q", request.State.Privileges, request.Inputs.Privileges)
 		response.Output.Privileges = request.Inputs.Privileges
 	}
