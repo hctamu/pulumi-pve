@@ -154,13 +154,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.description);
     }
 
-    @Import(name="digest")
-    private @Nullable Output<String> digest;
-
-    public Optional<Output<String>> digest() {
-        return Optional.ofNullable(this.digest);
-    }
-
     @Import(name="disks", required=true)
     private Output<List<DiskArgs>> disks;
 
@@ -435,7 +428,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.cpulimit = $.cpulimit;
         this.cpuunits = $.cpuunits;
         this.description = $.description;
-        this.digest = $.digest;
         this.disks = $.disks;
         this.efidisk0 = $.efidisk0;
         this.hookscript = $.hookscript;
@@ -661,15 +653,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder description(String description) {
             return description(Output.of(description));
-        }
-
-        public Builder digest(@Nullable Output<String> digest) {
-            $.digest = digest;
-            return this;
-        }
-
-        public Builder digest(String digest) {
-            return digest(Output.of(digest));
         }
 
         public Builder disks(Output<List<DiskArgs>> disks) {

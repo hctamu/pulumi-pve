@@ -70,9 +70,6 @@ namespace Hctamu.Pve.Vm
         [Output("description")]
         public Output<string?> Description { get; private set; } = null!;
 
-        [Output("digest")]
-        public Output<string?> Digest { get; private set; } = null!;
-
         [Output("disks")]
         public Output<ImmutableArray<Outputs.Disk>> Disks { get; private set; } = null!;
 
@@ -282,9 +279,6 @@ namespace Hctamu.Pve.Vm
 
         [Input("description")]
         public Input<string>? Description { get; set; }
-
-        [Input("digest")]
-        public Input<string>? Digest { get; set; }
 
         [Input("disks", required: true)]
         private InputList<Inputs.DiskArgs>? _disks;

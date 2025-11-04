@@ -63,7 +63,6 @@ type Inputs struct {
 	Tags        *string `pulumi:"tags,optional"`
 	Protection  *int    `pulumi:"protection,optional"`
 	Lock        *string `pulumi:"lock,optional"`
-	Digest      *string `pulumi:"digest,optional"`
 
 	Boot   *string `pulumi:"boot,optional"`
 	OnBoot *int    `pulumi:"onboot,optional"`
@@ -165,7 +164,6 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		Tags:        strOrNil(vmConfig.Tags),
 		Protection:  intOrNil(vmConfig.Protection),
 		Lock:        strOrNil(vmConfig.Lock),
-		Digest:      strOrNil(vmConfig.Digest),
 
 		Boot:   strOrNil(vmConfig.Boot),
 		OnBoot: intOrNil(vmConfig.OnBoot),
@@ -185,6 +183,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		Affinity: strOrNil(vmConfig.Affinity),
 
 		Numa:      intOrNil(vmConfig.Numa),
+		Memory:    intOrNil(int(vmConfig.Memory)), // MB (no conversion)
 		Hugepages: strOrNil(vmConfig.Hugepages),
 		Balloon:   intOrNil(vmConfig.Balloon),
 
@@ -228,9 +227,7 @@ func (inputs *Inputs) BuildOptionsDiff(
 	vmID int,
 	currentInputs *Inputs,
 ) (options []api.VirtualMachineOption) {
-	// Convert memory from MB to GB
-	*inputs.Memory *= 1024
-	*currentInputs.Memory *= 1024
+	// Memory already stored in MB; no conversion required.
 
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
@@ -273,7 +270,7 @@ func (inputs *Inputs) BuildOptionsDiff(
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
 func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
-	*inputs.Memory *= 1024
+	// Memory already stored in MB; no conversion required.
 
 	addOption("name", &options, inputs.Name)
 	addOption("memory", &options, inputs.Memory)

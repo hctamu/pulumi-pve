@@ -34,7 +34,6 @@ type VM struct {
 	Cpulimit     pulumi.StringPtrOutput `pulumi:"cpulimit"`
 	Cpuunits     pulumi.IntPtrOutput    `pulumi:"cpuunits"`
 	Description  pulumi.StringPtrOutput `pulumi:"description"`
-	Digest       pulumi.StringPtrOutput `pulumi:"digest"`
 	Disks        DiskArrayOutput        `pulumi:"disks"`
 	Efidisk0     pulumi.StringPtrOutput `pulumi:"efidisk0"`
 	Hookscript   pulumi.StringPtrOutput `pulumi:"hookscript"`
@@ -141,7 +140,6 @@ type vmArgs struct {
 	Cpulimit     *string `pulumi:"cpulimit"`
 	Cpuunits     *int    `pulumi:"cpuunits"`
 	Description  *string `pulumi:"description"`
-	Digest       *string `pulumi:"digest"`
 	Disks        []Disk  `pulumi:"disks"`
 	Efidisk0     *string `pulumi:"efidisk0"`
 	Hookscript   *string `pulumi:"hookscript"`
@@ -201,7 +199,6 @@ type VMArgs struct {
 	Cpulimit     pulumi.StringPtrInput
 	Cpuunits     pulumi.IntPtrInput
 	Description  pulumi.StringPtrInput
-	Digest       pulumi.StringPtrInput
 	Disks        DiskArrayInput
 	Efidisk0     pulumi.StringPtrInput
 	Hookscript   pulumi.StringPtrInput
@@ -401,10 +398,6 @@ func (o VMOutput) Cpuunits() pulumi.IntPtrOutput {
 
 func (o VMOutput) Description() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Description }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Digest() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Digest }).(pulumi.StringPtrOutput)
 }
 
 func (o VMOutput) Disks() DiskArrayOutput {

@@ -505,9 +505,6 @@
         "description": {
           "type": "string"
         },
-        "digest": {
-          "type": "string"
-        },
         "disks": {
           "type": "array",
           "items": {
@@ -682,9 +679,6 @@
           "type": "integer"
         },
         "description": {
-          "type": "string"
-        },
-        "digest": {
           "type": "string"
         },
         "disks": {

@@ -52,7 +52,6 @@ export class VM extends pulumi.CustomResource {
     declare public readonly cpulimit: pulumi.Output<string | undefined>;
     declare public readonly cpuunits: pulumi.Output<number | undefined>;
     declare public readonly description: pulumi.Output<string | undefined>;
-    declare public readonly digest: pulumi.Output<string | undefined>;
     declare public readonly disks: pulumi.Output<outputs.vm.Disk[]>;
     declare public readonly efidisk0: pulumi.Output<string | undefined>;
     declare public readonly hookscript: pulumi.Output<string | undefined>;
@@ -126,7 +125,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["cpulimit"] = args?.cpulimit;
             resourceInputs["cpuunits"] = args?.cpuunits;
             resourceInputs["description"] = args?.description;
-            resourceInputs["digest"] = args?.digest;
             resourceInputs["disks"] = args?.disks;
             resourceInputs["efidisk0"] = args?.efidisk0;
             resourceInputs["hookscript"] = args?.hookscript;
@@ -183,7 +181,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["cpulimit"] = undefined /*out*/;
             resourceInputs["cpuunits"] = undefined /*out*/;
             resourceInputs["description"] = undefined /*out*/;
-            resourceInputs["digest"] = undefined /*out*/;
             resourceInputs["disks"] = undefined /*out*/;
             resourceInputs["efidisk0"] = undefined /*out*/;
             resourceInputs["hookscript"] = undefined /*out*/;
@@ -249,7 +246,6 @@ export interface VMArgs {
     cpulimit?: pulumi.Input<string>;
     cpuunits?: pulumi.Input<number>;
     description?: pulumi.Input<string>;
-    digest?: pulumi.Input<string>;
     disks: pulumi.Input<pulumi.Input<inputs.vm.DiskArgs>[]>;
     efidisk0?: pulumi.Input<string>;
     hookscript?: pulumi.Input<string>;
