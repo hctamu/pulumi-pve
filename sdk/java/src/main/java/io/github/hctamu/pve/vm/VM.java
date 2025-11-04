@@ -133,12 +133,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> description() {
         return Codegen.optional(this.description);
     }
-    @Export(name="digest", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> digest;
-
-    public Output<Optional<String>> digest() {
-        return Codegen.optional(this.digest);
-    }
     @Export(name="disks", refs={List.class,Disk.class}, tree="[0,1]")
     private Output<List<Disk>> disks;
 

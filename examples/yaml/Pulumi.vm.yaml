@@ -12,7 +12,7 @@ resources:
       name: "testVM"
       description: "test VM"
       cpu: 1
-      memory: 32
+      memory: 32768
       disks:
         - storage: "ceph-ha"
           size: "10G"
