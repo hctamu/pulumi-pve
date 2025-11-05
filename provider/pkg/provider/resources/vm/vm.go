@@ -471,7 +471,7 @@ func (vm *VM) Diff(
 	return response, nil
 }
 
-// indexRune is a small helper avoiding strings import just for finding first comma in tag.
+// indexRune returns the index of the first occurrence of a rune in a string.
 func indexRune(s string, r rune) int {
 	for i, c := range s {
 		if c == r {
