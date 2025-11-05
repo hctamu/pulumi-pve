@@ -135,6 +135,8 @@ class Ha(pulumi.CustomResource):
             if state is None:
                 state = 'started'
             __props__.__dict__["state"] = state
+        replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["resourceId"])
+        opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
         super(Ha, __self__).__init__(
             'pve:ha:Ha',
             resource_name,

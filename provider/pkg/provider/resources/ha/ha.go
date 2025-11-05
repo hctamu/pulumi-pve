@@ -34,7 +34,6 @@ var (
 	_ = (infer.CustomDelete[Outputs])((*Ha)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*Ha)(nil))
 	_ = (infer.CustomRead[Inputs, Outputs])((*Ha)(nil))
-	_ = (infer.CustomDiff[Inputs, Outputs])((*Ha)(nil))
 )
 
 // Ha represents a Proxmox HA resource
@@ -68,7 +67,7 @@ func (state State) ValidateState(ctx context.Context) (err error) {
 type Inputs struct {
 	Group      string `pulumi:"group,optional"`
 	State      State  `pulumi:"state,optional"`
-	ResourceID int    `pulumi:"resourceId"`
+	ResourceID int    `pulumi:"resourceId"     provider:"replaceOnChanges"`
 }
 
 // Outputs represents the output properties for the HA resource
@@ -97,7 +96,8 @@ func (ha *Ha) Create(
 
 	var pxc *px2.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, nil
+		err = fmt.Errorf("failed to get Proxmox client: %w", err)
+		return response, err
 	}
 
 	err = pxc.CreateHA(ctx, &px2.HaResource{
@@ -146,6 +146,7 @@ func (ha *Ha) Update(
 
 	var pxc *px2.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+		err = fmt.Errorf("failed to get Proxmox client: %w", err)
 		return response, err
 	}
 
@@ -178,6 +179,7 @@ func (ha *Ha) Read(
 
 	var pxc *px2.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+		err = fmt.Errorf("failed to get Proxmox client: %w", err)
 		return response, err
 	}
 
@@ -194,33 +196,6 @@ func (ha *Ha) Read(
 	response.State.Group = haResource.Group
 	response.State.State = State(haResource.State)
 	response.State.ResourceID = request.State.ResourceID
-
-	return response, nil
-}
-
-// Diff computes the difference between the desired and actual state of an HA resource
-func (ha *Ha) Diff(
-	ctx context.Context,
-	request infer.DiffRequest[Inputs, Outputs],
-) (response infer.DiffResponse, err error) {
-	diff := map[string]p.PropertyDiff{}
-	if request.State.ResourceID != request.Inputs.ResourceID {
-		diff["resourceId"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-
-	if request.State.Group != request.Inputs.Group {
-		diff["group"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	if request.State.State != request.Inputs.State {
-		diff["state"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	response = p.DiffResponse{
-		DeleteBeforeReplace: true,
-		HasChanges:          len(diff) > 0,
-		DetailedDiff:        diff,
-	}
 
 	return response, nil
 }

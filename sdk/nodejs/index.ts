@@ -12,17 +12,23 @@ utilities.lazyLoad(exports, ["Provider"], () => require("./provider"));
 
 
 // Export sub-modules:
+import * as acl from "./acl";
 import * as config from "./config";
+import * as group from "./group";
 import * as ha from "./ha";
 import * as pool from "./pool";
+import * as role from "./role";
 import * as storage from "./storage";
 import * as types from "./types";
 import * as vm from "./vm";
 
 export {
+    acl,
     config,
+    group,
     ha,
     pool,
+    role,
     storage,
     types,
     vm,
