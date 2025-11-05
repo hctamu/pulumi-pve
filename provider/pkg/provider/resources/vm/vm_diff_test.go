@@ -27,12 +27,6 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// standard
-
-// default
-
-// pulumi
-
 // TestVMCustomDiffComputedVMID ensures vmId difference is ignored when user didn't set it.
 func TestVMCustomDiffComputedVMID(t *testing.T) {
 	t.Parallel()
