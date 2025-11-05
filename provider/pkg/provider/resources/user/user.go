@@ -19,7 +19,6 @@ package user
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
@@ -36,6 +35,8 @@ type User struct{}
 var (
 	_ = (infer.CustomResource[Inputs, Outputs])((*User)(nil))
 	_ = (infer.CustomDelete[Outputs])((*User)(nil))
+	_ = (infer.CustomRead[Inputs, Outputs])((*User)(nil))
+	_ = (infer.CustomUpdate[Inputs, Outputs])((*User)(nil))
 )
 
 // Inputs defines the input properties for a Proxmox user resource.
@@ -66,20 +67,27 @@ func (user *User) Create(
 	ctx context.Context,
 	request infer.CreateRequest[Inputs],
 ) (response infer.CreateResponse[Outputs], err error) {
-	response.ID = request.Name
-	response.Output = Outputs{Inputs: request.Inputs}
 	l := p.GetLogger(ctx)
 	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+
+	// set provider id to resource primary key
+	response.ID = request.Inputs.Name
+
+	// set output properties
+	response.Output = Outputs{Inputs: request.Inputs}
+
 	if request.DryRun {
 		return response, nil
 	}
 
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	newUser := &api.NewUser{
+	// create resource
+	newUser := api.NewUser{
 		UserID:    request.Inputs.Name,
 		Comment:   request.Inputs.Comment,
 		Email:     request.Inputs.Email,
@@ -92,36 +100,33 @@ func (user *User) Create(
 		Password:  request.Inputs.Password,
 	}
 
-	if err = pxc.NewUser(ctx, newUser); err != nil {
-		err = fmt.Errorf("failed to create user: %v", err)
-		l.Error(err.Error())
+	// perform create
+	if err = pxc.NewUser(ctx, &newUser); err != nil {
+		return response, fmt.Errorf("failed to create user: %v", err)
 	}
 
-	return response, err
+	// fetch created resource to confirm
+	if _, err = pxc.User(ctx, request.Inputs.Name); err != nil {
+		return response, fmt.Errorf("failed to fetch created user %s: %w", request.Inputs.Name, err)
+	}
+
+	l.Debugf("Successfully created user %s", request.Inputs.Name)
+
+	return response, nil
 }
 
-// Delete is used to delete a user resource
+// Delete is used to delete a user resource 103-124
 func (user *User) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
-
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting user %s", request.State.Name)
-
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
-
-	// perform delete
-	if err = pxc.Req(ctx, http.MethodDelete, "/access/users/"+request.State.Name, nil, nil); err != nil {
-		return response, fmt.Errorf("failed to delete user %s: %w", request.State.Name, err)
-	}
-
-	l.Debugf("Successfully deleted user %s", request.State.Name)
-	return response, nil
+	response, err = utils.DeleteResource(utils.DeletedResource{
+		Ctx:          ctx,
+		ResourceID:   request.State.Name,
+		URL:          "/access/users/" + request.State.Name,
+		ResourceType: "user",
+	})
+	return response, err
 }
 
 // Read is used to read the state of a user resource
@@ -131,6 +136,7 @@ func (user *User) Read(
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	response.ID = request.ID
 	response.Inputs = request.Inputs
+
 	l := p.GetLogger(ctx)
 	l.Debugf(
 		"Read called for User with ID: %s, Inputs: %+v, State: %+v",
@@ -139,17 +145,31 @@ func (user *User) Read(
 		request.State,
 	)
 
+	// if resource does not exist, pulumi will invoke Create
+	if request.ID == "" {
+		return response, nil
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
+	// fetch existing resource from server
 	var existingUser *api.User
 	if existingUser, err = pxc.User(ctx, request.ID); err != nil {
-		err = fmt.Errorf("failed to get user: %v", err)
+		if utils.IsNotFound(err) {
+			response.ID = ""
+			return response, nil
+		}
+		err = fmt.Errorf("failed to get user %s: %w", request.ID, err)
 		return response, err
 	}
 
+	l.Debugf("Successfully fetched user: %+v", existingUser.UserID)
+
+	// set state from fetched resource
 	response.State = Outputs{
 		Inputs: Inputs{
 			Name:      existingUser.UserID,
@@ -165,8 +185,7 @@ func (user *User) Read(
 		},
 	}
 
-	response.Inputs = response.State.Inputs
-
+	l.Debugf("Returning updated user: %+v", response.State)
 	return response, nil
 }
 
