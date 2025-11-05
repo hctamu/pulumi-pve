@@ -135,8 +135,12 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
+	// Sort disk interfaces to ensure consistent ordering
+	diskInterfaces := resources.GetSortedMapKeys(diskMap)
+
 	disks := make([]*Disk, 0, len(diskMap))
-	for diskInterface, diskStr := range diskMap {
+	for _, diskInterface := range diskInterfaces {
+		diskStr := diskMap[diskInterface]
 		disk := Disk{Interface: diskInterface}
 		if err := disk.ParseDiskConfig(diskStr); err != nil {
 			return Inputs{}, err
