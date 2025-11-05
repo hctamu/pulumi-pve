@@ -18,10 +18,10 @@ package resources
 
 import (
 	"cmp"
-	"slices"
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
