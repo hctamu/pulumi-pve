@@ -44,18 +44,18 @@ type Ha struct{}
 type State string
 
 const (
-	// StateEnabled represents the "ignored" state for HA.
-	StateEnabled State = "ignored"
-	// StateDisabled represents the "started" state for HA.
-	StateDisabled State = "started"
-	// StateUnknown represents the "stopped" state for HA.
-	StateUnknown State = "stopped"
+	// StateIgnored represents the "ignored" state for HA.
+	StateIgnored State = "ignored"
+	// StateStarted represents the "started" state for HA (default).
+	StateStarted State = "started"
+	// StateStopped represents the "stopped" state for HA.
+	StateStopped State = "stopped"
 )
 
 // ValidateState validates the HA state
 func (state State) ValidateState(ctx context.Context) (err error) {
 	switch state {
-	case StateEnabled, StateDisabled, StateUnknown:
+	case StateIgnored, StateStarted, StateStopped:
 		return nil
 	default:
 		err = fmt.Errorf("invalid state: %s", state)
