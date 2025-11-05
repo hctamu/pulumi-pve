@@ -13,6 +13,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package ha_test contains comprehensive tests for HA resource operations.
+//
+// Test Organization:
+// - Lifecycle tests: Full create/update/delete cycles using integration.LifeCycleTest
+// - Unit tests: Direct method calls with mocked backends (Create, Read, Update, Delete, Diff)
+// - Error scenarios: API failures, client acquisition errors, edge cases
+//
+// Note: Most tests disable paralleltest due to shared environment setup and client seam overrides.
+// Only pure unit tests (like Diff) can safely run in parallel.
 package ha_test
 
 import (
@@ -123,10 +132,14 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 		Create: integration.Operation{
 			Inputs: property.NewMap(map[string]property.Value{
 				"group":      property.New("grp1"),
-				"state":      property.New("started"), // explicit though default
+				"state":      property.New("started"),
 				"resourceId": property.New(100.0),
 			}),
-			Hook: func(in, out property.Map) { assert.True(t, out.Get("resourceId").IsNumber()) },
+			Hook: func(in, out property.Map) {
+				assert.Equal(t, 100.0, out.Get("resourceId").AsNumber())
+				assert.Equal(t, "grp1", out.Get("group").AsString())
+				assert.Equal(t, "started", out.Get("state").AsString())
+			},
 		},
 		Updates: []integration.Operation{{
 			Inputs: property.NewMap(map[string]property.Value{
@@ -137,6 +150,66 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 			ExpectedOutput: &expected,
 		}},
 	}.Run(t, server)
+}
+
+//nolint:paralleltest // env + seam
+func TestHaCreateSuccess(t *testing.T) {
+	mock, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/cluster/ha/resources/")).
+			Reply(reply.Created().BodyString(`{"data":{"sid":"100","state":"started","group":"grp1"}}`)),
+	).Enable()
+
+	ha := &haResource.Ha{}
+	req := infer.CreateRequest[haResource.Inputs]{
+		Name:   "test-ha",
+		Inputs: haResource.Inputs{ResourceID: 100, Group: "grp1", State: haResource.StateStarted},
+	}
+	resp, err := ha.Create(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "test-ha", resp.ID)
+	assert.Equal(t, 100, resp.Output.ResourceID)
+	assert.Equal(t, "grp1", resp.Output.Group)
+	assert.Equal(t, haResource.StateStarted, resp.Output.State)
+}
+
+//nolint:paralleltest // env + seam
+func TestHaCreateBackendFailure(t *testing.T) {
+	mock, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/cluster/ha/resources/")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusInternalServerError}, nil
+			}),
+	).Enable()
+
+	ha := &haResource.Ha{}
+	req := infer.CreateRequest[haResource.Inputs]{
+		Name:   "test-ha",
+		Inputs: haResource.Inputs{ResourceID: 100, Group: "grp1", State: haResource.StateStarted},
+	}
+	_, err := ha.Create(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create HA resource")
+}
+
+//nolint:paralleltest // uses seam override
+func TestHaCreateClientAcquisitionFailure(t *testing.T) {
+	orig := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = orig }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, assert.AnError }
+
+	ha := &haResource.Ha{}
+	req := infer.CreateRequest[haResource.Inputs]{
+		Name:   "test-ha",
+		Inputs: haResource.Inputs{ResourceID: 100, Group: "grp1", State: haResource.StateStarted},
+	}
+	resp, err := ha.Create(context.Background(), req)
+	// Create returns success but no error during preview/client failure
+	require.NoError(t, err)
+	assert.Equal(t, "test-ha", resp.ID)
 }
 
 //nolint:paralleltest // uses env + seam
@@ -182,7 +255,45 @@ func TestHaReadFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get HA resource")
 }
 
-//nolint:paralleltest // seam override
+//nolint:paralleltest // env + seam
+func TestHaReadNotFound(t *testing.T) {
+	mock, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/ha/resources/404")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusNotFound}, nil
+			}),
+	).Enable()
+
+	ha := &haResource.Ha{}
+	req := infer.ReadRequest[haResource.Inputs, haResource.Outputs]{
+		ID:     "ha-404",
+		Inputs: haResource.Inputs{ResourceID: 404},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 404}},
+	}
+	_, err := ha.Read(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get HA resource")
+}
+
+//nolint:paralleltest // uses seam override
+func TestHaReadClientAcquisitionFailure(t *testing.T) {
+	orig := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = orig }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, assert.AnError }
+
+	ha := &haResource.Ha{}
+	req := infer.ReadRequest[haResource.Inputs, haResource.Outputs]{
+		ID:     "ha-1",
+		Inputs: haResource.Inputs{ResourceID: 1},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1}},
+	}
+	_, err := ha.Read(context.Background(), req)
+	require.Error(t, err)
+}
+
+//nolint:paralleltest // uses env + seam
 func TestHaUpdateClientAcquisitionFailure(t *testing.T) {
 	orig := client.GetProxmoxClientFn
 	defer func() { client.GetProxmoxClientFn = orig }()
@@ -191,8 +302,8 @@ func TestHaUpdateClientAcquisitionFailure(t *testing.T) {
 	h := &haResource.Ha{}
 	req := infer.UpdateRequest[haResource.Inputs, haResource.Outputs]{
 		ID:     "ha-1",
-		Inputs: haResource.Inputs{ResourceID: 1, State: haResource.StateEnabled},
-		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1, State: haResource.StateDisabled}},
+		Inputs: haResource.Inputs{ResourceID: 1, State: haResource.StateStarted},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1, State: haResource.StateStopped}},
 	}
 	_, err := h.Update(context.Background(), req)
 	require.Error(t, err)
@@ -212,8 +323,8 @@ func TestHaUpdateBackendFailure(t *testing.T) {
 	h := &haResource.Ha{}
 	req := infer.UpdateRequest[haResource.Inputs, haResource.Outputs]{
 		ID:     "ha-77",
-		Inputs: haResource.Inputs{ResourceID: 77, State: haResource.StateDisabled, Group: "g2"},
-		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 77, State: haResource.StateEnabled, Group: "g1"}},
+		Inputs: haResource.Inputs{ResourceID: 77, State: haResource.StateStopped, Group: "g2"},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 77, State: haResource.StateStarted, Group: "g1"}},
 	}
 	_, err := h.Update(context.Background(), req)
 	require.Error(t, err)
@@ -231,8 +342,8 @@ func TestHaUpdateRemoveGroupSuccess(t *testing.T) {
 	h := &haResource.Ha{}
 	req := infer.UpdateRequest[haResource.Inputs, haResource.Outputs]{
 		ID:     "ha-5",
-		Inputs: haResource.Inputs{ResourceID: 5, State: haResource.StateDisabled, Group: ""}, // clearing group
-		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 5, State: haResource.StateDisabled, Group: "old"}},
+		Inputs: haResource.Inputs{ResourceID: 5, State: haResource.StateStarted, Group: ""}, // clearing group
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 5, State: haResource.StateStarted, Group: "old"}},
 	}
 	resp, err := h.Update(context.Background(), req)
 	require.NoError(t, err)
@@ -283,12 +394,110 @@ func TestHaDiff(t *testing.T) {
 	h := &haResource.Ha{}
 	resp, err := h.Diff(context.Background(), infer.DiffRequest[haResource.Inputs, haResource.Outputs]{
 		ID:     "ha-1",
-		Inputs: haResource.Inputs{ResourceID: 2, Group: "g2", State: haResource.StateDisabled},
-		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1, Group: "g1", State: haResource.StateEnabled}},
+		Inputs: haResource.Inputs{ResourceID: 2, Group: "g2", State: haResource.StateStopped},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1, Group: "g1", State: haResource.StateStarted}},
 	})
 	require.NoError(t, err)
 	assert.True(t, resp.HasChanges)
-	// resourceId replace, group update, state update
-	assert.Equal(t, 3, len(resp.DetailedDiff))
+	// Verify all three expected diffs exist with correct kinds
+	assert.Contains(t, resp.DetailedDiff, "resourceId")
+	assert.Contains(t, resp.DetailedDiff, "group")
+	assert.Contains(t, resp.DetailedDiff, "state")
 	assert.Equal(t, p.UpdateReplace, resp.DetailedDiff["resourceId"].Kind)
+	assert.Equal(t, p.Update, resp.DetailedDiff["group"].Kind)
+	assert.Equal(t, p.Update, resp.DetailedDiff["state"].Kind)
+}
+
+func TestHaDiffNoDifference(t *testing.T) {
+	t.Parallel()
+	h := &haResource.Ha{}
+	resp, err := h.Diff(context.Background(), infer.DiffRequest[haResource.Inputs, haResource.Outputs]{
+		ID:     "ha-1",
+		Inputs: haResource.Inputs{ResourceID: 1, Group: "g1", State: haResource.StateStarted},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1, Group: "g1", State: haResource.StateStarted}},
+	})
+	require.NoError(t, err)
+	assert.False(t, resp.HasChanges)
+	assert.Empty(t, resp.DetailedDiff)
+}
+
+// Edge case tests
+//
+//nolint:paralleltest // env + seam
+func TestHaCreateWithoutGroup(t *testing.T) {
+	mock, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/cluster/ha/resources/")).
+			Reply(reply.Created().BodyString(`{"data":{"sid":"200","state":"started"}}`)),
+	).Enable()
+
+	ha := &haResource.Ha{}
+	req := infer.CreateRequest[haResource.Inputs]{
+		Name:   "test-ha-no-group",
+		Inputs: haResource.Inputs{ResourceID: 200, State: haResource.StateStarted}, // No group
+	}
+	resp, err := ha.Create(context.Background(), req)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Output.Group)
+	assert.Equal(t, haResource.StateStarted, resp.Output.State)
+}
+
+func TestHaStateValidation(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		state     haResource.State
+		wantError bool
+	}{
+		{"valid ignored", haResource.StateIgnored, false},
+		{"valid started", haResource.StateStarted, false},
+		{"valid stopped", haResource.StateStopped, false},
+		{"invalid state", haResource.State("invalid"), true},
+		{"empty state", haResource.State(""), true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := tt.state.ValidateState(context.Background())
+			if tt.wantError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest // env + seam
+func TestHaDiffOnlyGroupChange(t *testing.T) {
+	h := &haResource.Ha{}
+	resp, err := h.Diff(context.Background(), infer.DiffRequest[haResource.Inputs, haResource.Outputs]{
+		ID:     "ha-1",
+		Inputs: haResource.Inputs{ResourceID: 1, Group: "newgroup", State: haResource.StateStarted},
+		State: haResource.Outputs{
+			Inputs: haResource.Inputs{ResourceID: 1, Group: "oldgroup", State: haResource.StateStarted},
+		},
+	})
+	require.NoError(t, err)
+	assert.True(t, resp.HasChanges)
+	assert.Len(t, resp.DetailedDiff, 1)
+	assert.Contains(t, resp.DetailedDiff, "group")
+	assert.Equal(t, p.Update, resp.DetailedDiff["group"].Kind)
+}
+
+//nolint:paralleltest // env + seam
+func TestHaDiffOnlyStateChange(t *testing.T) {
+	h := &haResource.Ha{}
+	resp, err := h.Diff(context.Background(), infer.DiffRequest[haResource.Inputs, haResource.Outputs]{
+		ID:     "ha-1",
+		Inputs: haResource.Inputs{ResourceID: 1, Group: "g1", State: haResource.StateStopped},
+		State:  haResource.Outputs{Inputs: haResource.Inputs{ResourceID: 1, Group: "g1", State: haResource.StateStarted}},
+	})
+	require.NoError(t, err)
+	assert.True(t, resp.HasChanges)
+	assert.Len(t, resp.DetailedDiff, 1)
+	assert.Contains(t, resp.DetailedDiff, "state")
+	assert.Equal(t, p.Update, resp.DetailedDiff["state"].Kind)
 }
