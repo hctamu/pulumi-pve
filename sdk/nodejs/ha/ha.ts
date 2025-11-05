@@ -70,6 +70,8 @@ export class Ha extends pulumi.CustomResource {
             resourceInputs["state"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
+        const replaceOnChanges = { replaceOnChanges: ["resourceId"] };
+        opts = pulumi.mergeOptions(opts, replaceOnChanges);
         super(Ha.__pulumiType, name, resourceInputs, opts);
     }
 }

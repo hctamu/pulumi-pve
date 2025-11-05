@@ -37,6 +37,10 @@ func NewHa(ctx *pulumi.Context,
 	if args.State == nil {
 		args.State = pulumi.StringPtr("started")
 	}
+	replaceOnChanges := pulumi.ReplaceOnChanges([]string{
+		"resourceId",
+	})
+	opts = append(opts, replaceOnChanges)
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource Ha
 	err := ctx.RegisterResource("pve:ha:Ha", name, args, &resource, opts...)

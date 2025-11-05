@@ -10,26 +10,51 @@ from .provider import *
 
 # Make subpackages available:
 if typing.TYPE_CHECKING:
+    import pulumi_pve.acl as __acl
+    acl = __acl
     import pulumi_pve.config as __config
     config = __config
+    import pulumi_pve.group as __group
+    group = __group
     import pulumi_pve.ha as __ha
     ha = __ha
     import pulumi_pve.pool as __pool
     pool = __pool
+    import pulumi_pve.role as __role
+    role = __role
     import pulumi_pve.storage as __storage
     storage = __storage
     import pulumi_pve.vm as __vm
     vm = __vm
 else:
+    acl = _utilities.lazy_import('pulumi_pve.acl')
     config = _utilities.lazy_import('pulumi_pve.config')
+    group = _utilities.lazy_import('pulumi_pve.group')
     ha = _utilities.lazy_import('pulumi_pve.ha')
     pool = _utilities.lazy_import('pulumi_pve.pool')
+    role = _utilities.lazy_import('pulumi_pve.role')
     storage = _utilities.lazy_import('pulumi_pve.storage')
     vm = _utilities.lazy_import('pulumi_pve.vm')
 
 _utilities.register(
     resource_modules="""
 [
+ {
+  "pkg": "pve",
+  "mod": "acl",
+  "fqn": "pulumi_pve.acl",
+  "classes": {
+   "pve:acl:ACL": "ACL"
+  }
+ },
+ {
+  "pkg": "pve",
+  "mod": "group",
+  "fqn": "pulumi_pve.group",
+  "classes": {
+   "pve:group:Group": "Group"
+  }
+ },
  {
   "pkg": "pve",
   "mod": "ha",
@@ -44,6 +69,14 @@ _utilities.register(
   "fqn": "pulumi_pve.pool",
   "classes": {
    "pve:pool:Pool": "Pool"
+  }
+ },
+ {
+  "pkg": "pve",
+  "mod": "role",
+  "fqn": "pulumi_pve.role",
+  "classes": {
+   "pve:role:Role": "Role"
   }
  },
  {

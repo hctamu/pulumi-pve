@@ -187,6 +187,108 @@
     ]
   },
   "resources": {
+    "pve:acl:ACL": {
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The path of the ACL.",
+          "replaceOnChanges": true
+        },
+        "propagate": {
+          "type": "boolean",
+          "description": "Whether the ACL should be propagated.",
+          "replaceOnChanges": true
+        },
+        "roleid": {
+          "type": "string",
+          "description": "The role ID of the ACL.",
+          "replaceOnChanges": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the ACL. Must be 'user', 'group', or 'token'.",
+          "replaceOnChanges": true
+        },
+        "ugid": {
+          "type": "string",
+          "description": "The user/group/token ID of the ACL.",
+          "replaceOnChanges": true
+        }
+      },
+      "type": "object",
+      "required": [
+        "path",
+        "roleid",
+        "type",
+        "ugid"
+      ],
+      "inputProperties": {
+        "path": {
+          "type": "string",
+          "description": "The path of the ACL.",
+          "replaceOnChanges": true
+        },
+        "propagate": {
+          "type": "boolean",
+          "description": "Whether the ACL should be propagated.",
+          "replaceOnChanges": true
+        },
+        "roleid": {
+          "type": "string",
+          "description": "The role ID of the ACL.",
+          "replaceOnChanges": true
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the ACL. Must be 'user', 'group', or 'token'.",
+          "replaceOnChanges": true
+        },
+        "ugid": {
+          "type": "string",
+          "description": "The user/group/token ID of the ACL.",
+          "replaceOnChanges": true
+        }
+      },
+      "requiredInputs": [
+        "path",
+        "roleid",
+        "type",
+        "ugid"
+      ]
+    },
+    "pve:group:Group": {
+      "properties": {
+        "comment": {
+          "type": "string",
+          "description": "An optional comment for the group. If not provided, defaults to 'Default group comment'.",
+          "default": "Default group comment"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the Proxmox group.",
+          "replaceOnChanges": true
+        }
+      },
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "inputProperties": {
+        "comment": {
+          "type": "string",
+          "description": "An optional comment for the group. If not provided, defaults to 'Default group comment'.",
+          "default": "Default group comment"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the Proxmox group.",
+          "replaceOnChanges": true
+        }
+      },
+      "requiredInputs": [
+        "name"
+      ]
+    },
     "pve:ha:Ha": {
       "description": "A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.",
       "properties": {
@@ -196,7 +298,8 @@
         },
         "resourceId": {
           "type": "integer",
-          "description": "The ID of the virtual machine that will be managed by HA (required)."
+          "description": "The ID of the virtual machine that will be managed by HA (required).",
+          "replaceOnChanges": true
         },
         "state": {
           "type": "string",
@@ -215,7 +318,8 @@
         },
         "resourceId": {
           "type": "integer",
-          "description": "The ID of the virtual machine that will be managed by HA (required)."
+          "description": "The ID of the virtual machine that will be managed by HA (required).",
+          "replaceOnChanges": true
         },
         "state": {
           "type": "string",
@@ -253,6 +357,43 @@
         "name": {
           "type": "string",
           "description": "The name of the Proxmox pool."
+        }
+      },
+      "requiredInputs": [
+        "name"
+      ]
+    },
+    "pve:role:Role": {
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the Proxmox role.",
+          "replaceOnChanges": true
+        },
+        "privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt')."
+        }
+      },
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "inputProperties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the Proxmox role.",
+          "replaceOnChanges": true
+        },
+        "privileges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt')."
         }
       },
       "requiredInputs": [
