@@ -81,56 +81,57 @@ func (acl *ACL) Create(
 	request infer.CreateRequest[Inputs],
 ) (response infer.CreateResponse[Outputs], err error) {
 	l := p.GetLogger(ctx)
+	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
 
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
-
-	if err = validateInputs(request.Inputs); err != nil {
-		l.Error(err.Error())
-		return response, err
-	}
-
+	// set provider id to resource primary key
 	response.ID = composeACLID(request.Inputs)
 
+	// set output properties
 	response.Output = Outputs{Inputs: request.Inputs}
-	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	newACL := &api.ACLOptions{
+	// get client
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+		return response, err
+	}
+
+	// create new resource
+	newACL := api.ACLOptions{
 		Path:      request.Inputs.Path,
 		Roles:     request.Inputs.RoleID,
 		Propagate: api.IntOrBool(request.Inputs.Propagate),
 	}
 	switch request.Inputs.Type {
-	// default: already handled above
 	case ACLTypeGroup:
 		if _, err = pxc.Group(ctx, request.Inputs.UGID); err != nil {
-			err = fmt.Errorf("failed to find group %q for ACL %s: %w", request.Inputs.UGID, request.Name, err)
-			l.Error(err.Error())
-			return response, err
+			return response, fmt.Errorf("failed to find group %q for ACL %s: %w", request.Inputs.UGID, request.Name, err)
 		}
 		newACL.Groups = request.Inputs.UGID
 	case ACLTypeUser:
 		if _, err = pxc.User(ctx, request.Inputs.UGID); err != nil {
-			err = fmt.Errorf("failed to find user %q for ACL %s: %w", request.Inputs.UGID, request.Name, err)
-			l.Error(err.Error())
-			return response, err
+			return response, fmt.Errorf("failed to find user %q for ACL %s: %w", request.Inputs.UGID, request.Name, err)
 		}
 		newACL.Users = request.Inputs.UGID
 	case ACLTypeToken:
 		newACL.Tokens = request.Inputs.UGID
 		// No validation for tokens
+	default:
+		return response, ErrInvalidACLType
 	}
-	if err = pxc.UpdateACL(ctx, *newACL); err != nil {
-		err = fmt.Errorf("failed to create ACL %s (path=%s role=%s type=%s ugid=%s): %w",
+
+	// perform create
+	if err = pxc.UpdateACL(ctx, newACL); err != nil {
+		return response, fmt.Errorf("failed to create ACL %s (path=%s role=%s type=%s ugid=%s): %w",
 			request.Name, request.Inputs.Path, request.Inputs.RoleID, request.Inputs.Type, request.Inputs.UGID, err)
-		l.Error(err.Error())
-		return response, err
+	}
+
+	// fetch created resource to confirm
+	if _, err = GetACL(ctx, request.Inputs, pxc); err != nil {
+		return response, fmt.Errorf("failed to confirm creation of ACL %s: %w", request.Name, err)
 	}
 
 	return response, nil
@@ -141,7 +142,6 @@ func (acl *ACL) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
-
 	l := p.GetLogger(ctx)
 	l.Debugf("Deleting ACL %v", request.State)
 
@@ -186,7 +186,6 @@ func (acl *ACL) Read(
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	response.ID = request.ID
 	response.Inputs = request.Inputs
-	response.State = request.State
 
 	l := p.GetLogger(ctx)
 	l.Debugf(
@@ -196,63 +195,46 @@ func (acl *ACL) Read(
 		request.State,
 	)
 
+	// if resource does not exist, pulumi will invoke Create
+	if request.ID == "" {
+		return response, nil
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	if request.ID == "" {
-		l.Warningf("Missing ACL ID")
-		err = errors.New("missing ACL ID")
-		return response, err
-	}
-
-	var existingAPI *api.ACL
+	// fetch existing resource from server
+	var existingACL *api.ACL
 	decomposedACL, err := decomposeACLID(request.ID)
 	if err != nil {
 		l.Error(err.Error())
 		return response, err
 	}
 
-	if existingAPI, err = GetACL(ctx, decomposedACL, pxc); err != nil {
+	if existingACL, err = GetACL(ctx, decomposedACL, pxc); err != nil {
 		err = fmt.Errorf("failed to get ACL %s: %w", request.ID, err)
 		l.Error(err.Error())
 		return response, err
 	}
 
+	l.Debugf("Successfully fetched ACL: %+v", existingACL)
+
+	// set state from fetched resource
 	response.State = Outputs{
 		Inputs: Inputs{
-			Path:      existingAPI.Path,
-			RoleID:    existingAPI.RoleID,
-			Type:      existingAPI.Type,
-			UGID:      existingAPI.UGID,
-			Propagate: bool(existingAPI.Propagate),
+			Path:      existingACL.Path,
+			RoleID:    existingACL.RoleID,
+			Type:      existingACL.Type,
+			UGID:      existingACL.UGID,
+			Propagate: bool(existingACL.Propagate),
 		},
 	}
 
-	response.Inputs = response.State.Inputs
-
+	l.Debugf("Returning updated ACL: %+v", response.State)
 	return response, nil
-}
-
-// validateInputs checks that the required inputs are provided and valid.
-func validateInputs(inputs Inputs) error {
-	if inputs.Path == "" {
-		return errors.New("path must be specified")
-	}
-	if inputs.RoleID == "" {
-		return errors.New("roleid must be specified")
-	}
-	if inputs.Type == "" ||
-		(inputs.Type != ACLTypeGroup &&
-			inputs.Type != ACLTypeUser &&
-			inputs.Type != ACLTypeToken) {
-		return ErrInvalidACLType
-	}
-	if inputs.UGID == "" {
-		return errors.New("ugid must be specified")
-	}
-	return nil
 }
 
 // composeACLID builds a stable composite ID.

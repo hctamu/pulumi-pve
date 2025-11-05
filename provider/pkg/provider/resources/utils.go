@@ -17,9 +17,19 @@ limitations under the License.
 package resources
 
 import (
+	"context"
+	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/px"
+	api "github.com/luthermonson/go-proxmox"
+
+	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // DifferPtr compares two pointers to values and returns true if they are different.
@@ -71,4 +81,49 @@ func StringToSlice(str string) []string {
 	// Sort for consistent output and easier comparison
 	sort.Strings(slice)
 	return slice
+}
+
+// MapToStringSlice converts a map with string keys to a sorted slice of strings
+func MapToStringSlice(m map[string]api.IntOrBool) []string {
+	slice := make([]string, 0, len(m))
+	for key := range m {
+		slice = append(slice, key)
+	}
+	sort.Strings(slice)
+	return slice
+}
+
+// IsNotFound checks if the error indicates that the resource was not found.
+func IsNotFound(err error) bool {
+	return strings.Contains(err.Error(), "not found")
+}
+
+// DeletedResource is used to delete a resource with DeleteResource function
+type DeletedResource struct {
+	Ctx          context.Context
+	ResourceID   string
+	URL          string
+	ResourceType string
+}
+
+// DeleteResource is used to delete a resource
+func DeleteResource(r DeletedResource) (response infer.DeleteResponse, err error) {
+	// only can you this function if resource has DELETE method implemented in proxmox client
+	// check: https://pve.proxmox.com/pve-docs/api-viewer/
+	l := p.GetLogger(r.Ctx)
+	l.Debugf("Deleting %s %s", r.ResourceType, r.ResourceID)
+
+	// get client
+	var pxc *px.Client
+	if pxc, err = client.GetProxmoxClientFn(r.Ctx); err != nil {
+		return response, err
+	}
+
+	// perform delete
+	if err = pxc.Req(r.Ctx, http.MethodDelete, r.URL, nil, nil); err != nil {
+		return response, fmt.Errorf("failed to delete %s %s: %w", r.ResourceType, r.ResourceID, err)
+	}
+
+	l.Debugf("Successfully deleted %s %s", r.ResourceType, r.ResourceID)
+	return response, nil
 }
