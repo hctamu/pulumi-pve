@@ -20,8 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"sort"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
@@ -70,29 +68,36 @@ func (role *Role) Create(
 	ctx context.Context,
 	request infer.CreateRequest[Inputs],
 ) (response infer.CreateResponse[Outputs], err error) {
-	response.ID = request.Name
-	response.Output = Outputs{Inputs: Inputs{
-		Name:       request.Inputs.Name,
-		Privileges: sort.StringSlice(request.Inputs.Privileges),
-	}}
-
 	l := p.GetLogger(ctx)
 	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+
+	// set provider id to resource primary key
+	response.ID = request.Inputs.Name
+
+	// set output properties
+	response.Output = Outputs{Inputs: request.Inputs}
+
 	if request.DryRun {
 		return response, nil
 	}
 
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	privsStr := utils.SliceToString(request.Inputs.Privileges)
-
-	err = pxc.NewRole(ctx, request.Inputs.Name, privsStr)
-	if err != nil {
+	// perform create
+	if err = pxc.NewRole(ctx, request.Inputs.Name, utils.SliceToString(request.Inputs.Privileges)); err != nil {
 		return response, fmt.Errorf("failed to create role %s: %w", request.Inputs.Name, err)
 	}
+
+	// fetch created resource to confirm
+	if _, err = pxc.Role(ctx, request.Inputs.Name); err != nil {
+		return response, fmt.Errorf("failed to fetch created role %s: %w", request.Inputs.Name, err)
+	}
+
+	l.Debugf("Successfully created role %s", request.Inputs.Name)
 
 	return response, nil
 }
@@ -102,22 +107,13 @@ func (role *Role) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
 ) (response infer.DeleteResponse, err error) {
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting role %s", request.State.Name)
-
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
-
-	// perform delete
-	if err = pxc.Req(ctx, http.MethodDelete, "/access/roles/"+request.State.Name, nil, nil); err != nil {
-		return response, fmt.Errorf("failed to delete role %s: %w", request.State.Name, err)
-	}
-
-	l.Debugf("Successfully deleted role %s", request.State.Name)
-	return response, nil
+	response, err = utils.DeleteResource(utils.DeletedResource{
+		Ctx:          ctx,
+		ResourceID:   request.State.Name,
+		URL:          "/access/roles/" + request.State.Name,
+		ResourceType: "role",
+	})
+	return response, err
 }
 
 // Read is used to read the state of a role resource
@@ -127,6 +123,7 @@ func (role *Role) Read(
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	response.ID = request.ID
 	response.Inputs = request.Inputs
+
 	l := p.GetLogger(ctx)
 	l.Debugf(
 		"Read called for Role with ID: %s, Inputs: %+v, State: %+v",
@@ -135,37 +132,36 @@ func (role *Role) Read(
 		request.State,
 	)
 
+	// if resource does not exist, pulumi will invoke Create
+	if request.ID == "" {
+		return response, nil
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	if request.ID == "" {
-		l.Warningf("Missing Role ID")
-		err = errors.New("missing role ID")
-		return response, err
-	}
-
-	var existingRole *api.Role
-	if existingRole, err = GetRole(ctx, request.State.Name, pxc); err != nil {
-		if errors.Is(err, ErrRoleNotFound) {
-			l.Debugf("Role %s not found during read, marking as deleted.", request.State.Name)
-			return infer.ReadResponse[Inputs, Outputs]{}, nil
+	// fetch existing resource's permissions/privileges from server
+	var existingRolePrivs api.Permission
+	if existingRolePrivs, err = pxc.Role(ctx, request.ID); err != nil {
+		if utils.IsNotFound(err) {
+			response.ID = ""
+			return response, nil
 		}
-		return response, fmt.Errorf("failed to get role: %w", err)
-
+		return response, fmt.Errorf("failed to get role %s: %w", request.ID, err)
 	}
 
-	l.Debugf("Successfully fetched role: %+v", existingRole.RoleID)
+	l.Debugf("Successfully fetched role: %+v", request.ID)
 
+	// set state from fetched resource
 	response.State = Outputs{
 		Inputs: Inputs{
-			Name:       existingRole.RoleID,
-			Privileges: utils.StringToSlice(existingRole.Privs),
+			Name:       request.ID,
+			Privileges: utils.MapToStringSlice(existingRolePrivs),
 		},
 	}
-
-	response.Inputs = response.State.Inputs
 
 	l.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
@@ -214,28 +210,4 @@ func (role *Role) Update(
 
 	l.Debugf("Successfully updated role %s", request.State.Name)
 	return response, nil
-}
-
-// GetRole is used to retrieve a role by its ID
-func GetRole(
-	ctx context.Context,
-	roleid string,
-	pxc *px.Client,
-) (role *api.Role, err error) {
-	l := p.GetLogger(ctx)
-	l.Debugf("GetRole called for Role with ID: %s", roleid)
-
-	allRoles, err := pxc.Roles(ctx)
-	if err != nil {
-		err = fmt.Errorf("failed to get roles: %v", err)
-		l.Error(err.Error())
-		return nil, err
-	}
-
-	for _, r := range allRoles {
-		if r.RoleID == roleid {
-			return r, nil
-		}
-	}
-	return nil, ErrRoleNotFound
 }

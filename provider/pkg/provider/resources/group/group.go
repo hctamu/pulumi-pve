@@ -18,11 +18,10 @@ package group
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 
@@ -66,35 +65,18 @@ func (group *Group) Create(
 	ctx context.Context,
 	request infer.CreateRequest[Inputs],
 ) (response infer.CreateResponse[Outputs], err error) {
-	response.ID = request.Name
-	response.Output = Outputs{Inputs: request.Inputs}
 	l := p.GetLogger(ctx)
 	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+
+	// set provider ID to resource primary key
+	response.ID = request.Inputs.Name
+
+	// set output properties
+	response.Output = Outputs{Inputs: request.Inputs}
+
 	if request.DryRun {
 		return response, nil
 	}
-
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
-
-	if err = pxc.NewGroup(ctx, request.Inputs.Name, request.Inputs.Comment); err != nil {
-		err = fmt.Errorf("failed to create group: %v", err)
-		l.Error(err.Error())
-	}
-
-	return response, err
-}
-
-// Delete is used to delete a group resource
-func (group *Group) Delete(
-	ctx context.Context,
-	request infer.DeleteRequest[Outputs],
-) (response infer.DeleteResponse, err error) {
-
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting group %s", request.State.Name)
 
 	// get client
 	var pxc *px.Client
@@ -102,13 +84,34 @@ func (group *Group) Delete(
 		return response, err
 	}
 
-	// perform delete
-	if err = pxc.Req(ctx, http.MethodDelete, "/access/groups/"+request.State.Name, nil, nil); err != nil {
-		return response, fmt.Errorf("failed to delete group %s: %w", request.State.Name, err)
+	// perform create
+	if err = pxc.NewGroup(ctx, request.Inputs.Name, request.Inputs.Comment); err != nil {
+		return response, fmt.Errorf("failed to create group %s: %w", request.Inputs.Name, err)
 	}
 
-	l.Debugf("Successfully deleted group %s", request.State.Name)
+	// fetch created resource to confirm
+	if _, err = pxc.Group(ctx, request.Inputs.Name); err != nil {
+		err = fmt.Errorf("failed to fetch group %s: %v", request.Inputs.Name, err)
+		return response, err
+	}
+
+	l.Debugf("Successfully created group %s", response.ID)
+
 	return response, nil
+}
+
+// Delete is used to delete a group resource
+func (group *Group) Delete(
+	ctx context.Context,
+	request infer.DeleteRequest[Outputs],
+) (response infer.DeleteResponse, err error) {
+	response, err = utils.DeleteResource(utils.DeletedResource{
+		Ctx:          ctx,
+		ResourceID:   request.State.Name,
+		URL:          "/access/groups/" + request.State.Name,
+		ResourceType: "group",
+	})
+	return response, err
 }
 
 // Read is used to read the state of a group resource
@@ -118,6 +121,7 @@ func (group *Group) Read(
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	response.ID = request.ID
 	response.Inputs = request.Inputs
+
 	l := p.GetLogger(ctx)
 	l.Debugf(
 		"Read called for Group with ID: %s, Inputs: %+v, State: %+v",
@@ -126,35 +130,37 @@ func (group *Group) Read(
 		request.State,
 	)
 
+	// if resource does not exist, pulumi will invoke Create
+	if request.ID == "" {
+		return response, nil
+	}
+
+	// get client
 	var pxc *px.Client
 	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
-	if request.ID == "" {
-		l.Warningf("Missing Group ID")
-		err = errors.New("missing group ID")
-		return response, err
-	}
-
+	// fetch existing resource from server
 	var existingGroup *api.Group
-	if existingGroup, err = pxc.Group(ctx, response.Inputs.Name); err != nil {
-		err = fmt.Errorf("failed to get group %s: %v", response.Inputs.Name, err)
+	if existingGroup, err = pxc.Group(ctx, request.ID); err != nil {
+		if utils.IsNotFound(err) {
+			response.ID = ""
+			return response, nil
+		}
+		err = fmt.Errorf("failed to get group %s: %w", request.ID, err)
 		return response, err
 	}
 
-	groupName := existingGroup.GroupID
+	l.Debugf("Successfully fetched group: %+v", existingGroup.GroupID)
 
-	l.Debugf("Successfully fetched group: %+v", groupName)
-
+	// set state from fetched resource
 	response.State = Outputs{
 		Inputs: Inputs{
-			Name:    groupName,
+			Name:    existingGroup.GroupID,
 			Comment: existingGroup.Comment,
 		},
 	}
-
-	response.Inputs = response.State.Inputs
 
 	l.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
