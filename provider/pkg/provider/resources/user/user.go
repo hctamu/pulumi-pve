@@ -107,7 +107,7 @@ func (user *User) Create(
 
 	// fetch created resource to confirm
 	if _, err = pxc.User(ctx, request.Inputs.Name); err != nil {
-		return response, fmt.Errorf("failed to fetch created user %s: %w", request.Inputs.Name, err)
+		return response, fmt.Errorf("failed to fetch user %s: %w", request.Inputs.Name, err)
 	}
 
 	l.Debugf("Successfully created user %s", request.Inputs.Name)

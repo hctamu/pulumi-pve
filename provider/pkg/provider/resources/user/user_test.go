@@ -18,8 +18,6 @@ package user_test
 import (
 	"context"
 	"errors"
-	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/blang/semver"
@@ -32,7 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
 	"github.com/vitorsalgado/mocha/v3/expect"
-	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
@@ -61,31 +58,25 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
+	// fetch created resource to confirm
 	getUser := mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/users/testuser")).
-			ReplyFunction(
-				func(request *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-					r := strings.NewReader(`{"data":{"userid":"testuser"}}`)
-					return &reply.Response{
-						Status: http.StatusOK,
-						Body:   r,
-					}, nil
-				},
-			),
+			Reply(reply.OK().BodyString(`{
+				"data": {}
+			}`)),
 	)
 
-	// Create user
+	// perform create
 	createUser := mockServer.AddMocks(
 		mocha.Post(expect.URLPath("/access/users")).
 			Reply(reply.Created().BodyString(`{"data":{"userid":"testuser"}}`)).
 			PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{getUser}}),
 	)
 
-	// Update user
+	// perform update
 	updateUser := mockServer.AddMocks(
 		mocha.Put(expect.URLPath("/access/users/testuser")).
 			Reply(reply.OK().BodyString(`{"data":{
-					"userid":"testuser",
 					"comment":"updated comment",
 					"enable":1,
 					"expire":42,
@@ -96,14 +87,14 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 					"keys":"ssh-ed25519,ssh-rsa"}}`)),
 	)
 
-	// Delete user
+	// perform delete
 	deleteUser := mockServer.AddMocks(
 		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.OK()),
 	)
 
 	// Enable mocks
-	createUser.Enable()
 	getUser.Enable()
+	createUser.Enable()
 	updateUser.Enable()
 	deleteUser.Enable()
 
@@ -116,23 +107,23 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	expectedAfterUpdate := property.NewMap(map[string]property.Value{
+	updatedResource := property.NewMap(map[string]property.Value{
 		"userid":    property.New("testuser"),
 		"comment":   property.New("updated comment"),
-		"enable":    property.New(true), // enable toggled to true
-		"expire":    property.New(42.0), // updated expire value
+		"enable":    property.New(true),
+		"expire":    property.New(42.0),
 		"firstname": property.New("Bob"),
 		"lastname":  property.New("Balancer"),
 		"email":     property.New("bob@example.com"),
-		"groups": property.New(property.NewArray([]property.Value{ // output preserves input order (unsorted)
+		"groups": property.New(property.NewArray([]property.Value{
 			property.New("g1"),
 			property.New("g2"),
 		})),
-		"keys": property.New(property.NewArray([]property.Value{ // update output preserves input order here
+		"keys": property.New(property.NewArray([]property.Value{
 			property.New("ssh-ed25519"),
 			property.New("ssh-rsa"),
 		})),
-		"password": property.New(""), // provider clears password on Read
+		"password": property.New(""),
 	})
 
 	integration.LifeCycleTest{
@@ -155,30 +146,136 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 					"firstname": property.New("Bob"),
 					"lastname":  property.New("Balancer"),
 					"email":     property.New("bob@example.com"),
-					"groups": property.New(property.NewArray([]property.Value{ // intentionally unsorted input
-						property.New("g2"),
+					"groups": property.New(property.NewArray([]property.Value{
 						property.New("g1"),
+						property.New("g2"),
 					})),
-					"keys": property.New(property.NewArray([]property.Value{ // intentionally unsorted input
-						property.New("ssh-rsa"),
+					"keys": property.New(property.NewArray([]property.Value{
 						property.New("ssh-ed25519"),
+						property.New("ssh-rsa"),
 					})),
 				}),
-				ExpectedOutput: &expectedAfterUpdate,
+				ExpectedOutput: &updatedResource,
 			},
 		},
 	}.Run(t, server)
 }
 
-//nolint:paralleltest // global seam
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserCreateClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	user := &userResource.User{}
+	request := infer.CreateRequest[userResource.Inputs]{
+		Name: "testuser",
+		Inputs: userResource.Inputs{
+			Name: "testuser",
+		},
+	}
+	_, err := user.Create(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserCreateCreationError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Post(expect.URLPath("/access/users")).Reply(reply.InternalServerError()),
+	).Enable()
+
+	// env + client configured
+
+	user := &userResource.User{}
+	request := infer.CreateRequest[userResource.Inputs]{
+		Name: "testuser",
+		Inputs: userResource.Inputs{
+			Name: "testuser",
+		},
+	}
+	_, err := user.Create(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create user")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserCreateFetchError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Post(expect.URLPath("/access/users")).
+			Reply(reply.Created().BodyString(`{
+			"data": {
+				"userid": "testuser"	
+		}`)),
+		mocha.Get(expect.URLPath("/access/users/testuser")).
+			Reply(reply.InternalServerError()),
+	).Enable()
+
+	// env + client configured
+
+	user := &userResource.User{}
+	request := infer.CreateRequest[userResource.Inputs]{
+		Name: "testuser",
+		Inputs: userResource.Inputs{
+			Name:  "testuser",
+			Email: "testuser@example.com",
+		},
+	}
+	_, err := user.Create(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch user")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserDeleteClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	user := &userResource.User{}
+	request := infer.DeleteRequest[userResource.Outputs]{
+		ID: "testuser",
+	}
+	_, err := user.Delete(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserDeleteDeletionError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.InternalServerError()),
+	).Enable()
+
+	// env + client configured
+
+	user := &userResource.User{}
+	request := infer.DeleteRequest[userResource.Outputs]{
+		State: userResource.Outputs{Inputs: userResource.Inputs{Name: "testuser"}},
+	}
+	_, err := user.Delete(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete user")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestUserReadSuccess(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/readuser")).Reply(reply.OK().BodyString(`{
+		mocha.Get(expect.URLPath("/access/users/testuser")).Reply(reply.OK().BodyString(`{
             "data":{
-			"userid":"readuser",
+			"userid":"testuser",
 			"comment":"c",
 			"enable":1,
 			"expire":10,
@@ -190,80 +287,146 @@ func TestUserReadSuccess(t *testing.T) {
         `)),
 	).Enable()
 
-	u := &userResource.User{}
-	req := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
-		ID:     "readuser",
-		Inputs: userResource.Inputs{Name: "readuser"},
-		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "readuser"}},
+	user := &userResource.User{}
+	request := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
+		ID:     "testuser",
+		Inputs: userResource.Inputs{Name: "testuser"},
+		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "testuser"}},
 	}
-	resp, err := u.Read(context.Background(), req)
+	resp, err := user.Read(context.Background(), request)
 	require.NoError(t, err)
-	assert.Equal(t, "readuser", resp.State.Name)
+	assert.Equal(t, "testuser", resp.State.Name)
 	assert.Equal(t, []string{"g1", "g2"}, resp.State.Groups)
 	assert.Equal(t, []string{"ssh-ed25519 BBB", "ssh-rsa AAA"}, resp.State.Keys) // sorted
 	assert.Equal(t, "F", resp.State.Firstname)
 	assert.Equal(t, 10, resp.State.Expire)
 }
 
-//nolint:paralleltest // global env
-func TestUserUpdateChangeError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-	mockServer.AddMocks(
-		// mocha.Get(expect.URLPath("/access/users/userid")).
-		// 	Reply(reply.OK().BodyString(`{"data":{"userid":"userid"}}`)),
-		mocha.Put(expect.URLPath("/access/users/userid")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	u := &userResource.User{}
-	req := infer.UpdateRequest[userResource.Inputs, userResource.Outputs]{
-		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "userid"}},
-		Inputs: userResource.Inputs{Name: "userid"},
+// Test does not set global environment variable, therefore can be parallelized!
+func TestUserReadIDNotFound(t *testing.T) {
+	user := &userResource.User{}
+	request := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
+		ID:     "",
+		Inputs: userResource.Inputs{Name: "testuser"},
+		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "testuser"}},
 	}
-	_, err := u.Update(context.Background(), req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to update user")
+	response, err := user.Read(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, response.ID, "")
 }
 
-//nolint:paralleltest // seam override
-func TestUserDeleteClientAcquisitionFailure(t *testing.T) {
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserReadClientError(t *testing.T) {
 	original := client.GetProxmoxClientFn
 	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("acquire fail") }
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
 
-	u := &userResource.User{}
-	req := infer.DeleteRequest[userResource.Outputs]{
-		State: userResource.Outputs{Inputs: userResource.Inputs{Name: "deluser"}},
+	user := &userResource.User{}
+	request := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
+		ID:     "testuser",
+		Inputs: userResource.Inputs{Name: "testuser"},
+		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "testuser"}},
 	}
-	_, err := u.Delete(context.Background(), req)
+	_, err := user.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "acquire fail")
+	assert.Contains(t, err.Error(), "client error")
 }
 
-//nolint:paralleltest // env
-func TestUserDeleteFailure(t *testing.T) {
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserReadNotFound(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
+
 	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/deluser")).
-			Reply(reply.OK().BodyString(`{"data":{
-			"userid":"deluser",
-			"comment":"c",
-			"enable":1,
-			"expire":0,
-			"firstname":"A",
-			"lastname":"B",
-			"email":"e",
-			"groups":[],
-			"keys":""}}`)),
-		mocha.Delete(expect.URLPath("/access/users/deluser")).Reply(reply.InternalServerError()),
+		mocha.Get(expect.URLPath("/access/users/testuser")).
+			Reply(reply.BadRequest().BodyString(`{
+			"data":null,
+			"message":"user 'testuser' does not exist\n"
+		}`)),
+	).Enable()
+	// env + client configured
+
+	user := &userResource.User{}
+	request := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
+		ID: "testuser",
+	}
+	response, err := user.Read(context.Background(), request)
+	require.NoError(t, err)
+	assert.Empty(t, response.ID)
+	assert.Empty(t, response.State)
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserReadGetResourceError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/users/testuser")).
+			Reply(reply.InternalServerError()),
+	).Enable()
+	// env + client configured
+
+	user := &userResource.User{}
+	request := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
+		ID:     "testuser",
+		Inputs: userResource.Inputs{Name: "testuser"},
+		State:  userResource.Outputs{Inputs: userResource.Inputs{Name: "testuser"}},
+	}
+	_, err := user.Read(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get user")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserUpdateClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	user := &userResource.User{}
+	request := infer.UpdateRequest[userResource.Inputs, userResource.Outputs]{
+		Inputs: userResource.Inputs{
+			Name:    "testuser",
+			Comment: "comment",
+		},
+		State: userResource.Outputs{
+			Inputs: userResource.Inputs{
+				Name:    "testuser",
+				Comment: "comment",
+			},
+		},
+	}
+	_, err := user.Update(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestUserUpdateUpdateError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Put(expect.URLPath("/access/users/testuser")).Reply(reply.InternalServerError()),
 	).Enable()
 
-	u := &userResource.User{}
-	req := infer.DeleteRequest[userResource.Outputs]{
-		State: userResource.Outputs{Inputs: userResource.Inputs{Name: "deluser"}},
+	// env + client configured
+
+	user := &userResource.User{}
+	request := infer.UpdateRequest[userResource.Inputs, userResource.Outputs]{
+		Inputs: userResource.Inputs{
+			Name:    "testuser",
+			Comment: "comment",
+		},
+		State: userResource.Outputs{
+			Inputs: userResource.Inputs{
+				Name:    "testuser",
+				Comment: "comment",
+			},
+		},
 	}
-	_, err := u.Delete(context.Background(), req)
+	_, err := user.Update(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete user")
+	assert.Contains(t, err.Error(), "failed to update user")
 }
