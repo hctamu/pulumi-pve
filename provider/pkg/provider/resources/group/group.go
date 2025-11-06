@@ -91,8 +91,7 @@ func (group *Group) Create(
 
 	// fetch created resource to confirm
 	if _, err = pxc.Group(ctx, request.Inputs.Name); err != nil {
-		err = fmt.Errorf("failed to fetch group %s: %v", request.Inputs.Name, err)
-		return response, err
+		return response, fmt.Errorf("failed to fetch group %s: %v", request.Inputs.Name, err)
 	}
 
 	l.Debugf("Successfully created group %s", response.ID)
