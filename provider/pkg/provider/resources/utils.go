@@ -95,7 +95,7 @@ func MapToStringSlice(m map[string]api.IntOrBool) []string {
 
 // IsNotFound checks if the error indicates that the resource was not found.
 func IsNotFound(err error) bool {
-	return strings.Contains(err.Error(), "not found")
+	return strings.Contains(err.Error(), "does not exist")
 }
 
 // DeletedResource is used to delete a resource with DeleteResource function

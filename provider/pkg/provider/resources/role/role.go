@@ -94,7 +94,7 @@ func (role *Role) Create(
 
 	// fetch created resource to confirm
 	if _, err = pxc.Role(ctx, request.Inputs.Name); err != nil {
-		return response, fmt.Errorf("failed to fetch created role %s: %w", request.Inputs.Name, err)
+		return response, fmt.Errorf("failed to fetch role %s: %w", request.Inputs.Name, err)
 	}
 
 	l.Debugf("Successfully created role %s", request.Inputs.Name)
