@@ -191,10 +191,6 @@ func TestGroupCreateFetchError(t *testing.T) {
 		mocha.Get(expect.URLPath("/access/groups/testgroup")).Reply(reply.InternalServerError()),
 	).Enable()
 
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).Reply(reply.InternalServerError()),
-	).Enable()
-
 	// env + client configured by helper
 
 	group := &groupResource.Group{}
