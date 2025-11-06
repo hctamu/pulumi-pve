@@ -17,8 +17,7 @@ package role_test
 
 import (
 	"context"
-	"net/http"
-	"strings" // Still needed for mock server body
+	"errors" // Still needed for mock server body
 	"testing"
 
 	"github.com/blang/semver"
@@ -31,7 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
 	"github.com/vitorsalgado/mocha/v3/expect"
-	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
@@ -62,37 +60,30 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
-	// List roles endpoint used by GetRole via pxc.Roles(ctx).
-	listCall := 0
-	listRoles := mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			Repeat(4).
-			ReplyFunction(func(request *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				listCall++
-				apiPrivs := "VM.PowerMgmt" // Initial privileges as returned by API (comma-separated string)
-				if listCall >= 2 {         // After update, we expect two privileges
-					apiPrivs = "VM.PowerMgmt,Datastore.Allocate" // API returns comma-separated string
-				}
-				body := strings.NewReader(`{"data":[{"roleid":
-				"testrole","privs":"` + apiPrivs + `","special":0}]}`)
-				return &reply.Response{Status: http.StatusOK, Body: body}, nil
-			}),
+	// fetch created resource to confirm
+	getRole := mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles/testrole")).
+			Reply(reply.OK().BodyString(`{
+				"data": {"VM.PowerMgmt":1}
+			}`)),
 	)
 
+	// perform create
 	createRole := mockServer.AddMocks(
 		mocha.Post(expect.URLPath("/access/roles")).
-			// The API will receive a comma-separated string from our provider
-			// and return it in the response.
 			Reply(reply.Created().BodyString(`{
-				"data": {"roleid": "testrole", "name": "testrole",
-				"privs": "VM.PowerMgmt", "special": 0}}
-			`)).PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{listRoles}}),
+				"data": {
+				"roleid": "testrole",
+				"privs": "VM.PowerMgmt"}	
+			}`)).PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{getRole}}),
 	)
 
+	// perform delete
 	deleteRole := mockServer.AddMocks(
 		mocha.Delete(expect.URLPath("/access/roles/testrole")).Reply(
 			reply.OK()))
 
+	// perform update
 	updateRole := mockServer.AddMocks(
 		mocha.Put(expect.URLPath("/access/roles/testrole")).
 			// The API will receive "VM.PowerMgmt,Datastore.Allocate" from our provider
@@ -103,9 +94,9 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 	    `)))
 
 	// Enable initial state
+	getRole.Enable()
 	createRole.Enable()
 	deleteRole.Enable()
-	listRoles.Enable()
 	updateRole.Enable()
 
 	// env + client configured by helper
@@ -119,11 +110,11 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	outputMap := property.NewMap(map[string]property.Value{
+	updatedResource := property.NewMap(map[string]property.Value{
 		"name": property.New("testrole"),
 		"privileges": property.New(property.NewArray([]property.Value{
-			property.New("Datastore.Allocate"), // Sorted alphabetically
-			property.New("VM.PowerMgmt"),       // Sorted alphabetically
+			property.New("Datastore.Allocate"),
+			property.New("VM.PowerMgmt"),
 		})),
 	})
 
@@ -134,15 +125,12 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 			Inputs: property.NewMap(map[string]property.Value{
 				"name": property.New("testrole"),
 				"privileges": property.New(property.NewArray([]property.Value{
-					property.New("VM.PowerMgmt"), // Input order doesn't strictly matter, provider sorts for API
+					property.New("VM.PowerMgmt"),
 				})),
 			}),
 			Hook: func(inputs, output property.Map) {
 				assert.Equal(t, "testrole", output.Get("name").AsString())
-
-				// Using AsArray().AsSlice() as a workaround if AsArray() alone is still problematic
 				outputPrivileges := output.Get("privileges").AsArray().AsSlice()
-
 				require.Len(t, outputPrivileges, 1)
 				assert.Equal(t, "VM.PowerMgmt", outputPrivileges[0].AsString())
 			},
@@ -156,23 +144,131 @@ func TestRoleHealthyLifeCycle(t *testing.T) {
 						property.New("VM.PowerMgmt"),
 					})),
 				}),
-				ExpectedOutput: &outputMap,
+				ExpectedOutput: &updatedResource,
 			},
 		},
 	}.Run(t, server)
 }
 
-//nolint:paralleltest // shares env mutation
-func TestRoleReadSuccessWithSeam(t *testing.T) {
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleCreateClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	role := &roleResource.Role{}
+	request := infer.CreateRequest[roleResource.Inputs]{
+		Name: "testrole",
+		Inputs: roleResource.Inputs{
+			Name:       "testrole",
+			Privileges: []string{"VM.PowerMgmt"},
+		},
+	}
+	_, err := role.Create(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleCreateCreationError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Post(expect.URLPath("/access/roles")).Reply(reply.InternalServerError()),
+	).Enable()
+
+	// env + client configured
+
+	role := &roleResource.Role{}
+	request := infer.CreateRequest[roleResource.Inputs]{
+		Name: "testrole",
+		Inputs: roleResource.Inputs{
+			Name:       "testrole",
+			Privileges: []string{"VM.PowerMgmt"},
+		},
+	}
+	_, err := role.Create(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create role")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleCreateFetchError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Post(expect.URLPath("/access/roles")).
+			Reply(reply.Created().BodyString(`{
+			"data": {
+				"roleid": "testrole",
+				"privs": "VM.PowerMgmt"}	
+		}`)),
+		mocha.Get(expect.URLPath("/access/roles/testrole")).
+			Reply(reply.InternalServerError()),
+	).Enable()
+
+	// env + client configured
+
+	role := &roleResource.Role{}
+	request := infer.CreateRequest[roleResource.Inputs]{
+		Name: "testrole",
+		Inputs: roleResource.Inputs{
+			Name:       "testrole",
+			Privileges: []string{"VM.PowerMgmt"},
+		},
+	}
+	_, err := role.Create(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch role")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleDeleteClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	role := &roleResource.Role{}
+	request := infer.DeleteRequest[roleResource.Outputs]{
+		ID: "testrole",
+	}
+	_, err := role.Delete(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleDeleteDeletionError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Delete(expect.URLPath("/access/roles/testrole")).Reply(reply.InternalServerError()),
+	).Enable()
+
+	// env + client configured
+
+	role := &roleResource.Role{}
+	request := infer.DeleteRequest[roleResource.Outputs]{
+		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "testrole"}},
+	}
+	_, err := role.Delete(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete role")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleReadSuccess(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
 	// List endpoint returns our target role with privileges unsorted to test normalization
 	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).Reply(reply.OK().BodyString(`{
-			"data": [
-				{"roleid":"readrole","privs":"VM.PowerMgmt,Datastore.Allocate","special":0}
-			]
+		mocha.Get(expect.URLPath("/access/roles/testrole")).Reply(reply.OK().BodyString(`{
+			"data":{
+				"Datastore.Allocate":1,"VM.PowerMgmt":1}
 		}`)),
 	).Enable()
 
@@ -180,142 +276,143 @@ func TestRoleReadSuccessWithSeam(t *testing.T) {
 
 	role := &roleResource.Role{}
 	req := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
-		ID:     "readrole",
-		Inputs: roleResource.Inputs{Name: "readrole"},
-		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "readrole", Privileges: []string{"VM.PowerMgmt"}}},
+		ID:     "testrole",
+		Inputs: roleResource.Inputs{Name: "testrole"},
+		State: roleResource.Outputs{
+			Inputs: roleResource.Inputs{Name: "testrole", Privileges: []string{"Datastore.Allocate"}},
+		},
 	}
-
 	resp, err := role.Read(context.Background(), req)
 	require.NoError(t, err)
-	assert.Equal(t, "readrole", resp.State.Name)
-	// Privileges should be sorted alphabetically by implementation
+	assert.Equal(t, "testrole", resp.Inputs.Name)
 	assert.Equal(t, []string{"Datastore.Allocate", "VM.PowerMgmt"}, resp.State.Privileges)
 }
 
-//nolint:paralleltest // shares env mutation
-func TestRoleReadMissingIDWithSeam(t *testing.T) {
-	// Override seam to avoid provider config dependency
+// Test does not set global environment variable, therefore can be parallelized!
+func TestRoleReadIDNotFound(t *testing.T) {
+	role := &roleResource.Role{}
+	request := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID:     "",
+		Inputs: roleResource.Inputs{Name: "testrole"},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "testrole"}},
+	}
+	response, err := role.Read(context.Background(), request)
+	require.NoError(t, err)
+	assert.Equal(t, response.ID, "")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleReadClientError(t *testing.T) {
 	original := client.GetProxmoxClientFn
 	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return &px.Client{}, nil }
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
 
 	role := &roleResource.Role{}
-	req := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
-		ID:    "", // triggers missing ID branch
-		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "anything"}},
+	request := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID:     "testrole",
+		Inputs: roleResource.Inputs{Name: "testrole"},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "testrole"}},
 	}
-	_, err := role.Read(context.Background(), req)
+	_, err := role.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "missing role ID")
+	assert.Contains(t, err.Error(), "client error")
 }
 
-//nolint:paralleltest // shares env mutation
-func TestRoleReadNotFoundMarksDeleted(t *testing.T) {
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleReadNotFound(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
 
-	// List endpoint returns a different role so target is not found
 	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data": [{"roleid":"other",
-			"privs":"VM.PowerMgmt","special":0}]}`)),
+		mocha.Get(expect.URLPath("/access/roles/testrole")).
+			Reply(reply.BadRequest().BodyString(`{
+			"data":null,
+			"message":"role 'testrole' does not exist\n"
+		}`)),
+	).Enable()
+	// env + client configured
+
+	role := &roleResource.Role{}
+	request := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID: "testrole",
+	}
+	response, err := role.Read(context.Background(), request)
+	require.NoError(t, err)
+	assert.Empty(t, response.ID)
+	assert.Empty(t, response.State)
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleReadGetResourceError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Get(expect.URLPath("/access/roles/testrole")).
+			Reply(reply.InternalServerError()),
+	).Enable()
+	// env + client configured
+
+	role := &roleResource.Role{}
+	request := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
+		ID:     "testrole",
+		Inputs: roleResource.Inputs{Name: "testrole"},
+		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "testrole"}},
+	}
+	_, err := role.Read(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get role")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleUpdateClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	role := &roleResource.Role{}
+	request := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{
+			Name:       "testrole",
+			Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"},
+		},
+		State: roleResource.Outputs{
+			Inputs: roleResource.Inputs{
+				Name:       "testrole",
+				Privileges: []string{"VM.PowerMgmt"},
+			},
+		},
+	}
+	_, err := role.Update(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestRoleUpdateUpdateError(t *testing.T) {
+	mockServer, cleanup := utils.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Put(expect.URLPath("/access/roles/testrole")).Reply(reply.InternalServerError()),
 	).Enable()
 
 	// env + client configured
 
 	role := &roleResource.Role{}
-	req := infer.ReadRequest[roleResource.Inputs, roleResource.Outputs]{
-		ID:     "missingrole",
-		Inputs: roleResource.Inputs{Name: "missingrole"},
-		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "missingrole"}},
+	request := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
+		Inputs: roleResource.Inputs{
+			Name:       "testrole",
+			Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"},
+		},
+		State: roleResource.Outputs{
+			Inputs: roleResource.Inputs{
+				Name:       "testrole",
+				Privileges: []string{"VM.PowerMgmt"},
+			},
+		},
 	}
-	resp, err := role.Read(context.Background(), req)
-	require.NoError(t, err)
-	// When not found we expect empty response (ID unset) signalling deletion
-	assert.Empty(t, resp.ID)
-	assert.Equal(t, roleResource.Outputs{}, resp.State)
-}
-
-//nolint:paralleltest // env and global seam mutations
-func TestRoleUpdateChangeFailure(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"normal",
-			"privs":"VM.PowerMgmt","special":0}]}`)),
-		// Simulate backend failure on update
-		mocha.Put(expect.URLPath("/access/roles/normal")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
-			}),
-	).Enable()
-
-	// env + client configured
-
-	r := &roleResource.Role{}
-	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
-		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"Datastore.Allocate", "VM.PowerMgmt"}},
-		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}}},
-	}
-	_, err := r.Update(context.Background(), req)
+	_, err := role.Update(context.Background(), request)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update role")
-}
-
-//nolint:paralleltest // env and global seam mutations
-func TestRoleUpdateClientAcquisitionFailure(t *testing.T) {
-	// Override seam to return error
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, assert.AnError }
-
-	r := &roleResource.Role{}
-	req := infer.UpdateRequest[roleResource.Inputs, roleResource.Outputs]{
-		Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}},
-		State:  roleResource.Outputs{Inputs: roleResource.Inputs{Name: "normal", Privileges: []string{"VM.PowerMgmt"}}},
-	}
-	_, err := r.Update(context.Background(), req)
-	require.Error(t, err)
-}
-
-// //nolint:paralleltest // env and seam mutation
-func TestRoleDeleteClientAcquisitionFailure(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, assert.AnError }
-
-	r := &roleResource.Role{}
-	req := infer.DeleteRequest[roleResource.Outputs]{
-		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "deleterole"}},
-	}
-	_, err := r.Delete(context.Background(), req)
-	require.Error(t, err)
-}
-
-//nolint:paralleltest // env and seam mutation
-func TestRoleDeleteFailure(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/roles")).
-			Reply(reply.OK().BodyString(`{"data":[{"roleid":"deleterole",
-			"privs":"VM.PowerMgmt","special":0}]}`)),
-		mocha.Delete(expect.URLPath("/access/roles/deleterole")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusInternalServerError, Body: strings.NewReader(`{"data":null}`)}, nil
-			}),
-	).Enable()
-
-	// env + client configured
-
-	r := &roleResource.Role{}
-	req := infer.DeleteRequest[roleResource.Outputs]{
-		State: roleResource.Outputs{Inputs: roleResource.Inputs{Name: "deleterole"}},
-	}
-	_, err := r.Delete(context.Background(), req)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete role")
 }
