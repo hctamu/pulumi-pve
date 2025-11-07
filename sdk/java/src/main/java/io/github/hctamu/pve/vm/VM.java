@@ -10,6 +10,7 @@ import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.vm.VMArgs;
 import io.github.hctamu.pve.vm.outputs.Clone;
+import io.github.hctamu.pve.vm.outputs.Cpu;
 import io.github.hctamu.pve.vm.outputs.Disk;
 import java.lang.Integer;
 import java.lang.String;
@@ -109,10 +110,10 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<Integer>> cores() {
         return Codegen.optional(this.cores);
     }
-    @Export(name="cpu", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> cpu;
+    @Export(name="cpu", refs={Cpu.class}, tree="[0]")
+    private Output</* @Nullable */ Cpu> cpu;
 
-    public Output<Optional<String>> cpu() {
+    public Output<Optional<Cpu>> cpu() {
         return Codegen.optional(this.cpu);
     }
     @Export(name="cpulimit", refs={String.class}, tree="[0]")

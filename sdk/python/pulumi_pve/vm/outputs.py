@@ -16,6 +16,7 @@ from .. import _utilities
 
 __all__ = [
     'Clone',
+    'Cpu',
     'Disk',
 ]
 
@@ -82,6 +83,82 @@ class Clone(dict):
     @pulumi.getter
     def timeout(self) -> Optional[_builtins.int]:
         return pulumi.get(self, "timeout")
+
+
+@pulumi.output_type
+class Cpu(dict):
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "flagsDisabled":
+            suggest = "flags_disabled"
+        elif key == "flagsEnabled":
+            suggest = "flags_enabled"
+        elif key == "hvVendorId":
+            suggest = "hv_vendor_id"
+        elif key == "physBits":
+            suggest = "phys_bits"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in Cpu. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        Cpu.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        Cpu.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 flags_disabled: Optional[Sequence[_builtins.str]] = None,
+                 flags_enabled: Optional[Sequence[_builtins.str]] = None,
+                 hidden: Optional[_builtins.bool] = None,
+                 hv_vendor_id: Optional[_builtins.str] = None,
+                 phys_bits: Optional[_builtins.str] = None,
+                 type: Optional[_builtins.str] = None):
+        if flags_disabled is not None:
+            pulumi.set(__self__, "flags_disabled", flags_disabled)
+        if flags_enabled is not None:
+            pulumi.set(__self__, "flags_enabled", flags_enabled)
+        if hidden is not None:
+            pulumi.set(__self__, "hidden", hidden)
+        if hv_vendor_id is not None:
+            pulumi.set(__self__, "hv_vendor_id", hv_vendor_id)
+        if phys_bits is not None:
+            pulumi.set(__self__, "phys_bits", phys_bits)
+        if type is not None:
+            pulumi.set(__self__, "type", type)
+
+    @_builtins.property
+    @pulumi.getter(name="flagsDisabled")
+    def flags_disabled(self) -> Optional[Sequence[_builtins.str]]:
+        return pulumi.get(self, "flags_disabled")
+
+    @_builtins.property
+    @pulumi.getter(name="flagsEnabled")
+    def flags_enabled(self) -> Optional[Sequence[_builtins.str]]:
+        return pulumi.get(self, "flags_enabled")
+
+    @_builtins.property
+    @pulumi.getter
+    def hidden(self) -> Optional[_builtins.bool]:
+        return pulumi.get(self, "hidden")
+
+    @_builtins.property
+    @pulumi.getter(name="hvVendorId")
+    def hv_vendor_id(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "hv_vendor_id")
+
+    @_builtins.property
+    @pulumi.getter(name="physBits")
+    def phys_bits(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "phys_bits")
+
+    @_builtins.property
+    @pulumi.getter
+    def type(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "type")
 
 
 @pulumi.output_type

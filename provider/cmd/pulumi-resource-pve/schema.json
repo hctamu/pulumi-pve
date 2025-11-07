@@ -108,6 +108,35 @@
         "vmId"
       ]
     },
+    "pve:vm:Cpu": {
+      "properties": {
+        "flagsDisabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "flagsEnabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "hvVendorId": {
+          "type": "string"
+        },
+        "physBits": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "pve:vm:Disk": {
       "properties": {
         "filename": {
@@ -494,7 +523,7 @@
           "default": 1
         },
         "cpu": {
-          "type": "string"
+          "$ref": "#/types/pve:vm:Cpu"
         },
         "cpulimit": {
           "type": "string"
@@ -670,7 +699,7 @@
           "default": 1
         },
         "cpu": {
-          "type": "string"
+          "$ref": "#/types/pve:vm:Cpu"
         },
         "cpulimit": {
           "type": "string"

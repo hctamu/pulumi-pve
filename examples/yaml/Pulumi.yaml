@@ -19,10 +19,18 @@ resources:
   myVM:
     type: pve:vm:VM
     properties:
-      name: "testVM"
+      name: "aTestVM"
       description: "test VM"
-      cpu: "EPYC-v3"
-      memory: 32768
+      cpu:
+        type: EPYC-v3
+        flagsEnabled:
+          - virt-ssbd
+        flagsDisabled:
+          - spec-ctrl
+        hidden: true
+        hvVendorId: AuthenticAMD
+        physBits: "48"
+      memory: 27875
       disks:
         - storage: "ceph-ha"
           size: 20

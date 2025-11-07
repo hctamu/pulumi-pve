@@ -38,7 +38,7 @@ class VMArgs:
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input['CloneArgs']] = None,
                  cores: Optional[pulumi.Input[_builtins.int]] = None,
-                 cpu: Optional[pulumi.Input[_builtins.str]] = None,
+                 cpu: Optional[pulumi.Input['CpuArgs']] = None,
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
@@ -345,11 +345,11 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def cpu(self) -> Optional[pulumi.Input[_builtins.str]]:
+    def cpu(self) -> Optional[pulumi.Input['CpuArgs']]:
         return pulumi.get(self, "cpu")
 
     @cpu.setter
-    def cpu(self, value: Optional[pulumi.Input[_builtins.str]]):
+    def cpu(self, value: Optional[pulumi.Input['CpuArgs']]):
         pulumi.set(self, "cpu", value)
 
     @_builtins.property
@@ -707,7 +707,7 @@ class VM(pulumi.CustomResource):
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
                  cores: Optional[pulumi.Input[_builtins.int]] = None,
-                 cpu: Optional[pulumi.Input[_builtins.str]] = None,
+                 cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
@@ -791,7 +791,7 @@ class VM(pulumi.CustomResource):
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
                  cores: Optional[pulumi.Input[_builtins.int]] = None,
-                 cpu: Optional[pulumi.Input[_builtins.str]] = None,
+                 cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
@@ -1057,7 +1057,7 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def cpu(self) -> pulumi.Output[Optional[_builtins.str]]:
+    def cpu(self) -> pulumi.Output[Optional['outputs.Cpu']]:
         return pulumi.get(self, "cpu")
 
     @_builtins.property

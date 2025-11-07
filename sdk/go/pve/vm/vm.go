@@ -30,7 +30,7 @@ type VM struct {
 	Ciuser       pulumi.StringPtrOutput `pulumi:"ciuser"`
 	Clone        ClonePtrOutput         `pulumi:"clone"`
 	Cores        pulumi.IntPtrOutput    `pulumi:"cores"`
-	Cpu          pulumi.StringPtrOutput `pulumi:"cpu"`
+	Cpu          CpuPtrOutput           `pulumi:"cpu"`
 	Cpulimit     pulumi.StringPtrOutput `pulumi:"cpulimit"`
 	Cpuunits     pulumi.IntPtrOutput    `pulumi:"cpuunits"`
 	Description  pulumi.StringPtrOutput `pulumi:"description"`
@@ -136,7 +136,7 @@ type vmArgs struct {
 	Ciuser       *string `pulumi:"ciuser"`
 	Clone        *Clone  `pulumi:"clone"`
 	Cores        *int    `pulumi:"cores"`
-	Cpu          *string `pulumi:"cpu"`
+	Cpu          *Cpu    `pulumi:"cpu"`
 	Cpulimit     *string `pulumi:"cpulimit"`
 	Cpuunits     *int    `pulumi:"cpuunits"`
 	Description  *string `pulumi:"description"`
@@ -195,7 +195,7 @@ type VMArgs struct {
 	Ciuser       pulumi.StringPtrInput
 	Clone        ClonePtrInput
 	Cores        pulumi.IntPtrInput
-	Cpu          pulumi.StringPtrInput
+	Cpu          CpuPtrInput
 	Cpulimit     pulumi.StringPtrInput
 	Cpuunits     pulumi.IntPtrInput
 	Description  pulumi.StringPtrInput
@@ -384,8 +384,8 @@ func (o VMOutput) Cores() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Cores }).(pulumi.IntPtrOutput)
 }
 
-func (o VMOutput) Cpu() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Cpu }).(pulumi.StringPtrOutput)
+func (o VMOutput) Cpu() CpuPtrOutput {
+	return o.ApplyT(func(v *VM) CpuPtrOutput { return v.Cpu }).(CpuPtrOutput)
 }
 
 func (o VMOutput) Cpulimit() pulumi.StringPtrOutput {

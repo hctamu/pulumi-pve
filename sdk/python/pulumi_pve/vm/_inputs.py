@@ -17,6 +17,8 @@ from .. import _utilities
 __all__ = [
     'CloneArgs',
     'CloneArgsDict',
+    'CpuArgs',
+    'CpuArgsDict',
     'DiskArgs',
     'DiskArgsDict',
 ]
@@ -95,6 +97,94 @@ class CloneArgs:
     @timeout.setter
     def timeout(self, value: Optional[pulumi.Input[_builtins.int]]):
         pulumi.set(self, "timeout", value)
+
+
+if not MYPY:
+    class CpuArgsDict(TypedDict):
+        flags_disabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
+        flags_enabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
+        hidden: NotRequired[pulumi.Input[_builtins.bool]]
+        hv_vendor_id: NotRequired[pulumi.Input[_builtins.str]]
+        phys_bits: NotRequired[pulumi.Input[_builtins.str]]
+        type: NotRequired[pulumi.Input[_builtins.str]]
+elif False:
+    CpuArgsDict: TypeAlias = Mapping[str, Any]
+
+@pulumi.input_type
+class CpuArgs:
+    def __init__(__self__, *,
+                 flags_disabled: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 flags_enabled: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 hidden: Optional[pulumi.Input[_builtins.bool]] = None,
+                 hv_vendor_id: Optional[pulumi.Input[_builtins.str]] = None,
+                 phys_bits: Optional[pulumi.Input[_builtins.str]] = None,
+                 type: Optional[pulumi.Input[_builtins.str]] = None):
+        if flags_disabled is not None:
+            pulumi.set(__self__, "flags_disabled", flags_disabled)
+        if flags_enabled is not None:
+            pulumi.set(__self__, "flags_enabled", flags_enabled)
+        if hidden is not None:
+            pulumi.set(__self__, "hidden", hidden)
+        if hv_vendor_id is not None:
+            pulumi.set(__self__, "hv_vendor_id", hv_vendor_id)
+        if phys_bits is not None:
+            pulumi.set(__self__, "phys_bits", phys_bits)
+        if type is not None:
+            pulumi.set(__self__, "type", type)
+
+    @_builtins.property
+    @pulumi.getter(name="flagsDisabled")
+    def flags_disabled(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        return pulumi.get(self, "flags_disabled")
+
+    @flags_disabled.setter
+    def flags_disabled(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]):
+        pulumi.set(self, "flags_disabled", value)
+
+    @_builtins.property
+    @pulumi.getter(name="flagsEnabled")
+    def flags_enabled(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        return pulumi.get(self, "flags_enabled")
+
+    @flags_enabled.setter
+    def flags_enabled(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]):
+        pulumi.set(self, "flags_enabled", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def hidden(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        return pulumi.get(self, "hidden")
+
+    @hidden.setter
+    def hidden(self, value: Optional[pulumi.Input[_builtins.bool]]):
+        pulumi.set(self, "hidden", value)
+
+    @_builtins.property
+    @pulumi.getter(name="hvVendorId")
+    def hv_vendor_id(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "hv_vendor_id")
+
+    @hv_vendor_id.setter
+    def hv_vendor_id(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "hv_vendor_id", value)
+
+    @_builtins.property
+    @pulumi.getter(name="physBits")
+    def phys_bits(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "phys_bits")
+
+    @phys_bits.setter
+    def phys_bits(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "phys_bits", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def type(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "type")
+
+    @type.setter
+    def type(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "type", value)
 
 
 if not MYPY:

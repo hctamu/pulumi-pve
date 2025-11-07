@@ -28,6 +28,15 @@ export namespace vm {
         vmId: number;
     }
 
+    export interface Cpu {
+        flagsDisabled?: string[];
+        flagsEnabled?: string[];
+        hidden?: boolean;
+        hvVendorId?: string;
+        physBits?: string;
+        type?: string;
+    }
+
     export interface Disk {
         filename?: string;
         interface: string;

@@ -349,7 +349,10 @@ func (vm *VM) Update(
 		return response, err
 	}
 	l.Debugf("VM: %v", virtualMachine)
-	options := request.Inputs.BuildOptionsDiff(*vmID, &response.Output.Inputs)
+	options := request.Inputs.BuildOptionsDiff(*vmID, &request.State.Inputs)
+	for _, opt := range options {
+		l.Debugf("Update option: %s=%v", opt.Name, opt.Value)
+	}
 
 	var task *api.Task
 	if task, err = virtualMachine.Config(ctx, options...); err != nil {
@@ -438,12 +441,15 @@ func (vm *VM) Diff(
 				continue
 			}
 
-			// Clearing property (state had value, user sets nil) -> update (unless computed above)
-			if !inNil && stateNil {
-				diff[name] = p.PropertyDiff{Kind: p.Update}
+			// For optional fields, if user didn't specify (input nil) but state has value, skip diff
+			// Only trigger update if user explicitly wants to clear (would need explicit empty value)
+			if inNil && !stateNil {
+				// Skip - user didn't specify this field, so don't clear existing value
 				continue
 			}
-			if inNil && !stateNil {
+
+			// User specified a value but state is nil -> addition
+			if !inNil && stateNil {
 				diff[name] = p.PropertyDiff{Kind: p.Update}
 				continue
 			}

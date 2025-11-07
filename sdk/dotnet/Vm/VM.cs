@@ -59,7 +59,7 @@ namespace Hctamu.Pve.Vm
         public Output<int?> Cores { get; private set; } = null!;
 
         [Output("cpu")]
-        public Output<string?> Cpu { get; private set; } = null!;
+        public Output<Outputs.Cpu?> Cpu { get; private set; } = null!;
 
         [Output("cpulimit")]
         public Output<string?> Cpulimit { get; private set; } = null!;
@@ -269,7 +269,7 @@ namespace Hctamu.Pve.Vm
         public Input<int>? Cores { get; set; }
 
         [Input("cpu")]
-        public Input<string>? Cpu { get; set; }
+        public Input<Inputs.CpuArgs>? Cpu { get; set; }
 
         [Input("cpulimit")]
         public Input<string>? Cpulimit { get; set; }

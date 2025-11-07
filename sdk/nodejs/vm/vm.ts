@@ -48,7 +48,7 @@ export class VM extends pulumi.CustomResource {
     declare public readonly ciuser: pulumi.Output<string | undefined>;
     declare public readonly clone: pulumi.Output<outputs.vm.Clone | undefined>;
     declare public readonly cores: pulumi.Output<number | undefined>;
-    declare public readonly cpu: pulumi.Output<string | undefined>;
+    declare public readonly cpu: pulumi.Output<outputs.vm.Cpu | undefined>;
     declare public readonly cpulimit: pulumi.Output<string | undefined>;
     declare public readonly cpuunits: pulumi.Output<number | undefined>;
     declare public readonly description: pulumi.Output<string | undefined>;
@@ -242,7 +242,7 @@ export interface VMArgs {
     ciuser?: pulumi.Input<string>;
     clone?: pulumi.Input<inputs.vm.CloneArgs>;
     cores?: pulumi.Input<number>;
-    cpu?: pulumi.Input<string>;
+    cpu?: pulumi.Input<inputs.vm.CpuArgs>;
     cpulimit?: pulumi.Input<string>;
     cpuunits?: pulumi.Input<number>;
     description?: pulumi.Input<string>;

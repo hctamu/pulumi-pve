@@ -35,6 +35,128 @@ type Disk struct {
 	FileID    string `pulumi:"filename,optional"`
 }
 
+// Cpu represents the structured CPU configuration.
+type Cpu struct {
+	Type          string   `pulumi:"type,optional"`
+	FlagsEnabled  []string `pulumi:"flagsEnabled,optional"`
+	FlagsDisabled []string `pulumi:"flagsDisabled,optional"`
+	Hidden        *bool    `pulumi:"hidden,optional"`
+	HVVendorID    *string  `pulumi:"hvVendorId,optional"`
+	PhysBits      *string  `pulumi:"physBits,optional"`
+}
+
+// ToProxmoxString converts the Cpu config to Proxmox format.
+func (c *Cpu) ToProxmoxString() string {
+	if c == nil {
+		return ""
+	}
+	parts := make([]string, 0, 6)
+	if c.Type != "" {
+		parts = append(parts, c.Type)
+	}
+	if len(c.FlagsEnabled) > 0 || len(c.FlagsDisabled) > 0 {
+		flags := make([]string, 0, len(c.FlagsEnabled)+len(c.FlagsDisabled))
+		for _, f := range c.FlagsEnabled {
+			if f == "" {
+				continue
+			}
+			flags = append(flags, "+"+f)
+		}
+		for _, f := range c.FlagsDisabled {
+			if f == "" {
+				continue
+			}
+			flags = append(flags, "-"+f)
+		}
+		if len(flags) > 0 {
+			parts = append(parts, "flags="+strings.Join(flags, ";"))
+		}
+	}
+	if c.Hidden != nil {
+		if *c.Hidden {
+			parts = append(parts, "hidden=1")
+		} else {
+			parts = append(parts, "hidden=0")
+		}
+	}
+	if c.HVVendorID != nil {
+		parts = append(parts, "hv-vendor-id="+*c.HVVendorID)
+	}
+	if c.PhysBits != nil {
+		parts = append(parts, "phys-bits="+*c.PhysBits)
+	}
+	return strings.Join(parts, ",")
+}
+
+// ParseCpu parses a Proxmox CPU config string into Cpu.
+func ParseCpu(value string) (*Cpu, error) {
+	if value == "" {
+		return nil, nil
+	}
+	cfg := &Cpu{}
+	segments := strings.Split(value, ",")
+	for i, seg := range segments {
+		if seg == "" {
+			continue
+		}
+		kv := strings.SplitN(seg, "=", 2)
+		if len(kv) != 2 {
+			// First segment without '=' is the CPU type
+			if i == 0 {
+				cfg.Type = seg
+			}
+			continue
+		}
+		key, val := kv[0], kv[1]
+		switch key {
+		case "cputype":
+			cfg.Type = val
+		case "flags":
+			if val != "" {
+				flags := strings.Split(val, ";")
+				for _, f := range flags {
+					if f == "" {
+						continue
+					}
+					switch f[0] {
+					case '+':
+						cfg.FlagsEnabled = append(cfg.FlagsEnabled, f[1:])
+					case '-':
+						cfg.FlagsDisabled = append(cfg.FlagsDisabled, f[1:])
+					default:
+						cfg.FlagsEnabled = append(cfg.FlagsEnabled, f)
+					}
+				}
+			}
+		case "hidden":
+			if val == "1" {
+				b := true
+				cfg.Hidden = &b
+			} else if val == "0" {
+				b := false
+				cfg.Hidden = &b
+			}
+		case "hv-vendor-id":
+			cfg.HVVendorID = &val
+		case "phys-bits":
+			cfg.PhysBits = &val
+			// other keys ignored
+		}
+	}
+	return cfg, nil
+}
+
+// cpuEqual compares two Cpu pointers.
+func cpuEqual(a, b *Cpu) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.ToProxmoxString() == b.ToProxmoxString()
+}
+
 // ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
 func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 	fullDiskPath := fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
@@ -76,7 +198,7 @@ type Inputs struct {
 
 	Sockets  *int    `pulumi:"sockets,optional"`
 	Cores    *int    `pulumi:"cores,optional"`
-	CPU      *string `pulumi:"cpu,optional"`
+	Cpu      *Cpu    `pulumi:"cpu,optional"`
 	CPULimit *string `pulumi:"cpulimit,optional"`
 	CPUUnits *int    `pulumi:"cpuunits,optional"`
 	Vcpus    *int    `pulumi:"vcpus,optional"`
@@ -175,9 +297,18 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		SMBios1:  strOrNil(vmConfig.SMBios1),
 		Acpi:     intOrNil(vmConfig.Acpi),
 
-		Sockets:  intOrNil(vmConfig.Sockets),
-		Cores:    intOrNil(vmConfig.Cores),
-		CPU:      strOrNil(vmConfig.CPU),
+		Sockets: intOrNil(vmConfig.Sockets),
+		Cores:   intOrNil(vmConfig.Cores),
+		Cpu: func() *Cpu {
+			if vmConfig.CPU == "" {
+				return nil
+			}
+			cpuCfg, err := ParseCpu(vmConfig.CPU)
+			if err != nil {
+				return nil
+			}
+			return cpuCfg
+		}(),
 		CPUUnits: intOrNil(vmConfig.CPUUnits),
 		Vcpus:    intOrNil(vmConfig.Vcpus),
 		Affinity: strOrNil(vmConfig.Affinity),
@@ -238,7 +369,18 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("lock", &options, inputs.Lock, currentInputs.Lock)
 	compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
 	compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
-	compareAndAddOption("cpu", &options, inputs.CPU, currentInputs.CPU)
+	if inputs.Cpu != nil || currentInputs.Cpu != nil {
+		if !cpuEqual(inputs.Cpu, currentInputs.Cpu) {
+			var cpuValue string
+			if inputs.Cpu != nil {
+				cpuValue = inputs.Cpu.ToProxmoxString()
+			}
+			// Only add CPU option if we have a valid configuration
+			if cpuValue != "" {
+				options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuValue})
+			}
+		}
+	}
 	compareAndAddOption("cpulimit", &options, inputs.CPULimit, currentInputs.CPULimit)
 	compareAndAddOption("cpuunits", &options, inputs.CPUUnits, currentInputs.CPUUnits)
 	compareAndAddOption("vcpus", &options, inputs.Vcpus, currentInputs.Vcpus)
@@ -281,7 +423,9 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("lock", &options, inputs.Lock)
 	addOption("boot", &options, inputs.Boot)
 	addOption("onboot", &options, inputs.OnBoot)
-	addOption("cpu", &options, inputs.CPU)
+	if inputs.Cpu != nil {
+		options = append(options, api.VirtualMachineOption{Name: "cpu", Value: inputs.Cpu.ToProxmoxString()})
+	}
 	addOption("cpulimit", &options, inputs.CPULimit)
 	addOption("cpuunits", &options, inputs.CPUUnits)
 	addOption("vcpus", &options, inputs.Vcpus)
@@ -411,7 +555,11 @@ func compareAndAddOption[T comparable](
 	newValue, currentValue *T,
 ) {
 	if resources.DifferPtr(newValue, currentValue) {
-		*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
+		// Avoid sending nil values to Proxmox API
+		// We skip clears (newValue == nil)
+		if newValue != nil {
+			*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
+		}
 	}
 }
 

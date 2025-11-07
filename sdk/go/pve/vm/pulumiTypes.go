@@ -206,6 +206,214 @@ func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+type Cpu struct {
+	FlagsDisabled []string `pulumi:"flagsDisabled"`
+	FlagsEnabled  []string `pulumi:"flagsEnabled"`
+	Hidden        *bool    `pulumi:"hidden"`
+	HvVendorId    *string  `pulumi:"hvVendorId"`
+	PhysBits      *string  `pulumi:"physBits"`
+	Type          *string  `pulumi:"type"`
+}
+
+// CpuInput is an input type that accepts CpuArgs and CpuOutput values.
+// You can construct a concrete instance of `CpuInput` via:
+//
+//	CpuArgs{...}
+type CpuInput interface {
+	pulumi.Input
+
+	ToCpuOutput() CpuOutput
+	ToCpuOutputWithContext(context.Context) CpuOutput
+}
+
+type CpuArgs struct {
+	FlagsDisabled pulumi.StringArrayInput `pulumi:"flagsDisabled"`
+	FlagsEnabled  pulumi.StringArrayInput `pulumi:"flagsEnabled"`
+	Hidden        pulumi.BoolPtrInput     `pulumi:"hidden"`
+	HvVendorId    pulumi.StringPtrInput   `pulumi:"hvVendorId"`
+	PhysBits      pulumi.StringPtrInput   `pulumi:"physBits"`
+	Type          pulumi.StringPtrInput   `pulumi:"type"`
+}
+
+func (CpuArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*Cpu)(nil)).Elem()
+}
+
+func (i CpuArgs) ToCpuOutput() CpuOutput {
+	return i.ToCpuOutputWithContext(context.Background())
+}
+
+func (i CpuArgs) ToCpuOutputWithContext(ctx context.Context) CpuOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CpuOutput)
+}
+
+func (i CpuArgs) ToCpuPtrOutput() CpuPtrOutput {
+	return i.ToCpuPtrOutputWithContext(context.Background())
+}
+
+func (i CpuArgs) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CpuOutput).ToCpuPtrOutputWithContext(ctx)
+}
+
+// CpuPtrInput is an input type that accepts CpuArgs, CpuPtr and CpuPtrOutput values.
+// You can construct a concrete instance of `CpuPtrInput` via:
+//
+//	        CpuArgs{...}
+//
+//	or:
+//
+//	        nil
+type CpuPtrInput interface {
+	pulumi.Input
+
+	ToCpuPtrOutput() CpuPtrOutput
+	ToCpuPtrOutputWithContext(context.Context) CpuPtrOutput
+}
+
+type cpuPtrType CpuArgs
+
+func CpuPtr(v *CpuArgs) CpuPtrInput {
+	return (*cpuPtrType)(v)
+}
+
+func (*cpuPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**Cpu)(nil)).Elem()
+}
+
+func (i *cpuPtrType) ToCpuPtrOutput() CpuPtrOutput {
+	return i.ToCpuPtrOutputWithContext(context.Background())
+}
+
+func (i *cpuPtrType) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CpuPtrOutput)
+}
+
+type CpuOutput struct{ *pulumi.OutputState }
+
+func (CpuOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*Cpu)(nil)).Elem()
+}
+
+func (o CpuOutput) ToCpuOutput() CpuOutput {
+	return o
+}
+
+func (o CpuOutput) ToCpuOutputWithContext(ctx context.Context) CpuOutput {
+	return o
+}
+
+func (o CpuOutput) ToCpuPtrOutput() CpuPtrOutput {
+	return o.ToCpuPtrOutputWithContext(context.Background())
+}
+
+func (o CpuOutput) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v Cpu) *Cpu {
+		return &v
+	}).(CpuPtrOutput)
+}
+
+func (o CpuOutput) FlagsDisabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v Cpu) []string { return v.FlagsDisabled }).(pulumi.StringArrayOutput)
+}
+
+func (o CpuOutput) FlagsEnabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v Cpu) []string { return v.FlagsEnabled }).(pulumi.StringArrayOutput)
+}
+
+func (o CpuOutput) Hidden() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Cpu) *bool { return v.Hidden }).(pulumi.BoolPtrOutput)
+}
+
+func (o CpuOutput) HvVendorId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Cpu) *string { return v.HvVendorId }).(pulumi.StringPtrOutput)
+}
+
+func (o CpuOutput) PhysBits() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Cpu) *string { return v.PhysBits }).(pulumi.StringPtrOutput)
+}
+
+func (o CpuOutput) Type() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Cpu) *string { return v.Type }).(pulumi.StringPtrOutput)
+}
+
+type CpuPtrOutput struct{ *pulumi.OutputState }
+
+func (CpuPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**Cpu)(nil)).Elem()
+}
+
+func (o CpuPtrOutput) ToCpuPtrOutput() CpuPtrOutput {
+	return o
+}
+
+func (o CpuPtrOutput) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
+	return o
+}
+
+func (o CpuPtrOutput) Elem() CpuOutput {
+	return o.ApplyT(func(v *Cpu) Cpu {
+		if v != nil {
+			return *v
+		}
+		var ret Cpu
+		return ret
+	}).(CpuOutput)
+}
+
+func (o CpuPtrOutput) FlagsDisabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v *Cpu) []string {
+		if v == nil {
+			return nil
+		}
+		return v.FlagsDisabled
+	}).(pulumi.StringArrayOutput)
+}
+
+func (o CpuPtrOutput) FlagsEnabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v *Cpu) []string {
+		if v == nil {
+			return nil
+		}
+		return v.FlagsEnabled
+	}).(pulumi.StringArrayOutput)
+}
+
+func (o CpuPtrOutput) Hidden() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *Cpu) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.Hidden
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o CpuPtrOutput) HvVendorId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Cpu) *string {
+		if v == nil {
+			return nil
+		}
+		return v.HvVendorId
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o CpuPtrOutput) PhysBits() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Cpu) *string {
+		if v == nil {
+			return nil
+		}
+		return v.PhysBits
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o CpuPtrOutput) Type() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Cpu) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Type
+	}).(pulumi.StringPtrOutput)
+}
+
 type Disk struct {
 	Filename  *string `pulumi:"filename"`
 	Interface string  `pulumi:"interface"`
@@ -321,10 +529,14 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*CloneInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*CpuInput)(nil)).Elem(), CpuArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*CpuPtrInput)(nil)).Elem(), CpuArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
 	pulumi.RegisterOutputType(CloneOutput{})
 	pulumi.RegisterOutputType(ClonePtrOutput{})
+	pulumi.RegisterOutputType(CpuOutput{})
+	pulumi.RegisterOutputType(CpuPtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
 	pulumi.RegisterOutputType(DiskArrayOutput{})
 }

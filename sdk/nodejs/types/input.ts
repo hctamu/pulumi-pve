@@ -27,6 +27,15 @@ export namespace vm {
         vmId: pulumi.Input<number>;
     }
 
+    export interface CpuArgs {
+        flagsDisabled?: pulumi.Input<pulumi.Input<string>[]>;
+        flagsEnabled?: pulumi.Input<pulumi.Input<string>[]>;
+        hidden?: pulumi.Input<boolean>;
+        hvVendorId?: pulumi.Input<string>;
+        physBits?: pulumi.Input<string>;
+        type?: pulumi.Input<string>;
+    }
+
     export interface DiskArgs {
         filename?: pulumi.Input<string>;
         interface: pulumi.Input<string>;
