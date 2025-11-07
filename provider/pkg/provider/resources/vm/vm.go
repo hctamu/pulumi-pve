@@ -305,6 +305,7 @@ func (vm *VM) Read(
 
 	var virtualMachine *api.VirtualMachine
 	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
+	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
 	if err != nil {
 		l.Errorf("Error during finding VM %v: %v", *vmID, err)
 		return response, err
