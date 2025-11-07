@@ -317,6 +317,8 @@ func TestACLCreateFetchError(t *testing.T) {
 
 // Test does not set global environment variable, therefore can be parallelized!
 func TestACLDeleteInvalidType(t *testing.T) {
+	t.Parallel()
+
 	acl := &aclResource.ACL{}
 	request := infer.DeleteRequest[aclResource.Outputs]{
 		ID: "/|PVEAdmin|invalid|testinvalid",
@@ -366,7 +368,12 @@ func TestACLDeleteDeletionError(t *testing.T) {
 
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/acl")).
-			Reply(reply.OK().BodyString(`{"data":[{"path":"/","roleid":"PVEAdmin","type":"user","ugid":"testuser","propagate":1}]}`)),
+			Reply(reply.OK().BodyString(`{"data":[{
+				"path":"/",
+				"roleid":"PVEAdmin",
+				"type":"user","ugid":
+				"testuser","propagate":1}]
+			}`)),
 		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.InternalServerError()),
 	).Enable()
 
@@ -426,6 +433,8 @@ func TestACLReadSuccess(t *testing.T) {
 
 // Test does not set global environment variable, therefore can be parallelized!
 func TestACLReadIDNotFound(t *testing.T) {
+	t.Parallel()
+
 	acl := &aclResource.ACL{}
 	request := infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
 		ID:     "",
