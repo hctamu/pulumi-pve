@@ -24,6 +24,8 @@ if typing.TYPE_CHECKING:
     role = __role
     import pulumi_pve.storage as __storage
     storage = __storage
+    import pulumi_pve.user as __user
+    user = __user
     import pulumi_pve.vm as __vm
     vm = __vm
 else:
@@ -34,6 +36,7 @@ else:
     pool = _utilities.lazy_import('pulumi_pve.pool')
     role = _utilities.lazy_import('pulumi_pve.role')
     storage = _utilities.lazy_import('pulumi_pve.storage')
+    user = _utilities.lazy_import('pulumi_pve.user')
     vm = _utilities.lazy_import('pulumi_pve.vm')
 
 _utilities.register(
@@ -85,6 +88,14 @@ _utilities.register(
   "fqn": "pulumi_pve.storage",
   "classes": {
    "pve:storage:File": "File"
+  }
+ },
+ {
+  "pkg": "pve",
+  "mod": "user",
+  "fqn": "pulumi_pve.user",
+  "classes": {
+   "pve:user:User": "User"
   }
  },
  {
