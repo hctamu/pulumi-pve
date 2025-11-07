@@ -52,20 +52,3 @@ func NewAPIMock(
 	}
 	return
 }
-
-// OverrideClient overrides the global client factory without touching environment variables.
-// Useful for tests that exercise early validation paths and won't hit the network.
-func OverrideClient(
-	t *testing.T,
-	apiURL string,
-) (cleanup func()) {
-	// central shared test helper; uses t.Helper for better stack trace
-	t.Helper()
-	orig := client.GetProxmoxClientFn
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
-		c := api.NewClient(apiURL, api.WithAPIToken("u", "t"))
-		return &px.Client{Client: c}, nil
-	}
-	cleanup = func() { client.GetProxmoxClientFn = orig }
-	return
-}
