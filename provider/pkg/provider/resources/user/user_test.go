@@ -304,6 +304,8 @@ func TestUserReadSuccess(t *testing.T) {
 
 // Test does not set global environment variable, therefore can be parallelized!
 func TestUserReadIDNotFound(t *testing.T) {
+	t.Parallel()
+
 	user := &userResource.User{}
 	request := infer.ReadRequest[userResource.Inputs, userResource.Outputs]{
 		ID:     "",
