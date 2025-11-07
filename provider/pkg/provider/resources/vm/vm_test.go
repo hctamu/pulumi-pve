@@ -202,12 +202,17 @@ func TestVMDiffDisksChange(t *testing.T) {
 func TestVMDiffEfiDiskChange(t *testing.T) {
 	t.Parallel()
 
+	fileID1 := "vm-100-disk-efi"
+	fileID2 := "vm-100-disk-efi-new"
+	storage := "local-lvm"
+
 	tests := []struct {
 		name          string
 		inputEfiDisk  *vmResource.EfiDisk
 		stateEfiDisk  *vmResource.EfiDisk
 		expectChange  bool
 		expectDiffKey string
+		description   string
 	}{
 		{
 			name: "efi disk added",
@@ -217,6 +222,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			stateEfiDisk:  nil,
 			expectChange:  true,
 			expectDiffKey: "efidisk",
+			description:   "Adding EFI disk should trigger diff",
 		},
 		{
 			name:          "efi disk removed",
@@ -224,26 +230,82 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			stateEfiDisk:  &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
 			expectChange:  true,
 			expectDiffKey: "efidisk",
+			description:   "Removing EFI disk should trigger diff",
 		},
 		{
 			name:         "efi disk type changed",
 			inputEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
 			stateEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
 			expectChange: true,
+			description:  "Changing EFI type should trigger diff",
 		},
 		{
 			name:         "efi disk unchanged",
 			inputEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
 			stateEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
 			expectChange: false,
+			description:  "Identical EFI disk should not trigger diff",
 		},
 		{
 			name:         "both nil",
 			inputEfiDisk: nil,
 			stateEfiDisk: nil,
 			expectChange: false,
+			description:  "Both nil should not trigger diff",
+		},
+		{
+			name: "FileID nil in input, present in state - no change",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			expectChange: false,
+			description:  "FileID computed by provider should not trigger diff",
+		},
+		{
+			name: "FileID explicitly set in input, different from state - change",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			expectChange: true,
+			description:  "Explicitly set FileID that differs should trigger diff",
+		},
+		{
+			name: "FileID same in both - no change",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			expectChange: false,
+			description:  "Same FileID should not trigger diff",
 		},
 	}
+
+	// Set up FileID scenarios after struct initialization
+	// Test 5: FileID nil in input, present in state
+	tests[5].inputEfiDisk.Storage = storage
+	tests[5].inputEfiDisk.FileID = nil // User didn't specify
+	tests[5].stateEfiDisk.Storage = storage
+	tests[5].stateEfiDisk.FileID = &fileID1 // Computed from API
+
+	// Test 6: Different FileIDs
+	tests[6].inputEfiDisk.Storage = storage
+	tests[6].inputEfiDisk.FileID = &fileID2 // User explicitly set it
+	tests[6].stateEfiDisk.Storage = storage
+	tests[6].stateEfiDisk.FileID = &fileID1
+
+	// Test 7: Same FileIDs
+	tests[7].inputEfiDisk.Storage = storage
+	tests[7].inputEfiDisk.FileID = &fileID1
+	tests[7].stateEfiDisk.Storage = storage
+	tests[7].stateEfiDisk.FileID = &fileID1
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -270,12 +332,12 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			require.NoError(t, err)
 
 			if tt.expectChange {
-				assert.True(t, resp.HasChanges, "Expected changes to be detected")
+				assert.True(t, resp.HasChanges, tt.description)
 				if tt.expectDiffKey != "" {
 					assert.Contains(t, resp.DetailedDiff, tt.expectDiffKey, "Expected diff key to be present")
 				}
 			} else {
-				assert.False(t, resp.HasChanges, "Expected no changes")
+				assert.False(t, resp.HasChanges, tt.description)
 			}
 		})
 	}

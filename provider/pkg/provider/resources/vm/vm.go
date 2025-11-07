@@ -446,6 +446,31 @@ func disksChanged(inputDisks, stateDisks []*Disk) bool {
 	return false
 }
 
+// efiDiskChanged compares two EfiDisk instances and returns true if they have meaningful changes.
+// FileID differences are ignored when the input FileID is nil (computed field).
+func efiDiskChanged(inputEfi, stateEfi *EfiDisk) bool {
+	// Compare non-FileID fields
+	if inputEfi.Storage != stateEfi.Storage {
+		return true
+	}
+	if inputEfi.EfiType != stateEfi.EfiType {
+		return true
+	}
+
+	// Only compare FileID if input explicitly set it (not nil)
+	if inputEfi.FileID != nil && stateEfi.FileID != nil {
+		if *inputEfi.FileID != *stateEfi.FileID {
+			return true
+		}
+	} else if inputEfi.FileID != nil && stateEfi.FileID == nil {
+		// Input has FileID but state doesn't - this is a change
+		return true
+	}
+	// If input.FileID is nil but state.FileID has value, ignore it (computed field)
+
+	return false
+}
+
 // Diff implements a custom diff so that computed fields like vmId (and node when auto-selected)
 // do not force spurious updates when they were not explicitly set by the user. All other
 // properties follow a pointer/value comparison semantics: changed value -> Update; for vmId a
@@ -473,14 +498,8 @@ func (vm *VM) Diff(
 		if tag == "" {
 			continue
 		}
-		// Extract the Pulumi property name before first comma
-		name := tag
-		if comma := len(tag); comma > 0 {
-			// pulumi tag formats like "name" or "name,optional"
-			if idx := indexRune(tag, ','); idx != -1 {
-				name = tag[:idx]
-			}
-		}
+
+		name := getPulumiPropertyName(tag)
 		if name == "" {
 			continue
 		}
@@ -488,54 +507,18 @@ func (vm *VM) Diff(
 		inField := inVal.Field(i)
 		stateField := stateVal.Field(i)
 
+		var propertyDiff *p.PropertyDiff
+
 		// Handle slices (like Disks []*Disk)
 		if inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice {
-			// Special handling for Disks slice - ignore FileID differences when input FileID is nil
-			if name == "disks" {
-				if disksChanged(inField.Interface().([]*Disk), stateField.Interface().([]*Disk)) {
-					diff[name] = p.PropertyDiff{Kind: p.Update}
-				}
-				continue
-			}
-			// Compare other slices with DeepEqual
-			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
-				diff[name] = p.PropertyDiff{Kind: p.Update}
-			}
-			continue
+			propertyDiff = compareSliceFields(name, inField, stateField)
+		} else if inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer {
+			// Handle pointer fields with special cases
+			propertyDiff = comparePointerFields(name, inField, stateField, computed)
 		}
 
-		// Only pointer comparable types here; treat others generically
-		if inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer {
-			inNil := inField.IsNil()
-			stateNil := stateField.IsNil()
-
-			// Skip diff for computed property when user didn't provide (input nil) but state has a value
-			if _, isComputed := computed[name]; isComputed && inNil && !stateNil {
-				continue
-			}
-
-			// Clearing property (state had value, user sets nil) -> update (unless computed above)
-			if !inNil && stateNil {
-				diff[name] = p.PropertyDiff{Kind: p.Update}
-				continue
-			}
-			if inNil && !stateNil {
-				diff[name] = p.PropertyDiff{Kind: p.Update}
-				continue
-			}
-			if inNil && stateNil { // both nil => no change
-				continue
-			}
-			// Both non-nil: compare underlying values
-			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
-				// vmId changes require replacement
-				kind := p.Update
-				if name == "vmId" {
-					kind = p.UpdateReplace
-				}
-				diff[name] = p.PropertyDiff{Kind: kind}
-			}
-			continue
+		if propertyDiff != nil {
+			diff[name] = *propertyDiff
 		}
 	}
 
@@ -545,6 +528,91 @@ func (vm *VM) Diff(
 		DetailedDiff:        diff,
 	}
 	return response, nil
+}
+
+// comparePointerFields compares pointer fields and returns a PropertyDiff if they differ.
+// Handles computed fields and special cases like EfiDisk. Returns nil if no difference.
+func comparePointerFields(
+	name string,
+	inField, stateField reflect.Value,
+	computed map[string]struct{},
+) *p.PropertyDiff {
+	inNil := inField.IsNil()
+	stateNil := stateField.IsNil()
+
+	// Skip diff for computed property when user didn't provide (input nil) but state has a value
+	if _, isComputed := computed[name]; isComputed && inNil && !stateNil {
+		return nil
+	}
+
+	// Special handling for EfiDisk - ignore FileID differences when input FileID is nil
+	if name == "efidisk" && !inNil && !stateNil {
+		inputEfi, okIn := inField.Interface().(*EfiDisk)
+		stateEfi, okState := stateField.Interface().(*EfiDisk)
+		if okIn && okState {
+			if efiDiskChanged(inputEfi, stateEfi) {
+				return &p.PropertyDiff{Kind: p.Update}
+			}
+			return nil
+		}
+	}
+
+	// Clearing property or setting property (nil mismatch) -> update
+	if inNil != stateNil {
+		return &p.PropertyDiff{Kind: p.Update}
+	}
+
+	// Both nil => no change
+	if inNil && stateNil {
+		return nil
+	}
+
+	// Both non-nil: compare underlying values
+	if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
+		// vmId changes require replacement
+		kind := p.Update
+		if name == "vmId" {
+			kind = p.UpdateReplace
+		}
+		return &p.PropertyDiff{Kind: kind}
+	}
+
+	return nil
+}
+
+// compareSliceFields compares slice fields and returns a PropertyDiff if they differ.
+// Returns nil if no difference found.
+func compareSliceFields(name string, inField, stateField reflect.Value) *p.PropertyDiff {
+	// Special handling for Disks slice - ignore FileID differences when input FileID is nil
+	if name == "disks" {
+		inputDisks, okIn := inField.Interface().([]*Disk)
+		stateDisks, okState := stateField.Interface().([]*Disk)
+		if okIn && okState && disksChanged(inputDisks, stateDisks) {
+			return &p.PropertyDiff{Kind: p.Update}
+		}
+		if okIn && okState {
+			return nil // No changes
+		}
+	}
+
+	// Compare other slices with DeepEqual
+	if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
+		return &p.PropertyDiff{Kind: p.Update}
+	}
+	return nil
+}
+
+// getPulumiPropertyName extracts the property name from a pulumi struct tag.
+// Tags are formatted like "name" or "name,optional".
+func getPulumiPropertyName(tag string) string {
+	if tag == "" {
+		return ""
+	}
+	// Extract the name before the first comma
+	if idx := indexRune(tag, ','); idx != -1 {
+		return tag[:idx]
+	}
+	return tag
 }
 
 // indexRune returns the index of the first occurrence of a rune in a string.
