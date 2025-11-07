@@ -442,6 +442,16 @@ func (vm *VM) Diff(
 
 		inField := inVal.Field(i)
 		stateField := stateVal.Field(i)
+
+		// Handle slices (like Disks []*Disk)
+		if inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice {
+			// Compare slices with DeepEqual
+			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
+				diff[name] = p.PropertyDiff{Kind: p.Update}
+			}
+			continue
+		}
+
 		// Only pointer comparable types here; treat others generically
 		if inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer {
 			inNil := inField.IsNil()
