@@ -280,7 +280,20 @@ func (vm *VM) Read(
 	request infer.ReadRequest[Inputs, Outputs],
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Read VM with ID: %v", request.Inputs.VMID)
+
+	// Determine which VMID to use: inputs.vmid if not nil, otherwise state.vmid
+	var vmID *int
+	if request.Inputs.VMID != nil {
+		vmID = request.Inputs.VMID
+		l.Debugf("Read VM with ID from inputs: %v", *vmID)
+	} else if request.State.VMID != nil {
+		vmID = request.State.VMID
+		l.Debugf("Read VM with ID from state: %v", *vmID)
+	} else {
+		err = fmt.Errorf("VMID is required for reading VM state but is nil in both inputs and state")
+		l.Errorf("VMID is nil in both inputs and state during read operation")
+		return response, err
+	}
 
 	var pxClient *px.Client
 	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
@@ -290,9 +303,9 @@ func (vm *VM) Read(
 	}
 
 	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *request.Inputs.VMID, request.Inputs.Node)
+	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
 	if err != nil {
-		l.Errorf("Error during finding VM %v: %v", request.Inputs.VMID, err)
+		l.Errorf("Error during finding VM %v: %v", *vmID, err)
 		return response, err
 
 	}
@@ -349,7 +362,8 @@ func (vm *VM) Update(
 		return response, err
 	}
 	l.Debugf("VM: %v", virtualMachine)
-	options := request.Inputs.BuildOptionsDiff(*vmID, &response.Output.Inputs)
+	options := request.Inputs.BuildOptionsDiff(*vmID, &request.State.Inputs)
+	l.Debugf("Update options: %+v", options)
 
 	var task *api.Task
 	if task, err = virtualMachine.Config(ctx, options...); err != nil {

@@ -415,7 +415,11 @@ func compareAndAddOption[T comparable](
 	newValue, currentValue *T,
 ) {
 	if resources.DifferPtr(newValue, currentValue) {
-		*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
+		// Only add option if newValue is not nil - we don't try to "clear" fields
+		// by sending nil or empty values as this can cause validation errors
+		if newValue != nil {
+			*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
+		}
 	}
 }
 
