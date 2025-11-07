@@ -131,7 +131,7 @@ func (acl *ACL) Create(
 
 	// fetch created resource to confirm
 	if _, err = GetACL(ctx, request.Inputs, pxc); err != nil {
-		return response, fmt.Errorf("failed to confirm creation of ACL %s: %w", request.Name, err)
+		return response, fmt.Errorf("failed to fetch ACL %s: %w", request.Name, err)
 	}
 
 	return response, nil
