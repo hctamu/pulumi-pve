@@ -20,6 +20,7 @@ import * as pool from "./pool";
 import * as role from "./role";
 import * as storage from "./storage";
 import * as types from "./types";
+import * as user from "./user";
 import * as vm from "./vm";
 
 export {
@@ -31,6 +32,7 @@ export {
     role,
     storage,
     types,
+    user,
     vm,
 };
 pulumi.runtime.registerResourcePackage("pve", {

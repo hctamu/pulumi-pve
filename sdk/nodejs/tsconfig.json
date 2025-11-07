@@ -32,6 +32,8 @@
         "types/index.ts",
         "types/input.ts",
         "types/output.ts",
+        "user/index.ts",
+        "user/user.ts",
         "utilities.ts",
         "vm/index.ts",
         "vm/vm.ts"
