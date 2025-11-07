@@ -445,6 +445,95 @@
         "sourceRaw"
       ]
     },
+    "pve:user:User": {
+      "properties": {
+        "comment": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "enable": {
+          "type": "boolean"
+        },
+        "expire": {
+          "type": "integer"
+        },
+        "firstname": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastname": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string",
+          "replaceOnChanges": true
+        },
+        "userid": {
+          "type": "string",
+          "replaceOnChanges": true
+        }
+      },
+      "type": "object",
+      "required": [
+        "userid"
+      ],
+      "inputProperties": {
+        "comment": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "enable": {
+          "type": "boolean"
+        },
+        "expire": {
+          "type": "integer"
+        },
+        "firstname": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastname": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string",
+          "replaceOnChanges": true
+        },
+        "userid": {
+          "type": "string",
+          "replaceOnChanges": true
+        }
+      },
+      "requiredInputs": [
+        "userid"
+      ]
+    },
     "pve:vm:VM": {
       "properties": {
         "acpi": {
