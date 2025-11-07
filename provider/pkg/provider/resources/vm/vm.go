@@ -457,6 +457,19 @@ func efiDiskChanged(inputEfi, stateEfi *EfiDisk) bool {
 		return true
 	}
 
+	// Compare PreEnrolledKeys if both are set
+	if inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys != nil {
+		if *inputEfi.PreEnrolledKeys != *stateEfi.PreEnrolledKeys {
+			return true
+		}
+	} else if inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys == nil {
+		// Input has PreEnrolledKeys but state doesn't - this is a change
+		return true
+	} else if inputEfi.PreEnrolledKeys == nil && stateEfi.PreEnrolledKeys != nil {
+		// State has PreEnrolledKeys but input doesn't - this is a change
+		return true
+	}
+
 	// Only compare FileID if input explicitly set it (not nil)
 	if inputEfi.FileID != nil && stateEfi.FileID != nil {
 		if *inputEfi.FileID != *stateEfi.FileID {

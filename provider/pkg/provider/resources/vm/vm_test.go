@@ -37,6 +37,11 @@ func intPtr(i int) *int {
 	return &i
 }
 
+// Helper function to create a pointer to a bool
+func boolPtr(b bool) *bool {
+	return &b
+}
+
 func TestVMDiffDisksChange(t *testing.T) {
 	t.Parallel()
 
@@ -285,6 +290,56 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			},
 			expectChange: false,
 			description:  "Same FileID should not trigger diff",
+		},
+		{
+			name: "PreEnrolledKeys changed from true to false",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(false),
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(true),
+			},
+			expectChange: true,
+			description:  "Changing PreEnrolledKeys should trigger diff",
+		},
+		{
+			name: "PreEnrolledKeys added",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(true),
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			expectChange: true,
+			description:  "Adding PreEnrolledKeys should trigger diff",
+		},
+		{
+			name: "PreEnrolledKeys removed",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M,
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(true),
+			},
+			expectChange: true,
+			description:  "Removing PreEnrolledKeys should trigger diff",
+		},
+		{
+			name: "PreEnrolledKeys unchanged",
+			inputEfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(true),
+			},
+			stateEfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(true),
+			},
+			expectChange: false,
+			description:  "Same PreEnrolledKeys should not trigger diff",
 		},
 	}
 

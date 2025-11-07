@@ -162,7 +162,8 @@ const (
 // EfiDisk represents an EFI disk configuration.
 type EfiDisk struct {
 	diskBase
-	EfiType EfiType `pulumi:"efitype"`
+	EfiType         EfiType `pulumi:"efitype"`
+	PreEnrolledKeys *bool   `pulumi:"preEnrolledKeys,optional"`
 }
 
 // ValidateEfiType checks if the EfiType is valid.
@@ -189,6 +190,13 @@ func (efi EfiDisk) ToProxmoxEfiDiskConfig() string {
 	config := fmt.Sprintf("file=%v", fullDiskPath)
 	if efi.EfiType != "" {
 		config += fmt.Sprintf(",efitype=%v", efi.EfiType)
+	}
+	if efi.PreEnrolledKeys != nil {
+		if *efi.PreEnrolledKeys {
+			config += ",pre-enrolled-keys=1"
+		} else {
+			config += ",pre-enrolled-keys=0"
+		}
 	}
 	return config
 }
@@ -517,6 +525,12 @@ func (efi *EfiDisk) ParseEfiDiskConfig(diskConfig string) error {
 	// Extract efitype if present in extras
 	if efitype, ok := parsed.Extras["efitype"]; ok {
 		efi.EfiType = EfiType(efitype)
+	}
+
+	// Extract pre-enrolled-keys if present in extras
+	if preEnrolledKeys, ok := parsed.Extras["pre-enrolled-keys"]; ok {
+		value := preEnrolledKeys == "1"
+		efi.PreEnrolledKeys = &value
 	}
 
 	return nil

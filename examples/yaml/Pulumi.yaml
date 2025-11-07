@@ -27,6 +27,7 @@ resources:
       efidisk:
         storage: "ceph-ha"
         efitype: "4m"
+        preEnrolledKeys: false
       disks:
         - storage: "ceph-ha"
           size: 20
