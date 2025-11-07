@@ -129,6 +129,25 @@
         "size",
         "storage"
       ]
+    },
+    "pve:vm:EfiDisk": {
+      "description": "EFI disk configuration for the virtual machine.",
+      "properties": {
+        "efitype": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "storage": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "efitype",
+        "storage"
+      ]
     }
   },
   "provider": {
@@ -594,8 +613,8 @@
             "$ref": "#/types/pve:vm:Disk"
           }
         },
-        "efidisk0": {
-          "type": "string"
+        "efidisk": {
+          "$ref": "#/types/pve:vm:EfiDisk"
         },
         "hookscript": {
           "type": "string"
@@ -746,8 +765,8 @@
             "$ref": "#/types/pve:vm:Disk"
           }
         },
-        "efidisk0": {
-          "type": "string"
+        "efidisk": {
+          "$ref": "#/types/pve:vm:EfiDisk"
         },
         "hookscript": {
           "type": "string"

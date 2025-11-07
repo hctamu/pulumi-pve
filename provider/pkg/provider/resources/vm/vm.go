@@ -40,6 +40,7 @@ var (
 	_ = (infer.CustomRead[Inputs, Outputs])((*VM)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*VM)(nil))
 	_ = (infer.CustomDiff[Inputs, Outputs])((*VM)(nil))
+	_ = (infer.Annotated)((*Inputs)(nil))
 )
 
 // Outputs represents the output state of a Proxmox virtual machine resource.
@@ -164,7 +165,7 @@ func finalizeClone(
 
 	// Update disks after clone based on the inputs
 	if err = updateDisksAfterClone(ctx, options, virtualMachine); err != nil {
-		return fmt.Errorf("error during updating disks options: %v", err)
+		return fmt.Errorf("failed to update disks after clone: %w", err)
 	}
 
 	task, err := virtualMachine.Config(ctx, options...)
@@ -404,6 +405,47 @@ func (vm *VM) Delete(
 	return response, nil
 }
 
+// disksChanged compares two disk slices and returns true if they have meaningful changes.
+// FileID differences are ignored when the input FileID is nil (computed field).
+func disksChanged(inputDisks, stateDisks []*Disk) bool {
+	if len(inputDisks) != len(stateDisks) {
+		return true
+	}
+
+	for i := range inputDisks {
+		if i >= len(stateDisks) {
+			return true
+		}
+
+		input := inputDisks[i]
+		state := stateDisks[i]
+
+		// Compare non-FileID fields
+		if input.Storage != state.Storage {
+			return true
+		}
+		if input.Size != state.Size {
+			return true
+		}
+		if input.Interface != state.Interface {
+			return true
+		}
+
+		// Only compare FileID if input explicitly set it (not nil)
+		if input.FileID != nil && state.FileID != nil {
+			if *input.FileID != *state.FileID {
+				return true
+			}
+		} else if input.FileID != nil && state.FileID == nil {
+			// Input has FileID but state doesn't - this is a change
+			return true
+		}
+		// If input.FileID is nil but state.FileID has value, ignore it (computed field)
+	}
+
+	return false
+}
+
 // Diff implements a custom diff so that computed fields like vmId (and node when auto-selected)
 // do not force spurious updates when they were not explicitly set by the user. All other
 // properties follow a pointer/value comparison semantics: changed value -> Update; for vmId a
@@ -448,7 +490,14 @@ func (vm *VM) Diff(
 
 		// Handle slices (like Disks []*Disk)
 		if inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice {
-			// Compare slices with DeepEqual
+			// Special handling for Disks slice - ignore FileID differences when input FileID is nil
+			if name == "disks" {
+				if disksChanged(inField.Interface().([]*Disk), stateField.Interface().([]*Disk)) {
+					diff[name] = p.PropertyDiff{Kind: p.Update}
+				}
+				continue
+			}
+			// Compare other slices with DeepEqual
 			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
 				diff[name] = p.PropertyDiff{Kind: p.Update}
 			}
@@ -508,11 +557,6 @@ func indexRune(s string, r rune) int {
 	return -1
 }
 
-// Annotate sets default values for the Args struct.
-func (inputs *Inputs) Annotate(a infer.Annotator) {
-	a.SetDefault(&inputs.Cores, 1)
-}
-
 // UpdateDisksAfterClone updates the disks of the virtual machine after a clone operation.
 // It updates the file and size of the disks and resizes them if necessary.
 // It also removes disks that are not present in the new configuration.
@@ -523,6 +567,7 @@ func updateDisksAfterClone(
 ) (err error) {
 	disks := virtualMachine.VirtualMachineConfig.MergeDisks()
 
+	// Update disks based on the new configuration
 	for diskInterface, currentDiskStr := range disks {
 		diskOption := getDiskOption(options, diskInterface)
 		if diskOption != nil {
@@ -554,5 +599,30 @@ func updateDisksAfterClone(
 		}
 	}
 
+	efiDiskOption := getDiskOption(options, efiDiskId)
+	if efiDiskOption == nil && virtualMachine.VirtualMachineConfig.EFIDisk0 != "" {
+		// Remove not needed EFI disk
+		if _, err = virtualMachine.UnlinkDisk(ctx, efiDiskId, true); err != nil {
+			return fmt.Errorf("failed to unlink EFI disk: %v", err)
+		}
+	}
+
 	return nil
+}
+
+// Annotate adds descriptions to the Inputs resource and its properties
+func (inputs *Inputs) Annotate(a infer.Annotator) {
+	a.Describe(
+		inputs,
+		"A Proxmox Virtual Machine (VM) resource that manages virtual machines in the Proxmox VE.",
+	)
+
+	a.SetDefault(&inputs.Cores, 1)
+}
+
+func (efiDisk *EfiDisk) Annotate(a infer.Annotator) {
+	a.Describe(
+		&efiDisk,
+		"EFI disk configuration for the virtual machine.",
+	)
 }

@@ -17,6 +17,7 @@ from .. import _utilities
 __all__ = [
     'Clone',
     'Disk',
+    'EfiDisk',
 ]
 
 @pulumi.output_type
@@ -106,6 +107,39 @@ class Disk(dict):
     @pulumi.getter
     def size(self) -> _builtins.int:
         return pulumi.get(self, "size")
+
+    @_builtins.property
+    @pulumi.getter
+    def storage(self) -> _builtins.str:
+        return pulumi.get(self, "storage")
+
+    @_builtins.property
+    @pulumi.getter
+    def filename(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "filename")
+
+
+@pulumi.output_type
+class EfiDisk(dict):
+    """
+    EFI disk configuration for the virtual machine.
+    """
+    def __init__(__self__, *,
+                 efitype: _builtins.str,
+                 storage: _builtins.str,
+                 filename: Optional[_builtins.str] = None):
+        """
+        EFI disk configuration for the virtual machine.
+        """
+        pulumi.set(__self__, "efitype", efitype)
+        pulumi.set(__self__, "storage", storage)
+        if filename is not None:
+            pulumi.set(__self__, "filename", filename)
+
+    @_builtins.property
+    @pulumi.getter
+    def efitype(self) -> _builtins.str:
+        return pulumi.get(self, "efitype")
 
     @_builtins.property
     @pulumi.getter

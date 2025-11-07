@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	"errors"
+
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -33,7 +34,7 @@ type VM struct {
 	Cpuunits     pulumi.IntPtrOutput    `pulumi:"cpuunits"`
 	Description  pulumi.StringPtrOutput `pulumi:"description"`
 	Disks        DiskArrayOutput        `pulumi:"disks"`
-	Efidisk0     pulumi.StringPtrOutput `pulumi:"efidisk0"`
+	Efidisk      EfiDiskPtrOutput       `pulumi:"efidisk"`
 	Hookscript   pulumi.StringPtrOutput `pulumi:"hookscript"`
 	Hostpci0     pulumi.StringPtrOutput `pulumi:"hostpci0"`
 	Hotplug      pulumi.StringPtrOutput `pulumi:"hotplug"`
@@ -113,53 +114,61 @@ func (VMState) ElementType() reflect.Type {
 }
 
 type vmArgs struct {
-	Acpi         *int    `pulumi:"acpi"`
-	Affinity     *string `pulumi:"affinity"`
-	Audio0       *string `pulumi:"audio0"`
-	Autostart    *int    `pulumi:"autostart"`
-	Balloon      *int    `pulumi:"balloon"`
-	Bios         *string `pulumi:"bios"`
-	Cicustom     *string `pulumi:"cicustom"`
-	Cipassword   *string `pulumi:"cipassword"`
-	Citype       *string `pulumi:"citype"`
-	Ciupgrade    *int    `pulumi:"ciupgrade"`
-	Ciuser       *string `pulumi:"ciuser"`
-	Clone        *Clone  `pulumi:"clone"`
-	Cores        *int    `pulumi:"cores"`
-	Cpu          *string `pulumi:"cpu"`
-	Cpulimit     *string `pulumi:"cpulimit"`
-	Cpuunits     *int    `pulumi:"cpuunits"`
-	Description  *string `pulumi:"description"`
-	Disks        []Disk  `pulumi:"disks"`
-	Efidisk0     *string `pulumi:"efidisk0"`
-	Hookscript   *string `pulumi:"hookscript"`
-	Hostpci0     *string `pulumi:"hostpci0"`
-	Hotplug      *string `pulumi:"hotplug"`
-	Hugepages    *string `pulumi:"hugepages"`
-	Ipconfig0    *string `pulumi:"ipconfig0"`
-	Kvm          *int    `pulumi:"kvm"`
-	Lock         *string `pulumi:"lock"`
-	Machine      *string `pulumi:"machine"`
-	Memory       *int    `pulumi:"memory"`
-	Name         string  `pulumi:"name"`
-	Nameserver   *string `pulumi:"nameserver"`
-	Node         *string `pulumi:"node"`
-	Numa         *int    `pulumi:"numa"`
-	Numa0        *string `pulumi:"numa0"`
-	Ostype       *string `pulumi:"ostype"`
-	Parallel0    *string `pulumi:"parallel0"`
-	Protection   *int    `pulumi:"protection"`
-	Rng0         *string `pulumi:"rng0"`
-	Searchdomain *string `pulumi:"searchdomain"`
-	Serial0      *string `pulumi:"serial0"`
-	Sshkeys      *string `pulumi:"sshkeys"`
-	Tablet       *int    `pulumi:"tablet"`
-	Template     *int    `pulumi:"template"`
-	Tpmstate0    *string `pulumi:"tpmstate0"`
-	Usb0         *string `pulumi:"usb0"`
-	Vcpus        *int    `pulumi:"vcpus"`
-	Vga          *string `pulumi:"vga"`
-	VmId         *int    `pulumi:"vmId"`
+	Acpi         *int     `pulumi:"acpi"`
+	Affinity     *string  `pulumi:"affinity"`
+	Agent        *string  `pulumi:"agent"`
+	Audio0       *string  `pulumi:"audio0"`
+	Autostart    *int     `pulumi:"autostart"`
+	Balloon      *int     `pulumi:"balloon"`
+	Bios         *string  `pulumi:"bios"`
+	Boot         *string  `pulumi:"boot"`
+	Cicustom     *string  `pulumi:"cicustom"`
+	Cipassword   *string  `pulumi:"cipassword"`
+	Citype       *string  `pulumi:"citype"`
+	Ciupgrade    *int     `pulumi:"ciupgrade"`
+	Ciuser       *string  `pulumi:"ciuser"`
+	Clone        *Clone   `pulumi:"clone"`
+	Cores        *int     `pulumi:"cores"`
+	Cpu          *string  `pulumi:"cpu"`
+	Cpulimit     *string  `pulumi:"cpulimit"`
+	Cpuunits     *int     `pulumi:"cpuunits"`
+	Description  *string  `pulumi:"description"`
+	Disks        []Disk   `pulumi:"disks"`
+	Efidisk      *EfiDisk `pulumi:"efidisk"`
+	Hookscript   *string  `pulumi:"hookscript"`
+	Hostpci0     *string  `pulumi:"hostpci0"`
+	Hotplug      *string  `pulumi:"hotplug"`
+	Hugepages    *string  `pulumi:"hugepages"`
+	Ipconfig0    *string  `pulumi:"ipconfig0"`
+	Kvm          *int     `pulumi:"kvm"`
+	Lock         *string  `pulumi:"lock"`
+	Machine      *string  `pulumi:"machine"`
+	Memory       *int     `pulumi:"memory"`
+	Name         string   `pulumi:"name"`
+	Nameserver   *string  `pulumi:"nameserver"`
+	Net0         *string  `pulumi:"net0"`
+	Node         *string  `pulumi:"node"`
+	Numa         *int     `pulumi:"numa"`
+	Numa0        *string  `pulumi:"numa0"`
+	Onboot       *int     `pulumi:"onboot"`
+	Ostype       *string  `pulumi:"ostype"`
+	Parallel0    *string  `pulumi:"parallel0"`
+	Protection   *int     `pulumi:"protection"`
+	Rng0         *string  `pulumi:"rng0"`
+	Scsihw       *string  `pulumi:"scsihw"`
+	Searchdomain *string  `pulumi:"searchdomain"`
+	Serial0      *string  `pulumi:"serial0"`
+	Smbios1      *string  `pulumi:"smbios1"`
+	Sockets      *int     `pulumi:"sockets"`
+	Sshkeys      *string  `pulumi:"sshkeys"`
+	Tablet       *int     `pulumi:"tablet"`
+	Tags         *string  `pulumi:"tags"`
+	Template     *int     `pulumi:"template"`
+	Tpmstate0    *string  `pulumi:"tpmstate0"`
+	Usb0         *string  `pulumi:"usb0"`
+	Vcpus        *int     `pulumi:"vcpus"`
+	Vga          *string  `pulumi:"vga"`
+	VmId         *int     `pulumi:"vmId"`
 }
 
 // The set of arguments for constructing a VM resource.
@@ -182,7 +191,7 @@ type VMArgs struct {
 	Cpuunits     pulumi.IntPtrInput
 	Description  pulumi.StringPtrInput
 	Disks        DiskArrayInput
-	Efidisk0     pulumi.StringPtrInput
+	Efidisk      EfiDiskPtrInput
 	Hookscript   pulumi.StringPtrInput
 	Hostpci0     pulumi.StringPtrInput
 	Hotplug      pulumi.StringPtrInput
@@ -372,8 +381,8 @@ func (o VMOutput) Disks() DiskArrayOutput {
 	return o.ApplyT(func(v *VM) DiskArrayOutput { return v.Disks }).(DiskArrayOutput)
 }
 
-func (o VMOutput) Efidisk0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Efidisk0 }).(pulumi.StringPtrOutput)
+func (o VMOutput) Efidisk() EfiDiskPtrOutput {
+	return o.ApplyT(func(v *VM) EfiDiskPtrOutput { return v.Efidisk }).(EfiDiskPtrOutput)
 }
 
 func (o VMOutput) Hookscript() pulumi.StringPtrOutput {

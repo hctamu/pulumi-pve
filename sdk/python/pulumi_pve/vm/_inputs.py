@@ -19,6 +19,8 @@ __all__ = [
     'CloneArgsDict',
     'DiskArgs',
     'DiskArgsDict',
+    'EfiDiskArgs',
+    'EfiDiskArgsDict',
 ]
 
 MYPY = False
@@ -136,6 +138,59 @@ class DiskArgs:
     @size.setter
     def size(self, value: pulumi.Input[_builtins.int]):
         pulumi.set(self, "size", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def storage(self) -> pulumi.Input[_builtins.str]:
+        return pulumi.get(self, "storage")
+
+    @storage.setter
+    def storage(self, value: pulumi.Input[_builtins.str]):
+        pulumi.set(self, "storage", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def filename(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "filename")
+
+    @filename.setter
+    def filename(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "filename", value)
+
+
+if not MYPY:
+    class EfiDiskArgsDict(TypedDict):
+        """
+        EFI disk configuration for the virtual machine.
+        """
+        efitype: pulumi.Input[_builtins.str]
+        storage: pulumi.Input[_builtins.str]
+        filename: NotRequired[pulumi.Input[_builtins.str]]
+elif False:
+    EfiDiskArgsDict: TypeAlias = Mapping[str, Any]
+
+@pulumi.input_type
+class EfiDiskArgs:
+    def __init__(__self__, *,
+                 efitype: pulumi.Input[_builtins.str],
+                 storage: pulumi.Input[_builtins.str],
+                 filename: Optional[pulumi.Input[_builtins.str]] = None):
+        """
+        EFI disk configuration for the virtual machine.
+        """
+        pulumi.set(__self__, "efitype", efitype)
+        pulumi.set(__self__, "storage", storage)
+        if filename is not None:
+            pulumi.set(__self__, "filename", filename)
+
+    @_builtins.property
+    @pulumi.getter
+    def efitype(self) -> pulumi.Input[_builtins.str]:
+        return pulumi.get(self, "efitype")
+
+    @efitype.setter
+    def efitype(self, value: pulumi.Input[_builtins.str]):
+        pulumi.set(self, "efitype", value)
 
     @_builtins.property
     @pulumi.getter

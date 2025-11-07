@@ -318,13 +318,183 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 	}).(DiskOutput)
 }
 
+// EFI disk configuration for the virtual machine.
+type EfiDisk struct {
+	Efitype  string  `pulumi:"efitype"`
+	Filename *string `pulumi:"filename"`
+	Storage  string  `pulumi:"storage"`
+}
+
+// EfiDiskInput is an input type that accepts EfiDiskArgs and EfiDiskOutput values.
+// You can construct a concrete instance of `EfiDiskInput` via:
+//
+//	EfiDiskArgs{...}
+type EfiDiskInput interface {
+	pulumi.Input
+
+	ToEfiDiskOutput() EfiDiskOutput
+	ToEfiDiskOutputWithContext(context.Context) EfiDiskOutput
+}
+
+// EFI disk configuration for the virtual machine.
+type EfiDiskArgs struct {
+	Efitype  pulumi.StringInput    `pulumi:"efitype"`
+	Filename pulumi.StringPtrInput `pulumi:"filename"`
+	Storage  pulumi.StringInput    `pulumi:"storage"`
+}
+
+func (EfiDiskArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*EfiDisk)(nil)).Elem()
+}
+
+func (i EfiDiskArgs) ToEfiDiskOutput() EfiDiskOutput {
+	return i.ToEfiDiskOutputWithContext(context.Background())
+}
+
+func (i EfiDiskArgs) ToEfiDiskOutputWithContext(ctx context.Context) EfiDiskOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(EfiDiskOutput)
+}
+
+func (i EfiDiskArgs) ToEfiDiskPtrOutput() EfiDiskPtrOutput {
+	return i.ToEfiDiskPtrOutputWithContext(context.Background())
+}
+
+func (i EfiDiskArgs) ToEfiDiskPtrOutputWithContext(ctx context.Context) EfiDiskPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(EfiDiskOutput).ToEfiDiskPtrOutputWithContext(ctx)
+}
+
+// EfiDiskPtrInput is an input type that accepts EfiDiskArgs, EfiDiskPtr and EfiDiskPtrOutput values.
+// You can construct a concrete instance of `EfiDiskPtrInput` via:
+//
+//	        EfiDiskArgs{...}
+//
+//	or:
+//
+//	        nil
+type EfiDiskPtrInput interface {
+	pulumi.Input
+
+	ToEfiDiskPtrOutput() EfiDiskPtrOutput
+	ToEfiDiskPtrOutputWithContext(context.Context) EfiDiskPtrOutput
+}
+
+type efiDiskPtrType EfiDiskArgs
+
+func EfiDiskPtr(v *EfiDiskArgs) EfiDiskPtrInput {
+	return (*efiDiskPtrType)(v)
+}
+
+func (*efiDiskPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**EfiDisk)(nil)).Elem()
+}
+
+func (i *efiDiskPtrType) ToEfiDiskPtrOutput() EfiDiskPtrOutput {
+	return i.ToEfiDiskPtrOutputWithContext(context.Background())
+}
+
+func (i *efiDiskPtrType) ToEfiDiskPtrOutputWithContext(ctx context.Context) EfiDiskPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(EfiDiskPtrOutput)
+}
+
+// EFI disk configuration for the virtual machine.
+type EfiDiskOutput struct{ *pulumi.OutputState }
+
+func (EfiDiskOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*EfiDisk)(nil)).Elem()
+}
+
+func (o EfiDiskOutput) ToEfiDiskOutput() EfiDiskOutput {
+	return o
+}
+
+func (o EfiDiskOutput) ToEfiDiskOutputWithContext(ctx context.Context) EfiDiskOutput {
+	return o
+}
+
+func (o EfiDiskOutput) ToEfiDiskPtrOutput() EfiDiskPtrOutput {
+	return o.ToEfiDiskPtrOutputWithContext(context.Background())
+}
+
+func (o EfiDiskOutput) ToEfiDiskPtrOutputWithContext(ctx context.Context) EfiDiskPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v EfiDisk) *EfiDisk {
+		return &v
+	}).(EfiDiskPtrOutput)
+}
+
+func (o EfiDiskOutput) Efitype() pulumi.StringOutput {
+	return o.ApplyT(func(v EfiDisk) string { return v.Efitype }).(pulumi.StringOutput)
+}
+
+func (o EfiDiskOutput) Filename() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v EfiDisk) *string { return v.Filename }).(pulumi.StringPtrOutput)
+}
+
+func (o EfiDiskOutput) Storage() pulumi.StringOutput {
+	return o.ApplyT(func(v EfiDisk) string { return v.Storage }).(pulumi.StringOutput)
+}
+
+type EfiDiskPtrOutput struct{ *pulumi.OutputState }
+
+func (EfiDiskPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**EfiDisk)(nil)).Elem()
+}
+
+func (o EfiDiskPtrOutput) ToEfiDiskPtrOutput() EfiDiskPtrOutput {
+	return o
+}
+
+func (o EfiDiskPtrOutput) ToEfiDiskPtrOutputWithContext(ctx context.Context) EfiDiskPtrOutput {
+	return o
+}
+
+func (o EfiDiskPtrOutput) Elem() EfiDiskOutput {
+	return o.ApplyT(func(v *EfiDisk) EfiDisk {
+		if v != nil {
+			return *v
+		}
+		var ret EfiDisk
+		return ret
+	}).(EfiDiskOutput)
+}
+
+func (o EfiDiskPtrOutput) Efitype() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *EfiDisk) *string {
+		if v == nil {
+			return nil
+		}
+		return &v.Efitype
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o EfiDiskPtrOutput) Filename() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *EfiDisk) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Filename
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o EfiDiskPtrOutput) Storage() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *EfiDisk) *string {
+		if v == nil {
+			return nil
+		}
+		return &v.Storage
+	}).(pulumi.StringPtrOutput)
+}
+
 func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*CloneInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskInput)(nil)).Elem(), EfiDiskArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskPtrInput)(nil)).Elem(), EfiDiskArgs{})
 	pulumi.RegisterOutputType(CloneOutput{})
 	pulumi.RegisterOutputType(ClonePtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
 	pulumi.RegisterOutputType(DiskArrayOutput{})
+	pulumi.RegisterOutputType(EfiDiskOutput{})
+	pulumi.RegisterOutputType(EfiDiskPtrOutput{})
 }

@@ -33,4 +33,13 @@ export namespace vm {
         size: pulumi.Input<number>;
         storage: pulumi.Input<string>;
     }
+
+    /**
+     * EFI disk configuration for the virtual machine.
+     */
+    export interface EfiDiskArgs {
+        efitype: pulumi.Input<string>;
+        filename?: pulumi.Input<string>;
+        storage: pulumi.Input<string>;
+    }
 }
