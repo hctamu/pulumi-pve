@@ -166,7 +166,7 @@ func TestRoleCreateClientError(t *testing.T) {
 	}
 	_, err := role.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -190,7 +190,7 @@ func TestRoleCreateCreationError(t *testing.T) {
 	}
 	_, err := role.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create role")
+	assert.EqualError(t, err, "failed to create role testrole: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -221,7 +221,7 @@ func TestRoleCreateFetchError(t *testing.T) {
 	}
 	_, err := role.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch role")
+	assert.EqualError(t, err, "failed to fetch role testrole: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -236,7 +236,7 @@ func TestRoleDeleteClientError(t *testing.T) {
 	}
 	_, err := role.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -256,7 +256,7 @@ func TestRoleDeleteDeletionError(t *testing.T) {
 	}
 	_, err := role.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete role")
+	assert.EqualError(t, err, "failed to delete role testrole: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -317,7 +317,7 @@ func TestRoleReadClientError(t *testing.T) {
 	}
 	_, err := role.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -353,6 +353,7 @@ func TestRoleReadGetResourceError(t *testing.T) {
 		mocha.Get(expect.URLPath("/access/roles/testrole")).
 			Reply(reply.InternalServerError()),
 	).Enable()
+
 	// env + client configured
 
 	role := &roleResource.Role{}
@@ -363,7 +364,7 @@ func TestRoleReadGetResourceError(t *testing.T) {
 	}
 	_, err := role.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get role")
+	assert.EqualError(t, err, "failed to get role testrole: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -387,7 +388,7 @@ func TestRoleUpdateClientError(t *testing.T) {
 	}
 	_, err := role.Update(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -416,5 +417,5 @@ func TestRoleUpdateUpdateError(t *testing.T) {
 	}
 	_, err := role.Update(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to update role")
+	assert.EqualError(t, err, "failed to update role testrole: 500 Internal Server Error")
 }
