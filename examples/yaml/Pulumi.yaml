@@ -20,7 +20,7 @@ resources:
     type: pve:vm:VM
     properties:
       vmId: 129
-      name: "testVMTamas"
+      name: "MyTestVM"
       description: "test VM"
       cpu: "EPYC-v3"
       memory: 32768

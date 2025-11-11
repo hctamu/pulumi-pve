@@ -18,13 +18,21 @@ package vm_test
 
 import (
 	"context"
+	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-	p "github.com/pulumi/pulumi-go-provider"
-	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vitorsalgado/mocha/v3"
+	"github.com/vitorsalgado/mocha/v3/expect"
+	"github.com/vitorsalgado/mocha/v3/params"
+	"github.com/vitorsalgado/mocha/v3/reply"
+
+	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // Helper function to create a pointer to a string
@@ -212,12 +220,13 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 	storage := "local-lvm"
 
 	tests := []struct {
-		name          string
-		inputEfiDisk  *vmResource.EfiDisk
-		stateEfiDisk  *vmResource.EfiDisk
-		expectChange  bool
-		expectDiffKey string
-		description   string
+		name           string
+		inputEfiDisk   *vmResource.EfiDisk
+		stateEfiDisk   *vmResource.EfiDisk
+		expectChange   bool
+		expectDiffKeys []string // Changed to support multiple granular keys
+		expectDiffKey  string   // Keep for backward compatibility (added/removed)
+		description    string
 	}{
 		{
 			name: "efi disk added",
@@ -238,11 +247,12 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			description:   "Removing EFI disk should trigger diff",
 		},
 		{
-			name:         "efi disk type changed",
-			inputEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
-			stateEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
-			expectChange: true,
-			description:  "Changing EFI type should trigger diff",
+			name:           "efi disk type changed",
+			inputEfiDisk:   &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
+			stateEfiDisk:   &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
+			expectChange:   true,
+			expectDiffKeys: []string{"efidisk.efitype"},
+			description:    "Changing EFI type should trigger diff on efitype only",
 		},
 		{
 			name:         "efi disk unchanged",
@@ -277,8 +287,9 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType: vmResource.EfiType4M,
 			},
-			expectChange: true,
-			description:  "Explicitly set FileID that differs should trigger diff",
+			expectChange:   true,
+			expectDiffKeys: []string{"efidisk.fileId"},
+			description:    "Explicitly set FileID that differs should trigger diff on fileId only",
 		},
 		{
 			name: "FileID same in both - no change",
@@ -301,8 +312,9 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 				EfiType:         vmResource.EfiType4M,
 				PreEnrolledKeys: boolPtr(true),
 			},
-			expectChange: true,
-			description:  "Changing PreEnrolledKeys should trigger diff",
+			expectChange:   true,
+			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
+			description:    "Changing PreEnrolledKeys should trigger diff on preEnrolledKeys only",
 		},
 		{
 			name: "PreEnrolledKeys added",
@@ -313,8 +325,9 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType: vmResource.EfiType4M,
 			},
-			expectChange: true,
-			description:  "Adding PreEnrolledKeys should trigger diff",
+			expectChange:   true,
+			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
+			description:    "Adding PreEnrolledKeys should trigger diff on preEnrolledKeys only",
 		},
 		{
 			name: "PreEnrolledKeys removed",
@@ -325,8 +338,9 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 				EfiType:         vmResource.EfiType4M,
 				PreEnrolledKeys: boolPtr(true),
 			},
-			expectChange: true,
-			description:  "Removing PreEnrolledKeys should trigger diff",
+			expectChange:   true,
+			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
+			description:    "Removing PreEnrolledKeys should trigger diff on preEnrolledKeys only",
 		},
 		{
 			name: "PreEnrolledKeys unchanged",
@@ -389,7 +403,14 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			if tt.expectChange {
 				assert.True(t, resp.HasChanges, tt.description)
 				if tt.expectDiffKey != "" {
+					// For added/removed cases, check the single key
 					assert.Contains(t, resp.DetailedDiff, tt.expectDiffKey, "Expected diff key to be present")
+				}
+				if len(tt.expectDiffKeys) > 0 {
+					// For granular changes, verify each expected key is present
+					for _, key := range tt.expectDiffKeys {
+						assert.Contains(t, resp.DetailedDiff, key, "Expected granular diff key to be present: %s", key)
+					}
 				}
 			} else {
 				assert.False(t, resp.HasChanges, tt.description)
@@ -597,7 +618,8 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	assert.Contains(t, resp.DetailedDiff, "memory")
 	assert.Contains(t, resp.DetailedDiff, "cores")
 	assert.Contains(t, resp.DetailedDiff, "disks")
-	assert.Contains(t, resp.DetailedDiff, "efidisk")
+	// EfiDisk now produces granular diffs
+	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
 
 	// All should be updates, not replacements
 	for key, diff := range resp.DetailedDiff {
@@ -691,4 +713,188 @@ func TestVMDiffDiskFileIDIgnored(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMUpdateEfiDiskSuccess(t *testing.T) {
+	mock, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	// Mock GET /cluster/status (called by FindVirtualMachine -> Cluster())
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/status (called by Node())
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/status/current to check VM exists
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	//  Mock GET /nodes/{node}/qemu/{vmid}/config (called by node.VirtualMachine())
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"vmid":100,"name":"test-vm"}}`,
+			)),
+	).Enable()
+
+	// Mock POST /nodes/{node}/qemu/{vmid}/config for the update (go-proxmox uses POST not PUT)
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
+	).Enable()
+
+	// Mock task status endpoint - return completed task
+	// Must include all Task fields to prevent copier.Copy from clearing them during unmarshal
+	// Use ReplyFunction instead of Reply when using Repeat (mocha bug workaround)
+	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
+		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
+		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(taskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}).
+			Repeat(10), // Wait() calls Ping() multiple times
+	).Enable()
+
+	vm := &vmResource.VM{}
+	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
+		ID: "100",
+		Inputs: vmResource.Inputs{
+			VMID: intPtr(vmID),
+			Name: strPtr("test-vm"),
+			EfiDisk: &vmResource.EfiDisk{
+				EfiType: vmResource.EfiType4M, // Changed from 2m
+			},
+		},
+		State: vmResource.Outputs{
+			Inputs: vmResource.Inputs{
+				VMID: intPtr(vmID),
+				Name: strPtr("test-vm"),
+				Node: &nodeName,
+				EfiDisk: &vmResource.EfiDisk{
+					EfiType: vmResource.EfiType2M,
+				},
+			},
+		},
+	}
+
+	// Set storage and FileID on diskBase (embedded struct)
+	req.Inputs.EfiDisk.Storage = "local-lvm"
+	req.State.EfiDisk.Storage = "local-lvm"
+	req.State.EfiDisk.FileID = strPtr("vm-100-disk-0")
+
+	resp, err := vm.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, vmResource.EfiType4M, resp.Output.EfiDisk.EfiType)
+	// FileID should have been copied from state
+	assert.Equal(t, "vm-100-disk-0", *resp.Output.EfiDisk.FileID)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
+	mock, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"vmid":100,"name":"test-vm"}}`,
+			)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
+	).Enable()
+
+	// Mock task status endpoint - return completed task
+	// Must include all Task fields to prevent copier.Copy from clearing them during unmarshal
+	// Use ReplyFunction instead of Reply when using Repeat (mocha bug workaround)
+	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
+		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
+		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(taskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}).
+			Repeat(10), // Wait() calls Ping() multiple times
+	).Enable()
+
+	vm := &vmResource.VM{}
+	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
+		ID: "100",
+		Inputs: vmResource.Inputs{
+			VMID: intPtr(vmID),
+			Name: strPtr("test-vm"),
+			EfiDisk: &vmResource.EfiDisk{
+				EfiType:         vmResource.EfiType4M,
+				PreEnrolledKeys: boolPtr(true), // Changed from nil
+			},
+		},
+		State: vmResource.Outputs{
+			Inputs: vmResource.Inputs{
+				VMID: intPtr(vmID),
+				Name: strPtr("test-vm"),
+				Node: &nodeName,
+				EfiDisk: &vmResource.EfiDisk{
+					EfiType: vmResource.EfiType4M,
+				},
+			},
+		},
+	}
+
+	// Set storage and FileID on diskBase
+	req.Inputs.EfiDisk.Storage = "local-lvm"
+	req.State.EfiDisk.Storage = "local-lvm"
+	req.State.EfiDisk.FileID = strPtr("vm-100-disk-0")
+
+	resp, err := vm.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, *resp.Output.EfiDisk.PreEnrolledKeys)
 }

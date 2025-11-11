@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"strconv"
 	"time"
@@ -40,7 +41,7 @@ var (
 	_ = (infer.CustomRead[Inputs, Outputs])((*VM)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*VM)(nil))
 	_ = (infer.CustomDiff[Inputs, Outputs])((*VM)(nil))
-	_ = (infer.Annotated)((*Inputs)(nil))
+	_ = infer.Annotated((*Inputs)(nil))
 )
 
 // Outputs represents the output state of a Proxmox virtual machine resource.
@@ -63,7 +64,7 @@ func (vm *VM) Create(
 		return response, nil
 	}
 
-	pxClient, err := client.GetProxmoxClient(ctx)
+	pxClient, err := client.GetProxmoxClientFn(ctx)
 	if err != nil {
 		return response, err
 	}
@@ -114,6 +115,12 @@ func (vm *VM) Create(
 	if response.Output, err = readCurrentOutput(ctx, vm, &request); err != nil {
 		l.Errorf("error: %v", err)
 		return response, err
+	}
+
+	// Preserve EFI disk FileID if user did not supply it
+	if (request.Inputs.EfiDisk != nil && response.Output.EfiDisk != nil) &&
+		(request.Inputs.EfiDisk.FileID == nil) {
+		request.Inputs.EfiDisk.FileID = response.Output.EfiDisk.FileID
 	}
 
 	return response, nil
@@ -222,7 +229,7 @@ func getNodeName(inputs Inputs, cluster *api.Cluster) (string, error) {
 
 // handleClone handles the cloning of a virtual machine.
 func handleClone(ctx context.Context, inputs Inputs) (createTask *api.Task, err error) {
-	pxc, err := client.GetProxmoxClient(ctx)
+	pxc, err := client.GetProxmoxClientFn(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +264,7 @@ func handleNewVM(
 	inputs Inputs,
 	options []api.VirtualMachineOption,
 ) (createTask *api.Task, err error) {
-	pxc, err := client.GetProxmoxClient(ctx)
+	pxc, err := client.GetProxmoxClientFn(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +305,7 @@ func (vm *VM) Read(
 	}
 
 	var pxClient *px.Client
-	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxClient, err = client.GetProxmoxClientFn(ctx); err != nil {
 		err = fmt.Errorf("failed to get Proxmox client: %v", err)
 		l.Errorf("Error during getting Proxmox client: %v", err)
 		return response, err
@@ -330,6 +337,41 @@ func (vm *VM) Read(
 	return response, nil
 }
 
+// copyMissingDiskFileIDs propagates FileID values from the current state into the
+// user inputs when the user omitted them. This prevents unnecessary disk recreation
+// during Update operations when the intention is to keep existing disks.
+// Matching is done by disk Interface. EFI disk handled separately.
+func copyMissingDiskFileIDs(inputs *Inputs, state Inputs) {
+	// Regular disks
+	if len(inputs.Disks) > 0 && len(state.Disks) > 0 {
+		stateByInterface := make(map[string]*Disk, len(state.Disks))
+		for _, stateDisk := range state.Disks {
+			if stateDisk != nil && stateDisk.Interface != "" {
+				stateByInterface[stateDisk.Interface] = stateDisk
+			}
+		}
+
+		for _, inputDisk := range inputs.Disks {
+			if inputDisk == nil || inputDisk.Interface == "" {
+				continue
+			}
+			if inputDisk.FileID == nil {
+				// Only copy when user did not supply a value
+				if stateDisk, ok := stateByInterface[inputDisk.Interface]; ok && stateDisk.FileID != nil {
+					inputDisk.FileID = stateDisk.FileID
+				}
+			}
+		}
+	}
+
+	// EFI disk
+	if inputs.EfiDisk != nil && state.EfiDisk != nil {
+		if inputs.EfiDisk.FileID == nil && state.EfiDisk.FileID != nil {
+			inputs.EfiDisk.FileID = state.EfiDisk.FileID
+		}
+	}
+}
+
 // Update updates the state of the virtual machine.
 func (vm *VM) Update(
 	ctx context.Context,
@@ -348,6 +390,9 @@ func (vm *VM) Update(
 		request.Inputs.Node = nodeID
 	}
 
+	// Propagate missing FileIDs from state to inputs to avoid recreating disks/efi disk
+	copyMissingDiskFileIDs(&request.Inputs, request.State.Inputs)
+
 	response.Output = Outputs{
 		Inputs: request.Inputs,
 	}
@@ -357,7 +402,7 @@ func (vm *VM) Update(
 	}
 
 	var pxClient *px.Client
-	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxClient, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, err
 	}
 
@@ -365,12 +410,34 @@ func (vm *VM) Update(
 	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.State.Node); err != nil {
 		return response, err
 	}
+
+	if request.Inputs.EfiDisk == nil {
+		if err := removeEfiDisk(ctx, virtualMachine); err != nil {
+			return response, err
+		}
+	}
+
 	l.Debugf("VM: %v", virtualMachine)
 	options := request.Inputs.BuildOptionsDiff(*vmID, &request.State.Inputs)
 	l.Debugf("Update options: %+v", options)
 
 	var task *api.Task
 	if task, err = virtualMachine.Config(ctx, options...); err != nil {
+		err = fmt.Errorf("failed to update VM %d: %v", *vmID, err)
+		return response, err
+	}
+
+	// Wait for the task to complete
+	interval := 5 * time.Second
+	timeout := time.Duration(60) * time.Second
+	if err = task.Wait(ctx, interval, timeout); err != nil {
+		err = fmt.Errorf("failed to wait for VM %d update: %v", *vmID, err)
+		return response, err
+	}
+
+	// Check task status and handle failure
+	if task.IsFailed {
+		err = fmt.Errorf("update task for VM %d failed: %v", *vmID, task.ExitStatus)
 		return response, err
 	}
 
@@ -387,7 +454,7 @@ func (vm *VM) Delete(
 	l.Debugf("Deleting VM: %v", request.ID)
 
 	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
 		return response, fmt.Errorf("failed to get Proxmox client: %v", err)
 	}
 
@@ -446,42 +513,72 @@ func disksChanged(inputDisks, stateDisks []*Disk) bool {
 	return false
 }
 
-// efiDiskChanged compares two EfiDisk instances and returns true if they have meaningful changes.
-// FileID differences are ignored when the input FileID is nil (computed field).
-func efiDiskChanged(inputEfi, stateEfi *EfiDisk) bool {
-	// Compare non-FileID fields
+// compareEfiDiskFields compares two EfiDisk instances and returns a map of property diffs
+// for each changed field. This provides granular diff information instead of treating
+// the entire efidisk as a single changed property.
+func compareEfiDiskFields(inputEfi, stateEfi *EfiDisk) map[string]p.PropertyDiff {
+	diffs := make(map[string]p.PropertyDiff)
+
+	// Compare Storage
 	if inputEfi.Storage != stateEfi.Storage {
-		return true
-	}
-	if inputEfi.EfiType != stateEfi.EfiType {
-		return true
+		diffs["efidisk.storage"] = p.PropertyDiff{Kind: p.Update}
 	}
 
-	// Compare PreEnrolledKeys if both are set
-	if inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys != nil {
+	// Compare EfiType
+	if inputEfi.EfiType != stateEfi.EfiType {
+		diffs["efidisk.efitype"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	// Compare PreEnrolledKeys
+	switch {
+	case inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys != nil:
 		if *inputEfi.PreEnrolledKeys != *stateEfi.PreEnrolledKeys {
-			return true
+			diffs["efidisk.preEnrolledKeys"] = p.PropertyDiff{Kind: p.Update}
 		}
-	} else if inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys == nil {
-		// Input has PreEnrolledKeys but state doesn't - this is a change
-		return true
-	} else if inputEfi.PreEnrolledKeys == nil && stateEfi.PreEnrolledKeys != nil {
-		// State has PreEnrolledKeys but input doesn't - this is a change
-		return true
+	case inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys == nil:
+		diffs["efidisk.preEnrolledKeys"] = p.PropertyDiff{Kind: p.Update}
+	case inputEfi.PreEnrolledKeys == nil && stateEfi.PreEnrolledKeys != nil:
+		diffs["efidisk.preEnrolledKeys"] = p.PropertyDiff{Kind: p.Update}
 	}
 
 	// Only compare FileID if input explicitly set it (not nil)
 	if inputEfi.FileID != nil && stateEfi.FileID != nil {
 		if *inputEfi.FileID != *stateEfi.FileID {
-			return true
+			diffs["efidisk.fileId"] = p.PropertyDiff{Kind: p.Update}
 		}
 	} else if inputEfi.FileID != nil && stateEfi.FileID == nil {
-		// Input has FileID but state doesn't - this is a change
-		return true
+		diffs["efidisk.fileId"] = p.PropertyDiff{Kind: p.Update}
 	}
 	// If input.FileID is nil but state.FileID has value, ignore it (computed field)
 
-	return false
+	return diffs
+}
+
+// handleEfiDiskDiff processes EfiDisk field comparison.
+// Returns a map of property diffs.
+func handleEfiDiskDiff(inField, stateField reflect.Value) (map[string]p.PropertyDiff, error) {
+	inNil := inField.IsNil()
+	stateNil := stateField.IsNil()
+	efiDiffs := make(map[string]p.PropertyDiff)
+
+	// EfiDisk added or removed
+	if inNil != stateNil {
+		efiDiffs[efiDiskInputName] = p.PropertyDiff{Kind: p.Update}
+		return efiDiffs, nil
+	}
+
+	// Both non-nil: compare with granular diffs
+	if !inNil && !stateNil {
+		inputEfi, okIn := inField.Interface().(*EfiDisk)
+		stateEfi, okState := stateField.Interface().(*EfiDisk)
+		if !okIn || !okState {
+			return nil, errors.New("failed to assert EfiDisk types during diff")
+		}
+
+		efiDiffs = compareEfiDiskFields(inputEfi, stateEfi)
+	}
+
+	return efiDiffs, nil
 }
 
 // Diff implements a custom diff so that computed fields like vmId (and node when auto-selected)
@@ -522,10 +619,18 @@ func (vm *VM) Diff(
 
 		var propertyDiff *p.PropertyDiff
 
-		// Handle slices (like Disks []*Disk)
-		if inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice {
+		switch {
+		case name == efiDiskInputName:
+			var efiDiff map[string]p.PropertyDiff
+			if efiDiff, err = handleEfiDiskDiff(inField, stateField); err != nil {
+				return p.DiffResponse{}, err
+			}
+			// Handle EfiDisk with granular diff support
+			maps.Copy(diff, efiDiff)
+		case inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice:
+			// Handle slices (like Disks []*Disk)
 			propertyDiff = compareSliceFields(name, inField, stateField)
-		} else if inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer {
+		case inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer:
 			// Handle pointer fields with special cases
 			propertyDiff = comparePointerFields(name, inField, stateField, computed)
 		}
@@ -544,7 +649,7 @@ func (vm *VM) Diff(
 }
 
 // comparePointerFields compares pointer fields and returns a PropertyDiff if they differ.
-// Handles computed fields and special cases like EfiDisk. Returns nil if no difference.
+// Handles computed fields and special cases. Returns nil if no difference.
 func comparePointerFields(
 	name string,
 	inField, stateField reflect.Value,
@@ -556,18 +661,6 @@ func comparePointerFields(
 	// Skip diff for computed property when user didn't provide (input nil) but state has a value
 	if _, isComputed := computed[name]; isComputed && inNil && !stateNil {
 		return nil
-	}
-
-	// Special handling for EfiDisk - ignore FileID differences when input FileID is nil
-	if name == "efidisk" && !inNil && !stateNil {
-		inputEfi, okIn := inField.Interface().(*EfiDisk)
-		stateEfi, okState := stateField.Interface().(*EfiDisk)
-		if okIn && okState {
-			if efiDiskChanged(inputEfi, stateEfi) {
-				return &p.PropertyDiff{Kind: p.Update}
-			}
-			return nil
-		}
 	}
 
 	// Clearing property or setting property (nil mismatch) -> update
@@ -680,12 +773,32 @@ func updateDisksAfterClone(
 		}
 	}
 
-	efiDiskOption := getDiskOption(options, efiDiskId)
+	efiDiskOption := getDiskOption(options, efiDiskID)
 	if efiDiskOption == nil && virtualMachine.VirtualMachineConfig.EFIDisk0 != "" {
 		// Remove not needed EFI disk
-		if _, err = virtualMachine.UnlinkDisk(ctx, efiDiskId, true); err != nil {
+		if _, err = virtualMachine.UnlinkDisk(ctx, efiDiskID, true); err != nil {
 			return fmt.Errorf("failed to unlink EFI disk: %v", err)
 		}
+	}
+
+	return nil
+}
+
+func removeEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) error {
+	var unlinkTask *api.Task
+	var err error
+	if unlinkTask, err = virtualMachine.UnlinkDisk(ctx, efiDiskID, true); err != nil {
+		return fmt.Errorf("failed to unlink EFI disk: %v", err)
+	}
+
+	interval := 5 * time.Second
+	timeout := time.Duration(60) * time.Second
+	if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
+		return fmt.Errorf("failed to wait for EFI disk removal task: %v", err)
+	}
+
+	if unlinkTask.IsFailed {
+		return fmt.Errorf("EFI disk removal task failed: %v", unlinkTask.ExitStatus)
 	}
 
 	return nil
@@ -701,6 +814,7 @@ func (inputs *Inputs) Annotate(a infer.Annotator) {
 	a.SetDefault(&inputs.Cores, 1)
 }
 
+// Annotate provides documentation for the EfiDisk type.
 func (efiDisk *EfiDisk) Annotate(a infer.Annotator) {
 	a.Describe(
 		&efiDisk,

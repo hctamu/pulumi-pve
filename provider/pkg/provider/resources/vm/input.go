@@ -29,10 +29,12 @@ import (
 )
 
 const (
-	efiDiskId = "efidisk0"
+	efiDiskID = "efidisk0"
 
 	// Efi disk size is constant because it is ignored by the API anyway
 	efiDiskSize = "1"
+
+	efiDiskInputName = "efidisk"
 )
 
 // Inputs represents the input configuration for a virtual machine.
@@ -329,8 +331,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 		Machine: strOrNil(vmConfig.Machine),
 		Bio:     strOrNil(vmConfig.Bios),
 
-		SMBios1: strOrNil(vmConfig.SMBios1),
-		Acpi:    intOrNil(vmConfig.Acpi),
+		Acpi: intOrNil(vmConfig.Acpi),
 
 		// Sockets:  intOrNil(vmConfig.Sockets),
 		Cores:    intOrNil(vmConfig.Cores),
@@ -455,7 +456,7 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	// Add EFI disk if configured
 	if inputs.EfiDisk != nil {
 		efiConfig := inputs.EfiDisk.ToProxmoxEfiDiskConfig()
-		options = append(options, api.VirtualMachineOption{Name: efiDiskId, Value: efiConfig})
+		options = append(options, api.VirtualMachineOption{Name: efiDiskID, Value: efiConfig})
 	}
 
 	for _, disk := range inputs.Disks {
