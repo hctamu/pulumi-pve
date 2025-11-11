@@ -51,10 +51,21 @@ type Inputs struct {
 	Keys      []string `pulumi:"keys,optional"`
 	Lastname  string   `pulumi:"lastname,optional"`
 	Password  string   `pulumi:"password,optional"  provider:"secret,replaceOnChanges"`
-	// Realm_type       string   `pulumi:"realm-type"`
-	// TFA_locked_until int      `pulumi:"tfa-locked-until,optional"`
-	// Tokens           []string `pulumi:"tokens,optional"`
-	// Totp_locked      bool     `pulumi:"totp-locked,optional"`
+}
+
+// Annotate is used to annotate the input and output properties of the resource.
+func (args *Inputs) Annotate(a infer.Annotator) {
+	a.Describe(&args.Name, "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').")
+	a.Describe(&args.Comment, "An optional comment for the user.")
+	a.Describe(&args.Email, "An optional email address for the user.")
+	a.SetDefault(&args.Enable, true)
+	a.Describe(&args.Enable, "Whether the user is enabled. Defaults to true.")
+	a.Describe(&args.Expire, "The expiration time for the user as a Unix timestamp.")
+	a.Describe(&args.Firstname, "The first name of the user.")
+	a.Describe(&args.Groups, "A list of groups the user belongs to.")
+	a.Describe(&args.Keys, "A list of SSH keys associated with the user.")
+	a.Describe(&args.Lastname, "The last name of the user.")
+	a.Describe(&args.Password, "The password for the user. This field is treated as a secret.")
 }
 
 // Outputs defines the output properties for a Proxmox user resource.
