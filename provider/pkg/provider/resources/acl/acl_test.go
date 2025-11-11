@@ -18,7 +18,7 @@ package acl_test
 import (
 	"context"
 	"errors"
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/blang/semver"
@@ -123,9 +123,7 @@ func aclLHealthyLifeCycleHelper(t *testing.T, typ, bodystring, ugid string) {
 		semver.Version{Minor: 1},
 		integration.WithProvider(provider.NewProvider()),
 	)
-	if err != nil {
-		t.Fatalf("server init: %v", err)
-	}
+	require.NoError(t, err)
 
 	integration.LifeCycleTest{
 		Resource: "pve:acl:ACL",
@@ -195,7 +193,7 @@ func TestACLCreateClientError(t *testing.T) {
 	}
 	_, err := acl.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 // aclCreateTypeNotFoundHelper is used to test Create failure when the specified type entity is not found.
@@ -204,13 +202,13 @@ func aclCreateTypeNotFoundHelper(t *testing.T, typ string) {
 	defer cleanup()
 
 	mock.AddMocks(
-		mocha.Get(expect.URLPath("/access/" + typ + "s/test" + typ)).Reply(reply.NotFound()),
+		mocha.Get(expect.URLPath("/access/" + typ + "s/test" + typ)).Reply(reply.InternalServerError()),
 	).Enable()
 
 	// env + client already configured
 
 	res := &aclResource.ACL{}
-	_, err := res.Create(context.Background(), infer.CreateRequest[aclResource.Inputs]{
+	response, err := res.Create(context.Background(), infer.CreateRequest[aclResource.Inputs]{
 		Name: "test" + typ,
 		Inputs: aclResource.Inputs{
 			Path:      "/",
@@ -220,9 +218,8 @@ func aclCreateTypeNotFoundHelper(t *testing.T, typ string) {
 			Propagate: true,
 		},
 	})
-	if err == nil || !strings.Contains(err.Error(), "failed to find "+typ) {
-		t.Fatalf("expected "+typ+" not found error, got %v", err)
-	}
+	assert.Error(t, err)
+	assert.EqualError(t, err, "failed to find "+typ+" "+response.Output.UGID+" for ACL: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -253,7 +250,7 @@ func TestACLCreateInvalidType(t *testing.T) {
 	}
 	_, err := acl.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid type")
+	assert.EqualError(t, err, "invalid type (must be 'user', 'group', or 'token')")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -281,7 +278,18 @@ func TestACLCreateCreationError(t *testing.T) {
 	}
 	_, err := acl.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create ACL")
+	assert.EqualError(
+		t,
+		err,
+		fmt.Sprintf(
+			"failed to create ACL %s (path=%s role=%s type=%s ugid=%s): 500 Internal Server Error",
+			request.Name,
+			request.Inputs.Path,
+			request.Inputs.RoleID,
+			request.Inputs.Type,
+			request.Inputs.UGID,
+		),
+	)
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -312,7 +320,11 @@ func TestACLCreateFetchError(t *testing.T) {
 	}
 	_, err := acl.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch ACL")
+	assert.EqualError(
+		t,
+		err,
+		"failed to fetch ACL "+request.Name+": failed to get ACLs: 500 Internal Server Error",
+	)
 }
 
 // Test does not set global environment variable, therefore can be parallelized!
@@ -334,7 +346,7 @@ func TestACLDeleteInvalidType(t *testing.T) {
 	}
 	_, err := acl.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid type")
+	assert.EqualError(t, err, "invalid type (must be 'user', 'group', or 'token')")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -358,7 +370,7 @@ func TestACLDeleteClientError(t *testing.T) {
 	}
 	_, err := acl.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -394,7 +406,7 @@ func TestACLDeleteDeletionError(t *testing.T) {
 	}
 	_, err := acl.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete ACL")
+	assert.EqualError(t, err, "failed to delete ACL "+request.ID+": 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -462,7 +474,7 @@ func TestACLReadClientError(t *testing.T) {
 		},
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -475,7 +487,7 @@ func TestACLReadACLIDError(t *testing.T) {
 		ID: "invalid-acl-id-format",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid ACL ID")
+	assert.EqualError(t, err, "invalid ACL ID: invalid-acl-id-format")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -503,5 +515,5 @@ func TestACLReadNotFound(t *testing.T) {
 	}
 	_, err := acl.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get ACL")
+	assert.EqualError(t, err, "failed to get ACL "+request.ID+": acl not found")
 }

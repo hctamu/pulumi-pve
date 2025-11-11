@@ -176,7 +176,7 @@ func TestUserCreateClientError(t *testing.T) {
 	}
 	_, err := user.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -199,7 +199,7 @@ func TestUserCreateCreationError(t *testing.T) {
 	}
 	_, err := user.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create user")
+	assert.EqualError(t, err, "failed to create user testuser: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -229,7 +229,7 @@ func TestUserCreateFetchError(t *testing.T) {
 	}
 	_, err := user.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to fetch user")
+	assert.EqualError(t, err, "failed to fetch user testuser: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -244,7 +244,7 @@ func TestUserDeleteClientError(t *testing.T) {
 	}
 	_, err := user.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -331,7 +331,7 @@ func TestUserReadClientError(t *testing.T) {
 	}
 	_, err := user.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -377,7 +377,7 @@ func TestUserReadGetResourceError(t *testing.T) {
 	}
 	_, err := user.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get user")
+	assert.EqualError(t, err, "failed to get user testuser: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -401,7 +401,7 @@ func TestUserUpdateClientError(t *testing.T) {
 	}
 	_, err := user.Update(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client error")
+	assert.EqualError(t, err, "client error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -430,5 +430,5 @@ func TestUserUpdateUpdateError(t *testing.T) {
 	}
 	_, err := user.Update(context.Background(), request)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to update user")
+	assert.EqualError(t, err, "failed to update user testuser: 500 Internal Server Error")
 }
