@@ -50,7 +50,7 @@ type Inputs struct {
 	Groups    []string `pulumi:"groups,optional"`
 	Keys      []string `pulumi:"keys,optional"`
 	Lastname  string   `pulumi:"lastname,optional"`
-	Password  string   `pulumi:"password,optional"  provider:"additionalSecretOutputs,replaceOnChanges"`
+	Password  string   `pulumi:"password,optional"  provider:"secret,replaceOnChanges"`
 	// Realm_type       string   `pulumi:"realm-type"`
 	// TFA_locked_until int      `pulumi:"tfa-locked-until,optional"`
 	// Tokens           []string `pulumi:"tokens,optional"`
@@ -195,6 +195,9 @@ func (user *User) Read(
 		response.State.Keys = nil
 	}
 
+	// update inputs to match state
+	response.Inputs = response.State.Inputs
+
 	l.Debugf("Returning updated user: %+v", response.State)
 	return response, nil
 }
@@ -262,7 +265,6 @@ func (user *User) Update(
 		Groups:    response.Output.Groups,
 		Keys:      utils.SliceToString(response.Output.Keys),
 		Lastname:  response.Output.Lastname,
-		// Password:  response.Output.Password,
 	}
 
 	// get client

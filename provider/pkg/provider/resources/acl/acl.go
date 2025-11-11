@@ -233,6 +233,9 @@ func (acl *ACL) Read(
 		},
 	}
 
+	// update inputs to match state
+	response.Inputs = response.State.Inputs
+
 	l.Debugf("Returning updated ACL: %+v", response.State)
 	return response, nil
 }
