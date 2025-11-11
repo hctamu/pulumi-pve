@@ -123,7 +123,7 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 			property.New("ssh-ed25519"),
 			property.New("ssh-rsa"),
 		})),
-		"password": property.New(""),
+		"password": property.New("").WithSecret(true),
 	})
 
 	integration.LifeCycleTest{
