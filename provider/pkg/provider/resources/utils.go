@@ -108,7 +108,7 @@ type DeletedResource struct {
 
 // DeleteResource is used to delete a resource
 func DeleteResource(r DeletedResource) (response infer.DeleteResponse, err error) {
-	// only can you this function if resource has DELETE method implemented in proxmox client
+	// this function can be used only if resource has DELETE method implemented in proxmox client
 	// check: https://pve.proxmox.com/pve-docs/api-viewer/
 	l := p.GetLogger(r.Ctx)
 	l.Debugf("Deleting %s %s", r.ResourceType, r.ResourceID)
