@@ -453,9 +453,6 @@
         "affinity": {
           "type": "string"
         },
-        "agent": {
-          "type": "string"
-        },
         "audio0": {
           "type": "string"
         },
@@ -466,9 +463,6 @@
           "type": "integer"
         },
         "bios": {
-          "type": "string"
-        },
-        "boot": {
           "type": "string"
         },
         "cicustom": {
@@ -547,9 +541,6 @@
         "nameserver": {
           "type": "string"
         },
-        "net0": {
-          "type": "string"
-        },
         "node": {
           "type": "string"
         },
@@ -558,9 +549,6 @@
         },
         "numa0": {
           "type": "string"
-        },
-        "onboot": {
-          "type": "integer"
         },
         "ostype": {
           "type": "string"
@@ -574,29 +562,17 @@
         "rng0": {
           "type": "string"
         },
-        "scsihw": {
-          "type": "string"
-        },
         "searchdomain": {
           "type": "string"
         },
         "serial0": {
           "type": "string"
         },
-        "smbios1": {
-          "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
-        },
         "sshkeys": {
           "type": "string"
         },
         "tablet": {
           "type": "integer"
-        },
-        "tags": {
-          "type": "string"
         },
         "template": {
           "type": "integer"
@@ -629,9 +605,6 @@
         "affinity": {
           "type": "string"
         },
-        "agent": {
-          "type": "string"
-        },
         "audio0": {
           "type": "string"
         },
@@ -642,9 +615,6 @@
           "type": "integer"
         },
         "bios": {
-          "type": "string"
-        },
-        "boot": {
           "type": "string"
         },
         "cicustom": {
@@ -723,9 +693,6 @@
         "nameserver": {
           "type": "string"
         },
-        "net0": {
-          "type": "string"
-        },
         "node": {
           "type": "string"
         },
@@ -734,9 +701,6 @@
         },
         "numa0": {
           "type": "string"
-        },
-        "onboot": {
-          "type": "integer"
         },
         "ostype": {
           "type": "string"
@@ -750,29 +714,17 @@
         "rng0": {
           "type": "string"
         },
-        "scsihw": {
-          "type": "string"
-        },
         "searchdomain": {
           "type": "string"
         },
         "serial0": {
           "type": "string"
         },
-        "smbios1": {
-          "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
-        },
         "sshkeys": {
           "type": "string"
         },
         "tablet": {
           "type": "integer"
-        },
-        "tags": {
-          "type": "string"
         },
         "template": {
           "type": "integer"
