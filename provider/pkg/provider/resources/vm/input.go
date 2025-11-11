@@ -56,25 +56,25 @@ type Inputs struct {
 	Hookscript  *string `pulumi:"hookscript,optional"`
 	Hotplug     *string `pulumi:"hotplug,optional"`
 	Template    *int    `pulumi:"template,optional"`
-	Agent       *string `pulumi:"agent,optional"`
-	Autostart   *int    `pulumi:"autostart,optional"`
-	Tablet      *int    `pulumi:"tablet,optional"`
-	KVM         *int    `pulumi:"kvm,optional"`
-	Tags        *string `pulumi:"tags,optional"`
-	Protection  *int    `pulumi:"protection,optional"`
-	Lock        *string `pulumi:"lock,optional"`
+	// Agent       *string `pulumi:"agent,optional"`
+	Autostart *int `pulumi:"autostart,optional"`
+	Tablet    *int `pulumi:"tablet,optional"`
+	KVM       *int `pulumi:"kvm,optional"`
+	// Tags       *string `pulumi:"tags,optional"`
+	Protection *int    `pulumi:"protection,optional"`
+	Lock       *string `pulumi:"lock,optional"`
 
-	Boot   *string `pulumi:"boot,optional"`
-	OnBoot *int    `pulumi:"onboot,optional"`
+	// Boot   *string `pulumi:"boot,optional"`
+	// OnBoot *int    `pulumi:"onboot,optional"`
 
 	OSType   *string `pulumi:"ostype,optional"`
 	Machine  *string `pulumi:"machine,optional"`
 	Bio      *string `pulumi:"bios,optional"`
 	EFIDisk0 *string `pulumi:"efidisk0,optional"`
-	SMBios1  *string `pulumi:"smbios1,optional"`
-	Acpi     *int    `pulumi:"acpi,optional"`
+	// SMBios1  *string `pulumi:"smbios1,optional"`
+	Acpi *int `pulumi:"acpi,optional"`
 
-	Sockets  *int    `pulumi:"sockets,optional"`
+	// Sockets  *int    `pulumi:"sockets,optional"`
 	Cores    *int    `pulumi:"cores,optional"`
 	CPU      *string `pulumi:"cpu,optional"`
 	CPULimit *string `pulumi:"cpulimit,optional"`
@@ -87,15 +87,15 @@ type Inputs struct {
 	Hugepages *string `pulumi:"hugepages,optional"`
 	Balloon   *int    `pulumi:"balloon,optional"`
 
-	VGA       *string `pulumi:"vga,optional"`
-	SCSIHW    *string `pulumi:"scsihw,optional"`
+	VGA *string `pulumi:"vga,optional"`
+	// SCSIHW    *string `pulumi:"scsihw,optional"`
 	TPMState0 *string `pulumi:"tpmstate0,optional"`
 	Rng0      *string `pulumi:"rng0,optional"`
 	Audio0    *string `pulumi:"audio0,optional"`
 
 	Disks []*Disk `pulumi:"disks"`
 
-	Net0 *string `pulumi:"net0,optional"`
+	// Net0 *string `pulumi:"net0,optional"`
 
 	Numa0 *string `pulumi:"numa0,optional"`
 
@@ -131,18 +131,32 @@ type Clone struct {
 }
 
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
+func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Inputs, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
 	// Sort disk interfaces to ensure consistent ordering
-	diskInterfaces := resources.GetSortedMapKeys(diskMap)
+	disks := []*Disk{}
+	var checkedDisks []string
 
-	disks := make([]*Disk, 0, len(diskMap))
-	for _, diskInterface := range diskInterfaces {
-		diskStr := diskMap[diskInterface]
+	for _, currentDisk := range currentInput.Disks {
+		// check if current input disk is in the read config
+		if _, exists := diskMap[currentDisk.Interface]; exists {
+			disk := &Disk{Interface: currentDisk.Interface}
+			checkedDisks = append(checkedDisks, currentDisk.Interface)
+			if err := disk.ParseDiskConfig(diskMap[currentDisk.Interface]); err != nil {
+				return Inputs{}, err
+			}
+			disks = append(disks, disk)
+		}
+	}
+
+	for diskInterface, diskParams := range diskMap {
+		if slices.Contains(checkedDisks, diskInterface) {
+			continue
+		}
 		disk := Disk{Interface: diskInterface}
-		if err := disk.ParseDiskConfig(diskStr); err != nil {
+		if err := disk.ParseDiskConfig(diskParams); err != nil {
 			return Inputs{}, err
 		}
 		disks = append(disks, &disk)
@@ -161,25 +175,25 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		Hookscript:  strOrNil(vmConfig.Hookscript),
 		Hotplug:     strOrNil(vmConfig.Hotplug),
 		Template:    intOrNil(vmConfig.Template),
-		Agent:       strOrNil(vmConfig.Agent),
-		Autostart:   intOrNil(vmConfig.Autostart),
-		Tablet:      intOrNil(vmConfig.Tablet),
-		KVM:         intOrNil(vmConfig.KVM),
-		Tags:        strOrNil(vmConfig.Tags),
-		Protection:  intOrNil(vmConfig.Protection),
-		Lock:        strOrNil(vmConfig.Lock),
+		// Agent:       strOrNil(vmConfig.Agent),
+		Autostart: intOrNil(vmConfig.Autostart),
+		Tablet:    intOrNil(vmConfig.Tablet),
+		KVM:       intOrNil(vmConfig.KVM),
+		// Tags:       strOrNil(vmConfig.Tags),
+		Protection: intOrNil(vmConfig.Protection),
+		Lock:       strOrNil(vmConfig.Lock),
 
-		Boot:   strOrNil(vmConfig.Boot),
-		OnBoot: intOrNil(vmConfig.OnBoot),
+		// Boot:   strOrNil(vmConfig.Boot),
+		// OnBoot: intOrNil(vmConfig.OnBoot),
 
 		OSType:   strOrNil(vmConfig.OSType),
 		Machine:  strOrNil(vmConfig.Machine),
 		Bio:      strOrNil(vmConfig.Bios),
 		EFIDisk0: strOrNil(vmConfig.EFIDisk0),
-		SMBios1:  strOrNil(vmConfig.SMBios1),
-		Acpi:     intOrNil(vmConfig.Acpi),
+		// SMBios1:  strOrNil(vmConfig.SMBios1),
+		Acpi: intOrNil(vmConfig.Acpi),
 
-		Sockets:  intOrNil(vmConfig.Sockets),
+		// Sockets:  intOrNil(vmConfig.Sockets),
 		Cores:    intOrNil(vmConfig.Cores),
 		CPU:      strOrNil(vmConfig.CPU),
 		CPUUnits: intOrNil(vmConfig.CPUUnits),
@@ -191,15 +205,15 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		Hugepages: strOrNil(vmConfig.Hugepages),
 		Balloon:   intOrNil(vmConfig.Balloon),
 
-		VGA:       strOrNil(vmConfig.VGA),
-		SCSIHW:    strOrNil(vmConfig.SCSIHW),
+		VGA: strOrNil(vmConfig.VGA),
+		// SCSIHW:    strOrNil(vmConfig.SCSIHW),
 		TPMState0: strOrNil(vmConfig.TPMState0),
 		Rng0:      strOrNil(vmConfig.Rng0),
 		Audio0:    strOrNil(vmConfig.Audio0),
 
 		Disks: disks,
 
-		Net0: strOrNil(vmConfig.Net0),
+		// Net0: strOrNil(vmConfig.Net0),
 
 		Numa0: strOrNil(vmConfig.Numa0),
 
@@ -240,8 +254,8 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
 	compareAndAddOption("protection", &options, inputs.Protection, currentInputs.Protection)
 	compareAndAddOption("lock", &options, inputs.Lock, currentInputs.Lock)
-	compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
-	compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
+	// compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
+	// compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
 	compareAndAddOption("cpu", &options, inputs.CPU, currentInputs.CPU)
 	compareAndAddOption("cpulimit", &options, inputs.CPULimit, currentInputs.CPULimit)
 	compareAndAddOption("cpuunits", &options, inputs.CPUUnits, currentInputs.CPUUnits)
@@ -249,9 +263,9 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("hugepages", &options, inputs.Hugepages, currentInputs.Hugepages)
 	compareAndAddOption("balloon", &options, inputs.Balloon, currentInputs.Balloon)
 	compareAndAddOption("vga", &options, inputs.VGA, currentInputs.VGA)
-	compareAndAddOption("scsihw", &options, inputs.SCSIHW, currentInputs.SCSIHW)
+	// compareAndAddOption("scsihw", &options, inputs.SCSIHW, currentInputs.SCSIHW)
 	compareAndAddOption("ostype", &options, inputs.OSType, currentInputs.OSType)
-	compareAndAddOption("tags", &options, inputs.Tags, currentInputs.Tags)
+	// compareAndAddOption("tags", &options, inputs.Tags, currentInputs.Tags)
 	compareAndAddOption("citype", &options, inputs.CIType, currentInputs.CIType)
 	compareAndAddOption("ciuser", &options, inputs.CIUser, currentInputs.CIUser)
 	compareAndAddOption("cipassword", &options, inputs.CIPassword, currentInputs.CIPassword)
@@ -260,7 +274,7 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("sshkeys", &options, inputs.SSHKeys, currentInputs.SSHKeys)
 	compareAndAddOption("cicustom", &options, inputs.CICustom, currentInputs.CICustom)
 	compareAndAddOption("ciupgrade", &options, inputs.CIUpgrade, currentInputs.CIUpgrade)
-	compareAndAddOption("net0", &options, inputs.Net0, currentInputs.Net0)
+	// compareAndAddOption("net0", &options, inputs.Net0, currentInputs.Net0)
 
 	if !slices.Equal(inputs.Disks, currentInputs.Disks) {
 		for _, disk := range inputs.Disks {
@@ -283,8 +297,8 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("autostart", &options, inputs.Autostart)
 	addOption("protection", &options, inputs.Protection)
 	addOption("lock", &options, inputs.Lock)
-	addOption("boot", &options, inputs.Boot)
-	addOption("onboot", &options, inputs.OnBoot)
+	// addOption("boot", &options, inputs.Boot)
+	// addOption("onboot", &options, inputs.OnBoot)
 	addOption("cpu", &options, inputs.CPU)
 	addOption("cpulimit", &options, inputs.CPULimit)
 	addOption("cpuunits", &options, inputs.CPUUnits)
@@ -292,9 +306,9 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("hugepages", &options, inputs.Hugepages)
 	addOption("balloon", &options, inputs.Balloon)
 	addOption("vga", &options, inputs.VGA)
-	addOption("scsihw", &options, inputs.SCSIHW)
+	// addOption("scsihw", &options, inputs.SCSIHW)
 	addOption("ostype", &options, inputs.OSType)
-	addOption("tags", &options, inputs.Tags)
+	// addOption("tags", &options, inputs.Tags)
 	addOption("citype", &options, inputs.CIType)
 	addOption("ciuser", &options, inputs.CIUser)
 	addOption("cipassword", &options, inputs.CIPassword)
@@ -303,7 +317,7 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
-	addOption("net0", &options, inputs.Net0)
+	// addOption("net0", &options, inputs.Net0)
 
 	for _, disk := range inputs.Disks {
 		diskKey, diskConfig := disk.ToProxmoxDiskKeyConfig()
