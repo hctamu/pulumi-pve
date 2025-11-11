@@ -291,9 +291,8 @@ func (vm *VM) Read(
 		vmID = request.State.VMID
 		l.Debugf("Read VM with ID from state: %v", *vmID)
 	default:
-		err = errors.New("VMID is required for reading VM state but is nil in both inputs and state")
+		err = fmt.Errorf("VMID is required for reading VM state but is nil in both inputs and state")
 		l.Errorf("VMID is nil in both inputs and state during read operation")
-		return response, err
 	}
 
 	var pxClient *px.Client
