@@ -108,12 +108,12 @@ func (acl *ACL) Create(
 	switch request.Inputs.Type {
 	case ACLTypeGroup:
 		if _, err = pxc.Group(ctx, request.Inputs.UGID); err != nil {
-			return response, fmt.Errorf("failed to find group %q for ACL %s: %w", request.Inputs.UGID, request.Name, err)
+			return response, fmt.Errorf("failed to find group %s for ACL: %w", request.Inputs.UGID, err)
 		}
 		newACL.Groups = request.Inputs.UGID
 	case ACLTypeUser:
 		if _, err = pxc.User(ctx, request.Inputs.UGID); err != nil {
-			return response, fmt.Errorf("failed to find user %q for ACL %s: %w", request.Inputs.UGID, request.Name, err)
+			return response, fmt.Errorf("failed to find user %s for ACL: %w", request.Inputs.UGID, err)
 		}
 		newACL.Users = request.Inputs.UGID
 	case ACLTypeToken:
@@ -172,7 +172,7 @@ func (acl *ACL) Delete(
 
 	// perform delete
 	if err = pxc.Put(ctx, "/access/acl", deletedACL, nil); err != nil {
-		return response, fmt.Errorf("failed to delete ACL %v: %w", deletedACL, err)
+		return response, fmt.Errorf("failed to delete ACL %s: %w", request.ID, err)
 	}
 
 	l.Debugf("Successfully deleted ACL %v", request.State)
@@ -247,7 +247,7 @@ func composeACLID(acl Inputs) string {
 func decomposeACLID(id string) (acl Inputs, err error) {
 	parts := strings.Split(id, "|")
 	if len(parts) != 4 {
-		return Inputs{}, fmt.Errorf("invalid ACL ID %q", id)
+		return Inputs{}, fmt.Errorf("invalid ACL ID: %s", id)
 	}
 	acl = Inputs{
 		Path:      parts[0],

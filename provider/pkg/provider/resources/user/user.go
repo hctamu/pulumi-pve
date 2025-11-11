@@ -102,7 +102,7 @@ func (user *User) Create(
 
 	// perform create
 	if err = pxc.NewUser(ctx, &newUser); err != nil {
-		return response, fmt.Errorf("failed to create user: %v", err)
+		return response, fmt.Errorf("failed to create user %s: %v", request.Inputs.Name, err)
 	}
 
 	// fetch created resource to confirm
