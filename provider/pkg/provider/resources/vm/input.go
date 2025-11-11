@@ -136,9 +136,6 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 	diskMap := vmConfig.MergeDisks()
 
 	// Sort disk interfaces to ensure consistent ordering
-	diskInterfaces := resources.GetSortedMapKeys(diskMap)
-
-	// Sort disk interfaces to ensure consistent ordering
 	disks := []*Disk{}
 	var checkedDisks []string
 
