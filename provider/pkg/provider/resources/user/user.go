@@ -50,7 +50,7 @@ type Inputs struct {
 	Groups    []string `pulumi:"groups,optional"`
 	Keys      []string `pulumi:"keys,optional"`
 	Lastname  string   `pulumi:"lastname,optional"`
-	Password  string   `pulumi:"password,optional"  provider:"replaceOnChanges"`
+	Password  string   `pulumi:"password,optional"  provider:"additionalSecretOutputs,replaceOnChanges"`
 	// Realm_type       string   `pulumi:"realm-type"`
 	// TFA_locked_until int      `pulumi:"tfa-locked-until,optional"`
 	// Tokens           []string `pulumi:"tokens,optional"`
@@ -98,6 +98,11 @@ func (user *User) Create(
 		Keys:      request.Inputs.Keys,
 		Lastname:  request.Inputs.Lastname,
 		Password:  request.Inputs.Password,
+	}
+
+	// api.User and api.NewUser inconsistency
+	if len(newUser.Keys) == 0 {
+		newUser.Keys = nil
 	}
 
 	// perform create
@@ -181,8 +186,13 @@ func (user *User) Read(
 			Groups:    existingUser.Groups,
 			Keys:      utils.StringToSlice(existingUser.Keys),
 			Lastname:  existingUser.Lastname,
-			// Password:  existingUser.Password,
+			Password:  request.Inputs.Password,
 		},
+	}
+
+	// api.User and api.NewUser inconsistency
+	if len(response.State.Keys) == 0 {
+		response.State.Keys = nil
 	}
 
 	l.Debugf("Returning updated user: %+v", response.State)
