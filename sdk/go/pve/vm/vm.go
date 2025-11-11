@@ -17,12 +17,10 @@ type VM struct {
 
 	Acpi         pulumi.IntPtrOutput    `pulumi:"acpi"`
 	Affinity     pulumi.StringPtrOutput `pulumi:"affinity"`
-	Agent        pulumi.StringPtrOutput `pulumi:"agent"`
 	Audio0       pulumi.StringPtrOutput `pulumi:"audio0"`
 	Autostart    pulumi.IntPtrOutput    `pulumi:"autostart"`
 	Balloon      pulumi.IntPtrOutput    `pulumi:"balloon"`
 	Bios         pulumi.StringPtrOutput `pulumi:"bios"`
-	Boot         pulumi.StringPtrOutput `pulumi:"boot"`
 	Cicustom     pulumi.StringPtrOutput `pulumi:"cicustom"`
 	Cipassword   pulumi.StringPtrOutput `pulumi:"cipassword"`
 	Citype       pulumi.StringPtrOutput `pulumi:"citype"`
@@ -47,23 +45,17 @@ type VM struct {
 	Memory       pulumi.IntPtrOutput    `pulumi:"memory"`
 	Name         pulumi.StringOutput    `pulumi:"name"`
 	Nameserver   pulumi.StringPtrOutput `pulumi:"nameserver"`
-	Net0         pulumi.StringPtrOutput `pulumi:"net0"`
 	Node         pulumi.StringPtrOutput `pulumi:"node"`
 	Numa         pulumi.IntPtrOutput    `pulumi:"numa"`
 	Numa0        pulumi.StringPtrOutput `pulumi:"numa0"`
-	Onboot       pulumi.IntPtrOutput    `pulumi:"onboot"`
 	Ostype       pulumi.StringPtrOutput `pulumi:"ostype"`
 	Parallel0    pulumi.StringPtrOutput `pulumi:"parallel0"`
 	Protection   pulumi.IntPtrOutput    `pulumi:"protection"`
 	Rng0         pulumi.StringPtrOutput `pulumi:"rng0"`
-	Scsihw       pulumi.StringPtrOutput `pulumi:"scsihw"`
 	Searchdomain pulumi.StringPtrOutput `pulumi:"searchdomain"`
 	Serial0      pulumi.StringPtrOutput `pulumi:"serial0"`
-	Smbios1      pulumi.StringPtrOutput `pulumi:"smbios1"`
-	Sockets      pulumi.IntPtrOutput    `pulumi:"sockets"`
 	Sshkeys      pulumi.StringPtrOutput `pulumi:"sshkeys"`
 	Tablet       pulumi.IntPtrOutput    `pulumi:"tablet"`
-	Tags         pulumi.StringPtrOutput `pulumi:"tags"`
 	Template     pulumi.IntPtrOutput    `pulumi:"template"`
 	Tpmstate0    pulumi.StringPtrOutput `pulumi:"tpmstate0"`
 	Usb0         pulumi.StringPtrOutput `pulumi:"usb0"`
@@ -123,12 +115,10 @@ func (VMState) ElementType() reflect.Type {
 type vmArgs struct {
 	Acpi         *int    `pulumi:"acpi"`
 	Affinity     *string `pulumi:"affinity"`
-	Agent        *string `pulumi:"agent"`
 	Audio0       *string `pulumi:"audio0"`
 	Autostart    *int    `pulumi:"autostart"`
 	Balloon      *int    `pulumi:"balloon"`
 	Bios         *string `pulumi:"bios"`
-	Boot         *string `pulumi:"boot"`
 	Cicustom     *string `pulumi:"cicustom"`
 	Cipassword   *string `pulumi:"cipassword"`
 	Citype       *string `pulumi:"citype"`
@@ -153,23 +143,17 @@ type vmArgs struct {
 	Memory       *int    `pulumi:"memory"`
 	Name         string  `pulumi:"name"`
 	Nameserver   *string `pulumi:"nameserver"`
-	Net0         *string `pulumi:"net0"`
 	Node         *string `pulumi:"node"`
 	Numa         *int    `pulumi:"numa"`
 	Numa0        *string `pulumi:"numa0"`
-	Onboot       *int    `pulumi:"onboot"`
 	Ostype       *string `pulumi:"ostype"`
 	Parallel0    *string `pulumi:"parallel0"`
 	Protection   *int    `pulumi:"protection"`
 	Rng0         *string `pulumi:"rng0"`
-	Scsihw       *string `pulumi:"scsihw"`
 	Searchdomain *string `pulumi:"searchdomain"`
 	Serial0      *string `pulumi:"serial0"`
-	Smbios1      *string `pulumi:"smbios1"`
-	Sockets      *int    `pulumi:"sockets"`
 	Sshkeys      *string `pulumi:"sshkeys"`
 	Tablet       *int    `pulumi:"tablet"`
-	Tags         *string `pulumi:"tags"`
 	Template     *int    `pulumi:"template"`
 	Tpmstate0    *string `pulumi:"tpmstate0"`
 	Usb0         *string `pulumi:"usb0"`
@@ -182,12 +166,10 @@ type vmArgs struct {
 type VMArgs struct {
 	Acpi         pulumi.IntPtrInput
 	Affinity     pulumi.StringPtrInput
-	Agent        pulumi.StringPtrInput
 	Audio0       pulumi.StringPtrInput
 	Autostart    pulumi.IntPtrInput
 	Balloon      pulumi.IntPtrInput
 	Bios         pulumi.StringPtrInput
-	Boot         pulumi.StringPtrInput
 	Cicustom     pulumi.StringPtrInput
 	Cipassword   pulumi.StringPtrInput
 	Citype       pulumi.StringPtrInput
@@ -212,23 +194,17 @@ type VMArgs struct {
 	Memory       pulumi.IntPtrInput
 	Name         pulumi.StringInput
 	Nameserver   pulumi.StringPtrInput
-	Net0         pulumi.StringPtrInput
 	Node         pulumi.StringPtrInput
 	Numa         pulumi.IntPtrInput
 	Numa0        pulumi.StringPtrInput
-	Onboot       pulumi.IntPtrInput
 	Ostype       pulumi.StringPtrInput
 	Parallel0    pulumi.StringPtrInput
 	Protection   pulumi.IntPtrInput
 	Rng0         pulumi.StringPtrInput
-	Scsihw       pulumi.StringPtrInput
 	Searchdomain pulumi.StringPtrInput
 	Serial0      pulumi.StringPtrInput
-	Smbios1      pulumi.StringPtrInput
-	Sockets      pulumi.IntPtrInput
 	Sshkeys      pulumi.StringPtrInput
 	Tablet       pulumi.IntPtrInput
-	Tags         pulumi.StringPtrInput
 	Template     pulumi.IntPtrInput
 	Tpmstate0    pulumi.StringPtrInput
 	Usb0         pulumi.StringPtrInput
@@ -332,10 +308,6 @@ func (o VMOutput) Affinity() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Affinity }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Agent() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Agent }).(pulumi.StringPtrOutput)
-}
-
 func (o VMOutput) Audio0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Audio0 }).(pulumi.StringPtrOutput)
 }
@@ -350,10 +322,6 @@ func (o VMOutput) Balloon() pulumi.IntPtrOutput {
 
 func (o VMOutput) Bios() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Bios }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Boot() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Boot }).(pulumi.StringPtrOutput)
 }
 
 func (o VMOutput) Cicustom() pulumi.StringPtrOutput {
@@ -452,10 +420,6 @@ func (o VMOutput) Nameserver() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Nameserver }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Net0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Net0 }).(pulumi.StringPtrOutput)
-}
-
 func (o VMOutput) Node() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Node }).(pulumi.StringPtrOutput)
 }
@@ -466,10 +430,6 @@ func (o VMOutput) Numa() pulumi.IntPtrOutput {
 
 func (o VMOutput) Numa0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Numa0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Onboot() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Onboot }).(pulumi.IntPtrOutput)
 }
 
 func (o VMOutput) Ostype() pulumi.StringPtrOutput {
@@ -488,10 +448,6 @@ func (o VMOutput) Rng0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Rng0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Scsihw() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Scsihw }).(pulumi.StringPtrOutput)
-}
-
 func (o VMOutput) Searchdomain() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Searchdomain }).(pulumi.StringPtrOutput)
 }
@@ -500,24 +456,12 @@ func (o VMOutput) Serial0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Serial0 }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Smbios1() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Smbios1 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Sockets() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Sockets }).(pulumi.IntPtrOutput)
-}
-
 func (o VMOutput) Sshkeys() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Sshkeys }).(pulumi.StringPtrOutput)
 }
 
 func (o VMOutput) Tablet() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Tablet }).(pulumi.IntPtrOutput)
-}
-
-func (o VMOutput) Tags() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Tags }).(pulumi.StringPtrOutput)
 }
 
 func (o VMOutput) Template() pulumi.IntPtrOutput {
