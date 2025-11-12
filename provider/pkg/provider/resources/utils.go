@@ -55,17 +55,6 @@ func EndsWithLetter(str string) bool {
 	return unicode.IsLetter(lastChar)
 }
 
-// GetSortedMapKeys returns the keys of a map as a slice in no particular order.
-func GetSortedMapKeys[K cmp.Ordered, V any](inMap map[K]V) []K {
-	keys := make([]K, 0, len(inMap))
-	for key := range inMap {
-		keys = append(keys, key)
-	}
-
-	slices.Sort(keys)
-	return keys
-}
-
 // SliceToString is used to convert a slice of strings to a comma-separated string
 func SliceToString(slice []string) string {
 	if len(slice) == 0 {
