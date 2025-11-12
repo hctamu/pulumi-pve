@@ -291,8 +291,9 @@ func (vm *VM) Read(
 		vmID = request.State.VMID
 		l.Debugf("Read VM with ID from state: %v", *vmID)
 	default:
-		err = fmt.Errorf("VMID is required for reading VM state but is nil in both inputs and state")
+		err = errors.New("VMID is required for reading VM state but is nil in both inputs and state")
 		l.Errorf("VMID is nil in both inputs and state during read operation")
+		return response, err
 	}
 
 	var pxClient *px.Client
@@ -303,7 +304,6 @@ func (vm *VM) Read(
 	}
 
 	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
 	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
 	if err != nil {
 		l.Errorf("Error during finding VM %v: %v", *vmID, err)
