@@ -18,10 +18,10 @@ package resources
 
 import (
 	"cmp"
-	"slices"
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -139,4 +139,15 @@ func DeleteResource(r DeletedResource) (response infer.DeleteResponse, err error
 
 	l.Debugf("Successfully deleted %s %s", r.ResourceType, r.ResourceID)
 	return response, nil
+}
+
+// GetSortedMapKeys returns the keys of a map as a slice in no particular order.
+func GetSortedMapKeys[K cmp.Ordered, V any](inMap map[K]V) []K {
+	keys := make([]K, 0, len(inMap))
+	for key := range inMap {
+		keys = append(keys, key)
+	}
+
+	slices.Sort(keys)
+	return keys
 }
