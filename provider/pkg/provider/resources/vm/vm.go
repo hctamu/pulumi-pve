@@ -283,13 +283,14 @@ func (vm *VM) Read(
 
 	// Determine which VMID to use: inputs.vmid if not nil, otherwise state.vmid
 	var vmID *int
-	if request.Inputs.VMID != nil {
+	switch {
+	case request.Inputs.VMID != nil:
 		vmID = request.Inputs.VMID
 		l.Debugf("Read VM with ID from inputs: %v", *vmID)
-	} else if request.State.VMID != nil {
+	case request.State.VMID != nil:
 		vmID = request.State.VMID
 		l.Debugf("Read VM with ID from state: %v", *vmID)
-	} else {
+	default:
 		err = errors.New("VMID is required for reading VM state but is nil in both inputs and state")
 		l.Errorf("VMID is nil in both inputs and state during read operation")
 		return response, err
