@@ -246,7 +246,6 @@ func (inputs *Inputs) BuildOptionsDiff(
 	currentInputs *Inputs,
 ) (options []api.VirtualMachineOption) {
 	// Memory already stored in MB; no conversion required.
-
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
 	compareAndAddOption("cores", &options, inputs.Cores, currentInputs.Cores)
@@ -254,8 +253,6 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
 	compareAndAddOption("protection", &options, inputs.Protection, currentInputs.Protection)
 	compareAndAddOption("lock", &options, inputs.Lock, currentInputs.Lock)
-	// compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
-	// compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
 	compareAndAddOption("cpu", &options, inputs.CPU, currentInputs.CPU)
 	compareAndAddOption("cpulimit", &options, inputs.CPULimit, currentInputs.CPULimit)
 	compareAndAddOption("cpuunits", &options, inputs.CPUUnits, currentInputs.CPUUnits)
@@ -263,9 +260,7 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("hugepages", &options, inputs.Hugepages, currentInputs.Hugepages)
 	compareAndAddOption("balloon", &options, inputs.Balloon, currentInputs.Balloon)
 	compareAndAddOption("vga", &options, inputs.VGA, currentInputs.VGA)
-	// compareAndAddOption("scsihw", &options, inputs.SCSIHW, currentInputs.SCSIHW)
 	compareAndAddOption("ostype", &options, inputs.OSType, currentInputs.OSType)
-	// compareAndAddOption("tags", &options, inputs.Tags, currentInputs.Tags)
 	compareAndAddOption("citype", &options, inputs.CIType, currentInputs.CIType)
 	compareAndAddOption("ciuser", &options, inputs.CIUser, currentInputs.CIUser)
 	compareAndAddOption("cipassword", &options, inputs.CIPassword, currentInputs.CIPassword)
@@ -274,7 +269,12 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("sshkeys", &options, inputs.SSHKeys, currentInputs.SSHKeys)
 	compareAndAddOption("cicustom", &options, inputs.CICustom, currentInputs.CICustom)
 	compareAndAddOption("ciupgrade", &options, inputs.CIUpgrade, currentInputs.CIUpgrade)
+	//nolint:gocritic // commentedOutCode
+	// compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
+	// compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
+	// compareAndAddOption("scsihw", &options, inputs.SCSIHW, currentInputs.SCSIHW)
 	// compareAndAddOption("net0", &options, inputs.Net0, currentInputs.Net0)
+	// compareAndAddOption("tags", &options, inputs.Tags, currentInputs.Tags)
 
 	if !slices.Equal(inputs.Disks, currentInputs.Disks) {
 		for _, disk := range inputs.Disks {
@@ -297,8 +297,6 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("autostart", &options, inputs.Autostart)
 	addOption("protection", &options, inputs.Protection)
 	addOption("lock", &options, inputs.Lock)
-	// addOption("boot", &options, inputs.Boot)
-	// addOption("onboot", &options, inputs.OnBoot)
 	addOption("cpu", &options, inputs.CPU)
 	addOption("cpulimit", &options, inputs.CPULimit)
 	addOption("cpuunits", &options, inputs.CPUUnits)
@@ -306,9 +304,7 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("hugepages", &options, inputs.Hugepages)
 	addOption("balloon", &options, inputs.Balloon)
 	addOption("vga", &options, inputs.VGA)
-	// addOption("scsihw", &options, inputs.SCSIHW)
 	addOption("ostype", &options, inputs.OSType)
-	// addOption("tags", &options, inputs.Tags)
 	addOption("citype", &options, inputs.CIType)
 	addOption("ciuser", &options, inputs.CIUser)
 	addOption("cipassword", &options, inputs.CIPassword)
@@ -317,7 +313,12 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
+	//nolint:gocritic // commentedOutCode
 	// addOption("net0", &options, inputs.Net0)
+	// addOption("boot", &options, inputs.Boot)
+	// addOption("onboot", &options, inputs.OnBoot)
+	// addOption("tags", &options, inputs.Tags)
+	// addOption("scsihw", &options, inputs.SCSIHW)
 
 	for _, disk := range inputs.Disks {
 		diskKey, diskConfig := disk.ToProxmoxDiskKeyConfig()
