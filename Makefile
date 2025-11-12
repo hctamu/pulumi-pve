@@ -303,5 +303,4 @@ down::
 	pulumi stack select dev && \
 	pulumi destroy -y && \
 	pulumi stack rm dev -y --preserve-config
-
 	
