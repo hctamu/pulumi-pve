@@ -17,6 +17,13 @@ limitations under the License.
 package resources
 
 import (
+	"cmp"
+	"context"
+	"fmt"
+	"net/http"
+	"slices"
+	"sort"
+	"strings"
 	"unicode"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
