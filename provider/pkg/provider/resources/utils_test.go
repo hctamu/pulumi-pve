@@ -16,14 +16,12 @@ limitations under the License.
 package resources_test
 
 import (
-	"testing"
-
 	"context"
 	"errors"
-
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
+	"testing"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
