@@ -678,7 +678,6 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 	).Enable()
 
 	// Mock task status endpoint - return completed task
-	// Must include all Task fields to prevent copier.Copy from clearing them during unmarshal
 	// Use ReplyFunction instead of Reply when using Repeat (mocha bug workaround)
 	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
 		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
@@ -813,4 +812,294 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 	resp, err := vm.Update(context.Background(), req)
 	require.NoError(t, err)
 	assert.True(t, *resp.Output.EfiDisk.PreEnrolledKeys)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMReadWithEfiDisk(t *testing.T) {
+	mock, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	// Mock GET /cluster/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/config - VM with EFI disk
+	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":2,"memory":2048,` +
+		`"efidisk0":"local-lvm:vm-100-disk-0,efitype=4m,pre-enrolled-keys=1"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(vmConfigJSON)),
+	).Enable()
+
+	vm := &vmResource.VM{}
+	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
+		ID: "100",
+		Inputs: vmResource.Inputs{
+			VMID: intPtr(vmID),
+			Node: &nodeName,
+		},
+	}
+
+	resp, err := vm.Read(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "100", resp.ID)
+	assert.NotNil(t, resp.State.EfiDisk)
+	assert.Equal(t, vmResource.EfiType4M, resp.State.EfiDisk.EfiType)
+	assert.NotNil(t, resp.State.EfiDisk.PreEnrolledKeys)
+	assert.True(t, *resp.State.EfiDisk.PreEnrolledKeys)
+	assert.Equal(t, "local-lvm", resp.State.EfiDisk.Storage)
+	assert.NotNil(t, resp.State.EfiDisk.FileID)
+	assert.Equal(t, "vm-100-disk-0", *resp.State.EfiDisk.FileID)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMReadWithoutEfiDisk(t *testing.T) {
+	mock, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	// Mock GET /cluster/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/config - VM without EFI disk
+	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":2,"memory":2048}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(vmConfigJSON)),
+	).Enable()
+
+	vm := &vmResource.VM{}
+	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
+		ID: "100",
+		Inputs: vmResource.Inputs{
+			VMID: intPtr(vmID),
+			Node: &nodeName,
+		},
+	}
+
+	resp, err := vm.Read(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "100", resp.ID)
+	assert.Nil(t, resp.State.EfiDisk)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
+	mock, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	nodeName := "pve-node"
+	sourceVMID := 999
+	newVMID := 100
+
+	// Mock GET /cluster/status (for getting next ID and finding VMs)
+	// Format: array with type="cluster" and type="node" elements
+	clusterStatusJSON := `{"data":[{"type":"cluster","id":"cluster","name":"testcluster","version":4,"quorate":1},` +
+		`{"type":"node","name":"` + nodeName + `","online":1,"id":"node/` + nodeName + `"}]}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock GET /cluster/nextid
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/nextid")).
+			Reply(reply.OK().BodyString(`{"data":"100"}`)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/status
+	nodeStatusJSON := `{"data":{"node":"` + nodeName + `","status":"online"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nodeStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock GET source VM status
+	sourceVMStatusJSON := `{"data":{"status":"running","vmid":999}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/999/status/current")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(sourceVMStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock GET source VM config (has EFI disk)
+	sourceVMConfigJSON := `{"data":{"vmid":999,"name":"source-vm","cores":2,"memory":2048,` +
+		`"efidisk0":"local-lvm:vm-999-disk-0,efitype=4m"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/999/config")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(sourceVMConfigJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock POST /nodes/{node}/qemu/{vmid}/clone
+	cloneResponseJSON := `{"data":"UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:"}`
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/999/clone")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(cloneResponseJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock clone task status (running then stopped)
+	cloneTaskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(cloneTaskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:",` +
+					`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmclone",` +
+					`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock GET new VM status (after clone)
+	newVMStatusJSON := `{"data":{"status":"stopped","vmid":100}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock GET new VM config (after clone)
+	// First call returns with EFI disk, subsequent calls (after unlink) return without
+	var configCallCount int
+	clonedVMConfigWithEfi := `{"data":{"vmid":100,"name":"cloned-vm","cores":2,"memory":2048,` +
+		`"efidisk0":"local-lvm:vm-100-disk-0,efitype=4m"}}`
+	clonedVMConfigWithoutEfi := `{"data":{"vmid":100,"name":"cloned-vm","cores":2,"memory":2048}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				defer func() { configCallCount++ }()
+				// First call: return WITH EFI, later calls: return WITHOUT EFI
+				if configCallCount == 0 {
+					return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clonedVMConfigWithEfi)}, nil
+				}
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clonedVMConfigWithoutEfi)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock PUT /nodes/{node}/qemu/{vmid}/unlink - for removing EFI disk
+	unlinkResponseJSON := `{"data":"UPID:pve-node:00005678:00000000:00000000:qmunlink:100:root@pam:"}`
+	mock.AddMocks(
+		mocha.Put(expect.URLPath("/nodes/" + nodeName + "/qemu/100/unlink")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(unlinkResponseJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock unlink task status
+	unlinkTaskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00005678:00000000:00000000:qmunlink:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(unlinkTaskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00005678:00000000:00000000:qmunlink:100:root@pam:",` +
+					`"node":"pve-node","pid":5678,"pstart":0,"starttime":1699999999,"type":"qmunlink",` +
+					`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock POST /nodes/{node}/qemu/{vmid}/config (finalizing clone without EFI disk)
+	configResponseJSON := `{"data":"UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:"}`
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(configResponseJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock config task status
+	configTaskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(configTaskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:",` +
+					`"node":"pve-node","pid":9999,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
+					`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	vm := &vmResource.VM{}
+	req := infer.CreateRequest[vmResource.Inputs]{
+		Name: "cloned-vm",
+		Inputs: vmResource.Inputs{
+			Name: strPtr("cloned-vm"),
+			Node: &nodeName,
+			Clone: &vmResource.Clone{
+				VMID:    sourceVMID,
+				Timeout: 300,
+			},
+			// Note: No EfiDisk specified - should be removed from cloned VM
+		},
+	}
+
+	resp, err := vm.Create(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, req.Name, resp.ID)
+	assert.Equal(t, newVMID, *resp.Output.VMID)
+	// Verify EFI disk was removed
+	assert.Nil(t, resp.Output.EfiDisk)
 }
