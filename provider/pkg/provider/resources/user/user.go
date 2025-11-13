@@ -58,7 +58,6 @@ func (args *Inputs) Annotate(a infer.Annotator) {
 	a.Describe(&args.Name, "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').")
 	a.Describe(&args.Comment, "An optional comment for the user.")
 	a.Describe(&args.Email, "An optional email address for the user.")
-	a.SetDefault(&args.Enable, true)
 	a.Describe(&args.Enable, "Whether the user is enabled. Defaults to true.")
 	a.Describe(&args.Expire, "The expiration time for the user as a Unix timestamp.")
 	a.Describe(&args.Firstname, "The first name of the user.")

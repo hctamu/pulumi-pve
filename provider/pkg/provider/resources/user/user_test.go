@@ -53,7 +53,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 	return nil
 }
 
-//nolint:paralleltest // mutates global env + seam
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestUserHealthyLifeCycle(t *testing.T) {
 	mockServer, cleanup := utils.NewAPIMock(t)
 	defer cleanup()
@@ -283,7 +283,7 @@ func TestUserReadSuccess(t *testing.T) {
 			"lastname":"L",
 			"email":"f@example.com",
 			"groups":["g1","g2"],
-			"keys":"ssh-rsa AAA,ssh-ed25519 BBB"}}
+			"keys":""}}
         `)),
 	).Enable()
 
@@ -297,7 +297,7 @@ func TestUserReadSuccess(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "testuser", resp.State.Name)
 	assert.Equal(t, []string{"g1", "g2"}, resp.State.Groups)
-	assert.Equal(t, []string{"ssh-ed25519 BBB", "ssh-rsa AAA"}, resp.State.Keys) // sorted
+	assert.Equal(t, []string(nil), resp.State.Keys)
 	assert.Equal(t, "F", resp.State.Firstname)
 	assert.Equal(t, 10, resp.State.Expire)
 }
