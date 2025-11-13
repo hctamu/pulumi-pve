@@ -776,7 +776,7 @@ func updateDisksAfterClone(
 	efiDiskOption := getDiskOption(options, efiDiskID)
 	if efiDiskOption == nil && virtualMachine.VirtualMachineConfig.EFIDisk0 != "" {
 		// Remove not needed EFI disk
-		if err = removeEfiDisk(ctx, virtualMachine); err != nil {
+		if err := removeEfiDisk(ctx, virtualMachine); err != nil {
 			return err
 		}
 	}
