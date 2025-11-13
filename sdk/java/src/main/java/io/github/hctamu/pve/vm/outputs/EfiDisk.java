@@ -5,6 +5,7 @@ package io.github.hctamu.pve.vm.outputs;
 
 import com.pulumi.core.annotations.CustomType;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import java.lang.Boolean;
 import java.lang.String;
 import java.util.Objects;
 import java.util.Optional;
@@ -14,6 +15,7 @@ import javax.annotation.Nullable;
 public final class EfiDisk {
     private String efitype;
     private @Nullable String filename;
+    private @Nullable Boolean preEnrolledKeys;
     private String storage;
 
     private EfiDisk() {}
@@ -22,6 +24,9 @@ public final class EfiDisk {
     }
     public Optional<String> filename() {
         return Optional.ofNullable(this.filename);
+    }
+    public Optional<Boolean> preEnrolledKeys() {
+        return Optional.ofNullable(this.preEnrolledKeys);
     }
     public String storage() {
         return this.storage;
@@ -38,12 +43,14 @@ public final class EfiDisk {
     public static final class Builder {
         private String efitype;
         private @Nullable String filename;
+        private @Nullable Boolean preEnrolledKeys;
         private String storage;
         public Builder() {}
         public Builder(EfiDisk defaults) {
     	      Objects.requireNonNull(defaults);
     	      this.efitype = defaults.efitype;
     	      this.filename = defaults.filename;
+    	      this.preEnrolledKeys = defaults.preEnrolledKeys;
     	      this.storage = defaults.storage;
         }
 
@@ -62,6 +69,12 @@ public final class EfiDisk {
             return this;
         }
         @CustomType.Setter
+        public Builder preEnrolledKeys(@Nullable Boolean preEnrolledKeys) {
+
+            this.preEnrolledKeys = preEnrolledKeys;
+            return this;
+        }
+        @CustomType.Setter
         public Builder storage(String storage) {
             if (storage == null) {
               throw new MissingRequiredPropertyException("EfiDisk", "storage");
@@ -73,6 +86,7 @@ public final class EfiDisk {
             final var _resultValue = new EfiDisk();
             _resultValue.efitype = efitype;
             _resultValue.filename = filename;
+            _resultValue.preEnrolledKeys = preEnrolledKeys;
             _resultValue.storage = storage;
             return _resultValue;
         }

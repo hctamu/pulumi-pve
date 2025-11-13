@@ -55,6 +55,7 @@ type VM struct {
 	Rng0         pulumi.StringPtrOutput `pulumi:"rng0"`
 	Searchdomain pulumi.StringPtrOutput `pulumi:"searchdomain"`
 	Serial0      pulumi.StringPtrOutput `pulumi:"serial0"`
+	Sockets      pulumi.IntPtrOutput    `pulumi:"sockets"`
 	Sshkeys      pulumi.StringPtrOutput `pulumi:"sshkeys"`
 	Tablet       pulumi.IntPtrOutput    `pulumi:"tablet"`
 	Template     pulumi.IntPtrOutput    `pulumi:"template"`
@@ -121,7 +122,6 @@ type vmArgs struct {
 	Autostart    *int     `pulumi:"autostart"`
 	Balloon      *int     `pulumi:"balloon"`
 	Bios         *string  `pulumi:"bios"`
-	Boot         *string  `pulumi:"boot"`
 	Cicustom     *string  `pulumi:"cicustom"`
 	Cipassword   *string  `pulumi:"cipassword"`
 	Citype       *string  `pulumi:"citype"`
@@ -158,7 +158,6 @@ type vmArgs struct {
 	Scsihw       *string  `pulumi:"scsihw"`
 	Searchdomain *string  `pulumi:"searchdomain"`
 	Serial0      *string  `pulumi:"serial0"`
-	Smbios1      *string  `pulumi:"smbios1"`
 	Sockets      *int     `pulumi:"sockets"`
 	Sshkeys      *string  `pulumi:"sshkeys"`
 	Tablet       *int     `pulumi:"tablet"`
@@ -212,6 +211,7 @@ type VMArgs struct {
 	Rng0         pulumi.StringPtrInput
 	Searchdomain pulumi.StringPtrInput
 	Serial0      pulumi.StringPtrInput
+	Sockets      pulumi.IntPtrInput
 	Sshkeys      pulumi.StringPtrInput
 	Tablet       pulumi.IntPtrInput
 	Template     pulumi.IntPtrInput
@@ -463,6 +463,10 @@ func (o VMOutput) Searchdomain() pulumi.StringPtrOutput {
 
 func (o VMOutput) Serial0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Serial0 }).(pulumi.StringPtrOutput)
+}
+
+func (o VMOutput) Sockets() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Sockets }).(pulumi.IntPtrOutput)
 }
 
 func (o VMOutput) Sshkeys() pulumi.StringPtrOutput {

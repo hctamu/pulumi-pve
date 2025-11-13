@@ -19,6 +19,7 @@ namespace Hctamu.Pve.Vm.Outputs
     {
         public readonly string Efitype;
         public readonly string? Filename;
+        public readonly bool? PreEnrolledKeys;
         public readonly string Storage;
 
         [OutputConstructor]
@@ -27,10 +28,13 @@ namespace Hctamu.Pve.Vm.Outputs
 
             string? filename,
 
+            bool? preEnrolledKeys,
+
             string storage)
         {
             Efitype = efitype;
             Filename = filename;
+            PreEnrolledKeys = preEnrolledKeys;
             Storage = storage;
         }
     }

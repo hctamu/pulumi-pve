@@ -40,6 +40,7 @@ export namespace vm {
     export interface EfiDiskArgs {
         efitype: pulumi.Input<string>;
         filename?: pulumi.Input<string>;
+        preEnrolledKeys?: pulumi.Input<boolean>;
         storage: pulumi.Input<string>;
     }
 }

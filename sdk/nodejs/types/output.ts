@@ -41,6 +41,7 @@ export namespace vm {
     export interface EfiDisk {
         efitype: string;
         filename?: string;
+        preEnrolledKeys?: boolean;
         storage: string;
     }
 

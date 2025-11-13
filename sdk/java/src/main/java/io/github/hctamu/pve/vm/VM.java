@@ -254,6 +254,12 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> serial0() {
         return Codegen.optional(this.serial0);
     }
+    @Export(name="sockets", refs={Integer.class}, tree="[0]")
+    private Output</* @Nullable */ Integer> sockets;
+
+    public Output<Optional<Integer>> sockets() {
+        return Codegen.optional(this.sockets);
+    }
     @Export(name="sshkeys", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> sshkeys;
 

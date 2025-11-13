@@ -18,63 +18,143 @@ import javax.annotation.Nullable;
 
 @ResourceType(type="pve:user:User")
 public class User extends com.pulumi.resources.CustomResource {
+    /**
+     * An optional comment for the user.
+     * 
+     */
     @Export(name="comment", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> comment;
 
+    /**
+     * @return An optional comment for the user.
+     * 
+     */
     public Output<Optional<String>> comment() {
         return Codegen.optional(this.comment);
     }
+    /**
+     * An optional email address for the user.
+     * 
+     */
     @Export(name="email", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> email;
 
+    /**
+     * @return An optional email address for the user.
+     * 
+     */
     public Output<Optional<String>> email() {
         return Codegen.optional(this.email);
     }
+    /**
+     * Whether the user is enabled. Defaults to true.
+     * 
+     */
     @Export(name="enable", refs={Boolean.class}, tree="[0]")
     private Output</* @Nullable */ Boolean> enable;
 
+    /**
+     * @return Whether the user is enabled. Defaults to true.
+     * 
+     */
     public Output<Optional<Boolean>> enable() {
         return Codegen.optional(this.enable);
     }
+    /**
+     * The expiration time for the user as a Unix timestamp.
+     * 
+     */
     @Export(name="expire", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> expire;
 
+    /**
+     * @return The expiration time for the user as a Unix timestamp.
+     * 
+     */
     public Output<Optional<Integer>> expire() {
         return Codegen.optional(this.expire);
     }
+    /**
+     * The first name of the user.
+     * 
+     */
     @Export(name="firstname", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> firstname;
 
+    /**
+     * @return The first name of the user.
+     * 
+     */
     public Output<Optional<String>> firstname() {
         return Codegen.optional(this.firstname);
     }
+    /**
+     * A list of groups the user belongs to.
+     * 
+     */
     @Export(name="groups", refs={List.class,String.class}, tree="[0,1]")
     private Output</* @Nullable */ List<String>> groups;
 
+    /**
+     * @return A list of groups the user belongs to.
+     * 
+     */
     public Output<Optional<List<String>>> groups() {
         return Codegen.optional(this.groups);
     }
+    /**
+     * A list of SSH keys associated with the user.
+     * 
+     */
     @Export(name="keys", refs={List.class,String.class}, tree="[0,1]")
     private Output</* @Nullable */ List<String>> keys;
 
+    /**
+     * @return A list of SSH keys associated with the user.
+     * 
+     */
     public Output<Optional<List<String>>> keys() {
         return Codegen.optional(this.keys);
     }
+    /**
+     * The last name of the user.
+     * 
+     */
     @Export(name="lastname", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> lastname;
 
+    /**
+     * @return The last name of the user.
+     * 
+     */
     public Output<Optional<String>> lastname() {
         return Codegen.optional(this.lastname);
     }
+    /**
+     * The password for the user. This field is treated as a secret.
+     * 
+     */
     @Export(name="password", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> password;
 
+    /**
+     * @return The password for the user. This field is treated as a secret.
+     * 
+     */
     public Output<Optional<String>> password() {
         return Codegen.optional(this.password);
     }
+    /**
+     * The user ID of the Proxmox user, including the realm (e.g., &#39;user{@literal @}pve&#39;).
+     * 
+     */
     @Export(name="userid", refs={String.class}, tree="[0]")
     private Output<String> userid;
 
+    /**
+     * @return The user ID of the Proxmox user, including the realm (e.g., &#39;user{@literal @}pve&#39;).
+     * 
+     */
     public Output<String> userid() {
         return this.userid;
     }
@@ -118,6 +198,9 @@ public class User extends com.pulumi.resources.CustomResource {
     private static com.pulumi.resources.CustomResourceOptions makeResourceOptions(@Nullable com.pulumi.resources.CustomResourceOptions options, @Nullable Output<java.lang.String> id) {
         var defaultOptions = com.pulumi.resources.CustomResourceOptions.builder()
             .version(Utilities.getVersion())
+            .additionalSecretOutputs(List.of(
+                "password"
+            ))
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }

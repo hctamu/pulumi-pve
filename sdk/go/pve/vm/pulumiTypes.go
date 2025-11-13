@@ -320,9 +320,10 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 
 // EFI disk configuration for the virtual machine.
 type EfiDisk struct {
-	Efitype  string  `pulumi:"efitype"`
-	Filename *string `pulumi:"filename"`
-	Storage  string  `pulumi:"storage"`
+	Efitype         string  `pulumi:"efitype"`
+	Filename        *string `pulumi:"filename"`
+	PreEnrolledKeys *bool   `pulumi:"preEnrolledKeys"`
+	Storage         string  `pulumi:"storage"`
 }
 
 // EfiDiskInput is an input type that accepts EfiDiskArgs and EfiDiskOutput values.
@@ -338,9 +339,10 @@ type EfiDiskInput interface {
 
 // EFI disk configuration for the virtual machine.
 type EfiDiskArgs struct {
-	Efitype  pulumi.StringInput    `pulumi:"efitype"`
-	Filename pulumi.StringPtrInput `pulumi:"filename"`
-	Storage  pulumi.StringInput    `pulumi:"storage"`
+	Efitype         pulumi.StringInput    `pulumi:"efitype"`
+	Filename        pulumi.StringPtrInput `pulumi:"filename"`
+	PreEnrolledKeys pulumi.BoolPtrInput   `pulumi:"preEnrolledKeys"`
+	Storage         pulumi.StringInput    `pulumi:"storage"`
 }
 
 func (EfiDiskArgs) ElementType() reflect.Type {
@@ -429,6 +431,10 @@ func (o EfiDiskOutput) Filename() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v EfiDisk) *string { return v.Filename }).(pulumi.StringPtrOutput)
 }
 
+func (o EfiDiskOutput) PreEnrolledKeys() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v EfiDisk) *bool { return v.PreEnrolledKeys }).(pulumi.BoolPtrOutput)
+}
+
 func (o EfiDiskOutput) Storage() pulumi.StringOutput {
 	return o.ApplyT(func(v EfiDisk) string { return v.Storage }).(pulumi.StringOutput)
 }
@@ -473,6 +479,15 @@ func (o EfiDiskPtrOutput) Filename() pulumi.StringPtrOutput {
 		}
 		return v.Filename
 	}).(pulumi.StringPtrOutput)
+}
+
+func (o EfiDiskPtrOutput) PreEnrolledKeys() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *EfiDisk) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.PreEnrolledKeys
+	}).(pulumi.BoolPtrOutput)
 }
 
 func (o EfiDiskPtrOutput) Storage() pulumi.StringPtrOutput {

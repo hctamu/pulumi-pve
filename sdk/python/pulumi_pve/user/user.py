@@ -31,12 +31,24 @@ class UserArgs:
                  password: Optional[pulumi.Input[_builtins.str]] = None):
         """
         The set of arguments for constructing a User resource.
+        :param pulumi.Input[_builtins.str] userid: The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+        :param pulumi.Input[_builtins.str] comment: An optional comment for the user.
+        :param pulumi.Input[_builtins.str] email: An optional email address for the user.
+        :param pulumi.Input[_builtins.bool] enable: Whether the user is enabled. Defaults to true.
+        :param pulumi.Input[_builtins.int] expire: The expiration time for the user as a Unix timestamp.
+        :param pulumi.Input[_builtins.str] firstname: The first name of the user.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] groups: A list of groups the user belongs to.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] keys: A list of SSH keys associated with the user.
+        :param pulumi.Input[_builtins.str] lastname: The last name of the user.
+        :param pulumi.Input[_builtins.str] password: The password for the user. This field is treated as a secret.
         """
         pulumi.set(__self__, "userid", userid)
         if comment is not None:
             pulumi.set(__self__, "comment", comment)
         if email is not None:
             pulumi.set(__self__, "email", email)
+        if enable is None:
+            enable = True
         if enable is not None:
             pulumi.set(__self__, "enable", enable)
         if expire is not None:
@@ -55,6 +67,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def userid(self) -> pulumi.Input[_builtins.str]:
+        """
+        The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+        """
         return pulumi.get(self, "userid")
 
     @userid.setter
@@ -64,6 +79,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def comment(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        An optional comment for the user.
+        """
         return pulumi.get(self, "comment")
 
     @comment.setter
@@ -73,6 +91,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def email(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        An optional email address for the user.
+        """
         return pulumi.get(self, "email")
 
     @email.setter
@@ -82,6 +103,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def enable(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        """
+        Whether the user is enabled. Defaults to true.
+        """
         return pulumi.get(self, "enable")
 
     @enable.setter
@@ -91,6 +115,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def expire(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        The expiration time for the user as a Unix timestamp.
+        """
         return pulumi.get(self, "expire")
 
     @expire.setter
@@ -100,6 +127,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def firstname(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        The first name of the user.
+        """
         return pulumi.get(self, "firstname")
 
     @firstname.setter
@@ -109,6 +139,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def groups(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        """
+        A list of groups the user belongs to.
+        """
         return pulumi.get(self, "groups")
 
     @groups.setter
@@ -118,6 +151,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def keys(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        """
+        A list of SSH keys associated with the user.
+        """
         return pulumi.get(self, "keys")
 
     @keys.setter
@@ -127,6 +163,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def lastname(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        The last name of the user.
+        """
         return pulumi.get(self, "lastname")
 
     @lastname.setter
@@ -136,6 +175,9 @@ class UserArgs:
     @_builtins.property
     @pulumi.getter
     def password(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        The password for the user. This field is treated as a secret.
+        """
         return pulumi.get(self, "password")
 
     @password.setter
@@ -164,6 +206,16 @@ class User(pulumi.CustomResource):
         Create a User resource with the given unique name, props, and options.
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
+        :param pulumi.Input[_builtins.str] comment: An optional comment for the user.
+        :param pulumi.Input[_builtins.str] email: An optional email address for the user.
+        :param pulumi.Input[_builtins.bool] enable: Whether the user is enabled. Defaults to true.
+        :param pulumi.Input[_builtins.int] expire: The expiration time for the user as a Unix timestamp.
+        :param pulumi.Input[_builtins.str] firstname: The first name of the user.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] groups: A list of groups the user belongs to.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] keys: A list of SSH keys associated with the user.
+        :param pulumi.Input[_builtins.str] lastname: The last name of the user.
+        :param pulumi.Input[_builtins.str] password: The password for the user. This field is treated as a secret.
+        :param pulumi.Input[_builtins.str] userid: The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
         """
         ...
     @overload
@@ -209,16 +261,20 @@ class User(pulumi.CustomResource):
 
             __props__.__dict__["comment"] = comment
             __props__.__dict__["email"] = email
+            if enable is None:
+                enable = True
             __props__.__dict__["enable"] = enable
             __props__.__dict__["expire"] = expire
             __props__.__dict__["firstname"] = firstname
             __props__.__dict__["groups"] = groups
             __props__.__dict__["keys"] = keys
             __props__.__dict__["lastname"] = lastname
-            __props__.__dict__["password"] = password
+            __props__.__dict__["password"] = None if password is None else pulumi.Output.secret(password)
             if userid is None and not opts.urn:
                 raise TypeError("Missing required property 'userid'")
             __props__.__dict__["userid"] = userid
+        secret_opts = pulumi.ResourceOptions(additional_secret_outputs=["password"])
+        opts = pulumi.ResourceOptions.merge(opts, secret_opts)
         replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["password", "userid"])
         opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
         super(User, __self__).__init__(
@@ -258,50 +314,80 @@ class User(pulumi.CustomResource):
     @_builtins.property
     @pulumi.getter
     def comment(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        An optional comment for the user.
+        """
         return pulumi.get(self, "comment")
 
     @_builtins.property
     @pulumi.getter
     def email(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        An optional email address for the user.
+        """
         return pulumi.get(self, "email")
 
     @_builtins.property
     @pulumi.getter
     def enable(self) -> pulumi.Output[Optional[_builtins.bool]]:
+        """
+        Whether the user is enabled. Defaults to true.
+        """
         return pulumi.get(self, "enable")
 
     @_builtins.property
     @pulumi.getter
     def expire(self) -> pulumi.Output[Optional[_builtins.int]]:
+        """
+        The expiration time for the user as a Unix timestamp.
+        """
         return pulumi.get(self, "expire")
 
     @_builtins.property
     @pulumi.getter
     def firstname(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        The first name of the user.
+        """
         return pulumi.get(self, "firstname")
 
     @_builtins.property
     @pulumi.getter
     def groups(self) -> pulumi.Output[Optional[Sequence[_builtins.str]]]:
+        """
+        A list of groups the user belongs to.
+        """
         return pulumi.get(self, "groups")
 
     @_builtins.property
     @pulumi.getter
     def keys(self) -> pulumi.Output[Optional[Sequence[_builtins.str]]]:
+        """
+        A list of SSH keys associated with the user.
+        """
         return pulumi.get(self, "keys")
 
     @_builtins.property
     @pulumi.getter
     def lastname(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        The last name of the user.
+        """
         return pulumi.get(self, "lastname")
 
     @_builtins.property
     @pulumi.getter
     def password(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        The password for the user. This field is treated as a secret.
+        """
         return pulumi.get(self, "password")
 
     @_builtins.property
     @pulumi.getter
     def userid(self) -> pulumi.Output[_builtins.str]:
+        """
+        The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+        """
         return pulumi.get(self, "userid")
 

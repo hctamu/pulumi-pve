@@ -5,6 +5,7 @@ package io.github.hctamu.pve.user;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
+import com.pulumi.core.internal.Codegen;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
 import java.lang.Boolean;
 import java.lang.Integer;
@@ -19,72 +20,152 @@ public final class UserArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final UserArgs Empty = new UserArgs();
 
+    /**
+     * An optional comment for the user.
+     * 
+     */
     @Import(name="comment")
     private @Nullable Output<String> comment;
 
+    /**
+     * @return An optional comment for the user.
+     * 
+     */
     public Optional<Output<String>> comment() {
         return Optional.ofNullable(this.comment);
     }
 
+    /**
+     * An optional email address for the user.
+     * 
+     */
     @Import(name="email")
     private @Nullable Output<String> email;
 
+    /**
+     * @return An optional email address for the user.
+     * 
+     */
     public Optional<Output<String>> email() {
         return Optional.ofNullable(this.email);
     }
 
+    /**
+     * Whether the user is enabled. Defaults to true.
+     * 
+     */
     @Import(name="enable")
     private @Nullable Output<Boolean> enable;
 
+    /**
+     * @return Whether the user is enabled. Defaults to true.
+     * 
+     */
     public Optional<Output<Boolean>> enable() {
         return Optional.ofNullable(this.enable);
     }
 
+    /**
+     * The expiration time for the user as a Unix timestamp.
+     * 
+     */
     @Import(name="expire")
     private @Nullable Output<Integer> expire;
 
+    /**
+     * @return The expiration time for the user as a Unix timestamp.
+     * 
+     */
     public Optional<Output<Integer>> expire() {
         return Optional.ofNullable(this.expire);
     }
 
+    /**
+     * The first name of the user.
+     * 
+     */
     @Import(name="firstname")
     private @Nullable Output<String> firstname;
 
+    /**
+     * @return The first name of the user.
+     * 
+     */
     public Optional<Output<String>> firstname() {
         return Optional.ofNullable(this.firstname);
     }
 
+    /**
+     * A list of groups the user belongs to.
+     * 
+     */
     @Import(name="groups")
     private @Nullable Output<List<String>> groups;
 
+    /**
+     * @return A list of groups the user belongs to.
+     * 
+     */
     public Optional<Output<List<String>>> groups() {
         return Optional.ofNullable(this.groups);
     }
 
+    /**
+     * A list of SSH keys associated with the user.
+     * 
+     */
     @Import(name="keys")
     private @Nullable Output<List<String>> keys;
 
+    /**
+     * @return A list of SSH keys associated with the user.
+     * 
+     */
     public Optional<Output<List<String>>> keys() {
         return Optional.ofNullable(this.keys);
     }
 
+    /**
+     * The last name of the user.
+     * 
+     */
     @Import(name="lastname")
     private @Nullable Output<String> lastname;
 
+    /**
+     * @return The last name of the user.
+     * 
+     */
     public Optional<Output<String>> lastname() {
         return Optional.ofNullable(this.lastname);
     }
 
+    /**
+     * The password for the user. This field is treated as a secret.
+     * 
+     */
     @Import(name="password")
     private @Nullable Output<String> password;
 
+    /**
+     * @return The password for the user. This field is treated as a secret.
+     * 
+     */
     public Optional<Output<String>> password() {
         return Optional.ofNullable(this.password);
     }
 
+    /**
+     * The user ID of the Proxmox user, including the realm (e.g., &#39;user{@literal @}pve&#39;).
+     * 
+     */
     @Import(name="userid", required=true)
     private Output<String> userid;
 
+    /**
+     * @return The user ID of the Proxmox user, including the realm (e.g., &#39;user{@literal @}pve&#39;).
+     * 
+     */
     public Output<String> userid() {
         return this.userid;
     }
@@ -122,105 +203,238 @@ public final class UserArgs extends com.pulumi.resources.ResourceArgs {
             $ = new UserArgs(Objects.requireNonNull(defaults));
         }
 
+        /**
+         * @param comment An optional comment for the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder comment(@Nullable Output<String> comment) {
             $.comment = comment;
             return this;
         }
 
+        /**
+         * @param comment An optional comment for the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder comment(String comment) {
             return comment(Output.of(comment));
         }
 
+        /**
+         * @param email An optional email address for the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder email(@Nullable Output<String> email) {
             $.email = email;
             return this;
         }
 
+        /**
+         * @param email An optional email address for the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder email(String email) {
             return email(Output.of(email));
         }
 
+        /**
+         * @param enable Whether the user is enabled. Defaults to true.
+         * 
+         * @return builder
+         * 
+         */
         public Builder enable(@Nullable Output<Boolean> enable) {
             $.enable = enable;
             return this;
         }
 
+        /**
+         * @param enable Whether the user is enabled. Defaults to true.
+         * 
+         * @return builder
+         * 
+         */
         public Builder enable(Boolean enable) {
             return enable(Output.of(enable));
         }
 
+        /**
+         * @param expire The expiration time for the user as a Unix timestamp.
+         * 
+         * @return builder
+         * 
+         */
         public Builder expire(@Nullable Output<Integer> expire) {
             $.expire = expire;
             return this;
         }
 
+        /**
+         * @param expire The expiration time for the user as a Unix timestamp.
+         * 
+         * @return builder
+         * 
+         */
         public Builder expire(Integer expire) {
             return expire(Output.of(expire));
         }
 
+        /**
+         * @param firstname The first name of the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder firstname(@Nullable Output<String> firstname) {
             $.firstname = firstname;
             return this;
         }
 
+        /**
+         * @param firstname The first name of the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder firstname(String firstname) {
             return firstname(Output.of(firstname));
         }
 
+        /**
+         * @param groups A list of groups the user belongs to.
+         * 
+         * @return builder
+         * 
+         */
         public Builder groups(@Nullable Output<List<String>> groups) {
             $.groups = groups;
             return this;
         }
 
+        /**
+         * @param groups A list of groups the user belongs to.
+         * 
+         * @return builder
+         * 
+         */
         public Builder groups(List<String> groups) {
             return groups(Output.of(groups));
         }
 
+        /**
+         * @param groups A list of groups the user belongs to.
+         * 
+         * @return builder
+         * 
+         */
         public Builder groups(String... groups) {
             return groups(List.of(groups));
         }
 
+        /**
+         * @param keys A list of SSH keys associated with the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder keys(@Nullable Output<List<String>> keys) {
             $.keys = keys;
             return this;
         }
 
+        /**
+         * @param keys A list of SSH keys associated with the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder keys(List<String> keys) {
             return keys(Output.of(keys));
         }
 
+        /**
+         * @param keys A list of SSH keys associated with the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder keys(String... keys) {
             return keys(List.of(keys));
         }
 
+        /**
+         * @param lastname The last name of the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder lastname(@Nullable Output<String> lastname) {
             $.lastname = lastname;
             return this;
         }
 
+        /**
+         * @param lastname The last name of the user.
+         * 
+         * @return builder
+         * 
+         */
         public Builder lastname(String lastname) {
             return lastname(Output.of(lastname));
         }
 
+        /**
+         * @param password The password for the user. This field is treated as a secret.
+         * 
+         * @return builder
+         * 
+         */
         public Builder password(@Nullable Output<String> password) {
             $.password = password;
             return this;
         }
 
+        /**
+         * @param password The password for the user. This field is treated as a secret.
+         * 
+         * @return builder
+         * 
+         */
         public Builder password(String password) {
             return password(Output.of(password));
         }
 
+        /**
+         * @param userid The user ID of the Proxmox user, including the realm (e.g., &#39;user{@literal @}pve&#39;).
+         * 
+         * @return builder
+         * 
+         */
         public Builder userid(Output<String> userid) {
             $.userid = userid;
             return this;
         }
 
+        /**
+         * @param userid The user ID of the Proxmox user, including the realm (e.g., &#39;user{@literal @}pve&#39;).
+         * 
+         * @return builder
+         * 
+         */
         public Builder userid(String userid) {
             return userid(Output.of(userid));
         }
 
         public UserArgs build() {
+            $.enable = Codegen.booleanProp("enable").output().arg($.enable).def(true).getNullable();
             if ($.userid == null) {
                 throw new MissingRequiredPropertyException("UserArgs", "userid");
             }

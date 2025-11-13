@@ -31,15 +31,45 @@ export class User extends pulumi.CustomResource {
         return obj['__pulumiType'] === User.__pulumiType;
     }
 
+    /**
+     * An optional comment for the user.
+     */
     declare public readonly comment: pulumi.Output<string | undefined>;
+    /**
+     * An optional email address for the user.
+     */
     declare public readonly email: pulumi.Output<string | undefined>;
+    /**
+     * Whether the user is enabled. Defaults to true.
+     */
     declare public readonly enable: pulumi.Output<boolean | undefined>;
+    /**
+     * The expiration time for the user as a Unix timestamp.
+     */
     declare public readonly expire: pulumi.Output<number | undefined>;
+    /**
+     * The first name of the user.
+     */
     declare public readonly firstname: pulumi.Output<string | undefined>;
+    /**
+     * A list of groups the user belongs to.
+     */
     declare public readonly groups: pulumi.Output<string[] | undefined>;
+    /**
+     * A list of SSH keys associated with the user.
+     */
     declare public readonly keys: pulumi.Output<string[] | undefined>;
+    /**
+     * The last name of the user.
+     */
     declare public readonly lastname: pulumi.Output<string | undefined>;
+    /**
+     * The password for the user. This field is treated as a secret.
+     */
     declare public readonly password: pulumi.Output<string | undefined>;
+    /**
+     * The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+     */
     declare public readonly userid: pulumi.Output<string>;
 
     /**
@@ -58,13 +88,13 @@ export class User extends pulumi.CustomResource {
             }
             resourceInputs["comment"] = args?.comment;
             resourceInputs["email"] = args?.email;
-            resourceInputs["enable"] = args?.enable;
+            resourceInputs["enable"] = (args?.enable) ?? true;
             resourceInputs["expire"] = args?.expire;
             resourceInputs["firstname"] = args?.firstname;
             resourceInputs["groups"] = args?.groups;
             resourceInputs["keys"] = args?.keys;
             resourceInputs["lastname"] = args?.lastname;
-            resourceInputs["password"] = args?.password;
+            resourceInputs["password"] = args?.password ? pulumi.secret(args.password) : undefined;
             resourceInputs["userid"] = args?.userid;
         } else {
             resourceInputs["comment"] = undefined /*out*/;
@@ -79,6 +109,8 @@ export class User extends pulumi.CustomResource {
             resourceInputs["userid"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
+        const secretOpts = { additionalSecretOutputs: ["password"] };
+        opts = pulumi.mergeOptions(opts, secretOpts);
         const replaceOnChanges = { replaceOnChanges: ["password", "userid"] };
         opts = pulumi.mergeOptions(opts, replaceOnChanges);
         super(User.__pulumiType, name, resourceInputs, opts);
@@ -89,14 +121,44 @@ export class User extends pulumi.CustomResource {
  * The set of arguments for constructing a User resource.
  */
 export interface UserArgs {
+    /**
+     * An optional comment for the user.
+     */
     comment?: pulumi.Input<string>;
+    /**
+     * An optional email address for the user.
+     */
     email?: pulumi.Input<string>;
+    /**
+     * Whether the user is enabled. Defaults to true.
+     */
     enable?: pulumi.Input<boolean>;
+    /**
+     * The expiration time for the user as a Unix timestamp.
+     */
     expire?: pulumi.Input<number>;
+    /**
+     * The first name of the user.
+     */
     firstname?: pulumi.Input<string>;
+    /**
+     * A list of groups the user belongs to.
+     */
     groups?: pulumi.Input<pulumi.Input<string>[]>;
+    /**
+     * A list of SSH keys associated with the user.
+     */
     keys?: pulumi.Input<pulumi.Input<string>[]>;
+    /**
+     * The last name of the user.
+     */
     lastname?: pulumi.Input<string>;
+    /**
+     * The password for the user. This field is treated as a secret.
+     */
     password?: pulumi.Input<string>;
+    /**
+     * The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+     */
     userid: pulumi.Input<string>;
 }

@@ -130,6 +130,9 @@ namespace Hctamu.Pve.Vm
         [Output("serial0")]
         public Output<string?> Serial0 { get; private set; } = null!;
 
+        [Output("sockets")]
+        public Output<int?> Sockets { get; private set; } = null!;
+
         [Output("sshkeys")]
         public Output<string?> Sshkeys { get; private set; } = null!;
 
@@ -320,6 +323,9 @@ namespace Hctamu.Pve.Vm
 
         [Input("serial0")]
         public Input<string>? Serial0 { get; set; }
+
+        [Input("sockets")]
+        public Input<int>? Sockets { get; set; }
 
         [Input("sshkeys")]
         public Input<string>? Sshkeys { get; set; }

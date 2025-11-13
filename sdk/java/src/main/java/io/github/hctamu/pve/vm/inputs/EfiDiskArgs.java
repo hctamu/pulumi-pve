@@ -6,6 +6,7 @@ package io.github.hctamu.pve.vm.inputs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import java.lang.Boolean;
 import java.lang.String;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,6 +35,13 @@ public final class EfiDiskArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.filename);
     }
 
+    @Import(name="preEnrolledKeys")
+    private @Nullable Output<Boolean> preEnrolledKeys;
+
+    public Optional<Output<Boolean>> preEnrolledKeys() {
+        return Optional.ofNullable(this.preEnrolledKeys);
+    }
+
     @Import(name="storage", required=true)
     private Output<String> storage;
 
@@ -46,6 +54,7 @@ public final class EfiDiskArgs extends com.pulumi.resources.ResourceArgs {
     private EfiDiskArgs(EfiDiskArgs $) {
         this.efitype = $.efitype;
         this.filename = $.filename;
+        this.preEnrolledKeys = $.preEnrolledKeys;
         this.storage = $.storage;
     }
 
@@ -83,6 +92,15 @@ public final class EfiDiskArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder filename(String filename) {
             return filename(Output.of(filename));
+        }
+
+        public Builder preEnrolledKeys(@Nullable Output<Boolean> preEnrolledKeys) {
+            $.preEnrolledKeys = preEnrolledKeys;
+            return this;
+        }
+
+        public Builder preEnrolledKeys(Boolean preEnrolledKeys) {
+            return preEnrolledKeys(Output.of(preEnrolledKeys));
         }
 
         public Builder storage(Output<String> storage) {

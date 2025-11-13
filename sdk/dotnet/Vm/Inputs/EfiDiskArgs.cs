@@ -22,6 +22,9 @@ namespace Hctamu.Pve.Vm.Inputs
         [Input("filename")]
         public Input<string>? Filename { get; set; }
 
+        [Input("preEnrolledKeys")]
+        public Input<bool>? PreEnrolledKeys { get; set; }
+
         [Input("storage", required: true)]
         public Input<string> Storage { get; set; } = null!;
 
