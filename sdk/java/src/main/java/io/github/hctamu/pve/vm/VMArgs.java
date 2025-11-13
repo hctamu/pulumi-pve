@@ -5,7 +5,6 @@ package io.github.hctamu.pve.vm;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
-import com.pulumi.core.internal.Codegen;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
 import io.github.hctamu.pve.vm.inputs.CloneArgs;
 import io.github.hctamu.pve.vm.inputs.CpuArgs;
@@ -118,13 +117,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     public Optional<Output<CloneArgs>> clone_() {
         return Optional.ofNullable(this.clone);
-    }
-
-    @Import(name="cores")
-    private @Nullable Output<Integer> cores;
-
-    public Optional<Output<Integer>> cores() {
-        return Optional.ofNullable(this.cores);
     }
 
     @Import(name="cpu")
@@ -337,13 +329,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.smbios1);
     }
 
-    @Import(name="sockets")
-    private @Nullable Output<Integer> sockets;
-
-    public Optional<Output<Integer>> sockets() {
-        return Optional.ofNullable(this.sockets);
-    }
-
     @Import(name="sshkeys")
     private @Nullable Output<String> sshkeys;
 
@@ -424,7 +409,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.ciupgrade = $.ciupgrade;
         this.ciuser = $.ciuser;
         this.clone = $.clone;
-        this.cores = $.cores;
         this.cpu = $.cpu;
         this.cpulimit = $.cpulimit;
         this.cpuunits = $.cpuunits;
@@ -455,7 +439,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.searchdomain = $.searchdomain;
         this.serial0 = $.serial0;
         this.smbios1 = $.smbios1;
-        this.sockets = $.sockets;
         this.sshkeys = $.sshkeys;
         this.tablet = $.tablet;
         this.tags = $.tags;
@@ -609,15 +592,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder clone_(CloneArgs clone) {
             return clone_(Output.of(clone));
-        }
-
-        public Builder cores(@Nullable Output<Integer> cores) {
-            $.cores = cores;
-            return this;
-        }
-
-        public Builder cores(Integer cores) {
-            return cores(Output.of(cores));
         }
 
         public Builder cpu(@Nullable Output<CpuArgs> cpu) {
@@ -894,15 +868,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return smbios1(Output.of(smbios1));
         }
 
-        public Builder sockets(@Nullable Output<Integer> sockets) {
-            $.sockets = sockets;
-            return this;
-        }
-
-        public Builder sockets(Integer sockets) {
-            return sockets(Output.of(sockets));
-        }
-
         public Builder sshkeys(@Nullable Output<String> sshkeys) {
             $.sshkeys = sshkeys;
             return this;
@@ -985,7 +950,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         public VMArgs build() {
-            $.cores = Codegen.integerProp("cores").output().arg($.cores).def(1).getNullable();
             if ($.disks == null) {
                 throw new MissingRequiredPropertyException("VMArgs", "disks");
             }

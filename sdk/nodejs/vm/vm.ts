@@ -47,7 +47,6 @@ export class VM extends pulumi.CustomResource {
     declare public readonly ciupgrade: pulumi.Output<number | undefined>;
     declare public readonly ciuser: pulumi.Output<string | undefined>;
     declare public readonly clone: pulumi.Output<outputs.vm.Clone | undefined>;
-    declare public readonly cores: pulumi.Output<number | undefined>;
     declare public readonly cpu: pulumi.Output<outputs.vm.Cpu | undefined>;
     declare public readonly cpulimit: pulumi.Output<string | undefined>;
     declare public readonly cpuunits: pulumi.Output<number | undefined>;
@@ -78,7 +77,6 @@ export class VM extends pulumi.CustomResource {
     declare public readonly searchdomain: pulumi.Output<string | undefined>;
     declare public readonly serial0: pulumi.Output<string | undefined>;
     declare public readonly smbios1: pulumi.Output<string | undefined>;
-    declare public readonly sockets: pulumi.Output<number | undefined>;
     declare public readonly sshkeys: pulumi.Output<string | undefined>;
     declare public readonly tablet: pulumi.Output<number | undefined>;
     declare public readonly tags: pulumi.Output<string | undefined>;
@@ -120,7 +118,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["ciupgrade"] = args?.ciupgrade;
             resourceInputs["ciuser"] = args?.ciuser;
             resourceInputs["clone"] = args?.clone;
-            resourceInputs["cores"] = (args?.cores) ?? 1;
             resourceInputs["cpu"] = args?.cpu;
             resourceInputs["cpulimit"] = args?.cpulimit;
             resourceInputs["cpuunits"] = args?.cpuunits;
@@ -151,7 +148,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["searchdomain"] = args?.searchdomain;
             resourceInputs["serial0"] = args?.serial0;
             resourceInputs["smbios1"] = args?.smbios1;
-            resourceInputs["sockets"] = args?.sockets;
             resourceInputs["sshkeys"] = args?.sshkeys;
             resourceInputs["tablet"] = args?.tablet;
             resourceInputs["tags"] = args?.tags;
@@ -176,7 +172,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["ciupgrade"] = undefined /*out*/;
             resourceInputs["ciuser"] = undefined /*out*/;
             resourceInputs["clone"] = undefined /*out*/;
-            resourceInputs["cores"] = undefined /*out*/;
             resourceInputs["cpu"] = undefined /*out*/;
             resourceInputs["cpulimit"] = undefined /*out*/;
             resourceInputs["cpuunits"] = undefined /*out*/;
@@ -207,7 +202,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["searchdomain"] = undefined /*out*/;
             resourceInputs["serial0"] = undefined /*out*/;
             resourceInputs["smbios1"] = undefined /*out*/;
-            resourceInputs["sockets"] = undefined /*out*/;
             resourceInputs["sshkeys"] = undefined /*out*/;
             resourceInputs["tablet"] = undefined /*out*/;
             resourceInputs["tags"] = undefined /*out*/;
@@ -241,7 +235,6 @@ export interface VMArgs {
     ciupgrade?: pulumi.Input<number>;
     ciuser?: pulumi.Input<string>;
     clone?: pulumi.Input<inputs.vm.CloneArgs>;
-    cores?: pulumi.Input<number>;
     cpu?: pulumi.Input<inputs.vm.CpuArgs>;
     cpulimit?: pulumi.Input<string>;
     cpuunits?: pulumi.Input<number>;
@@ -272,7 +265,6 @@ export interface VMArgs {
     searchdomain?: pulumi.Input<string>;
     serial0?: pulumi.Input<string>;
     smbios1?: pulumi.Input<string>;
-    sockets?: pulumi.Input<number>;
     sshkeys?: pulumi.Input<string>;
     tablet?: pulumi.Input<number>;
     tags?: pulumi.Input<string>;

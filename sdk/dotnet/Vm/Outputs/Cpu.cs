@@ -14,15 +14,19 @@ namespace Hctamu.Pve.Vm.Outputs
     [OutputType]
     public sealed class Cpu
     {
+        public readonly int? Cores;
         public readonly ImmutableArray<string> FlagsDisabled;
         public readonly ImmutableArray<string> FlagsEnabled;
         public readonly bool? Hidden;
         public readonly string? HvVendorId;
         public readonly string? PhysBits;
+        public readonly int? Sockets;
         public readonly string? Type;
 
         [OutputConstructor]
         private Cpu(
+            int? cores,
+
             ImmutableArray<string> flagsDisabled,
 
             ImmutableArray<string> flagsEnabled,
@@ -33,13 +37,17 @@ namespace Hctamu.Pve.Vm.Outputs
 
             string? physBits,
 
+            int? sockets,
+
             string? type)
         {
+            Cores = cores;
             FlagsDisabled = flagsDisabled;
             FlagsEnabled = flagsEnabled;
             Hidden = hidden;
             HvVendorId = hvVendorId;
             PhysBits = physBits;
+            Sockets = sockets;
             Type = type;
         }
     }

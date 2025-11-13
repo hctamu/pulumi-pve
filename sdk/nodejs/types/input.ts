@@ -28,11 +28,13 @@ export namespace vm {
     }
 
     export interface CpuArgs {
+        cores?: pulumi.Input<number>;
         flagsDisabled?: pulumi.Input<pulumi.Input<string>[]>;
         flagsEnabled?: pulumi.Input<pulumi.Input<string>[]>;
         hidden?: pulumi.Input<boolean>;
         hvVendorId?: pulumi.Input<string>;
         physBits?: pulumi.Input<string>;
+        sockets?: pulumi.Input<number>;
         type?: pulumi.Input<string>;
     }
 

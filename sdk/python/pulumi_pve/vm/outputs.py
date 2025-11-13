@@ -111,12 +111,16 @@ class Cpu(dict):
         return super().get(key, default)
 
     def __init__(__self__, *,
+                 cores: Optional[_builtins.int] = None,
                  flags_disabled: Optional[Sequence[_builtins.str]] = None,
                  flags_enabled: Optional[Sequence[_builtins.str]] = None,
                  hidden: Optional[_builtins.bool] = None,
                  hv_vendor_id: Optional[_builtins.str] = None,
                  phys_bits: Optional[_builtins.str] = None,
+                 sockets: Optional[_builtins.int] = None,
                  type: Optional[_builtins.str] = None):
+        if cores is not None:
+            pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
             pulumi.set(__self__, "flags_disabled", flags_disabled)
         if flags_enabled is not None:
@@ -127,8 +131,15 @@ class Cpu(dict):
             pulumi.set(__self__, "hv_vendor_id", hv_vendor_id)
         if phys_bits is not None:
             pulumi.set(__self__, "phys_bits", phys_bits)
+        if sockets is not None:
+            pulumi.set(__self__, "sockets", sockets)
         if type is not None:
             pulumi.set(__self__, "type", type)
+
+    @_builtins.property
+    @pulumi.getter
+    def cores(self) -> Optional[_builtins.int]:
+        return pulumi.get(self, "cores")
 
     @_builtins.property
     @pulumi.getter(name="flagsDisabled")
@@ -154,6 +165,11 @@ class Cpu(dict):
     @pulumi.getter(name="physBits")
     def phys_bits(self) -> Optional[_builtins.str]:
         return pulumi.get(self, "phys_bits")
+
+    @_builtins.property
+    @pulumi.getter
+    def sockets(self) -> Optional[_builtins.int]:
+        return pulumi.get(self, "sockets")
 
     @_builtins.property
     @pulumi.getter

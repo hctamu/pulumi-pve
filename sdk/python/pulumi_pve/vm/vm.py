@@ -37,7 +37,6 @@ class VMArgs:
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input['CloneArgs']] = None,
-                 cores: Optional[pulumi.Input[_builtins.int]] = None,
                  cpu: Optional[pulumi.Input['CpuArgs']] = None,
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
@@ -66,7 +65,6 @@ class VMArgs:
                  searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
                  serial0: Optional[pulumi.Input[_builtins.str]] = None,
                  smbios1: Optional[pulumi.Input[_builtins.str]] = None,
-                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
                  tablet: Optional[pulumi.Input[_builtins.int]] = None,
                  tags: Optional[pulumi.Input[_builtins.str]] = None,
@@ -109,10 +107,6 @@ class VMArgs:
             pulumi.set(__self__, "ciuser", ciuser)
         if clone is not None:
             pulumi.set(__self__, "clone", clone)
-        if cores is None:
-            cores = 1
-        if cores is not None:
-            pulumi.set(__self__, "cores", cores)
         if cpu is not None:
             pulumi.set(__self__, "cpu", cpu)
         if cpulimit is not None:
@@ -169,8 +163,6 @@ class VMArgs:
             pulumi.set(__self__, "serial0", serial0)
         if smbios1 is not None:
             pulumi.set(__self__, "smbios1", smbios1)
-        if sockets is not None:
-            pulumi.set(__self__, "sockets", sockets)
         if sshkeys is not None:
             pulumi.set(__self__, "sshkeys", sshkeys)
         if tablet is not None:
@@ -333,15 +325,6 @@ class VMArgs:
     @clone.setter
     def clone(self, value: Optional[pulumi.Input['CloneArgs']]):
         pulumi.set(self, "clone", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def cores(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "cores")
-
-    @cores.setter
-    def cores(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "cores", value)
 
     @_builtins.property
     @pulumi.getter
@@ -597,15 +580,6 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def sockets(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "sockets")
-
-    @sockets.setter
-    def sockets(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "sockets", value)
-
-    @_builtins.property
-    @pulumi.getter
     def sshkeys(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "sshkeys")
 
@@ -706,7 +680,6 @@ class VM(pulumi.CustomResource):
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
-                 cores: Optional[pulumi.Input[_builtins.int]] = None,
                  cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
@@ -737,7 +710,6 @@ class VM(pulumi.CustomResource):
                  searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
                  serial0: Optional[pulumi.Input[_builtins.str]] = None,
                  smbios1: Optional[pulumi.Input[_builtins.str]] = None,
-                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
                  tablet: Optional[pulumi.Input[_builtins.int]] = None,
                  tags: Optional[pulumi.Input[_builtins.str]] = None,
@@ -790,7 +762,6 @@ class VM(pulumi.CustomResource):
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
-                 cores: Optional[pulumi.Input[_builtins.int]] = None,
                  cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
@@ -821,7 +792,6 @@ class VM(pulumi.CustomResource):
                  searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
                  serial0: Optional[pulumi.Input[_builtins.str]] = None,
                  smbios1: Optional[pulumi.Input[_builtins.str]] = None,
-                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
                  tablet: Optional[pulumi.Input[_builtins.int]] = None,
                  tags: Optional[pulumi.Input[_builtins.str]] = None,
@@ -854,9 +824,6 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["ciupgrade"] = ciupgrade
             __props__.__dict__["ciuser"] = ciuser
             __props__.__dict__["clone"] = clone
-            if cores is None:
-                cores = 1
-            __props__.__dict__["cores"] = cores
             __props__.__dict__["cpu"] = cpu
             __props__.__dict__["cpulimit"] = cpulimit
             __props__.__dict__["cpuunits"] = cpuunits
@@ -891,7 +858,6 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["searchdomain"] = searchdomain
             __props__.__dict__["serial0"] = serial0
             __props__.__dict__["smbios1"] = smbios1
-            __props__.__dict__["sockets"] = sockets
             __props__.__dict__["sshkeys"] = sshkeys
             __props__.__dict__["tablet"] = tablet
             __props__.__dict__["tags"] = tags
@@ -937,7 +903,6 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["ciupgrade"] = None
         __props__.__dict__["ciuser"] = None
         __props__.__dict__["clone"] = None
-        __props__.__dict__["cores"] = None
         __props__.__dict__["cpu"] = None
         __props__.__dict__["cpulimit"] = None
         __props__.__dict__["cpuunits"] = None
@@ -968,7 +933,6 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["searchdomain"] = None
         __props__.__dict__["serial0"] = None
         __props__.__dict__["smbios1"] = None
-        __props__.__dict__["sockets"] = None
         __props__.__dict__["sshkeys"] = None
         __props__.__dict__["tablet"] = None
         __props__.__dict__["tags"] = None
@@ -1049,11 +1013,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def clone(self) -> pulumi.Output[Optional['outputs.Clone']]:
         return pulumi.get(self, "clone")
-
-    @_builtins.property
-    @pulumi.getter
-    def cores(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "cores")
 
     @_builtins.property
     @pulumi.getter
@@ -1204,11 +1163,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def smbios1(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "smbios1")
-
-    @_builtins.property
-    @pulumi.getter
-    def sockets(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "sockets")
 
     @_builtins.property
     @pulumi.getter

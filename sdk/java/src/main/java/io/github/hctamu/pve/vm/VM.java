@@ -104,12 +104,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<Clone>> clone_() {
         return Codegen.optional(this.clone);
     }
-    @Export(name="cores", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> cores;
-
-    public Output<Optional<Integer>> cores() {
-        return Codegen.optional(this.cores);
-    }
     @Export(name="cpu", refs={Cpu.class}, tree="[0]")
     private Output</* @Nullable */ Cpu> cpu;
 
@@ -289,12 +283,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<String>> smbios1() {
         return Codegen.optional(this.smbios1);
-    }
-    @Export(name="sockets", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> sockets;
-
-    public Output<Optional<Integer>> sockets() {
-        return Codegen.optional(this.sockets);
     }
     @Export(name="sshkeys", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> sshkeys;

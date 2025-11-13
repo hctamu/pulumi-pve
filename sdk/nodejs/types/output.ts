@@ -29,11 +29,13 @@ export namespace vm {
     }
 
     export interface Cpu {
+        cores?: number;
         flagsDisabled?: string[];
         flagsEnabled?: string[];
         hidden?: boolean;
         hvVendorId?: string;
         physBits?: string;
+        sockets?: number;
         type?: string;
     }
 

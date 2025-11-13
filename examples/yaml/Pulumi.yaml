@@ -30,6 +30,8 @@ resources:
         hidden: true
         hvVendorId: AuthenticAMD
         physBits: "48"
+        cores: 4
+        sockets: 2
       memory: 27875
       disks:
         - storage: "ceph-ha"

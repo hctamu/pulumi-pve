@@ -55,9 +55,6 @@ namespace Hctamu.Pve.Vm
         [Output("clone")]
         public Output<Outputs.Clone?> Clone { get; private set; } = null!;
 
-        [Output("cores")]
-        public Output<int?> Cores { get; private set; } = null!;
-
         [Output("cpu")]
         public Output<Outputs.Cpu?> Cpu { get; private set; } = null!;
 
@@ -147,9 +144,6 @@ namespace Hctamu.Pve.Vm
 
         [Output("smbios1")]
         public Output<string?> Smbios1 { get; private set; } = null!;
-
-        [Output("sockets")]
-        public Output<int?> Sockets { get; private set; } = null!;
 
         [Output("sshkeys")]
         public Output<string?> Sshkeys { get; private set; } = null!;
@@ -265,9 +259,6 @@ namespace Hctamu.Pve.Vm
         [Input("clone")]
         public Input<Inputs.CloneArgs>? Clone { get; set; }
 
-        [Input("cores")]
-        public Input<int>? Cores { get; set; }
-
         [Input("cpu")]
         public Input<Inputs.CpuArgs>? Cpu { get; set; }
 
@@ -363,9 +354,6 @@ namespace Hctamu.Pve.Vm
         [Input("smbios1")]
         public Input<string>? Smbios1 { get; set; }
 
-        [Input("sockets")]
-        public Input<int>? Sockets { get; set; }
-
         [Input("sshkeys")]
         public Input<string>? Sshkeys { get; set; }
 
@@ -395,7 +383,6 @@ namespace Hctamu.Pve.Vm
 
         public VMArgs()
         {
-            Cores = 1;
         }
         public static new VMArgs Empty => new VMArgs();
     }

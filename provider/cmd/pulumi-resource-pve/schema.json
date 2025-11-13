@@ -110,6 +110,9 @@
     },
     "pve:vm:Cpu": {
       "properties": {
+        "cores": {
+          "type": "integer"
+        },
         "flagsDisabled": {
           "type": "array",
           "items": {
@@ -130,6 +133,9 @@
         },
         "physBits": {
           "type": "string"
+        },
+        "sockets": {
+          "type": "integer"
         },
         "type": {
           "type": "string"
@@ -518,10 +524,6 @@
         "clone": {
           "$ref": "#/types/pve:vm:Clone"
         },
-        "cores": {
-          "type": "integer",
-          "default": 1
-        },
         "cpu": {
           "$ref": "#/types/pve:vm:Cpu"
         },
@@ -614,9 +616,6 @@
         },
         "smbios1": {
           "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
         },
         "sshkeys": {
           "type": "string"
@@ -694,10 +693,6 @@
         "clone": {
           "$ref": "#/types/pve:vm:Clone"
         },
-        "cores": {
-          "type": "integer",
-          "default": 1
-        },
         "cpu": {
           "$ref": "#/types/pve:vm:Cpu"
         },
@@ -790,9 +785,6 @@
         },
         "smbios1": {
           "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
         },
         "sshkeys": {
           "type": "string"

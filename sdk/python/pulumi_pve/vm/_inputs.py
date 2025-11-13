@@ -101,11 +101,13 @@ class CloneArgs:
 
 if not MYPY:
     class CpuArgsDict(TypedDict):
+        cores: NotRequired[pulumi.Input[_builtins.int]]
         flags_disabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
         flags_enabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
         hidden: NotRequired[pulumi.Input[_builtins.bool]]
         hv_vendor_id: NotRequired[pulumi.Input[_builtins.str]]
         phys_bits: NotRequired[pulumi.Input[_builtins.str]]
+        sockets: NotRequired[pulumi.Input[_builtins.int]]
         type: NotRequired[pulumi.Input[_builtins.str]]
 elif False:
     CpuArgsDict: TypeAlias = Mapping[str, Any]
@@ -113,12 +115,16 @@ elif False:
 @pulumi.input_type
 class CpuArgs:
     def __init__(__self__, *,
+                 cores: Optional[pulumi.Input[_builtins.int]] = None,
                  flags_disabled: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  flags_enabled: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  hidden: Optional[pulumi.Input[_builtins.bool]] = None,
                  hv_vendor_id: Optional[pulumi.Input[_builtins.str]] = None,
                  phys_bits: Optional[pulumi.Input[_builtins.str]] = None,
+                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  type: Optional[pulumi.Input[_builtins.str]] = None):
+        if cores is not None:
+            pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
             pulumi.set(__self__, "flags_disabled", flags_disabled)
         if flags_enabled is not None:
@@ -129,8 +135,19 @@ class CpuArgs:
             pulumi.set(__self__, "hv_vendor_id", hv_vendor_id)
         if phys_bits is not None:
             pulumi.set(__self__, "phys_bits", phys_bits)
+        if sockets is not None:
+            pulumi.set(__self__, "sockets", sockets)
         if type is not None:
             pulumi.set(__self__, "type", type)
+
+    @_builtins.property
+    @pulumi.getter
+    def cores(self) -> Optional[pulumi.Input[_builtins.int]]:
+        return pulumi.get(self, "cores")
+
+    @cores.setter
+    def cores(self, value: Optional[pulumi.Input[_builtins.int]]):
+        pulumi.set(self, "cores", value)
 
     @_builtins.property
     @pulumi.getter(name="flagsDisabled")
@@ -176,6 +193,15 @@ class CpuArgs:
     @phys_bits.setter
     def phys_bits(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "phys_bits", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def sockets(self) -> Optional[pulumi.Input[_builtins.int]]:
+        return pulumi.get(self, "sockets")
+
+    @sockets.setter
+    def sockets(self, value: Optional[pulumi.Input[_builtins.int]]):
+        pulumi.set(self, "sockets", value)
 
     @_builtins.property
     @pulumi.getter

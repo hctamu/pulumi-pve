@@ -43,6 +43,8 @@ type Cpu struct {
 	Hidden        *bool    `pulumi:"hidden,optional"`
 	HVVendorID    *string  `pulumi:"hvVendorId,optional"`
 	PhysBits      *string  `pulumi:"physBits,optional"`
+	Cores         *int     `pulumi:"cores,optional"`   // Number of cores per socket
+	Sockets       *int     `pulumi:"sockets,optional"` // Number of CPU sockets
 }
 
 // ToProxmoxString converts the Cpu config to Proxmox format.
@@ -146,17 +148,6 @@ func ParseCpu(value string) (*Cpu, error) {
 	return cfg, nil
 }
 
-// cpuEqual compares two Cpu pointers.
-func cpuEqual(a, b *Cpu) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return a.ToProxmoxString() == b.ToProxmoxString()
-}
-
 // ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
 func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
 	fullDiskPath := fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
@@ -196,8 +187,6 @@ type Inputs struct {
 	SMBios1  *string `pulumi:"smbios1,optional"`
 	Acpi     *int    `pulumi:"acpi,optional"`
 
-	Sockets  *int    `pulumi:"sockets,optional"`
-	Cores    *int    `pulumi:"cores,optional"`
 	Cpu      *Cpu    `pulumi:"cpu,optional"`
 	CPULimit *string `pulumi:"cpulimit,optional"`
 	CPUUnits *int    `pulumi:"cpuunits,optional"`
@@ -257,6 +246,30 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
+	var parsedCPU *Cpu
+	if vmConfig.CPU != "" {
+		cpuCfg, err := ParseCpu(vmConfig.CPU)
+		if err != nil {
+			return Inputs{}, fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, err)
+		}
+		parsedCPU = cpuCfg
+	}
+
+	if vmConfig.Cores > 0 {
+		if parsedCPU == nil {
+			parsedCPU = &Cpu{}
+		}
+		c := vmConfig.Cores
+		parsedCPU.Cores = &c
+	}
+	if vmConfig.Sockets > 0 {
+		if parsedCPU == nil {
+			parsedCPU = &Cpu{}
+		}
+		s := vmConfig.Sockets
+		parsedCPU.Sockets = &s
+	}
+
 	disks := make([]*Disk, 0, len(diskMap))
 	for diskInterface, diskStr := range diskMap {
 		disk := Disk{Interface: diskInterface}
@@ -297,18 +310,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		SMBios1:  strOrNil(vmConfig.SMBios1),
 		Acpi:     intOrNil(vmConfig.Acpi),
 
-		Sockets: intOrNil(vmConfig.Sockets),
-		Cores:   intOrNil(vmConfig.Cores),
-		Cpu: func() *Cpu {
-			if vmConfig.CPU == "" {
-				return nil
-			}
-			cpuCfg, err := ParseCpu(vmConfig.CPU)
-			if err != nil {
-				return nil
-			}
-			return cpuCfg
-		}(),
+		Cpu:      parsedCPU,
 		CPUUnits: intOrNil(vmConfig.CPUUnits),
 		Vcpus:    intOrNil(vmConfig.Vcpus),
 		Affinity: strOrNil(vmConfig.Affinity),
@@ -362,25 +364,13 @@ func (inputs *Inputs) BuildOptionsDiff(
 
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
-	compareAndAddOption("cores", &options, inputs.Cores, currentInputs.Cores)
 	compareAndAddOption("description", &options, inputs.Description, currentInputs.Description)
 	compareAndAddOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
 	compareAndAddOption("protection", &options, inputs.Protection, currentInputs.Protection)
 	compareAndAddOption("lock", &options, inputs.Lock, currentInputs.Lock)
 	compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
 	compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
-	if inputs.Cpu != nil || currentInputs.Cpu != nil {
-		if !cpuEqual(inputs.Cpu, currentInputs.Cpu) {
-			var cpuValue string
-			if inputs.Cpu != nil {
-				cpuValue = inputs.Cpu.ToProxmoxString()
-			}
-			// Only add CPU option if we have a valid configuration
-			if cpuValue != "" {
-				options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuValue})
-			}
-		}
-	}
+	addCpuDiff(&options, inputs, currentInputs)
 	compareAndAddOption("cpulimit", &options, inputs.CPULimit, currentInputs.CPULimit)
 	compareAndAddOption("cpuunits", &options, inputs.CPUUnits, currentInputs.CPUUnits)
 	compareAndAddOption("vcpus", &options, inputs.Vcpus, currentInputs.Vcpus)
@@ -416,7 +406,6 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 
 	addOption("name", &options, inputs.Name)
 	addOption("memory", &options, inputs.Memory)
-	addOption("cores", &options, inputs.Cores)
 	addOption("description", &options, inputs.Description)
 	addOption("autostart", &options, inputs.Autostart)
 	addOption("protection", &options, inputs.Protection)
@@ -424,7 +413,16 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("boot", &options, inputs.Boot)
 	addOption("onboot", &options, inputs.OnBoot)
 	if inputs.Cpu != nil {
-		options = append(options, api.VirtualMachineOption{Name: "cpu", Value: inputs.Cpu.ToProxmoxString()})
+		cpuStr := inputs.Cpu.ToProxmoxString()
+		if cpuStr != "" {
+			options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuStr})
+		}
+		if inputs.Cpu.Cores != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cores", Value: inputs.Cpu.Cores})
+		}
+		if inputs.Cpu.Sockets != nil {
+			options = append(options, api.VirtualMachineOption{Name: "sockets", Value: inputs.Cpu.Sockets})
+		}
 	}
 	addOption("cpulimit", &options, inputs.CPULimit)
 	addOption("cpuunits", &options, inputs.CPUUnits)
@@ -451,6 +449,51 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	}
 
 	return options
+}
+
+// addCpuDiff appends VirtualMachineOption entries for cpu string, cores, and sockets when they differ.
+func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *Inputs) {
+	if newInputs.Cpu != nil || currentInputs.Cpu != nil {
+		// Diff CPU string
+		var newCPU, oldCPU string
+		if newInputs.Cpu != nil {
+			newCPU = newInputs.Cpu.ToProxmoxString()
+		}
+		if currentInputs.Cpu != nil {
+			oldCPU = currentInputs.Cpu.ToProxmoxString()
+		}
+		if newCPU != oldCPU && newCPU != "" {
+			*options = append(*options, api.VirtualMachineOption{Name: "cpu", Value: newCPU})
+		}
+
+		// Diff cores
+		var newCores, oldCores *int
+		if newInputs.Cpu != nil {
+			newCores = newInputs.Cpu.Cores
+		}
+		if currentInputs.Cpu != nil {
+			oldCores = currentInputs.Cpu.Cores
+		}
+		if resources.DifferPtr(newCores, oldCores) {
+			if newCores != nil { // skip clear operations
+				*options = append(*options, api.VirtualMachineOption{Name: "cores", Value: newCores})
+			}
+		}
+
+		// Diff sockets
+		var newSockets, oldSockets *int
+		if newInputs.Cpu != nil {
+			newSockets = newInputs.Cpu.Sockets
+		}
+		if currentInputs.Cpu != nil {
+			oldSockets = currentInputs.Cpu.Sockets
+		}
+		if resources.DifferPtr(newSockets, oldSockets) {
+			if newSockets != nil { // skip clear operations
+				*options = append(*options, api.VirtualMachineOption{Name: "sockets", Value: newSockets})
+			}
+		}
+	}
 }
 
 // getDiskOption returns the disk option with the specified interface.

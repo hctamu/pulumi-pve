@@ -5,6 +5,7 @@ package io.github.hctamu.pve.vm.outputs;
 
 import com.pulumi.core.annotations.CustomType;
 import java.lang.Boolean;
+import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
 import java.util.Objects;
@@ -13,14 +14,19 @@ import javax.annotation.Nullable;
 
 @CustomType
 public final class Cpu {
+    private @Nullable Integer cores;
     private @Nullable List<String> flagsDisabled;
     private @Nullable List<String> flagsEnabled;
     private @Nullable Boolean hidden;
     private @Nullable String hvVendorId;
     private @Nullable String physBits;
+    private @Nullable Integer sockets;
     private @Nullable String type;
 
     private Cpu() {}
+    public Optional<Integer> cores() {
+        return Optional.ofNullable(this.cores);
+    }
     public List<String> flagsDisabled() {
         return this.flagsDisabled == null ? List.of() : this.flagsDisabled;
     }
@@ -36,6 +42,9 @@ public final class Cpu {
     public Optional<String> physBits() {
         return Optional.ofNullable(this.physBits);
     }
+    public Optional<Integer> sockets() {
+        return Optional.ofNullable(this.sockets);
+    }
     public Optional<String> type() {
         return Optional.ofNullable(this.type);
     }
@@ -49,23 +58,33 @@ public final class Cpu {
     }
     @CustomType.Builder
     public static final class Builder {
+        private @Nullable Integer cores;
         private @Nullable List<String> flagsDisabled;
         private @Nullable List<String> flagsEnabled;
         private @Nullable Boolean hidden;
         private @Nullable String hvVendorId;
         private @Nullable String physBits;
+        private @Nullable Integer sockets;
         private @Nullable String type;
         public Builder() {}
         public Builder(Cpu defaults) {
     	      Objects.requireNonNull(defaults);
+    	      this.cores = defaults.cores;
     	      this.flagsDisabled = defaults.flagsDisabled;
     	      this.flagsEnabled = defaults.flagsEnabled;
     	      this.hidden = defaults.hidden;
     	      this.hvVendorId = defaults.hvVendorId;
     	      this.physBits = defaults.physBits;
+    	      this.sockets = defaults.sockets;
     	      this.type = defaults.type;
         }
 
+        @CustomType.Setter
+        public Builder cores(@Nullable Integer cores) {
+
+            this.cores = cores;
+            return this;
+        }
         @CustomType.Setter
         public Builder flagsDisabled(@Nullable List<String> flagsDisabled) {
 
@@ -103,6 +122,12 @@ public final class Cpu {
             return this;
         }
         @CustomType.Setter
+        public Builder sockets(@Nullable Integer sockets) {
+
+            this.sockets = sockets;
+            return this;
+        }
+        @CustomType.Setter
         public Builder type(@Nullable String type) {
 
             this.type = type;
@@ -110,11 +135,13 @@ public final class Cpu {
         }
         public Cpu build() {
             final var _resultValue = new Cpu();
+            _resultValue.cores = cores;
             _resultValue.flagsDisabled = flagsDisabled;
             _resultValue.flagsEnabled = flagsEnabled;
             _resultValue.hidden = hidden;
             _resultValue.hvVendorId = hvVendorId;
             _resultValue.physBits = physBits;
+            _resultValue.sockets = sockets;
             _resultValue.type = type;
             return _resultValue;
         }

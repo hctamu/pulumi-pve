@@ -29,7 +29,6 @@ type VM struct {
 	Ciupgrade    pulumi.IntPtrOutput    `pulumi:"ciupgrade"`
 	Ciuser       pulumi.StringPtrOutput `pulumi:"ciuser"`
 	Clone        ClonePtrOutput         `pulumi:"clone"`
-	Cores        pulumi.IntPtrOutput    `pulumi:"cores"`
 	Cpu          CpuPtrOutput           `pulumi:"cpu"`
 	Cpulimit     pulumi.StringPtrOutput `pulumi:"cpulimit"`
 	Cpuunits     pulumi.IntPtrOutput    `pulumi:"cpuunits"`
@@ -60,7 +59,6 @@ type VM struct {
 	Searchdomain pulumi.StringPtrOutput `pulumi:"searchdomain"`
 	Serial0      pulumi.StringPtrOutput `pulumi:"serial0"`
 	Smbios1      pulumi.StringPtrOutput `pulumi:"smbios1"`
-	Sockets      pulumi.IntPtrOutput    `pulumi:"sockets"`
 	Sshkeys      pulumi.StringPtrOutput `pulumi:"sshkeys"`
 	Tablet       pulumi.IntPtrOutput    `pulumi:"tablet"`
 	Tags         pulumi.StringPtrOutput `pulumi:"tags"`
@@ -84,9 +82,6 @@ func NewVM(ctx *pulumi.Context,
 	}
 	if args.Name == nil {
 		return nil, errors.New("invalid value for required argument 'Name'")
-	}
-	if args.Cores == nil {
-		args.Cores = pulumi.IntPtr(1)
 	}
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource VM
@@ -135,7 +130,6 @@ type vmArgs struct {
 	Ciupgrade    *int    `pulumi:"ciupgrade"`
 	Ciuser       *string `pulumi:"ciuser"`
 	Clone        *Clone  `pulumi:"clone"`
-	Cores        *int    `pulumi:"cores"`
 	Cpu          *Cpu    `pulumi:"cpu"`
 	Cpulimit     *string `pulumi:"cpulimit"`
 	Cpuunits     *int    `pulumi:"cpuunits"`
@@ -166,7 +160,6 @@ type vmArgs struct {
 	Searchdomain *string `pulumi:"searchdomain"`
 	Serial0      *string `pulumi:"serial0"`
 	Smbios1      *string `pulumi:"smbios1"`
-	Sockets      *int    `pulumi:"sockets"`
 	Sshkeys      *string `pulumi:"sshkeys"`
 	Tablet       *int    `pulumi:"tablet"`
 	Tags         *string `pulumi:"tags"`
@@ -194,7 +187,6 @@ type VMArgs struct {
 	Ciupgrade    pulumi.IntPtrInput
 	Ciuser       pulumi.StringPtrInput
 	Clone        ClonePtrInput
-	Cores        pulumi.IntPtrInput
 	Cpu          CpuPtrInput
 	Cpulimit     pulumi.StringPtrInput
 	Cpuunits     pulumi.IntPtrInput
@@ -225,7 +217,6 @@ type VMArgs struct {
 	Searchdomain pulumi.StringPtrInput
 	Serial0      pulumi.StringPtrInput
 	Smbios1      pulumi.StringPtrInput
-	Sockets      pulumi.IntPtrInput
 	Sshkeys      pulumi.StringPtrInput
 	Tablet       pulumi.IntPtrInput
 	Tags         pulumi.StringPtrInput
@@ -380,10 +371,6 @@ func (o VMOutput) Clone() ClonePtrOutput {
 	return o.ApplyT(func(v *VM) ClonePtrOutput { return v.Clone }).(ClonePtrOutput)
 }
 
-func (o VMOutput) Cores() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Cores }).(pulumi.IntPtrOutput)
-}
-
 func (o VMOutput) Cpu() CpuPtrOutput {
 	return o.ApplyT(func(v *VM) CpuPtrOutput { return v.Cpu }).(CpuPtrOutput)
 }
@@ -502,10 +489,6 @@ func (o VMOutput) Serial0() pulumi.StringPtrOutput {
 
 func (o VMOutput) Smbios1() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Smbios1 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Sockets() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Sockets }).(pulumi.IntPtrOutput)
 }
 
 func (o VMOutput) Sshkeys() pulumi.StringPtrOutput {

@@ -13,6 +13,9 @@ namespace Hctamu.Pve.Vm.Inputs
 
     public sealed class CpuArgs : global::Pulumi.ResourceArgs
     {
+        [Input("cores")]
+        public Input<int>? Cores { get; set; }
+
         [Input("flagsDisabled")]
         private InputList<string>? _flagsDisabled;
         public InputList<string> FlagsDisabled
@@ -37,6 +40,9 @@ namespace Hctamu.Pve.Vm.Inputs
 
         [Input("physBits")]
         public Input<string>? PhysBits { get; set; }
+
+        [Input("sockets")]
+        public Input<int>? Sockets { get; set; }
 
         [Input("type")]
         public Input<string>? Type { get; set; }

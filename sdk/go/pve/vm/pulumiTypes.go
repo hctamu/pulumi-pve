@@ -207,11 +207,13 @@ func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 }
 
 type Cpu struct {
+	Cores         *int     `pulumi:"cores"`
 	FlagsDisabled []string `pulumi:"flagsDisabled"`
 	FlagsEnabled  []string `pulumi:"flagsEnabled"`
 	Hidden        *bool    `pulumi:"hidden"`
 	HvVendorId    *string  `pulumi:"hvVendorId"`
 	PhysBits      *string  `pulumi:"physBits"`
+	Sockets       *int     `pulumi:"sockets"`
 	Type          *string  `pulumi:"type"`
 }
 
@@ -227,11 +229,13 @@ type CpuInput interface {
 }
 
 type CpuArgs struct {
+	Cores         pulumi.IntPtrInput      `pulumi:"cores"`
 	FlagsDisabled pulumi.StringArrayInput `pulumi:"flagsDisabled"`
 	FlagsEnabled  pulumi.StringArrayInput `pulumi:"flagsEnabled"`
 	Hidden        pulumi.BoolPtrInput     `pulumi:"hidden"`
 	HvVendorId    pulumi.StringPtrInput   `pulumi:"hvVendorId"`
 	PhysBits      pulumi.StringPtrInput   `pulumi:"physBits"`
+	Sockets       pulumi.IntPtrInput      `pulumi:"sockets"`
 	Type          pulumi.StringPtrInput   `pulumi:"type"`
 }
 
@@ -312,6 +316,10 @@ func (o CpuOutput) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
 	}).(CpuPtrOutput)
 }
 
+func (o CpuOutput) Cores() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v Cpu) *int { return v.Cores }).(pulumi.IntPtrOutput)
+}
+
 func (o CpuOutput) FlagsDisabled() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v Cpu) []string { return v.FlagsDisabled }).(pulumi.StringArrayOutput)
 }
@@ -330,6 +338,10 @@ func (o CpuOutput) HvVendorId() pulumi.StringPtrOutput {
 
 func (o CpuOutput) PhysBits() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Cpu) *string { return v.PhysBits }).(pulumi.StringPtrOutput)
+}
+
+func (o CpuOutput) Sockets() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v Cpu) *int { return v.Sockets }).(pulumi.IntPtrOutput)
 }
 
 func (o CpuOutput) Type() pulumi.StringPtrOutput {
@@ -358,6 +370,15 @@ func (o CpuPtrOutput) Elem() CpuOutput {
 		var ret Cpu
 		return ret
 	}).(CpuOutput)
+}
+
+func (o CpuPtrOutput) Cores() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Cpu) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Cores
+	}).(pulumi.IntPtrOutput)
 }
 
 func (o CpuPtrOutput) FlagsDisabled() pulumi.StringArrayOutput {
@@ -403,6 +424,15 @@ func (o CpuPtrOutput) PhysBits() pulumi.StringPtrOutput {
 		}
 		return v.PhysBits
 	}).(pulumi.StringPtrOutput)
+}
+
+func (o CpuPtrOutput) Sockets() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Cpu) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Sockets
+	}).(pulumi.IntPtrOutput)
 }
 
 func (o CpuPtrOutput) Type() pulumi.StringPtrOutput {

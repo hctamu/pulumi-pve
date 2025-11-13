@@ -280,7 +280,19 @@ func (vm *VM) Read(
 	request infer.ReadRequest[Inputs, Outputs],
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Read VM with ID: %v", request.Inputs.VMID)
+
+	// During refresh, inputs might be incomplete; use state for VM ID and node
+	vmID := request.State.VMID
+	if vmID == nil && request.Inputs.VMID != nil {
+		vmID = request.Inputs.VMID
+	}
+
+	node := request.State.Node
+	if node == nil && request.Inputs.Node != nil {
+		node = request.Inputs.Node
+	}
+
+	l.Debugf("Read VM with ID: %v", vmID)
 
 	var pxClient *px.Client
 	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
@@ -290,9 +302,9 @@ func (vm *VM) Read(
 	}
 
 	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *request.Inputs.VMID, request.Inputs.Node)
+	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, node)
 	if err != nil {
-		l.Errorf("Error during finding VM %v: %v", request.Inputs.VMID, err)
+		l.Errorf("Error during finding VM %v: %v", vmID, err)
 		return response, err
 
 	}
@@ -489,7 +501,16 @@ func indexRune(s string, r rune) int {
 
 // Annotate sets default values for the Args struct.
 func (inputs *Inputs) Annotate(a infer.Annotator) {
-	a.SetDefault(&inputs.Cores, 1)
+	// Only set default cores if user hasn't provided a Cpu configuration
+	if inputs.Cpu == nil {
+		inputs.Cpu = &Cpu{}
+		defaultCores := 1
+		inputs.Cpu.Cores = &defaultCores
+	} else if inputs.Cpu.Cores == nil {
+		// User provided Cpu config but no cores - set default
+		defaultCores := 1
+		inputs.Cpu.Cores = &defaultCores
+	}
 }
 
 // UpdateDisksAfterClone updates the disks of the virtual machine after a clone operation.
