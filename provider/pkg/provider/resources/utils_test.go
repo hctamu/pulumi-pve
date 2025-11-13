@@ -1,0 +1,146 @@
+/* Copyright 2025, Pulumi Corporation.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package resources_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
+	"github.com/hctamu/pulumi-pve/provider/px"
+	api "github.com/luthermonson/go-proxmox"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/vitorsalgado/mocha/v3"
+	"github.com/vitorsalgado/mocha/v3/expect"
+	"github.com/vitorsalgado/mocha/v3/reply"
+)
+
+func TestSliceToString(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   []string
+		want string
+	}{
+		{"empty", []string{}, ""},
+		{"single", []string{"a"}, "a"},
+		{"sorted", []string{"a", "b", "c"}, "a,b,c"},
+		{"unsorted", []string{"c", "a", "b"}, "a,b,c"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := resources.SliceToString(tt.in)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestStringToSlice(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		in   string
+		want []string
+	}{
+		{"empty", "", []string{}},
+		{"single", "a", []string{"a"}},
+		{"trimSpaces", "a, b , c", []string{"a", "b", "c"}},
+		{"unsorted", "c,b,a", []string{"a", "b", "c"}},
+		{"duplicates", "b,a,b", []string{"a", "b", "b"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := resources.StringToSlice(tt.in)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestSliceStringRoundTrip(t *testing.T) {
+	t.Parallel()
+	in := []string{"delta", "alpha", "charlie", "bravo"}
+	s := resources.SliceToString(in)
+	back := resources.StringToSlice(s)
+	assert.ElementsMatch(t, []string{"alpha", "bravo", "charlie", "delta"}, back)
+	// Ensure sorted order
+	assert.Equal(t, []string{"alpha", "bravo", "charlie", "delta"}, back)
+}
+
+func TestMapToStringSlice(t *testing.T) {
+	t.Parallel()
+	m := map[string]api.IntOrBool{
+		"beta":  api.IntOrBool(true),
+		"alpha": api.IntOrBool(false),
+		"gamma": api.IntOrBool(true),
+	}
+	got := resources.MapToStringSlice(m)
+	assert.Equal(t, []string{"alpha", "beta", "gamma"}, got)
+}
+
+func TestIsNotFound(t *testing.T) {
+	t.Parallel()
+	assert.True(t, resources.IsNotFound(errors.New("resource 'x' does not exist")))
+	assert.False(t, resources.IsNotFound(errors.New("some other error")))
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestDeleteResourceSuccess(t *testing.T) {
+	mockServer, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.OK()),
+	).Enable()
+
+	_, err := resources.DeleteResource(resources.DeletedResource{
+		Ctx: context.Background(), ResourceID: "testuser", URL: "/access/users/testuser", ResourceType: "user",
+	})
+	require.NoError(t, err)
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestDeleteResourceClientError(t *testing.T) {
+	original := client.GetProxmoxClientFn
+	defer func() { client.GetProxmoxClientFn = original }()
+	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+
+	_, err := resources.DeleteResource(resources.DeletedResource{
+		Ctx: context.Background(), ResourceID: "x", URL: "/access/users/x", ResourceType: "user",
+	})
+	require.Error(t, err)
+	assert.EqualError(t, err, "client error")
+}
+
+//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
+func TestDeleteResourceDeleteError(t *testing.T) {
+	mockServer, cleanup := resources.NewAPIMock(t)
+	defer cleanup()
+
+	mockServer.AddMocks(
+		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.InternalServerError()),
+	).Enable()
+
+	_, err := resources.DeleteResource(resources.DeletedResource{
+		Ctx: context.Background(), ResourceID: "testuser", URL: "/access/users/testuser", ResourceType: "user",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete user testuser")
+}
