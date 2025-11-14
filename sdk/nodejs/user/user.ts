@@ -88,7 +88,7 @@ export class User extends pulumi.CustomResource {
             }
             resourceInputs["comment"] = args?.comment;
             resourceInputs["email"] = args?.email;
-            resourceInputs["enable"] = (args?.enable) ?? true;
+            resourceInputs["enable"] = args?.enable;
             resourceInputs["expire"] = args?.expire;
             resourceInputs["firstname"] = args?.firstname;
             resourceInputs["groups"] = args?.groups;

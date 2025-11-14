@@ -211,7 +211,6 @@ namespace Hctamu.Pve.User
 
         public UserArgs()
         {
-            Enable = true;
         }
         public static new UserArgs Empty => new UserArgs();
     }

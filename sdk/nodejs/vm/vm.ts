@@ -72,7 +72,6 @@ export class VM extends pulumi.CustomResource {
     declare public readonly rng0: pulumi.Output<string | undefined>;
     declare public readonly searchdomain: pulumi.Output<string | undefined>;
     declare public readonly serial0: pulumi.Output<string | undefined>;
-    declare public readonly sockets: pulumi.Output<number | undefined>;
     declare public readonly sshkeys: pulumi.Output<string | undefined>;
     declare public readonly tablet: pulumi.Output<number | undefined>;
     declare public readonly template: pulumi.Output<number | undefined>;
@@ -138,7 +137,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["rng0"] = args?.rng0;
             resourceInputs["searchdomain"] = args?.searchdomain;
             resourceInputs["serial0"] = args?.serial0;
-            resourceInputs["sockets"] = args?.sockets;
             resourceInputs["sshkeys"] = args?.sshkeys;
             resourceInputs["tablet"] = args?.tablet;
             resourceInputs["template"] = args?.template;
@@ -187,7 +185,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["rng0"] = undefined /*out*/;
             resourceInputs["searchdomain"] = undefined /*out*/;
             resourceInputs["serial0"] = undefined /*out*/;
-            resourceInputs["sockets"] = undefined /*out*/;
             resourceInputs["sshkeys"] = undefined /*out*/;
             resourceInputs["tablet"] = undefined /*out*/;
             resourceInputs["template"] = undefined /*out*/;
@@ -245,7 +242,6 @@ export interface VMArgs {
     rng0?: pulumi.Input<string>;
     searchdomain?: pulumi.Input<string>;
     serial0?: pulumi.Input<string>;
-    sockets?: pulumi.Input<number>;
     sshkeys?: pulumi.Input<string>;
     tablet?: pulumi.Input<number>;
     template?: pulumi.Input<number>;

@@ -47,8 +47,6 @@ class UserArgs:
             pulumi.set(__self__, "comment", comment)
         if email is not None:
             pulumi.set(__self__, "email", email)
-        if enable is None:
-            enable = True
         if enable is not None:
             pulumi.set(__self__, "enable", enable)
         if expire is not None:
@@ -261,8 +259,6 @@ class User(pulumi.CustomResource):
 
             __props__.__dict__["comment"] = comment
             __props__.__dict__["email"] = email
-            if enable is None:
-                enable = True
             __props__.__dict__["enable"] = enable
             __props__.__dict__["expire"] = expire
             __props__.__dict__["firstname"] = firstname

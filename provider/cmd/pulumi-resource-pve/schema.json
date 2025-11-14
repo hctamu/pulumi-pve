@@ -479,8 +479,7 @@
         },
         "enable": {
           "type": "boolean",
-          "description": "Whether the user is enabled. Defaults to true.",
-          "default": true
+          "description": "Whether the user is enabled. Defaults to true."
         },
         "expire": {
           "type": "integer",
@@ -535,8 +534,7 @@
         },
         "enable": {
           "type": "boolean",
-          "description": "Whether the user is enabled. Defaults to true.",
-          "default": true
+          "description": "Whether the user is enabled. Defaults to true."
         },
         "expire": {
           "type": "integer",
@@ -703,9 +701,6 @@
         "serial0": {
           "type": "string"
         },
-        "sockets": {
-          "type": "integer"
-        },
         "sshkeys": {
           "type": "string"
         },
@@ -857,9 +852,6 @@
         },
         "serial0": {
           "type": "string"
-        },
-        "sockets": {
-          "type": "integer"
         },
         "sshkeys": {
           "type": "string"

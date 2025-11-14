@@ -295,13 +295,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.serial0);
     }
 
-    @Import(name="sockets")
-    private @Nullable Output<Integer> sockets;
-
-    public Optional<Output<Integer>> sockets() {
-        return Optional.ofNullable(this.sockets);
-    }
-
     @Import(name="sshkeys")
     private @Nullable Output<String> sshkeys;
 
@@ -400,7 +393,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.rng0 = $.rng0;
         this.searchdomain = $.searchdomain;
         this.serial0 = $.serial0;
-        this.sockets = $.sockets;
         this.sshkeys = $.sshkeys;
         this.tablet = $.tablet;
         this.template = $.template;
@@ -782,15 +774,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder serial0(String serial0) {
             return serial0(Output.of(serial0));
-        }
-
-        public Builder sockets(@Nullable Output<Integer> sockets) {
-            $.sockets = sockets;
-            return this;
-        }
-
-        public Builder sockets(Integer sockets) {
-            return sockets(Output.of(sockets));
         }
 
         public Builder sshkeys(@Nullable Output<String> sshkeys) {

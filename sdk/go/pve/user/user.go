@@ -47,9 +47,6 @@ func NewUser(ctx *pulumi.Context,
 	if args.Userid == nil {
 		return nil, errors.New("invalid value for required argument 'Userid'")
 	}
-	if args.Enable == nil {
-		args.Enable = pulumi.BoolPtr(true)
-	}
 	if args.Password != nil {
 		args.Password = pulumi.ToSecret(args.Password).(pulumi.StringPtrInput)
 	}

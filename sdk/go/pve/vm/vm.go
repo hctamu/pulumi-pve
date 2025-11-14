@@ -8,7 +8,6 @@ import (
 	"reflect"
 
 	"errors"
-
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -55,7 +54,6 @@ type VM struct {
 	Rng0         pulumi.StringPtrOutput `pulumi:"rng0"`
 	Searchdomain pulumi.StringPtrOutput `pulumi:"searchdomain"`
 	Serial0      pulumi.StringPtrOutput `pulumi:"serial0"`
-	Sockets      pulumi.IntPtrOutput    `pulumi:"sockets"`
 	Sshkeys      pulumi.StringPtrOutput `pulumi:"sshkeys"`
 	Tablet       pulumi.IntPtrOutput    `pulumi:"tablet"`
 	Template     pulumi.IntPtrOutput    `pulumi:"template"`
@@ -117,7 +115,6 @@ func (VMState) ElementType() reflect.Type {
 type vmArgs struct {
 	Acpi         *int     `pulumi:"acpi"`
 	Affinity     *string  `pulumi:"affinity"`
-	Agent        *string  `pulumi:"agent"`
 	Audio0       *string  `pulumi:"audio0"`
 	Autostart    *int     `pulumi:"autostart"`
 	Balloon      *int     `pulumi:"balloon"`
@@ -146,22 +143,17 @@ type vmArgs struct {
 	Memory       *int     `pulumi:"memory"`
 	Name         string   `pulumi:"name"`
 	Nameserver   *string  `pulumi:"nameserver"`
-	Net0         *string  `pulumi:"net0"`
 	Node         *string  `pulumi:"node"`
 	Numa         *int     `pulumi:"numa"`
 	Numa0        *string  `pulumi:"numa0"`
-	Onboot       *int     `pulumi:"onboot"`
 	Ostype       *string  `pulumi:"ostype"`
 	Parallel0    *string  `pulumi:"parallel0"`
 	Protection   *int     `pulumi:"protection"`
 	Rng0         *string  `pulumi:"rng0"`
-	Scsihw       *string  `pulumi:"scsihw"`
 	Searchdomain *string  `pulumi:"searchdomain"`
 	Serial0      *string  `pulumi:"serial0"`
-	Sockets      *int     `pulumi:"sockets"`
 	Sshkeys      *string  `pulumi:"sshkeys"`
 	Tablet       *int     `pulumi:"tablet"`
-	Tags         *string  `pulumi:"tags"`
 	Template     *int     `pulumi:"template"`
 	Tpmstate0    *string  `pulumi:"tpmstate0"`
 	Usb0         *string  `pulumi:"usb0"`
@@ -211,7 +203,6 @@ type VMArgs struct {
 	Rng0         pulumi.StringPtrInput
 	Searchdomain pulumi.StringPtrInput
 	Serial0      pulumi.StringPtrInput
-	Sockets      pulumi.IntPtrInput
 	Sshkeys      pulumi.StringPtrInput
 	Tablet       pulumi.IntPtrInput
 	Template     pulumi.IntPtrInput
@@ -463,10 +454,6 @@ func (o VMOutput) Searchdomain() pulumi.StringPtrOutput {
 
 func (o VMOutput) Serial0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Serial0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Sockets() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Sockets }).(pulumi.IntPtrOutput)
 }
 
 func (o VMOutput) Sshkeys() pulumi.StringPtrOutput {

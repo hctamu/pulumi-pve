@@ -5,7 +5,6 @@ package io.github.hctamu.pve.user;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
-import com.pulumi.core.internal.Codegen;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
 import java.lang.Boolean;
 import java.lang.Integer;
@@ -434,7 +433,6 @@ public final class UserArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         public UserArgs build() {
-            $.enable = Codegen.booleanProp("enable").output().arg($.enable).def(true).getNullable();
             if ($.userid == null) {
                 throw new MissingRequiredPropertyException("UserArgs", "userid");
             }
