@@ -110,7 +110,7 @@ func (vm *VM) Create(
 	}
 
 	// Read the current state of the VM after creation
-	if response.Output, err = readCurrentOutput(ctx, vm, request); err != nil {
+	if response.Output, err = readCurrentOutput(ctx, vm, &request); err != nil {
 		l.Errorf("error: %v", err)
 		return response, err
 	}
@@ -185,7 +185,7 @@ func finalizeClone(
 func readCurrentOutput(
 	ctx context.Context,
 	vm *VM,
-	request infer.CreateRequest[Inputs],
+	request *infer.CreateRequest[Inputs],
 ) (currentOutput Outputs, err error) {
 	readRequest := infer.ReadRequest[Inputs, Outputs]{
 		ID:     request.Name,
@@ -280,7 +280,21 @@ func (vm *VM) Read(
 	request infer.ReadRequest[Inputs, Outputs],
 ) (response infer.ReadResponse[Inputs, Outputs], err error) {
 	l := p.GetLogger(ctx)
-	l.Debugf("Read VM with ID: %v", request.Inputs.VMID)
+
+	// Determine which VMID to use: inputs.vmid if not nil, otherwise state.vmid
+	var vmID *int
+	switch {
+	case request.Inputs.VMID != nil:
+		vmID = request.Inputs.VMID
+		l.Debugf("Read VM with ID from inputs: %v", *vmID)
+	case request.State.VMID != nil:
+		vmID = request.State.VMID
+		l.Debugf("Read VM with ID from state: %v", *vmID)
+	default:
+		err = errors.New("VMID is required for reading VM state but is nil in both inputs and state")
+		l.Errorf("VMID is nil in both inputs and state during read operation")
+		return response, err
+	}
 
 	var pxClient *px.Client
 	if pxClient, err = client.GetProxmoxClient(ctx); err != nil {
@@ -290,14 +304,14 @@ func (vm *VM) Read(
 	}
 
 	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *request.Inputs.VMID, request.Inputs.Node)
+	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
 	if err != nil {
-		l.Errorf("Error during finding VM %v: %v", request.Inputs.VMID, err)
+		l.Errorf("Error during finding VM %v: %v", *vmID, err)
 		return response, err
 
 	}
 
-	if response.State.Inputs, err = ConvertVMConfigToInputs(virtualMachine); err != nil {
+	if response.State.Inputs, err = ConvertVMConfigToInputs(virtualMachine, request.State.Inputs); err != nil {
 		err = fmt.Errorf("failed to convert VM to inputs %v", err)
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
 		return response, err
@@ -306,6 +320,8 @@ func (vm *VM) Read(
 	if request.State.Clone != nil && response.State.Clone == nil {
 		response.State.Clone = request.State.Clone
 	}
+
+	response.Inputs = response.State.Inputs
 
 	response.ID = request.ID
 
@@ -349,7 +365,8 @@ func (vm *VM) Update(
 		return response, err
 	}
 	l.Debugf("VM: %v", virtualMachine)
-	options := request.Inputs.BuildOptionsDiff(*vmID, &response.Output.Inputs)
+	options := request.Inputs.BuildOptionsDiff(*vmID, &request.State.Inputs)
+	l.Debugf("Update options: %+v", options)
 
 	var task *api.Task
 	if task, err = virtualMachine.Config(ctx, options...); err != nil {
@@ -428,6 +445,16 @@ func (vm *VM) Diff(
 
 		inField := inVal.Field(i)
 		stateField := stateVal.Field(i)
+
+		// Handle slices (like Disks []*Disk)
+		if inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice {
+			// Compare slices with DeepEqual
+			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
+				diff[name] = p.PropertyDiff{Kind: p.Update}
+			}
+			continue
+		}
+
 		// Only pointer comparable types here; treat others generically
 		if inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer {
 			inNil := inField.IsNil()
@@ -499,12 +526,12 @@ func updateDisksAfterClone(
 	for diskInterface, currentDiskStr := range disks {
 		diskOption := getDiskOption(options, diskInterface)
 		if diskOption != nil {
-			disk := Disk{}
+			disk := Disk{Interface: diskInterface}
 			if err = disk.ParseDiskConfig(diskOption.Value.(string)); err != nil {
 				return fmt.Errorf("failed to parse disk config: %v", err)
 			}
 
-			currentDisk := Disk{}
+			currentDisk := Disk{Interface: diskInterface}
 			if err = currentDisk.ParseDiskConfig(currentDiskStr); err != nil {
 				return fmt.Errorf("failed to parse current disk config: %v", err)
 			}

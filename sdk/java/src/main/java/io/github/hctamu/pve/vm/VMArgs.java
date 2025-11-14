@@ -35,13 +35,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.affinity);
     }
 
-    @Import(name="agent")
-    private @Nullable Output<String> agent;
-
-    public Optional<Output<String>> agent() {
-        return Optional.ofNullable(this.agent);
-    }
-
     @Import(name="audio0")
     private @Nullable Output<String> audio0;
 
@@ -68,13 +61,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     public Optional<Output<String>> bios() {
         return Optional.ofNullable(this.bios);
-    }
-
-    @Import(name="boot")
-    private @Nullable Output<String> boot;
-
-    public Optional<Output<String>> boot() {
-        return Optional.ofNullable(this.boot);
     }
 
     @Import(name="cicustom")
@@ -245,13 +231,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.nameserver);
     }
 
-    @Import(name="net0")
-    private @Nullable Output<String> net0;
-
-    public Optional<Output<String>> net0() {
-        return Optional.ofNullable(this.net0);
-    }
-
     @Import(name="node")
     private @Nullable Output<String> node;
 
@@ -271,13 +250,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     public Optional<Output<String>> numa0() {
         return Optional.ofNullable(this.numa0);
-    }
-
-    @Import(name="onboot")
-    private @Nullable Output<Integer> onboot;
-
-    public Optional<Output<Integer>> onboot() {
-        return Optional.ofNullable(this.onboot);
     }
 
     @Import(name="ostype")
@@ -308,13 +280,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.rng0);
     }
 
-    @Import(name="scsihw")
-    private @Nullable Output<String> scsihw;
-
-    public Optional<Output<String>> scsihw() {
-        return Optional.ofNullable(this.scsihw);
-    }
-
     @Import(name="searchdomain")
     private @Nullable Output<String> searchdomain;
 
@@ -329,20 +294,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.serial0);
     }
 
-    @Import(name="smbios1")
-    private @Nullable Output<String> smbios1;
-
-    public Optional<Output<String>> smbios1() {
-        return Optional.ofNullable(this.smbios1);
-    }
-
-    @Import(name="sockets")
-    private @Nullable Output<Integer> sockets;
-
-    public Optional<Output<Integer>> sockets() {
-        return Optional.ofNullable(this.sockets);
-    }
-
     @Import(name="sshkeys")
     private @Nullable Output<String> sshkeys;
 
@@ -355,13 +306,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     public Optional<Output<Integer>> tablet() {
         return Optional.ofNullable(this.tablet);
-    }
-
-    @Import(name="tags")
-    private @Nullable Output<String> tags;
-
-    public Optional<Output<String>> tags() {
-        return Optional.ofNullable(this.tags);
     }
 
     @Import(name="template")
@@ -411,12 +355,10 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
     private VMArgs(VMArgs $) {
         this.acpi = $.acpi;
         this.affinity = $.affinity;
-        this.agent = $.agent;
         this.audio0 = $.audio0;
         this.autostart = $.autostart;
         this.balloon = $.balloon;
         this.bios = $.bios;
-        this.boot = $.boot;
         this.cicustom = $.cicustom;
         this.cipassword = $.cipassword;
         this.citype = $.citype;
@@ -441,23 +383,17 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.memory = $.memory;
         this.name = $.name;
         this.nameserver = $.nameserver;
-        this.net0 = $.net0;
         this.node = $.node;
         this.numa = $.numa;
         this.numa0 = $.numa0;
-        this.onboot = $.onboot;
         this.ostype = $.ostype;
         this.parallel0 = $.parallel0;
         this.protection = $.protection;
         this.rng0 = $.rng0;
-        this.scsihw = $.scsihw;
         this.searchdomain = $.searchdomain;
         this.serial0 = $.serial0;
-        this.smbios1 = $.smbios1;
-        this.sockets = $.sockets;
         this.sshkeys = $.sshkeys;
         this.tablet = $.tablet;
-        this.tags = $.tags;
         this.template = $.template;
         this.tpmstate0 = $.tpmstate0;
         this.usb0 = $.usb0;
@@ -502,15 +438,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return affinity(Output.of(affinity));
         }
 
-        public Builder agent(@Nullable Output<String> agent) {
-            $.agent = agent;
-            return this;
-        }
-
-        public Builder agent(String agent) {
-            return agent(Output.of(agent));
-        }
-
         public Builder audio0(@Nullable Output<String> audio0) {
             $.audio0 = audio0;
             return this;
@@ -545,15 +472,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder bios(String bios) {
             return bios(Output.of(bios));
-        }
-
-        public Builder boot(@Nullable Output<String> boot) {
-            $.boot = boot;
-            return this;
-        }
-
-        public Builder boot(String boot) {
-            return boot(Output.of(boot));
         }
 
         public Builder cicustom(@Nullable Output<String> cicustom) {
@@ -776,15 +694,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return nameserver(Output.of(nameserver));
         }
 
-        public Builder net0(@Nullable Output<String> net0) {
-            $.net0 = net0;
-            return this;
-        }
-
-        public Builder net0(String net0) {
-            return net0(Output.of(net0));
-        }
-
         public Builder node(@Nullable Output<String> node) {
             $.node = node;
             return this;
@@ -810,15 +719,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder numa0(String numa0) {
             return numa0(Output.of(numa0));
-        }
-
-        public Builder onboot(@Nullable Output<Integer> onboot) {
-            $.onboot = onboot;
-            return this;
-        }
-
-        public Builder onboot(Integer onboot) {
-            return onboot(Output.of(onboot));
         }
 
         public Builder ostype(@Nullable Output<String> ostype) {
@@ -857,15 +757,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return rng0(Output.of(rng0));
         }
 
-        public Builder scsihw(@Nullable Output<String> scsihw) {
-            $.scsihw = scsihw;
-            return this;
-        }
-
-        public Builder scsihw(String scsihw) {
-            return scsihw(Output.of(scsihw));
-        }
-
         public Builder searchdomain(@Nullable Output<String> searchdomain) {
             $.searchdomain = searchdomain;
             return this;
@@ -884,24 +775,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return serial0(Output.of(serial0));
         }
 
-        public Builder smbios1(@Nullable Output<String> smbios1) {
-            $.smbios1 = smbios1;
-            return this;
-        }
-
-        public Builder smbios1(String smbios1) {
-            return smbios1(Output.of(smbios1));
-        }
-
-        public Builder sockets(@Nullable Output<Integer> sockets) {
-            $.sockets = sockets;
-            return this;
-        }
-
-        public Builder sockets(Integer sockets) {
-            return sockets(Output.of(sockets));
-        }
-
         public Builder sshkeys(@Nullable Output<String> sshkeys) {
             $.sshkeys = sshkeys;
             return this;
@@ -918,15 +791,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder tablet(Integer tablet) {
             return tablet(Output.of(tablet));
-        }
-
-        public Builder tags(@Nullable Output<String> tags) {
-            $.tags = tags;
-            return this;
-        }
-
-        public Builder tags(String tags) {
-            return tags(Output.of(tags));
         }
 
         public Builder template(@Nullable Output<Integer> template) {
