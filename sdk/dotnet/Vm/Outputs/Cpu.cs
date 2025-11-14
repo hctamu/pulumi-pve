@@ -19,9 +19,14 @@ namespace Hctamu.Pve.Vm.Outputs
         public readonly ImmutableArray<string> FlagsEnabled;
         public readonly bool? Hidden;
         public readonly string? HvVendorId;
+        public readonly double? Limit;
+        public readonly bool? Numa;
+        public readonly ImmutableArray<Outputs.NumaNode> NumaNodes;
         public readonly string? PhysBits;
         public readonly int? Sockets;
         public readonly string? Type;
+        public readonly int? Units;
+        public readonly int? Vcpus;
 
         [OutputConstructor]
         private Cpu(
@@ -35,20 +40,35 @@ namespace Hctamu.Pve.Vm.Outputs
 
             string? hvVendorId,
 
+            double? limit,
+
+            bool? numa,
+
+            ImmutableArray<Outputs.NumaNode> numaNodes,
+
             string? physBits,
 
             int? sockets,
 
-            string? type)
+            string? type,
+
+            int? units,
+
+            int? vcpus)
         {
             Cores = cores;
             FlagsDisabled = flagsDisabled;
             FlagsEnabled = flagsEnabled;
             Hidden = hidden;
             HvVendorId = hvVendorId;
+            Limit = limit;
+            Numa = numa;
+            NumaNodes = numaNodes;
             PhysBits = physBits;
             Sockets = sockets;
             Type = type;
+            Units = units;
+            Vcpus = vcpus;
         }
     }
 }

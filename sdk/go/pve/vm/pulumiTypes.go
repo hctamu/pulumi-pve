@@ -207,14 +207,19 @@ func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 }
 
 type Cpu struct {
-	Cores         *int     `pulumi:"cores"`
-	FlagsDisabled []string `pulumi:"flagsDisabled"`
-	FlagsEnabled  []string `pulumi:"flagsEnabled"`
-	Hidden        *bool    `pulumi:"hidden"`
-	HvVendorId    *string  `pulumi:"hvVendorId"`
-	PhysBits      *string  `pulumi:"physBits"`
-	Sockets       *int     `pulumi:"sockets"`
-	Type          *string  `pulumi:"type"`
+	Cores         *int       `pulumi:"cores"`
+	FlagsDisabled []string   `pulumi:"flagsDisabled"`
+	FlagsEnabled  []string   `pulumi:"flagsEnabled"`
+	Hidden        *bool      `pulumi:"hidden"`
+	HvVendorId    *string    `pulumi:"hvVendorId"`
+	Limit         *float64   `pulumi:"limit"`
+	Numa          *bool      `pulumi:"numa"`
+	NumaNodes     []NumaNode `pulumi:"numaNodes"`
+	PhysBits      *string    `pulumi:"physBits"`
+	Sockets       *int       `pulumi:"sockets"`
+	Type          *string    `pulumi:"type"`
+	Units         *int       `pulumi:"units"`
+	Vcpus         *int       `pulumi:"vcpus"`
 }
 
 // CpuInput is an input type that accepts CpuArgs and CpuOutput values.
@@ -234,9 +239,14 @@ type CpuArgs struct {
 	FlagsEnabled  pulumi.StringArrayInput `pulumi:"flagsEnabled"`
 	Hidden        pulumi.BoolPtrInput     `pulumi:"hidden"`
 	HvVendorId    pulumi.StringPtrInput   `pulumi:"hvVendorId"`
+	Limit         pulumi.Float64PtrInput  `pulumi:"limit"`
+	Numa          pulumi.BoolPtrInput     `pulumi:"numa"`
+	NumaNodes     NumaNodeArrayInput      `pulumi:"numaNodes"`
 	PhysBits      pulumi.StringPtrInput   `pulumi:"physBits"`
 	Sockets       pulumi.IntPtrInput      `pulumi:"sockets"`
 	Type          pulumi.StringPtrInput   `pulumi:"type"`
+	Units         pulumi.IntPtrInput      `pulumi:"units"`
+	Vcpus         pulumi.IntPtrInput      `pulumi:"vcpus"`
 }
 
 func (CpuArgs) ElementType() reflect.Type {
@@ -336,6 +346,18 @@ func (o CpuOutput) HvVendorId() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Cpu) *string { return v.HvVendorId }).(pulumi.StringPtrOutput)
 }
 
+func (o CpuOutput) Limit() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v Cpu) *float64 { return v.Limit }).(pulumi.Float64PtrOutput)
+}
+
+func (o CpuOutput) Numa() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Cpu) *bool { return v.Numa }).(pulumi.BoolPtrOutput)
+}
+
+func (o CpuOutput) NumaNodes() NumaNodeArrayOutput {
+	return o.ApplyT(func(v Cpu) []NumaNode { return v.NumaNodes }).(NumaNodeArrayOutput)
+}
+
 func (o CpuOutput) PhysBits() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Cpu) *string { return v.PhysBits }).(pulumi.StringPtrOutput)
 }
@@ -346,6 +368,14 @@ func (o CpuOutput) Sockets() pulumi.IntPtrOutput {
 
 func (o CpuOutput) Type() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Cpu) *string { return v.Type }).(pulumi.StringPtrOutput)
+}
+
+func (o CpuOutput) Units() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v Cpu) *int { return v.Units }).(pulumi.IntPtrOutput)
+}
+
+func (o CpuOutput) Vcpus() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v Cpu) *int { return v.Vcpus }).(pulumi.IntPtrOutput)
 }
 
 type CpuPtrOutput struct{ *pulumi.OutputState }
@@ -417,6 +447,33 @@ func (o CpuPtrOutput) HvVendorId() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+func (o CpuPtrOutput) Limit() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v *Cpu) *float64 {
+		if v == nil {
+			return nil
+		}
+		return v.Limit
+	}).(pulumi.Float64PtrOutput)
+}
+
+func (o CpuPtrOutput) Numa() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *Cpu) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.Numa
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o CpuPtrOutput) NumaNodes() NumaNodeArrayOutput {
+	return o.ApplyT(func(v *Cpu) []NumaNode {
+		if v == nil {
+			return nil
+		}
+		return v.NumaNodes
+	}).(NumaNodeArrayOutput)
+}
+
 func (o CpuPtrOutput) PhysBits() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Cpu) *string {
 		if v == nil {
@@ -442,6 +499,24 @@ func (o CpuPtrOutput) Type() pulumi.StringPtrOutput {
 		}
 		return v.Type
 	}).(pulumi.StringPtrOutput)
+}
+
+func (o CpuPtrOutput) Units() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Cpu) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Units
+	}).(pulumi.IntPtrOutput)
+}
+
+func (o CpuPtrOutput) Vcpus() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *Cpu) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Vcpus
+	}).(pulumi.IntPtrOutput)
 }
 
 type Disk struct {
@@ -556,6 +631,118 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 	}).(DiskOutput)
 }
 
+type NumaNode struct {
+	Cpus      string  `pulumi:"cpus"`
+	HostNodes *string `pulumi:"hostNodes"`
+	Memory    *int    `pulumi:"memory"`
+	Policy    *string `pulumi:"policy"`
+}
+
+// NumaNodeInput is an input type that accepts NumaNodeArgs and NumaNodeOutput values.
+// You can construct a concrete instance of `NumaNodeInput` via:
+//
+//	NumaNodeArgs{...}
+type NumaNodeInput interface {
+	pulumi.Input
+
+	ToNumaNodeOutput() NumaNodeOutput
+	ToNumaNodeOutputWithContext(context.Context) NumaNodeOutput
+}
+
+type NumaNodeArgs struct {
+	Cpus      pulumi.StringInput    `pulumi:"cpus"`
+	HostNodes pulumi.StringPtrInput `pulumi:"hostNodes"`
+	Memory    pulumi.IntPtrInput    `pulumi:"memory"`
+	Policy    pulumi.StringPtrInput `pulumi:"policy"`
+}
+
+func (NumaNodeArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*NumaNode)(nil)).Elem()
+}
+
+func (i NumaNodeArgs) ToNumaNodeOutput() NumaNodeOutput {
+	return i.ToNumaNodeOutputWithContext(context.Background())
+}
+
+func (i NumaNodeArgs) ToNumaNodeOutputWithContext(ctx context.Context) NumaNodeOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(NumaNodeOutput)
+}
+
+// NumaNodeArrayInput is an input type that accepts NumaNodeArray and NumaNodeArrayOutput values.
+// You can construct a concrete instance of `NumaNodeArrayInput` via:
+//
+//	NumaNodeArray{ NumaNodeArgs{...} }
+type NumaNodeArrayInput interface {
+	pulumi.Input
+
+	ToNumaNodeArrayOutput() NumaNodeArrayOutput
+	ToNumaNodeArrayOutputWithContext(context.Context) NumaNodeArrayOutput
+}
+
+type NumaNodeArray []NumaNodeInput
+
+func (NumaNodeArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]NumaNode)(nil)).Elem()
+}
+
+func (i NumaNodeArray) ToNumaNodeArrayOutput() NumaNodeArrayOutput {
+	return i.ToNumaNodeArrayOutputWithContext(context.Background())
+}
+
+func (i NumaNodeArray) ToNumaNodeArrayOutputWithContext(ctx context.Context) NumaNodeArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(NumaNodeArrayOutput)
+}
+
+type NumaNodeOutput struct{ *pulumi.OutputState }
+
+func (NumaNodeOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*NumaNode)(nil)).Elem()
+}
+
+func (o NumaNodeOutput) ToNumaNodeOutput() NumaNodeOutput {
+	return o
+}
+
+func (o NumaNodeOutput) ToNumaNodeOutputWithContext(ctx context.Context) NumaNodeOutput {
+	return o
+}
+
+func (o NumaNodeOutput) Cpus() pulumi.StringOutput {
+	return o.ApplyT(func(v NumaNode) string { return v.Cpus }).(pulumi.StringOutput)
+}
+
+func (o NumaNodeOutput) HostNodes() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v NumaNode) *string { return v.HostNodes }).(pulumi.StringPtrOutput)
+}
+
+func (o NumaNodeOutput) Memory() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v NumaNode) *int { return v.Memory }).(pulumi.IntPtrOutput)
+}
+
+func (o NumaNodeOutput) Policy() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v NumaNode) *string { return v.Policy }).(pulumi.StringPtrOutput)
+}
+
+type NumaNodeArrayOutput struct{ *pulumi.OutputState }
+
+func (NumaNodeArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]NumaNode)(nil)).Elem()
+}
+
+func (o NumaNodeArrayOutput) ToNumaNodeArrayOutput() NumaNodeArrayOutput {
+	return o
+}
+
+func (o NumaNodeArrayOutput) ToNumaNodeArrayOutputWithContext(ctx context.Context) NumaNodeArrayOutput {
+	return o
+}
+
+func (o NumaNodeArrayOutput) Index(i pulumi.IntInput) NumaNodeOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) NumaNode {
+		return vs[0].([]NumaNode)[vs[1].(int)]
+	}).(NumaNodeOutput)
+}
+
 func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*CloneInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
@@ -563,10 +750,14 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*CpuPtrInput)(nil)).Elem(), CpuArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*NumaNodeInput)(nil)).Elem(), NumaNodeArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*NumaNodeArrayInput)(nil)).Elem(), NumaNodeArray{})
 	pulumi.RegisterOutputType(CloneOutput{})
 	pulumi.RegisterOutputType(ClonePtrOutput{})
 	pulumi.RegisterOutputType(CpuOutput{})
 	pulumi.RegisterOutputType(CpuPtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
 	pulumi.RegisterOutputType(DiskArrayOutput{})
+	pulumi.RegisterOutputType(NumaNodeOutput{})
+	pulumi.RegisterOutputType(NumaNodeArrayOutput{})
 }

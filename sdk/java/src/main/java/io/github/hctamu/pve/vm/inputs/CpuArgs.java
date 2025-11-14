@@ -5,7 +5,9 @@ package io.github.hctamu.pve.vm.inputs;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
+import io.github.hctamu.pve.vm.inputs.NumaNodeArgs;
 import java.lang.Boolean;
+import java.lang.Double;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
@@ -53,6 +55,27 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.hvVendorId);
     }
 
+    @Import(name="limit")
+    private @Nullable Output<Double> limit;
+
+    public Optional<Output<Double>> limit() {
+        return Optional.ofNullable(this.limit);
+    }
+
+    @Import(name="numa")
+    private @Nullable Output<Boolean> numa;
+
+    public Optional<Output<Boolean>> numa() {
+        return Optional.ofNullable(this.numa);
+    }
+
+    @Import(name="numaNodes")
+    private @Nullable Output<List<NumaNodeArgs>> numaNodes;
+
+    public Optional<Output<List<NumaNodeArgs>>> numaNodes() {
+        return Optional.ofNullable(this.numaNodes);
+    }
+
     @Import(name="physBits")
     private @Nullable Output<String> physBits;
 
@@ -74,6 +97,20 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.type);
     }
 
+    @Import(name="units")
+    private @Nullable Output<Integer> units;
+
+    public Optional<Output<Integer>> units() {
+        return Optional.ofNullable(this.units);
+    }
+
+    @Import(name="vcpus")
+    private @Nullable Output<Integer> vcpus;
+
+    public Optional<Output<Integer>> vcpus() {
+        return Optional.ofNullable(this.vcpus);
+    }
+
     private CpuArgs() {}
 
     private CpuArgs(CpuArgs $) {
@@ -82,9 +119,14 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
         this.flagsEnabled = $.flagsEnabled;
         this.hidden = $.hidden;
         this.hvVendorId = $.hvVendorId;
+        this.limit = $.limit;
+        this.numa = $.numa;
+        this.numaNodes = $.numaNodes;
         this.physBits = $.physBits;
         this.sockets = $.sockets;
         this.type = $.type;
+        this.units = $.units;
+        this.vcpus = $.vcpus;
     }
 
     public static Builder builder() {
@@ -158,6 +200,37 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
             return hvVendorId(Output.of(hvVendorId));
         }
 
+        public Builder limit(@Nullable Output<Double> limit) {
+            $.limit = limit;
+            return this;
+        }
+
+        public Builder limit(Double limit) {
+            return limit(Output.of(limit));
+        }
+
+        public Builder numa(@Nullable Output<Boolean> numa) {
+            $.numa = numa;
+            return this;
+        }
+
+        public Builder numa(Boolean numa) {
+            return numa(Output.of(numa));
+        }
+
+        public Builder numaNodes(@Nullable Output<List<NumaNodeArgs>> numaNodes) {
+            $.numaNodes = numaNodes;
+            return this;
+        }
+
+        public Builder numaNodes(List<NumaNodeArgs> numaNodes) {
+            return numaNodes(Output.of(numaNodes));
+        }
+
+        public Builder numaNodes(NumaNodeArgs... numaNodes) {
+            return numaNodes(List.of(numaNodes));
+        }
+
         public Builder physBits(@Nullable Output<String> physBits) {
             $.physBits = physBits;
             return this;
@@ -183,6 +256,24 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder type(String type) {
             return type(Output.of(type));
+        }
+
+        public Builder units(@Nullable Output<Integer> units) {
+            $.units = units;
+            return this;
+        }
+
+        public Builder units(Integer units) {
+            return units(Output.of(units));
+        }
+
+        public Builder vcpus(@Nullable Output<Integer> vcpus) {
+            $.vcpus = vcpus;
+            return this;
+        }
+
+        public Builder vcpus(Integer vcpus) {
+            return vcpus(Output.of(vcpus));
         }
 
         public CpuArgs build() {

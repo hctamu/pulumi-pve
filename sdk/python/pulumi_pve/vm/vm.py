@@ -24,7 +24,6 @@ class VMArgs:
                  disks: pulumi.Input[Sequence[pulumi.Input['DiskArgs']]],
                  name: pulumi.Input[_builtins.str],
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
-                 affinity: Optional[pulumi.Input[_builtins.str]] = None,
                  agent: Optional[pulumi.Input[_builtins.str]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
@@ -38,8 +37,6 @@ class VMArgs:
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input['CloneArgs']] = None,
                  cpu: Optional[pulumi.Input['CpuArgs']] = None,
-                 cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
-                 cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
@@ -54,8 +51,6 @@ class VMArgs:
                  nameserver: Optional[pulumi.Input[_builtins.str]] = None,
                  net0: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
-                 numa: Optional[pulumi.Input[_builtins.int]] = None,
-                 numa0: Optional[pulumi.Input[_builtins.str]] = None,
                  onboot: Optional[pulumi.Input[_builtins.int]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
                  parallel0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -71,7 +66,6 @@ class VMArgs:
                  template: Optional[pulumi.Input[_builtins.int]] = None,
                  tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
                  usb0: Optional[pulumi.Input[_builtins.str]] = None,
-                 vcpus: Optional[pulumi.Input[_builtins.int]] = None,
                  vga: Optional[pulumi.Input[_builtins.str]] = None,
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None):
         """
@@ -81,8 +75,6 @@ class VMArgs:
         pulumi.set(__self__, "name", name)
         if acpi is not None:
             pulumi.set(__self__, "acpi", acpi)
-        if affinity is not None:
-            pulumi.set(__self__, "affinity", affinity)
         if agent is not None:
             pulumi.set(__self__, "agent", agent)
         if audio0 is not None:
@@ -109,10 +101,6 @@ class VMArgs:
             pulumi.set(__self__, "clone", clone)
         if cpu is not None:
             pulumi.set(__self__, "cpu", cpu)
-        if cpulimit is not None:
-            pulumi.set(__self__, "cpulimit", cpulimit)
-        if cpuunits is not None:
-            pulumi.set(__self__, "cpuunits", cpuunits)
         if description is not None:
             pulumi.set(__self__, "description", description)
         if efidisk0 is not None:
@@ -141,10 +129,6 @@ class VMArgs:
             pulumi.set(__self__, "net0", net0)
         if node is not None:
             pulumi.set(__self__, "node", node)
-        if numa is not None:
-            pulumi.set(__self__, "numa", numa)
-        if numa0 is not None:
-            pulumi.set(__self__, "numa0", numa0)
         if onboot is not None:
             pulumi.set(__self__, "onboot", onboot)
         if ostype is not None:
@@ -175,8 +159,6 @@ class VMArgs:
             pulumi.set(__self__, "tpmstate0", tpmstate0)
         if usb0 is not None:
             pulumi.set(__self__, "usb0", usb0)
-        if vcpus is not None:
-            pulumi.set(__self__, "vcpus", vcpus)
         if vga is not None:
             pulumi.set(__self__, "vga", vga)
         if vm_id is not None:
@@ -208,15 +190,6 @@ class VMArgs:
     @acpi.setter
     def acpi(self, value: Optional[pulumi.Input[_builtins.int]]):
         pulumi.set(self, "acpi", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def affinity(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "affinity")
-
-    @affinity.setter
-    def affinity(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "affinity", value)
 
     @_builtins.property
     @pulumi.getter
@@ -334,24 +307,6 @@ class VMArgs:
     @cpu.setter
     def cpu(self, value: Optional[pulumi.Input['CpuArgs']]):
         pulumi.set(self, "cpu", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def cpulimit(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "cpulimit")
-
-    @cpulimit.setter
-    def cpulimit(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "cpulimit", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def cpuunits(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "cpuunits")
-
-    @cpuunits.setter
-    def cpuunits(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "cpuunits", value)
 
     @_builtins.property
     @pulumi.getter
@@ -478,24 +433,6 @@ class VMArgs:
     @node.setter
     def node(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "node", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def numa(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "numa")
-
-    @numa.setter
-    def numa(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "numa", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def numa0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "numa0")
-
-    @numa0.setter
-    def numa0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "numa0", value)
 
     @_builtins.property
     @pulumi.getter
@@ -634,15 +571,6 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def vcpus(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "vcpus")
-
-    @vcpus.setter
-    def vcpus(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "vcpus", value)
-
-    @_builtins.property
-    @pulumi.getter
     def vga(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "vga")
 
@@ -667,7 +595,6 @@ class VM(pulumi.CustomResource):
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
-                 affinity: Optional[pulumi.Input[_builtins.str]] = None,
                  agent: Optional[pulumi.Input[_builtins.str]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
@@ -681,8 +608,6 @@ class VM(pulumi.CustomResource):
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
                  cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
-                 cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
-                 cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
                  efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -699,8 +624,6 @@ class VM(pulumi.CustomResource):
                  nameserver: Optional[pulumi.Input[_builtins.str]] = None,
                  net0: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
-                 numa: Optional[pulumi.Input[_builtins.int]] = None,
-                 numa0: Optional[pulumi.Input[_builtins.str]] = None,
                  onboot: Optional[pulumi.Input[_builtins.int]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
                  parallel0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -716,7 +639,6 @@ class VM(pulumi.CustomResource):
                  template: Optional[pulumi.Input[_builtins.int]] = None,
                  tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
                  usb0: Optional[pulumi.Input[_builtins.str]] = None,
-                 vcpus: Optional[pulumi.Input[_builtins.int]] = None,
                  vga: Optional[pulumi.Input[_builtins.str]] = None,
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None,
                  __props__=None):
@@ -749,7 +671,6 @@ class VM(pulumi.CustomResource):
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
-                 affinity: Optional[pulumi.Input[_builtins.str]] = None,
                  agent: Optional[pulumi.Input[_builtins.str]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
@@ -763,8 +684,6 @@ class VM(pulumi.CustomResource):
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
                  cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
-                 cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
-                 cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
                  efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -781,8 +700,6 @@ class VM(pulumi.CustomResource):
                  nameserver: Optional[pulumi.Input[_builtins.str]] = None,
                  net0: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
-                 numa: Optional[pulumi.Input[_builtins.int]] = None,
-                 numa0: Optional[pulumi.Input[_builtins.str]] = None,
                  onboot: Optional[pulumi.Input[_builtins.int]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
                  parallel0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -798,7 +715,6 @@ class VM(pulumi.CustomResource):
                  template: Optional[pulumi.Input[_builtins.int]] = None,
                  tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
                  usb0: Optional[pulumi.Input[_builtins.str]] = None,
-                 vcpus: Optional[pulumi.Input[_builtins.int]] = None,
                  vga: Optional[pulumi.Input[_builtins.str]] = None,
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None,
                  __props__=None):
@@ -811,7 +727,6 @@ class VM(pulumi.CustomResource):
             __props__ = VMArgs.__new__(VMArgs)
 
             __props__.__dict__["acpi"] = acpi
-            __props__.__dict__["affinity"] = affinity
             __props__.__dict__["agent"] = agent
             __props__.__dict__["audio0"] = audio0
             __props__.__dict__["autostart"] = autostart
@@ -825,8 +740,6 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["ciuser"] = ciuser
             __props__.__dict__["clone"] = clone
             __props__.__dict__["cpu"] = cpu
-            __props__.__dict__["cpulimit"] = cpulimit
-            __props__.__dict__["cpuunits"] = cpuunits
             __props__.__dict__["description"] = description
             if disks is None and not opts.urn:
                 raise TypeError("Missing required property 'disks'")
@@ -847,8 +760,6 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["nameserver"] = nameserver
             __props__.__dict__["net0"] = net0
             __props__.__dict__["node"] = node
-            __props__.__dict__["numa"] = numa
-            __props__.__dict__["numa0"] = numa0
             __props__.__dict__["onboot"] = onboot
             __props__.__dict__["ostype"] = ostype
             __props__.__dict__["parallel0"] = parallel0
@@ -864,7 +775,6 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["template"] = template
             __props__.__dict__["tpmstate0"] = tpmstate0
             __props__.__dict__["usb0"] = usb0
-            __props__.__dict__["vcpus"] = vcpus
             __props__.__dict__["vga"] = vga
             __props__.__dict__["vm_id"] = vm_id
         super(VM, __self__).__init__(
@@ -890,7 +800,6 @@ class VM(pulumi.CustomResource):
         __props__ = VMArgs.__new__(VMArgs)
 
         __props__.__dict__["acpi"] = None
-        __props__.__dict__["affinity"] = None
         __props__.__dict__["agent"] = None
         __props__.__dict__["audio0"] = None
         __props__.__dict__["autostart"] = None
@@ -904,8 +813,6 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["ciuser"] = None
         __props__.__dict__["clone"] = None
         __props__.__dict__["cpu"] = None
-        __props__.__dict__["cpulimit"] = None
-        __props__.__dict__["cpuunits"] = None
         __props__.__dict__["description"] = None
         __props__.__dict__["disks"] = None
         __props__.__dict__["efidisk0"] = None
@@ -922,8 +829,6 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["nameserver"] = None
         __props__.__dict__["net0"] = None
         __props__.__dict__["node"] = None
-        __props__.__dict__["numa"] = None
-        __props__.__dict__["numa0"] = None
         __props__.__dict__["onboot"] = None
         __props__.__dict__["ostype"] = None
         __props__.__dict__["parallel0"] = None
@@ -939,7 +844,6 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["template"] = None
         __props__.__dict__["tpmstate0"] = None
         __props__.__dict__["usb0"] = None
-        __props__.__dict__["vcpus"] = None
         __props__.__dict__["vga"] = None
         __props__.__dict__["vm_id"] = None
         return VM(resource_name, opts=opts, __props__=__props__)
@@ -948,11 +852,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def acpi(self) -> pulumi.Output[Optional[_builtins.int]]:
         return pulumi.get(self, "acpi")
-
-    @_builtins.property
-    @pulumi.getter
-    def affinity(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "affinity")
 
     @_builtins.property
     @pulumi.getter
@@ -1018,16 +917,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def cpu(self) -> pulumi.Output[Optional['outputs.Cpu']]:
         return pulumi.get(self, "cpu")
-
-    @_builtins.property
-    @pulumi.getter
-    def cpulimit(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "cpulimit")
-
-    @_builtins.property
-    @pulumi.getter
-    def cpuunits(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "cpuunits")
 
     @_builtins.property
     @pulumi.getter
@@ -1111,16 +1000,6 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def numa(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "numa")
-
-    @_builtins.property
-    @pulumi.getter
-    def numa0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "numa0")
-
-    @_builtins.property
-    @pulumi.getter
     def onboot(self) -> pulumi.Output[Optional[_builtins.int]]:
         return pulumi.get(self, "onboot")
 
@@ -1193,11 +1072,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def usb0(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "usb0")
-
-    @_builtins.property
-    @pulumi.getter
-    def vcpus(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "vcpus")
 
     @_builtins.property
     @pulumi.getter

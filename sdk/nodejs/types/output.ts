@@ -34,9 +34,14 @@ export namespace vm {
         flagsEnabled?: string[];
         hidden?: boolean;
         hvVendorId?: string;
+        limit?: number;
+        numa?: boolean;
+        numaNodes?: outputs.vm.NumaNode[];
         physBits?: string;
         sockets?: number;
         type?: string;
+        units?: number;
+        vcpus?: number;
     }
 
     export interface Disk {
@@ -44,6 +49,13 @@ export namespace vm {
         interface: string;
         size: number;
         storage: string;
+    }
+
+    export interface NumaNode {
+        cpus: string;
+        hostNodes?: string;
+        memory?: number;
+        policy?: string;
     }
 
 }

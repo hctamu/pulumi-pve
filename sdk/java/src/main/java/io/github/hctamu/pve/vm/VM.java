@@ -26,12 +26,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<Integer>> acpi() {
         return Codegen.optional(this.acpi);
     }
-    @Export(name="affinity", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> affinity;
-
-    public Output<Optional<String>> affinity() {
-        return Codegen.optional(this.affinity);
-    }
     @Export(name="agent", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> agent;
 
@@ -109,18 +103,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<Cpu>> cpu() {
         return Codegen.optional(this.cpu);
-    }
-    @Export(name="cpulimit", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> cpulimit;
-
-    public Output<Optional<String>> cpulimit() {
-        return Codegen.optional(this.cpulimit);
-    }
-    @Export(name="cpuunits", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> cpuunits;
-
-    public Output<Optional<Integer>> cpuunits() {
-        return Codegen.optional(this.cpuunits);
     }
     @Export(name="description", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> description;
@@ -218,18 +200,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> node() {
         return Codegen.optional(this.node);
     }
-    @Export(name="numa", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> numa;
-
-    public Output<Optional<Integer>> numa() {
-        return Codegen.optional(this.numa);
-    }
-    @Export(name="numa0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> numa0;
-
-    public Output<Optional<String>> numa0() {
-        return Codegen.optional(this.numa0);
-    }
     @Export(name="onboot", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> onboot;
 
@@ -319,12 +289,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<String>> usb0() {
         return Codegen.optional(this.usb0);
-    }
-    @Export(name="vcpus", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> vcpus;
-
-    public Output<Optional<Integer>> vcpus() {
-        return Codegen.optional(this.vcpus);
     }
     @Export(name="vga", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> vga;

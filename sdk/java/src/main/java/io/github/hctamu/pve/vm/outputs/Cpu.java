@@ -4,7 +4,9 @@
 package io.github.hctamu.pve.vm.outputs;
 
 import com.pulumi.core.annotations.CustomType;
+import io.github.hctamu.pve.vm.outputs.NumaNode;
 import java.lang.Boolean;
+import java.lang.Double;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
@@ -19,9 +21,14 @@ public final class Cpu {
     private @Nullable List<String> flagsEnabled;
     private @Nullable Boolean hidden;
     private @Nullable String hvVendorId;
+    private @Nullable Double limit;
+    private @Nullable Boolean numa;
+    private @Nullable List<NumaNode> numaNodes;
     private @Nullable String physBits;
     private @Nullable Integer sockets;
     private @Nullable String type;
+    private @Nullable Integer units;
+    private @Nullable Integer vcpus;
 
     private Cpu() {}
     public Optional<Integer> cores() {
@@ -39,6 +46,15 @@ public final class Cpu {
     public Optional<String> hvVendorId() {
         return Optional.ofNullable(this.hvVendorId);
     }
+    public Optional<Double> limit() {
+        return Optional.ofNullable(this.limit);
+    }
+    public Optional<Boolean> numa() {
+        return Optional.ofNullable(this.numa);
+    }
+    public List<NumaNode> numaNodes() {
+        return this.numaNodes == null ? List.of() : this.numaNodes;
+    }
     public Optional<String> physBits() {
         return Optional.ofNullable(this.physBits);
     }
@@ -47,6 +63,12 @@ public final class Cpu {
     }
     public Optional<String> type() {
         return Optional.ofNullable(this.type);
+    }
+    public Optional<Integer> units() {
+        return Optional.ofNullable(this.units);
+    }
+    public Optional<Integer> vcpus() {
+        return Optional.ofNullable(this.vcpus);
     }
 
     public static Builder builder() {
@@ -63,9 +85,14 @@ public final class Cpu {
         private @Nullable List<String> flagsEnabled;
         private @Nullable Boolean hidden;
         private @Nullable String hvVendorId;
+        private @Nullable Double limit;
+        private @Nullable Boolean numa;
+        private @Nullable List<NumaNode> numaNodes;
         private @Nullable String physBits;
         private @Nullable Integer sockets;
         private @Nullable String type;
+        private @Nullable Integer units;
+        private @Nullable Integer vcpus;
         public Builder() {}
         public Builder(Cpu defaults) {
     	      Objects.requireNonNull(defaults);
@@ -74,9 +101,14 @@ public final class Cpu {
     	      this.flagsEnabled = defaults.flagsEnabled;
     	      this.hidden = defaults.hidden;
     	      this.hvVendorId = defaults.hvVendorId;
+    	      this.limit = defaults.limit;
+    	      this.numa = defaults.numa;
+    	      this.numaNodes = defaults.numaNodes;
     	      this.physBits = defaults.physBits;
     	      this.sockets = defaults.sockets;
     	      this.type = defaults.type;
+    	      this.units = defaults.units;
+    	      this.vcpus = defaults.vcpus;
         }
 
         @CustomType.Setter
@@ -116,6 +148,27 @@ public final class Cpu {
             return this;
         }
         @CustomType.Setter
+        public Builder limit(@Nullable Double limit) {
+
+            this.limit = limit;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder numa(@Nullable Boolean numa) {
+
+            this.numa = numa;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder numaNodes(@Nullable List<NumaNode> numaNodes) {
+
+            this.numaNodes = numaNodes;
+            return this;
+        }
+        public Builder numaNodes(NumaNode... numaNodes) {
+            return numaNodes(List.of(numaNodes));
+        }
+        @CustomType.Setter
         public Builder physBits(@Nullable String physBits) {
 
             this.physBits = physBits;
@@ -133,6 +186,18 @@ public final class Cpu {
             this.type = type;
             return this;
         }
+        @CustomType.Setter
+        public Builder units(@Nullable Integer units) {
+
+            this.units = units;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder vcpus(@Nullable Integer vcpus) {
+
+            this.vcpus = vcpus;
+            return this;
+        }
         public Cpu build() {
             final var _resultValue = new Cpu();
             _resultValue.cores = cores;
@@ -140,9 +205,14 @@ public final class Cpu {
             _resultValue.flagsEnabled = flagsEnabled;
             _resultValue.hidden = hidden;
             _resultValue.hvVendorId = hvVendorId;
+            _resultValue.limit = limit;
+            _resultValue.numa = numa;
+            _resultValue.numaNodes = numaNodes;
             _resultValue.physBits = physBits;
             _resultValue.sockets = sockets;
             _resultValue.type = type;
+            _resultValue.units = units;
+            _resultValue.vcpus = vcpus;
             return _resultValue;
         }
     }

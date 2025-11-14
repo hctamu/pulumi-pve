@@ -131,6 +131,18 @@
         "hvVendorId": {
           "type": "string"
         },
+        "limit": {
+          "type": "number"
+        },
+        "numa": {
+          "type": "boolean"
+        },
+        "numaNodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/pve:vm:NumaNode"
+          }
+        },
         "physBits": {
           "type": "string"
         },
@@ -139,6 +151,12 @@
         },
         "type": {
           "type": "string"
+        },
+        "units": {
+          "type": "integer"
+        },
+        "vcpus": {
+          "type": "integer"
         }
       },
       "type": "object"
@@ -163,6 +181,26 @@
         "interface",
         "size",
         "storage"
+      ]
+    },
+    "pve:vm:NumaNode": {
+      "properties": {
+        "cpus": {
+          "type": "string"
+        },
+        "hostNodes": {
+          "type": "string"
+        },
+        "memory": {
+          "type": "integer"
+        },
+        "policy": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "cpus"
       ]
     }
   },
@@ -485,9 +523,6 @@
         "acpi": {
           "type": "integer"
         },
-        "affinity": {
-          "type": "string"
-        },
         "agent": {
           "type": "string"
         },
@@ -526,12 +561,6 @@
         },
         "cpu": {
           "$ref": "#/types/pve:vm:Cpu"
-        },
-        "cpulimit": {
-          "type": "string"
-        },
-        "cpuunits": {
-          "type": "integer"
         },
         "description": {
           "type": "string"
@@ -584,12 +613,6 @@
         "node": {
           "type": "string"
         },
-        "numa": {
-          "type": "integer"
-        },
-        "numa0": {
-          "type": "string"
-        },
         "onboot": {
           "type": "integer"
         },
@@ -634,9 +657,6 @@
         },
         "usb0": {
           "type": "string"
-        },
-        "vcpus": {
-          "type": "integer"
         },
         "vga": {
           "type": "string"
@@ -654,9 +674,6 @@
         "acpi": {
           "type": "integer"
         },
-        "affinity": {
-          "type": "string"
-        },
         "agent": {
           "type": "string"
         },
@@ -695,12 +712,6 @@
         },
         "cpu": {
           "$ref": "#/types/pve:vm:Cpu"
-        },
-        "cpulimit": {
-          "type": "string"
-        },
-        "cpuunits": {
-          "type": "integer"
         },
         "description": {
           "type": "string"
@@ -753,12 +764,6 @@
         "node": {
           "type": "string"
         },
-        "numa": {
-          "type": "integer"
-        },
-        "numa0": {
-          "type": "string"
-        },
         "onboot": {
           "type": "integer"
         },
@@ -803,9 +808,6 @@
         },
         "usb0": {
           "type": "string"
-        },
-        "vcpus": {
-          "type": "integer"
         },
         "vga": {
           "type": "string"

@@ -38,6 +38,20 @@ namespace Hctamu.Pve.Vm.Inputs
         [Input("hvVendorId")]
         public Input<string>? HvVendorId { get; set; }
 
+        [Input("limit")]
+        public Input<double>? Limit { get; set; }
+
+        [Input("numa")]
+        public Input<bool>? Numa { get; set; }
+
+        [Input("numaNodes")]
+        private InputList<Inputs.NumaNodeArgs>? _numaNodes;
+        public InputList<Inputs.NumaNodeArgs> NumaNodes
+        {
+            get => _numaNodes ?? (_numaNodes = new InputList<Inputs.NumaNodeArgs>());
+            set => _numaNodes = value;
+        }
+
         [Input("physBits")]
         public Input<string>? PhysBits { get; set; }
 
@@ -46,6 +60,12 @@ namespace Hctamu.Pve.Vm.Inputs
 
         [Input("type")]
         public Input<string>? Type { get; set; }
+
+        [Input("units")]
+        public Input<int>? Units { get; set; }
+
+        [Input("vcpus")]
+        public Input<int>? Vcpus { get; set; }
 
         public CpuArgs()
         {

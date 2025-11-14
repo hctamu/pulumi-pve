@@ -21,6 +21,8 @@ __all__ = [
     'CpuArgsDict',
     'DiskArgs',
     'DiskArgsDict',
+    'NumaNodeArgs',
+    'NumaNodeArgsDict',
 ]
 
 MYPY = False
@@ -106,9 +108,14 @@ if not MYPY:
         flags_enabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
         hidden: NotRequired[pulumi.Input[_builtins.bool]]
         hv_vendor_id: NotRequired[pulumi.Input[_builtins.str]]
+        limit: NotRequired[pulumi.Input[_builtins.float]]
+        numa: NotRequired[pulumi.Input[_builtins.bool]]
+        numa_nodes: NotRequired[pulumi.Input[Sequence[pulumi.Input['NumaNodeArgsDict']]]]
         phys_bits: NotRequired[pulumi.Input[_builtins.str]]
         sockets: NotRequired[pulumi.Input[_builtins.int]]
         type: NotRequired[pulumi.Input[_builtins.str]]
+        units: NotRequired[pulumi.Input[_builtins.int]]
+        vcpus: NotRequired[pulumi.Input[_builtins.int]]
 elif False:
     CpuArgsDict: TypeAlias = Mapping[str, Any]
 
@@ -120,9 +127,14 @@ class CpuArgs:
                  flags_enabled: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  hidden: Optional[pulumi.Input[_builtins.bool]] = None,
                  hv_vendor_id: Optional[pulumi.Input[_builtins.str]] = None,
+                 limit: Optional[pulumi.Input[_builtins.float]] = None,
+                 numa: Optional[pulumi.Input[_builtins.bool]] = None,
+                 numa_nodes: Optional[pulumi.Input[Sequence[pulumi.Input['NumaNodeArgs']]]] = None,
                  phys_bits: Optional[pulumi.Input[_builtins.str]] = None,
                  sockets: Optional[pulumi.Input[_builtins.int]] = None,
-                 type: Optional[pulumi.Input[_builtins.str]] = None):
+                 type: Optional[pulumi.Input[_builtins.str]] = None,
+                 units: Optional[pulumi.Input[_builtins.int]] = None,
+                 vcpus: Optional[pulumi.Input[_builtins.int]] = None):
         if cores is not None:
             pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
@@ -133,12 +145,22 @@ class CpuArgs:
             pulumi.set(__self__, "hidden", hidden)
         if hv_vendor_id is not None:
             pulumi.set(__self__, "hv_vendor_id", hv_vendor_id)
+        if limit is not None:
+            pulumi.set(__self__, "limit", limit)
+        if numa is not None:
+            pulumi.set(__self__, "numa", numa)
+        if numa_nodes is not None:
+            pulumi.set(__self__, "numa_nodes", numa_nodes)
         if phys_bits is not None:
             pulumi.set(__self__, "phys_bits", phys_bits)
         if sockets is not None:
             pulumi.set(__self__, "sockets", sockets)
         if type is not None:
             pulumi.set(__self__, "type", type)
+        if units is not None:
+            pulumi.set(__self__, "units", units)
+        if vcpus is not None:
+            pulumi.set(__self__, "vcpus", vcpus)
 
     @_builtins.property
     @pulumi.getter
@@ -186,6 +208,33 @@ class CpuArgs:
         pulumi.set(self, "hv_vendor_id", value)
 
     @_builtins.property
+    @pulumi.getter
+    def limit(self) -> Optional[pulumi.Input[_builtins.float]]:
+        return pulumi.get(self, "limit")
+
+    @limit.setter
+    def limit(self, value: Optional[pulumi.Input[_builtins.float]]):
+        pulumi.set(self, "limit", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def numa(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        return pulumi.get(self, "numa")
+
+    @numa.setter
+    def numa(self, value: Optional[pulumi.Input[_builtins.bool]]):
+        pulumi.set(self, "numa", value)
+
+    @_builtins.property
+    @pulumi.getter(name="numaNodes")
+    def numa_nodes(self) -> Optional[pulumi.Input[Sequence[pulumi.Input['NumaNodeArgs']]]]:
+        return pulumi.get(self, "numa_nodes")
+
+    @numa_nodes.setter
+    def numa_nodes(self, value: Optional[pulumi.Input[Sequence[pulumi.Input['NumaNodeArgs']]]]):
+        pulumi.set(self, "numa_nodes", value)
+
+    @_builtins.property
     @pulumi.getter(name="physBits")
     def phys_bits(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "phys_bits")
@@ -211,6 +260,24 @@ class CpuArgs:
     @type.setter
     def type(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "type", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def units(self) -> Optional[pulumi.Input[_builtins.int]]:
+        return pulumi.get(self, "units")
+
+    @units.setter
+    def units(self, value: Optional[pulumi.Input[_builtins.int]]):
+        pulumi.set(self, "units", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def vcpus(self) -> Optional[pulumi.Input[_builtins.int]]:
+        return pulumi.get(self, "vcpus")
+
+    @vcpus.setter
+    def vcpus(self, value: Optional[pulumi.Input[_builtins.int]]):
+        pulumi.set(self, "vcpus", value)
 
 
 if not MYPY:
@@ -270,5 +337,66 @@ class DiskArgs:
     @filename.setter
     def filename(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "filename", value)
+
+
+if not MYPY:
+    class NumaNodeArgsDict(TypedDict):
+        cpus: pulumi.Input[_builtins.str]
+        host_nodes: NotRequired[pulumi.Input[_builtins.str]]
+        memory: NotRequired[pulumi.Input[_builtins.int]]
+        policy: NotRequired[pulumi.Input[_builtins.str]]
+elif False:
+    NumaNodeArgsDict: TypeAlias = Mapping[str, Any]
+
+@pulumi.input_type
+class NumaNodeArgs:
+    def __init__(__self__, *,
+                 cpus: pulumi.Input[_builtins.str],
+                 host_nodes: Optional[pulumi.Input[_builtins.str]] = None,
+                 memory: Optional[pulumi.Input[_builtins.int]] = None,
+                 policy: Optional[pulumi.Input[_builtins.str]] = None):
+        pulumi.set(__self__, "cpus", cpus)
+        if host_nodes is not None:
+            pulumi.set(__self__, "host_nodes", host_nodes)
+        if memory is not None:
+            pulumi.set(__self__, "memory", memory)
+        if policy is not None:
+            pulumi.set(__self__, "policy", policy)
+
+    @_builtins.property
+    @pulumi.getter
+    def cpus(self) -> pulumi.Input[_builtins.str]:
+        return pulumi.get(self, "cpus")
+
+    @cpus.setter
+    def cpus(self, value: pulumi.Input[_builtins.str]):
+        pulumi.set(self, "cpus", value)
+
+    @_builtins.property
+    @pulumi.getter(name="hostNodes")
+    def host_nodes(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "host_nodes")
+
+    @host_nodes.setter
+    def host_nodes(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "host_nodes", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def memory(self) -> Optional[pulumi.Input[_builtins.int]]:
+        return pulumi.get(self, "memory")
+
+    @memory.setter
+    def memory(self, value: Optional[pulumi.Input[_builtins.int]]):
+        pulumi.set(self, "memory", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def policy(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "policy")
+
+    @policy.setter
+    def policy(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "policy", value)
 
 

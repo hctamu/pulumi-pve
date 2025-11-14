@@ -16,7 +16,6 @@ type VM struct {
 	pulumi.CustomResourceState
 
 	Acpi         pulumi.IntPtrOutput    `pulumi:"acpi"`
-	Affinity     pulumi.StringPtrOutput `pulumi:"affinity"`
 	Agent        pulumi.StringPtrOutput `pulumi:"agent"`
 	Audio0       pulumi.StringPtrOutput `pulumi:"audio0"`
 	Autostart    pulumi.IntPtrOutput    `pulumi:"autostart"`
@@ -30,8 +29,6 @@ type VM struct {
 	Ciuser       pulumi.StringPtrOutput `pulumi:"ciuser"`
 	Clone        ClonePtrOutput         `pulumi:"clone"`
 	Cpu          CpuPtrOutput           `pulumi:"cpu"`
-	Cpulimit     pulumi.StringPtrOutput `pulumi:"cpulimit"`
-	Cpuunits     pulumi.IntPtrOutput    `pulumi:"cpuunits"`
 	Description  pulumi.StringPtrOutput `pulumi:"description"`
 	Disks        DiskArrayOutput        `pulumi:"disks"`
 	Efidisk0     pulumi.StringPtrOutput `pulumi:"efidisk0"`
@@ -48,8 +45,6 @@ type VM struct {
 	Nameserver   pulumi.StringPtrOutput `pulumi:"nameserver"`
 	Net0         pulumi.StringPtrOutput `pulumi:"net0"`
 	Node         pulumi.StringPtrOutput `pulumi:"node"`
-	Numa         pulumi.IntPtrOutput    `pulumi:"numa"`
-	Numa0        pulumi.StringPtrOutput `pulumi:"numa0"`
 	Onboot       pulumi.IntPtrOutput    `pulumi:"onboot"`
 	Ostype       pulumi.StringPtrOutput `pulumi:"ostype"`
 	Parallel0    pulumi.StringPtrOutput `pulumi:"parallel0"`
@@ -65,7 +60,6 @@ type VM struct {
 	Template     pulumi.IntPtrOutput    `pulumi:"template"`
 	Tpmstate0    pulumi.StringPtrOutput `pulumi:"tpmstate0"`
 	Usb0         pulumi.StringPtrOutput `pulumi:"usb0"`
-	Vcpus        pulumi.IntPtrOutput    `pulumi:"vcpus"`
 	Vga          pulumi.StringPtrOutput `pulumi:"vga"`
 	VmId         pulumi.IntPtrOutput    `pulumi:"vmId"`
 }
@@ -117,7 +111,6 @@ func (VMState) ElementType() reflect.Type {
 
 type vmArgs struct {
 	Acpi         *int    `pulumi:"acpi"`
-	Affinity     *string `pulumi:"affinity"`
 	Agent        *string `pulumi:"agent"`
 	Audio0       *string `pulumi:"audio0"`
 	Autostart    *int    `pulumi:"autostart"`
@@ -131,8 +124,6 @@ type vmArgs struct {
 	Ciuser       *string `pulumi:"ciuser"`
 	Clone        *Clone  `pulumi:"clone"`
 	Cpu          *Cpu    `pulumi:"cpu"`
-	Cpulimit     *string `pulumi:"cpulimit"`
-	Cpuunits     *int    `pulumi:"cpuunits"`
 	Description  *string `pulumi:"description"`
 	Disks        []Disk  `pulumi:"disks"`
 	Efidisk0     *string `pulumi:"efidisk0"`
@@ -149,8 +140,6 @@ type vmArgs struct {
 	Nameserver   *string `pulumi:"nameserver"`
 	Net0         *string `pulumi:"net0"`
 	Node         *string `pulumi:"node"`
-	Numa         *int    `pulumi:"numa"`
-	Numa0        *string `pulumi:"numa0"`
 	Onboot       *int    `pulumi:"onboot"`
 	Ostype       *string `pulumi:"ostype"`
 	Parallel0    *string `pulumi:"parallel0"`
@@ -166,7 +155,6 @@ type vmArgs struct {
 	Template     *int    `pulumi:"template"`
 	Tpmstate0    *string `pulumi:"tpmstate0"`
 	Usb0         *string `pulumi:"usb0"`
-	Vcpus        *int    `pulumi:"vcpus"`
 	Vga          *string `pulumi:"vga"`
 	VmId         *int    `pulumi:"vmId"`
 }
@@ -174,7 +162,6 @@ type vmArgs struct {
 // The set of arguments for constructing a VM resource.
 type VMArgs struct {
 	Acpi         pulumi.IntPtrInput
-	Affinity     pulumi.StringPtrInput
 	Agent        pulumi.StringPtrInput
 	Audio0       pulumi.StringPtrInput
 	Autostart    pulumi.IntPtrInput
@@ -188,8 +175,6 @@ type VMArgs struct {
 	Ciuser       pulumi.StringPtrInput
 	Clone        ClonePtrInput
 	Cpu          CpuPtrInput
-	Cpulimit     pulumi.StringPtrInput
-	Cpuunits     pulumi.IntPtrInput
 	Description  pulumi.StringPtrInput
 	Disks        DiskArrayInput
 	Efidisk0     pulumi.StringPtrInput
@@ -206,8 +191,6 @@ type VMArgs struct {
 	Nameserver   pulumi.StringPtrInput
 	Net0         pulumi.StringPtrInput
 	Node         pulumi.StringPtrInput
-	Numa         pulumi.IntPtrInput
-	Numa0        pulumi.StringPtrInput
 	Onboot       pulumi.IntPtrInput
 	Ostype       pulumi.StringPtrInput
 	Parallel0    pulumi.StringPtrInput
@@ -223,7 +206,6 @@ type VMArgs struct {
 	Template     pulumi.IntPtrInput
 	Tpmstate0    pulumi.StringPtrInput
 	Usb0         pulumi.StringPtrInput
-	Vcpus        pulumi.IntPtrInput
 	Vga          pulumi.StringPtrInput
 	VmId         pulumi.IntPtrInput
 }
@@ -319,10 +301,6 @@ func (o VMOutput) Acpi() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Acpi }).(pulumi.IntPtrOutput)
 }
 
-func (o VMOutput) Affinity() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Affinity }).(pulumi.StringPtrOutput)
-}
-
 func (o VMOutput) Agent() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Agent }).(pulumi.StringPtrOutput)
 }
@@ -373,14 +351,6 @@ func (o VMOutput) Clone() ClonePtrOutput {
 
 func (o VMOutput) Cpu() CpuPtrOutput {
 	return o.ApplyT(func(v *VM) CpuPtrOutput { return v.Cpu }).(CpuPtrOutput)
-}
-
-func (o VMOutput) Cpulimit() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Cpulimit }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Cpuunits() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Cpuunits }).(pulumi.IntPtrOutput)
 }
 
 func (o VMOutput) Description() pulumi.StringPtrOutput {
@@ -447,14 +417,6 @@ func (o VMOutput) Node() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Node }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Numa() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Numa }).(pulumi.IntPtrOutput)
-}
-
-func (o VMOutput) Numa0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Numa0 }).(pulumi.StringPtrOutput)
-}
-
 func (o VMOutput) Onboot() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Onboot }).(pulumi.IntPtrOutput)
 }
@@ -513,10 +475,6 @@ func (o VMOutput) Tpmstate0() pulumi.StringPtrOutput {
 
 func (o VMOutput) Usb0() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Usb0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Vcpus() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Vcpus }).(pulumi.IntPtrOutput)
 }
 
 func (o VMOutput) Vga() pulumi.StringPtrOutput {

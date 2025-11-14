@@ -13,11 +13,13 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
+from . import outputs
 
 __all__ = [
     'Clone',
     'Cpu',
     'Disk',
+    'NumaNode',
 ]
 
 @pulumi.output_type
@@ -96,6 +98,8 @@ class Cpu(dict):
             suggest = "flags_enabled"
         elif key == "hvVendorId":
             suggest = "hv_vendor_id"
+        elif key == "numaNodes":
+            suggest = "numa_nodes"
         elif key == "physBits":
             suggest = "phys_bits"
 
@@ -116,9 +120,14 @@ class Cpu(dict):
                  flags_enabled: Optional[Sequence[_builtins.str]] = None,
                  hidden: Optional[_builtins.bool] = None,
                  hv_vendor_id: Optional[_builtins.str] = None,
+                 limit: Optional[_builtins.float] = None,
+                 numa: Optional[_builtins.bool] = None,
+                 numa_nodes: Optional[Sequence['outputs.NumaNode']] = None,
                  phys_bits: Optional[_builtins.str] = None,
                  sockets: Optional[_builtins.int] = None,
-                 type: Optional[_builtins.str] = None):
+                 type: Optional[_builtins.str] = None,
+                 units: Optional[_builtins.int] = None,
+                 vcpus: Optional[_builtins.int] = None):
         if cores is not None:
             pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
@@ -129,12 +138,22 @@ class Cpu(dict):
             pulumi.set(__self__, "hidden", hidden)
         if hv_vendor_id is not None:
             pulumi.set(__self__, "hv_vendor_id", hv_vendor_id)
+        if limit is not None:
+            pulumi.set(__self__, "limit", limit)
+        if numa is not None:
+            pulumi.set(__self__, "numa", numa)
+        if numa_nodes is not None:
+            pulumi.set(__self__, "numa_nodes", numa_nodes)
         if phys_bits is not None:
             pulumi.set(__self__, "phys_bits", phys_bits)
         if sockets is not None:
             pulumi.set(__self__, "sockets", sockets)
         if type is not None:
             pulumi.set(__self__, "type", type)
+        if units is not None:
+            pulumi.set(__self__, "units", units)
+        if vcpus is not None:
+            pulumi.set(__self__, "vcpus", vcpus)
 
     @_builtins.property
     @pulumi.getter
@@ -162,6 +181,21 @@ class Cpu(dict):
         return pulumi.get(self, "hv_vendor_id")
 
     @_builtins.property
+    @pulumi.getter
+    def limit(self) -> Optional[_builtins.float]:
+        return pulumi.get(self, "limit")
+
+    @_builtins.property
+    @pulumi.getter
+    def numa(self) -> Optional[_builtins.bool]:
+        return pulumi.get(self, "numa")
+
+    @_builtins.property
+    @pulumi.getter(name="numaNodes")
+    def numa_nodes(self) -> Optional[Sequence['outputs.NumaNode']]:
+        return pulumi.get(self, "numa_nodes")
+
+    @_builtins.property
     @pulumi.getter(name="physBits")
     def phys_bits(self) -> Optional[_builtins.str]:
         return pulumi.get(self, "phys_bits")
@@ -175,6 +209,16 @@ class Cpu(dict):
     @pulumi.getter
     def type(self) -> Optional[_builtins.str]:
         return pulumi.get(self, "type")
+
+    @_builtins.property
+    @pulumi.getter
+    def units(self) -> Optional[_builtins.int]:
+        return pulumi.get(self, "units")
+
+    @_builtins.property
+    @pulumi.getter
+    def vcpus(self) -> Optional[_builtins.int]:
+        return pulumi.get(self, "vcpus")
 
 
 @pulumi.output_type
@@ -209,5 +253,58 @@ class Disk(dict):
     @pulumi.getter
     def filename(self) -> Optional[_builtins.str]:
         return pulumi.get(self, "filename")
+
+
+@pulumi.output_type
+class NumaNode(dict):
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "hostNodes":
+            suggest = "host_nodes"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in NumaNode. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        NumaNode.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        NumaNode.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 cpus: _builtins.str,
+                 host_nodes: Optional[_builtins.str] = None,
+                 memory: Optional[_builtins.int] = None,
+                 policy: Optional[_builtins.str] = None):
+        pulumi.set(__self__, "cpus", cpus)
+        if host_nodes is not None:
+            pulumi.set(__self__, "host_nodes", host_nodes)
+        if memory is not None:
+            pulumi.set(__self__, "memory", memory)
+        if policy is not None:
+            pulumi.set(__self__, "policy", policy)
+
+    @_builtins.property
+    @pulumi.getter
+    def cpus(self) -> _builtins.str:
+        return pulumi.get(self, "cpus")
+
+    @_builtins.property
+    @pulumi.getter(name="hostNodes")
+    def host_nodes(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "host_nodes")
+
+    @_builtins.property
+    @pulumi.getter
+    def memory(self) -> Optional[_builtins.int]:
+        return pulumi.get(self, "memory")
+
+    @_builtins.property
+    @pulumi.getter
+    def policy(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "policy")
 
 

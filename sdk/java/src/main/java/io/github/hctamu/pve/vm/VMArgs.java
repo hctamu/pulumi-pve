@@ -28,13 +28,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.acpi);
     }
 
-    @Import(name="affinity")
-    private @Nullable Output<String> affinity;
-
-    public Optional<Output<String>> affinity() {
-        return Optional.ofNullable(this.affinity);
-    }
-
     @Import(name="agent")
     private @Nullable Output<String> agent;
 
@@ -124,20 +117,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     public Optional<Output<CpuArgs>> cpu() {
         return Optional.ofNullable(this.cpu);
-    }
-
-    @Import(name="cpulimit")
-    private @Nullable Output<String> cpulimit;
-
-    public Optional<Output<String>> cpulimit() {
-        return Optional.ofNullable(this.cpulimit);
-    }
-
-    @Import(name="cpuunits")
-    private @Nullable Output<Integer> cpuunits;
-
-    public Optional<Output<Integer>> cpuunits() {
-        return Optional.ofNullable(this.cpuunits);
     }
 
     @Import(name="description")
@@ -252,20 +231,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.node);
     }
 
-    @Import(name="numa")
-    private @Nullable Output<Integer> numa;
-
-    public Optional<Output<Integer>> numa() {
-        return Optional.ofNullable(this.numa);
-    }
-
-    @Import(name="numa0")
-    private @Nullable Output<String> numa0;
-
-    public Optional<Output<String>> numa0() {
-        return Optional.ofNullable(this.numa0);
-    }
-
     @Import(name="onboot")
     private @Nullable Output<Integer> onboot;
 
@@ -371,13 +336,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.usb0);
     }
 
-    @Import(name="vcpus")
-    private @Nullable Output<Integer> vcpus;
-
-    public Optional<Output<Integer>> vcpus() {
-        return Optional.ofNullable(this.vcpus);
-    }
-
     @Import(name="vga")
     private @Nullable Output<String> vga;
 
@@ -396,7 +354,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     private VMArgs(VMArgs $) {
         this.acpi = $.acpi;
-        this.affinity = $.affinity;
         this.agent = $.agent;
         this.audio0 = $.audio0;
         this.autostart = $.autostart;
@@ -410,8 +367,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.ciuser = $.ciuser;
         this.clone = $.clone;
         this.cpu = $.cpu;
-        this.cpulimit = $.cpulimit;
-        this.cpuunits = $.cpuunits;
         this.description = $.description;
         this.disks = $.disks;
         this.efidisk0 = $.efidisk0;
@@ -428,8 +383,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.nameserver = $.nameserver;
         this.net0 = $.net0;
         this.node = $.node;
-        this.numa = $.numa;
-        this.numa0 = $.numa0;
         this.onboot = $.onboot;
         this.ostype = $.ostype;
         this.parallel0 = $.parallel0;
@@ -445,7 +398,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.template = $.template;
         this.tpmstate0 = $.tpmstate0;
         this.usb0 = $.usb0;
-        this.vcpus = $.vcpus;
         this.vga = $.vga;
         this.vmId = $.vmId;
     }
@@ -475,15 +427,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder acpi(Integer acpi) {
             return acpi(Output.of(acpi));
-        }
-
-        public Builder affinity(@Nullable Output<String> affinity) {
-            $.affinity = affinity;
-            return this;
-        }
-
-        public Builder affinity(String affinity) {
-            return affinity(Output.of(affinity));
         }
 
         public Builder agent(@Nullable Output<String> agent) {
@@ -601,24 +544,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder cpu(CpuArgs cpu) {
             return cpu(Output.of(cpu));
-        }
-
-        public Builder cpulimit(@Nullable Output<String> cpulimit) {
-            $.cpulimit = cpulimit;
-            return this;
-        }
-
-        public Builder cpulimit(String cpulimit) {
-            return cpulimit(Output.of(cpulimit));
-        }
-
-        public Builder cpuunits(@Nullable Output<Integer> cpuunits) {
-            $.cpuunits = cpuunits;
-            return this;
-        }
-
-        public Builder cpuunits(Integer cpuunits) {
-            return cpuunits(Output.of(cpuunits));
         }
 
         public Builder description(@Nullable Output<String> description) {
@@ -769,24 +694,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return node(Output.of(node));
         }
 
-        public Builder numa(@Nullable Output<Integer> numa) {
-            $.numa = numa;
-            return this;
-        }
-
-        public Builder numa(Integer numa) {
-            return numa(Output.of(numa));
-        }
-
-        public Builder numa0(@Nullable Output<String> numa0) {
-            $.numa0 = numa0;
-            return this;
-        }
-
-        public Builder numa0(String numa0) {
-            return numa0(Output.of(numa0));
-        }
-
         public Builder onboot(@Nullable Output<Integer> onboot) {
             $.onboot = onboot;
             return this;
@@ -920,15 +827,6 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder usb0(String usb0) {
             return usb0(Output.of(usb0));
-        }
-
-        public Builder vcpus(@Nullable Output<Integer> vcpus) {
-            $.vcpus = vcpus;
-            return this;
-        }
-
-        public Builder vcpus(Integer vcpus) {
-            return vcpus(Output.of(vcpus));
         }
 
         public Builder vga(@Nullable Output<String> vga) {
