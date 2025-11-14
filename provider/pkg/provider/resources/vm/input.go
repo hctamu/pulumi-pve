@@ -63,7 +63,7 @@ type Inputs struct {
 
 	EfiDisk *EfiDisk `pulumi:"efidisk,optional"`
 
-	//SMBios1 *string `pulumi:"smbios1,optional"`
+	// SMBios1 *string `pulumi:"smbios1,optional"`
 	Acpi *int `pulumi:"acpi,optional"`
 
 	// Sockets  *int    `pulumi:"sockets,optional"`
@@ -122,15 +122,15 @@ type Clone struct {
 	Timeout     int     `pulumi:"timeout,optional"`
 }
 
-// diskBase contains common fields shared between Disk and EfiDisk.
-type diskBase struct {
+// DiskBase contains common fields shared between Disk and EfiDisk.
+type DiskBase struct {
 	Storage string  `pulumi:"storage"`
 	FileID  *string `pulumi:"filename,optional"` // Optional, computed if not provided
 }
 
 // Disk represents a virtual machine disk configuration.
 type Disk struct {
-	diskBase
+	DiskBase
 	Size      int    `pulumi:"size"`      // Size in Gigabytes (required for regular disks).
 	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
 }
@@ -163,7 +163,7 @@ const (
 
 // EfiDisk represents an EFI disk configuration.
 type EfiDisk struct {
-	diskBase
+	DiskBase
 	EfiType         EfiType `pulumi:"efitype"`
 	PreEnrolledKeys *bool   `pulumi:"preEnrolledKeys,optional"`
 }
@@ -205,7 +205,7 @@ func (efi EfiDisk) ToProxmoxEfiDiskConfig() string {
 
 // parsedDiskBase contains the result of parsing common disk configuration.
 type parsedDiskBase struct {
-	diskBase
+	DiskBase
 	Size   *int              // Size is optional for EFI disks but required for regular disks
 	Extras map[string]string // Additional key-value pairs not in diskBase
 }
@@ -314,11 +314,9 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 		Hookscript:  strOrNil(vmConfig.Hookscript),
 		Hotplug:     strOrNil(vmConfig.Hotplug),
 		Template:    intOrNil(vmConfig.Template),
-		Agent:       strOrNil(vmConfig.Agent),
 		Autostart:   intOrNil(vmConfig.Autostart),
 		Tablet:      intOrNil(vmConfig.Tablet),
 		KVM:         intOrNil(vmConfig.KVM),
-		Tags:        strOrNil(vmConfig.Tags),
 		Protection:  intOrNil(vmConfig.Protection),
 		Lock:        strOrNil(vmConfig.Lock),
 
@@ -404,7 +402,6 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("sshkeys", &options, inputs.SSHKeys, currentInputs.SSHKeys)
 	compareAndAddOption("cicustom", &options, inputs.CICustom, currentInputs.CICustom)
 	compareAndAddOption("ciupgrade", &options, inputs.CIUpgrade, currentInputs.CIUpgrade)
-	compareAndAddOption("net0", &options, inputs.Net0, currentInputs.Net0)
 
 	// Handle EFI disk changes
 	if !reflect.DeepEqual(inputs.EfiDisk, currentInputs.EfiDisk) {
@@ -451,7 +448,6 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
-	addOption("net0", &options, inputs.Net0)
 
 	// Add EFI disk if configured
 	if inputs.EfiDisk != nil {
@@ -509,7 +505,7 @@ func (disk *Disk) ParseDiskConfig(diskConfig string) error {
 		return fmt.Errorf("size is required for disk: %s", diskConfig)
 	}
 
-	disk.diskBase = parsed.diskBase
+	disk.DiskBase = parsed.DiskBase
 	disk.Size = *parsed.Size
 	return nil
 }
@@ -521,7 +517,7 @@ func (efi *EfiDisk) ParseEfiDiskConfig(diskConfig string) error {
 		return err
 	}
 
-	efi.diskBase = parsed.diskBase
+	efi.DiskBase = parsed.DiskBase
 
 	// Extract efitype if present in extras
 	if efitype, ok := parsed.Extras["efitype"]; ok {

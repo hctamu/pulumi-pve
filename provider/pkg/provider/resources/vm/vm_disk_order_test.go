@@ -46,10 +46,34 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Mixed interface types preserve order",
 			inputDisks: []*vm.Disk{
-				{Interface: "virtio0", Storage: lvmStorage, Size: 32},
-				{Interface: "scsi1", Storage: lvmStorage, Size: 64},
-				{Interface: "ide0", Storage: lvmStorage, Size: 8},
-				{Interface: "sata2", Storage: lvmStorage, Size: 128},
+				{
+					Interface: "virtio0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+				{
+					Interface: "ide0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 8,
+				},
+				{
+					Interface: "sata2",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 128,
+				},
 			},
 			expectedDiskOrder:   []string{"virtio0", "scsi1", "ide0", "sata2"},
 			description:         "Mixed interface types should preserve input order",
@@ -58,10 +82,34 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Production VM layout",
 			inputDisks: []*vm.Disk{
-				{Interface: "scsi0", Storage: ssdStorage, Size: 32},  // Boot disk
-				{Interface: "scsi1", Storage: ssdStorage, Size: 100}, // Data disk
-				{Interface: "scsi2", Storage: hddStorage, Size: 500}, // Backup storage
-				{Interface: "ide2", Storage: "none", Size: 0},        // CD-ROM
+				{
+					Interface: "scsi0",
+					DiskBase: vm.DiskBase{
+						Storage: ssdStorage,
+					},
+					Size: 32,
+				}, // Boot disk
+				{
+					Interface: "scsi1",
+					DiskBase: vm.DiskBase{
+						Storage: ssdStorage,
+					},
+					Size: 100,
+				}, // Data disk
+				{
+					Interface: "scsi2",
+					DiskBase: vm.DiskBase{
+						Storage: hddStorage,
+					},
+					Size: 500,
+				}, // Backup storage
+				{
+					Interface: "ide2",
+					DiskBase: vm.DiskBase{
+						Storage: "none",
+					},
+					Size: 0,
+				}, // CD-ROM
 			},
 			expectedDiskOrder:   []string{"scsi0", "scsi1", "scsi2", "ide2"},
 			description:         "Production VM should maintain boot disk first, then data disks",
@@ -70,10 +118,34 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Complex numbering with gaps",
 			inputDisks: []*vm.Disk{
-				{Interface: "scsi0", Storage: lvmStorage, Size: 20},
-				{Interface: "scsi3", Storage: lvmStorage, Size: 40}, // Gap at scsi1, scsi2
-				{Interface: "virtio1", Storage: lvmStorage, Size: 30},
-				{Interface: "scsi1", Storage: lvmStorage, Size: 25}, // Fill gap later
+				{
+					Interface: "scsi0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 20,
+				},
+				{
+					Interface: "scsi3",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 40,
+				}, // Gap at scsi1, scsi2
+				{
+					Interface: "virtio1",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 30,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 25,
+				}, // Fill gap later
 			},
 			expectedDiskOrder:   []string{"scsi0", "scsi3", "virtio1", "scsi1"},
 			description:         "Non-sequential interface numbers should preserve input order",
@@ -82,7 +154,13 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Single disk",
 			inputDisks: []*vm.Disk{
-				{Interface: "virtio0", Storage: lvmStorage, Size: 64},
+				{
+					Interface: "virtio0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
 			},
 			expectedDiskOrder:   []string{"virtio0"},
 			description:         "Single disk should be handled correctly",
@@ -178,10 +256,34 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 
 		// Create complex disk ordering
 		orderedDisks := []*vm.Disk{
-			{Interface: "virtio0", Storage: ssdStorage, Size: 32},
-			{Interface: "scsi1", Storage: lvmStorage, Size: 64},
-			{Interface: "ide2", Storage: "none", Size: 0},
-			{Interface: "sata0", Storage: hddStorage, Size: 128},
+			{
+				Interface: "virtio0",
+				DiskBase: vm.DiskBase{
+					Storage: ssdStorage,
+				},
+				Size: 32,
+			},
+			{
+				Interface: "scsi1",
+				DiskBase: vm.DiskBase{
+					Storage: lvmStorage,
+				},
+				Size: 64,
+			},
+			{
+				Interface: "ide2",
+				DiskBase: vm.DiskBase{
+					Storage: "none",
+				},
+				Size: 0,
+			},
+			{
+				Interface: "sata0",
+				DiskBase: vm.DiskBase{
+					Storage: hddStorage,
+				},
+				Size: 128,
+			},
 		}
 
 		name := "build-options-test-vm"
@@ -242,19 +344,61 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 			{
 				name: "reverse_numerical_order",
 				disks: []*vm.Disk{
-					{Interface: "scsi3", Storage: lvmStorage, Size: 30},
-					{Interface: "scsi1", Storage: lvmStorage, Size: 20},
-					{Interface: "scsi0", Storage: lvmStorage, Size: 10},
+					{
+						Interface: "scsi3",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 30,
+					},
+					{
+						Interface: "scsi1",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 20,
+					},
+					{
+						Interface: "scsi0",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 10,
+					},
 				},
 				expected: []string{"scsi3", "scsi1", "scsi0"},
 			},
 			{
 				name: "mixed_types_non_alphabetical",
 				disks: []*vm.Disk{
-					{Interface: "virtio5", Storage: lvmStorage, Size: 50},
-					{Interface: "ide0", Storage: lvmStorage, Size: 5},
-					{Interface: "scsi2", Storage: lvmStorage, Size: 25},
-					{Interface: "sata10", Storage: lvmStorage, Size: 100},
+					{
+						Interface: "virtio5",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 50,
+					},
+					{
+						Interface: "ide0",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 5,
+					},
+					{
+						Interface: "scsi2",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 25,
+					},
+					{
+						Interface: "sata10",
+						DiskBase: vm.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 100,
+					},
 				},
 				expected: []string{"virtio5", "ide0", "scsi2", "sata10"},
 			},
@@ -299,9 +443,27 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Preserve existing disk order during read",
 			currentInputDisks: []*vm.Disk{
-				{Interface: "virtio0", Storage: lvmStorage, Size: 32},
-				{Interface: "scsi1", Storage: lvmStorage, Size: 64},
-				{Interface: "ide2", Storage: lvmStorage, Size: 8},
+				{
+					Interface: "virtio0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+				{
+					Interface: "ide2",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 8,
+				},
 			},
 			vmConfigDisks: map[string]string{
 				"virtio0": "local-lvm:vm-100-disk-0,size=32G",
@@ -314,7 +476,13 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Handle new disks added to VM config",
 			currentInputDisks: []*vm.Disk{
-				{Interface: "scsi0", Storage: lvmStorage, Size: 32},
+				{
+					Interface: "scsi0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
 			},
 			vmConfigDisks: map[string]string{
 				"scsi0": "local-lvm:vm-100-disk-0,size=32G",
@@ -326,9 +494,27 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 		{
 			name: "Handle missing disks from VM config",
 			currentInputDisks: []*vm.Disk{
-				{Interface: "scsi0", Storage: lvmStorage, Size: 32},
-				{Interface: "scsi1", Storage: lvmStorage, Size: 64},
-				{Interface: "scsi2", Storage: lvmStorage, Size: 128},
+				{
+					Interface: "scsi0",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+				{
+					Interface: "scsi2",
+					DiskBase: vm.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 128,
+				},
 			},
 			vmConfigDisks: map[string]string{
 				"scsi0": "local-lvm:vm-100-disk-0,size=32G",
