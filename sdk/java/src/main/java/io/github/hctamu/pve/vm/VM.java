@@ -31,12 +31,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> affinity() {
         return Codegen.optional(this.affinity);
     }
-    @Export(name="agent", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> agent;
-
-    public Output<Optional<String>> agent() {
-        return Codegen.optional(this.agent);
-    }
     @Export(name="audio0", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> audio0;
 
@@ -60,12 +54,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<String>> bios() {
         return Codegen.optional(this.bios);
-    }
-    @Export(name="boot", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> boot;
-
-    public Output<Optional<String>> boot() {
-        return Codegen.optional(this.boot);
     }
     @Export(name="cicustom", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> cicustom;
@@ -211,12 +199,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> nameserver() {
         return Codegen.optional(this.nameserver);
     }
-    @Export(name="net0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> net0;
-
-    public Output<Optional<String>> net0() {
-        return Codegen.optional(this.net0);
-    }
     @Export(name="node", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> node;
 
@@ -234,12 +216,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<String>> numa0() {
         return Codegen.optional(this.numa0);
-    }
-    @Export(name="onboot", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> onboot;
-
-    public Output<Optional<Integer>> onboot() {
-        return Codegen.optional(this.onboot);
     }
     @Export(name="ostype", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> ostype;
@@ -265,12 +241,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> rng0() {
         return Codegen.optional(this.rng0);
     }
-    @Export(name="scsihw", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> scsihw;
-
-    public Output<Optional<String>> scsihw() {
-        return Codegen.optional(this.scsihw);
-    }
     @Export(name="searchdomain", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> searchdomain;
 
@@ -283,18 +253,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> serial0() {
         return Codegen.optional(this.serial0);
     }
-    @Export(name="smbios1", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> smbios1;
-
-    public Output<Optional<String>> smbios1() {
-        return Codegen.optional(this.smbios1);
-    }
-    @Export(name="sockets", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> sockets;
-
-    public Output<Optional<Integer>> sockets() {
-        return Codegen.optional(this.sockets);
-    }
     @Export(name="sshkeys", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> sshkeys;
 
@@ -306,12 +264,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<Integer>> tablet() {
         return Codegen.optional(this.tablet);
-    }
-    @Export(name="tags", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> tags;
-
-    public Output<Optional<String>> tags() {
-        return Codegen.optional(this.tags);
     }
     @Export(name="template", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> template;

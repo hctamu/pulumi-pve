@@ -19,9 +19,6 @@ namespace Hctamu.Pve.Vm
         [Output("affinity")]
         public Output<string?> Affinity { get; private set; } = null!;
 
-        [Output("agent")]
-        public Output<string?> Agent { get; private set; } = null!;
-
         [Output("audio0")]
         public Output<string?> Audio0 { get; private set; } = null!;
 
@@ -33,9 +30,6 @@ namespace Hctamu.Pve.Vm
 
         [Output("bios")]
         public Output<string?> Bios { get; private set; } = null!;
-
-        [Output("boot")]
-        public Output<string?> Boot { get; private set; } = null!;
 
         [Output("cicustom")]
         public Output<string?> Cicustom { get; private set; } = null!;
@@ -109,9 +103,6 @@ namespace Hctamu.Pve.Vm
         [Output("nameserver")]
         public Output<string?> Nameserver { get; private set; } = null!;
 
-        [Output("net0")]
-        public Output<string?> Net0 { get; private set; } = null!;
-
         [Output("node")]
         public Output<string?> Node { get; private set; } = null!;
 
@@ -120,9 +111,6 @@ namespace Hctamu.Pve.Vm
 
         [Output("numa0")]
         public Output<string?> Numa0 { get; private set; } = null!;
-
-        [Output("onboot")]
-        public Output<int?> Onboot { get; private set; } = null!;
 
         [Output("ostype")]
         public Output<string?> Ostype { get; private set; } = null!;
@@ -136,29 +124,17 @@ namespace Hctamu.Pve.Vm
         [Output("rng0")]
         public Output<string?> Rng0 { get; private set; } = null!;
 
-        [Output("scsihw")]
-        public Output<string?> Scsihw { get; private set; } = null!;
-
         [Output("searchdomain")]
         public Output<string?> Searchdomain { get; private set; } = null!;
 
         [Output("serial0")]
         public Output<string?> Serial0 { get; private set; } = null!;
 
-        [Output("smbios1")]
-        public Output<string?> Smbios1 { get; private set; } = null!;
-
-        [Output("sockets")]
-        public Output<int?> Sockets { get; private set; } = null!;
-
         [Output("sshkeys")]
         public Output<string?> Sshkeys { get; private set; } = null!;
 
         [Output("tablet")]
         public Output<int?> Tablet { get; private set; } = null!;
-
-        [Output("tags")]
-        public Output<string?> Tags { get; private set; } = null!;
 
         [Output("template")]
         public Output<int?> Template { get; private set; } = null!;
@@ -229,9 +205,6 @@ namespace Hctamu.Pve.Vm
         [Input("affinity")]
         public Input<string>? Affinity { get; set; }
 
-        [Input("agent")]
-        public Input<string>? Agent { get; set; }
-
         [Input("audio0")]
         public Input<string>? Audio0 { get; set; }
 
@@ -243,9 +216,6 @@ namespace Hctamu.Pve.Vm
 
         [Input("bios")]
         public Input<string>? Bios { get; set; }
-
-        [Input("boot")]
-        public Input<string>? Boot { get; set; }
 
         [Input("cicustom")]
         public Input<string>? Cicustom { get; set; }
@@ -324,9 +294,6 @@ namespace Hctamu.Pve.Vm
         [Input("nameserver")]
         public Input<string>? Nameserver { get; set; }
 
-        [Input("net0")]
-        public Input<string>? Net0 { get; set; }
-
         [Input("node")]
         public Input<string>? Node { get; set; }
 
@@ -335,9 +302,6 @@ namespace Hctamu.Pve.Vm
 
         [Input("numa0")]
         public Input<string>? Numa0 { get; set; }
-
-        [Input("onboot")]
-        public Input<int>? Onboot { get; set; }
 
         [Input("ostype")]
         public Input<string>? Ostype { get; set; }
@@ -351,29 +315,17 @@ namespace Hctamu.Pve.Vm
         [Input("rng0")]
         public Input<string>? Rng0 { get; set; }
 
-        [Input("scsihw")]
-        public Input<string>? Scsihw { get; set; }
-
         [Input("searchdomain")]
         public Input<string>? Searchdomain { get; set; }
 
         [Input("serial0")]
         public Input<string>? Serial0 { get; set; }
 
-        [Input("smbios1")]
-        public Input<string>? Smbios1 { get; set; }
-
-        [Input("sockets")]
-        public Input<int>? Sockets { get; set; }
-
         [Input("sshkeys")]
         public Input<string>? Sshkeys { get; set; }
 
         [Input("tablet")]
         public Input<int>? Tablet { get; set; }
-
-        [Input("tags")]
-        public Input<string>? Tags { get; set; }
 
         [Input("template")]
         public Input<int>? Template { get; set; }

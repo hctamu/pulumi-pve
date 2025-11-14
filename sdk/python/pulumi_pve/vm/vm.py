@@ -25,12 +25,10 @@ class VMArgs:
                  name: pulumi.Input[_builtins.str],
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
                  affinity: Optional[pulumi.Input[_builtins.str]] = None,
-                 agent: Optional[pulumi.Input[_builtins.str]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
                  balloon: Optional[pulumi.Input[_builtins.int]] = None,
                  bios: Optional[pulumi.Input[_builtins.str]] = None,
-                 boot: Optional[pulumi.Input[_builtins.str]] = None,
                  cicustom: Optional[pulumi.Input[_builtins.str]] = None,
                  cipassword: Optional[pulumi.Input[_builtins.str]] = None,
                  citype: Optional[pulumi.Input[_builtins.str]] = None,
@@ -53,23 +51,17 @@ class VMArgs:
                  machine: Optional[pulumi.Input[_builtins.str]] = None,
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
                  nameserver: Optional[pulumi.Input[_builtins.str]] = None,
-                 net0: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  numa: Optional[pulumi.Input[_builtins.int]] = None,
                  numa0: Optional[pulumi.Input[_builtins.str]] = None,
-                 onboot: Optional[pulumi.Input[_builtins.int]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
                  parallel0: Optional[pulumi.Input[_builtins.str]] = None,
                  protection: Optional[pulumi.Input[_builtins.int]] = None,
                  rng0: Optional[pulumi.Input[_builtins.str]] = None,
-                 scsihw: Optional[pulumi.Input[_builtins.str]] = None,
                  searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
                  serial0: Optional[pulumi.Input[_builtins.str]] = None,
-                 smbios1: Optional[pulumi.Input[_builtins.str]] = None,
-                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
                  tablet: Optional[pulumi.Input[_builtins.int]] = None,
-                 tags: Optional[pulumi.Input[_builtins.str]] = None,
                  template: Optional[pulumi.Input[_builtins.int]] = None,
                  tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
                  usb0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -85,8 +77,6 @@ class VMArgs:
             pulumi.set(__self__, "acpi", acpi)
         if affinity is not None:
             pulumi.set(__self__, "affinity", affinity)
-        if agent is not None:
-            pulumi.set(__self__, "agent", agent)
         if audio0 is not None:
             pulumi.set(__self__, "audio0", audio0)
         if autostart is not None:
@@ -95,8 +85,6 @@ class VMArgs:
             pulumi.set(__self__, "balloon", balloon)
         if bios is not None:
             pulumi.set(__self__, "bios", bios)
-        if boot is not None:
-            pulumi.set(__self__, "boot", boot)
         if cicustom is not None:
             pulumi.set(__self__, "cicustom", cicustom)
         if cipassword is not None:
@@ -143,16 +131,12 @@ class VMArgs:
             pulumi.set(__self__, "memory", memory)
         if nameserver is not None:
             pulumi.set(__self__, "nameserver", nameserver)
-        if net0 is not None:
-            pulumi.set(__self__, "net0", net0)
         if node is not None:
             pulumi.set(__self__, "node", node)
         if numa is not None:
             pulumi.set(__self__, "numa", numa)
         if numa0 is not None:
             pulumi.set(__self__, "numa0", numa0)
-        if onboot is not None:
-            pulumi.set(__self__, "onboot", onboot)
         if ostype is not None:
             pulumi.set(__self__, "ostype", ostype)
         if parallel0 is not None:
@@ -161,22 +145,14 @@ class VMArgs:
             pulumi.set(__self__, "protection", protection)
         if rng0 is not None:
             pulumi.set(__self__, "rng0", rng0)
-        if scsihw is not None:
-            pulumi.set(__self__, "scsihw", scsihw)
         if searchdomain is not None:
             pulumi.set(__self__, "searchdomain", searchdomain)
         if serial0 is not None:
             pulumi.set(__self__, "serial0", serial0)
-        if smbios1 is not None:
-            pulumi.set(__self__, "smbios1", smbios1)
-        if sockets is not None:
-            pulumi.set(__self__, "sockets", sockets)
         if sshkeys is not None:
             pulumi.set(__self__, "sshkeys", sshkeys)
         if tablet is not None:
             pulumi.set(__self__, "tablet", tablet)
-        if tags is not None:
-            pulumi.set(__self__, "tags", tags)
         if template is not None:
             pulumi.set(__self__, "template", template)
         if tpmstate0 is not None:
@@ -228,15 +204,6 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def agent(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "agent")
-
-    @agent.setter
-    def agent(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "agent", value)
-
-    @_builtins.property
-    @pulumi.getter
     def audio0(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "audio0")
 
@@ -270,15 +237,6 @@ class VMArgs:
     @bios.setter
     def bios(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "bios", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def boot(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "boot")
-
-    @boot.setter
-    def boot(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "boot", value)
 
     @_builtins.property
     @pulumi.getter
@@ -480,15 +438,6 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def net0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "net0")
-
-    @net0.setter
-    def net0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "net0", value)
-
-    @_builtins.property
-    @pulumi.getter
     def node(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "node")
 
@@ -513,15 +462,6 @@ class VMArgs:
     @numa0.setter
     def numa0(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "numa0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def onboot(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "onboot")
-
-    @onboot.setter
-    def onboot(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "onboot", value)
 
     @_builtins.property
     @pulumi.getter
@@ -561,15 +501,6 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def scsihw(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "scsihw")
-
-    @scsihw.setter
-    def scsihw(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "scsihw", value)
-
-    @_builtins.property
-    @pulumi.getter
     def searchdomain(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "searchdomain")
 
@@ -588,24 +519,6 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def smbios1(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "smbios1")
-
-    @smbios1.setter
-    def smbios1(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "smbios1", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def sockets(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "sockets")
-
-    @sockets.setter
-    def sockets(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "sockets", value)
-
-    @_builtins.property
-    @pulumi.getter
     def sshkeys(self) -> Optional[pulumi.Input[_builtins.str]]:
         return pulumi.get(self, "sshkeys")
 
@@ -621,15 +534,6 @@ class VMArgs:
     @tablet.setter
     def tablet(self, value: Optional[pulumi.Input[_builtins.int]]):
         pulumi.set(self, "tablet", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def tags(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "tags")
-
-    @tags.setter
-    def tags(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "tags", value)
 
     @_builtins.property
     @pulumi.getter
@@ -694,12 +598,10 @@ class VM(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
                  affinity: Optional[pulumi.Input[_builtins.str]] = None,
-                 agent: Optional[pulumi.Input[_builtins.str]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
                  balloon: Optional[pulumi.Input[_builtins.int]] = None,
                  bios: Optional[pulumi.Input[_builtins.str]] = None,
-                 boot: Optional[pulumi.Input[_builtins.str]] = None,
                  cicustom: Optional[pulumi.Input[_builtins.str]] = None,
                  cipassword: Optional[pulumi.Input[_builtins.str]] = None,
                  citype: Optional[pulumi.Input[_builtins.str]] = None,
@@ -724,23 +626,17 @@ class VM(pulumi.CustomResource):
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
                  name: Optional[pulumi.Input[_builtins.str]] = None,
                  nameserver: Optional[pulumi.Input[_builtins.str]] = None,
-                 net0: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  numa: Optional[pulumi.Input[_builtins.int]] = None,
                  numa0: Optional[pulumi.Input[_builtins.str]] = None,
-                 onboot: Optional[pulumi.Input[_builtins.int]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
                  parallel0: Optional[pulumi.Input[_builtins.str]] = None,
                  protection: Optional[pulumi.Input[_builtins.int]] = None,
                  rng0: Optional[pulumi.Input[_builtins.str]] = None,
-                 scsihw: Optional[pulumi.Input[_builtins.str]] = None,
                  searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
                  serial0: Optional[pulumi.Input[_builtins.str]] = None,
-                 smbios1: Optional[pulumi.Input[_builtins.str]] = None,
-                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
                  tablet: Optional[pulumi.Input[_builtins.int]] = None,
-                 tags: Optional[pulumi.Input[_builtins.str]] = None,
                  template: Optional[pulumi.Input[_builtins.int]] = None,
                  tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
                  usb0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -778,12 +674,10 @@ class VM(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
                  affinity: Optional[pulumi.Input[_builtins.str]] = None,
-                 agent: Optional[pulumi.Input[_builtins.str]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
                  balloon: Optional[pulumi.Input[_builtins.int]] = None,
                  bios: Optional[pulumi.Input[_builtins.str]] = None,
-                 boot: Optional[pulumi.Input[_builtins.str]] = None,
                  cicustom: Optional[pulumi.Input[_builtins.str]] = None,
                  cipassword: Optional[pulumi.Input[_builtins.str]] = None,
                  citype: Optional[pulumi.Input[_builtins.str]] = None,
@@ -808,23 +702,17 @@ class VM(pulumi.CustomResource):
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
                  name: Optional[pulumi.Input[_builtins.str]] = None,
                  nameserver: Optional[pulumi.Input[_builtins.str]] = None,
-                 net0: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  numa: Optional[pulumi.Input[_builtins.int]] = None,
                  numa0: Optional[pulumi.Input[_builtins.str]] = None,
-                 onboot: Optional[pulumi.Input[_builtins.int]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
                  parallel0: Optional[pulumi.Input[_builtins.str]] = None,
                  protection: Optional[pulumi.Input[_builtins.int]] = None,
                  rng0: Optional[pulumi.Input[_builtins.str]] = None,
-                 scsihw: Optional[pulumi.Input[_builtins.str]] = None,
                  searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
                  serial0: Optional[pulumi.Input[_builtins.str]] = None,
-                 smbios1: Optional[pulumi.Input[_builtins.str]] = None,
-                 sockets: Optional[pulumi.Input[_builtins.int]] = None,
                  sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
                  tablet: Optional[pulumi.Input[_builtins.int]] = None,
-                 tags: Optional[pulumi.Input[_builtins.str]] = None,
                  template: Optional[pulumi.Input[_builtins.int]] = None,
                  tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
                  usb0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -842,12 +730,10 @@ class VM(pulumi.CustomResource):
 
             __props__.__dict__["acpi"] = acpi
             __props__.__dict__["affinity"] = affinity
-            __props__.__dict__["agent"] = agent
             __props__.__dict__["audio0"] = audio0
             __props__.__dict__["autostart"] = autostart
             __props__.__dict__["balloon"] = balloon
             __props__.__dict__["bios"] = bios
-            __props__.__dict__["boot"] = boot
             __props__.__dict__["cicustom"] = cicustom
             __props__.__dict__["cipassword"] = cipassword
             __props__.__dict__["citype"] = citype
@@ -878,23 +764,17 @@ class VM(pulumi.CustomResource):
                 raise TypeError("Missing required property 'name'")
             __props__.__dict__["name"] = name
             __props__.__dict__["nameserver"] = nameserver
-            __props__.__dict__["net0"] = net0
             __props__.__dict__["node"] = node
             __props__.__dict__["numa"] = numa
             __props__.__dict__["numa0"] = numa0
-            __props__.__dict__["onboot"] = onboot
             __props__.__dict__["ostype"] = ostype
             __props__.__dict__["parallel0"] = parallel0
             __props__.__dict__["protection"] = protection
             __props__.__dict__["rng0"] = rng0
-            __props__.__dict__["scsihw"] = scsihw
             __props__.__dict__["searchdomain"] = searchdomain
             __props__.__dict__["serial0"] = serial0
-            __props__.__dict__["smbios1"] = smbios1
-            __props__.__dict__["sockets"] = sockets
             __props__.__dict__["sshkeys"] = sshkeys
             __props__.__dict__["tablet"] = tablet
-            __props__.__dict__["tags"] = tags
             __props__.__dict__["template"] = template
             __props__.__dict__["tpmstate0"] = tpmstate0
             __props__.__dict__["usb0"] = usb0
@@ -925,12 +805,10 @@ class VM(pulumi.CustomResource):
 
         __props__.__dict__["acpi"] = None
         __props__.__dict__["affinity"] = None
-        __props__.__dict__["agent"] = None
         __props__.__dict__["audio0"] = None
         __props__.__dict__["autostart"] = None
         __props__.__dict__["balloon"] = None
         __props__.__dict__["bios"] = None
-        __props__.__dict__["boot"] = None
         __props__.__dict__["cicustom"] = None
         __props__.__dict__["cipassword"] = None
         __props__.__dict__["citype"] = None
@@ -955,23 +833,17 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["memory"] = None
         __props__.__dict__["name"] = None
         __props__.__dict__["nameserver"] = None
-        __props__.__dict__["net0"] = None
         __props__.__dict__["node"] = None
         __props__.__dict__["numa"] = None
         __props__.__dict__["numa0"] = None
-        __props__.__dict__["onboot"] = None
         __props__.__dict__["ostype"] = None
         __props__.__dict__["parallel0"] = None
         __props__.__dict__["protection"] = None
         __props__.__dict__["rng0"] = None
-        __props__.__dict__["scsihw"] = None
         __props__.__dict__["searchdomain"] = None
         __props__.__dict__["serial0"] = None
-        __props__.__dict__["smbios1"] = None
-        __props__.__dict__["sockets"] = None
         __props__.__dict__["sshkeys"] = None
         __props__.__dict__["tablet"] = None
-        __props__.__dict__["tags"] = None
         __props__.__dict__["template"] = None
         __props__.__dict__["tpmstate0"] = None
         __props__.__dict__["usb0"] = None
@@ -992,11 +864,6 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def agent(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "agent")
-
-    @_builtins.property
-    @pulumi.getter
     def audio0(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "audio0")
 
@@ -1014,11 +881,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def bios(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "bios")
-
-    @_builtins.property
-    @pulumi.getter
-    def boot(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "boot")
 
     @_builtins.property
     @pulumi.getter
@@ -1142,11 +1004,6 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def net0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "net0")
-
-    @_builtins.property
-    @pulumi.getter
     def node(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "node")
 
@@ -1159,11 +1016,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def numa0(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "numa0")
-
-    @_builtins.property
-    @pulumi.getter
-    def onboot(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "onboot")
 
     @_builtins.property
     @pulumi.getter
@@ -1187,11 +1039,6 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def scsihw(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "scsihw")
-
-    @_builtins.property
-    @pulumi.getter
     def searchdomain(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "searchdomain")
 
@@ -1202,16 +1049,6 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def smbios1(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "smbios1")
-
-    @_builtins.property
-    @pulumi.getter
-    def sockets(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "sockets")
-
-    @_builtins.property
-    @pulumi.getter
     def sshkeys(self) -> pulumi.Output[Optional[_builtins.str]]:
         return pulumi.get(self, "sshkeys")
 
@@ -1219,11 +1056,6 @@ class VM(pulumi.CustomResource):
     @pulumi.getter
     def tablet(self) -> pulumi.Output[Optional[_builtins.int]]:
         return pulumi.get(self, "tablet")
-
-    @_builtins.property
-    @pulumi.getter
-    def tags(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "tags")
 
     @_builtins.property
     @pulumi.getter
