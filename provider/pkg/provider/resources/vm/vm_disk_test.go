@@ -16,12 +16,17 @@ limitations under the License.
 package vm_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 const (
@@ -38,38 +43,38 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 	// Test cases with various disk ordering scenarios
 	testCases := []struct {
 		name                string
-		inputDisks          []*vm.Disk
+		inputDisks          []*vmResource.Disk
 		expectedDiskOrder   []string
 		description         string
 		shouldPreserveOrder bool
 	}{
 		{
 			name: "Mixed interface types preserve order",
-			inputDisks: []*vm.Disk{
+			inputDisks: []*vmResource.Disk{
 				{
 					Interface: "virtio0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 32,
 				},
 				{
 					Interface: "scsi1",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 64,
 				},
 				{
 					Interface: "ide0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 8,
 				},
 				{
 					Interface: "sata2",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 128,
@@ -81,31 +86,31 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		},
 		{
 			name: "Production VM layout",
-			inputDisks: []*vm.Disk{
+			inputDisks: []*vmResource.Disk{
 				{
 					Interface: "scsi0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: ssdStorage,
 					},
 					Size: 32,
 				}, // Boot disk
 				{
 					Interface: "scsi1",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: ssdStorage,
 					},
 					Size: 100,
 				}, // Data disk
 				{
 					Interface: "scsi2",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: hddStorage,
 					},
 					Size: 500,
 				}, // Backup storage
 				{
 					Interface: "ide2",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: "none",
 					},
 					Size: 0,
@@ -117,31 +122,31 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		},
 		{
 			name: "Complex numbering with gaps",
-			inputDisks: []*vm.Disk{
+			inputDisks: []*vmResource.Disk{
 				{
 					Interface: "scsi0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 20,
 				},
 				{
 					Interface: "scsi3",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 40,
 				}, // Gap at scsi1, scsi2
 				{
 					Interface: "virtio1",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 30,
 				},
 				{
 					Interface: "scsi1",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 25,
@@ -153,10 +158,10 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 		},
 		{
 			name: "Single disk",
-			inputDisks: []*vm.Disk{
+			inputDisks: []*vmResource.Disk{
 				{
 					Interface: "virtio0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 64,
@@ -175,7 +180,7 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 			// Setup VM inputs as would be passed to Create
 			name := "test-vm-" + tc.name
 			vmid := 100
-			inputs := vm.Inputs{
+			inputs := vmResource.Inputs{
 				Name:  &name,
 				VMID:  &vmid,
 				Disks: tc.inputDisks,
@@ -255,31 +260,31 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 		t.Parallel()
 
 		// Create complex disk ordering
-		orderedDisks := []*vm.Disk{
+		orderedDisks := []*vmResource.Disk{
 			{
 				Interface: "virtio0",
-				DiskBase: vm.DiskBase{
+				DiskBase: vmResource.DiskBase{
 					Storage: ssdStorage,
 				},
 				Size: 32,
 			},
 			{
 				Interface: "scsi1",
-				DiskBase: vm.DiskBase{
+				DiskBase: vmResource.DiskBase{
 					Storage: lvmStorage,
 				},
 				Size: 64,
 			},
 			{
 				Interface: "ide2",
-				DiskBase: vm.DiskBase{
+				DiskBase: vmResource.DiskBase{
 					Storage: "none",
 				},
 				Size: 0,
 			},
 			{
 				Interface: "sata0",
-				DiskBase: vm.DiskBase{
+				DiskBase: vmResource.DiskBase{
 					Storage: hddStorage,
 				},
 				Size: 128,
@@ -288,7 +293,7 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 
 		name := "build-options-test-vm"
 		vmid := 200
-		inputs := vm.Inputs{
+		inputs := vmResource.Inputs{
 			Name:  &name,
 			VMID:  &vmid,
 			Disks: orderedDisks,
@@ -338,29 +343,29 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 
 		scenarios := []struct {
 			name     string
-			disks    []*vm.Disk
+			disks    []*vmResource.Disk
 			expected []string
 		}{
 			{
 				name: "reverse_numerical_order",
-				disks: []*vm.Disk{
+				disks: []*vmResource.Disk{
 					{
 						Interface: "scsi3",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 30,
 					},
 					{
 						Interface: "scsi1",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 20,
 					},
 					{
 						Interface: "scsi0",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 10,
@@ -370,31 +375,31 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 			},
 			{
 				name: "mixed_types_non_alphabetical",
-				disks: []*vm.Disk{
+				disks: []*vmResource.Disk{
 					{
 						Interface: "virtio5",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 50,
 					},
 					{
 						Interface: "ide0",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 5,
 					},
 					{
 						Interface: "scsi2",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 25,
 					},
 					{
 						Interface: "sata10",
-						DiskBase: vm.DiskBase{
+						DiskBase: vmResource.DiskBase{
 							Storage: lvmStorage,
 						},
 						Size: 100,
@@ -407,7 +412,7 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 		for _, scenario := range scenarios {
 			t.Run(scenario.name, func(t *testing.T) {
 				vmid := 300
-				inputs := vm.Inputs{
+				inputs := vmResource.Inputs{
 					VMID:  &vmid,
 					Disks: scenario.disks,
 				}
@@ -435,31 +440,31 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 
 	testCases := []struct {
 		name              string
-		currentInputDisks []*vm.Disk
+		currentInputDisks []*vmResource.Disk
 		vmConfigDisks     map[string]string // Interface -> Config
 		expectedDiskOrder []string
 		description       string
 	}{
 		{
 			name: "Preserve existing disk order during read",
-			currentInputDisks: []*vm.Disk{
+			currentInputDisks: []*vmResource.Disk{
 				{
 					Interface: "virtio0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 32,
 				},
 				{
 					Interface: "scsi1",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 64,
 				},
 				{
 					Interface: "ide2",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 8,
@@ -475,10 +480,10 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 		},
 		{
 			name: "Handle new disks added to VM config",
-			currentInputDisks: []*vm.Disk{
+			currentInputDisks: []*vmResource.Disk{
 				{
 					Interface: "scsi0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 32,
@@ -493,24 +498,24 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 		},
 		{
 			name: "Handle missing disks from VM config",
-			currentInputDisks: []*vm.Disk{
+			currentInputDisks: []*vmResource.Disk{
 				{
 					Interface: "scsi0",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 32,
 				},
 				{
 					Interface: "scsi1",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 64,
 				},
 				{
 					Interface: "scsi2",
-					DiskBase: vm.DiskBase{
+					DiskBase: vmResource.DiskBase{
 						Storage: lvmStorage,
 					},
 					Size: 128,
@@ -534,12 +539,12 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 			mockVM := createMockVM(tc.vmConfigDisks)
 
 			// Create current input with the ordered disks
-			currentInput := vm.Inputs{
+			currentInput := vmResource.Inputs{
 				Disks: tc.currentInputDisks,
 			}
 
 			// Call ConvertVMConfigToInputs with current input to preserve order
-			result, err := vm.ConvertVMConfigToInputs(mockVM, currentInput)
+			result, err := vmResource.ConvertVMConfigToInputs(mockVM, currentInput)
 			require.NoError(t, err)
 
 			t.Logf("Test case: %s", tc.description)
@@ -616,7 +621,7 @@ func createMockVM(diskConfigs map[string]string) *api.VirtualMachine {
 }
 
 // getDiskInterfaces extracts interface names from a slice of disks
-func getDiskInterfaces(disks []*vm.Disk) []string {
+func getDiskInterfaces(disks []*vmResource.Disk) []string {
 	interfaces := make([]string, len(disks))
 	for i, disk := range disks {
 		interfaces[i] = disk.Interface
@@ -633,4 +638,164 @@ func getMapKeys(m map[string]string) []string {
 	return keys
 }
 
-// Note: isDiskInterface function is defined in vm_create_test.go
+func TestVMDiffDisksChange(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		inputDisks    []*vmResource.Disk
+		stateDisks    []*vmResource.Disk
+		expectChange  bool
+		expectDiffKey string
+	}{
+		{
+			name: "disk size changed",
+			inputDisks: []*vmResource.Disk{
+				{
+					Size:      50,
+					Interface: "scsi0",
+				},
+			},
+			stateDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			expectChange:  true,
+			expectDiffKey: "disks",
+		},
+		{
+			name: "disk interface changed",
+			inputDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi1",
+				},
+			},
+			stateDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			expectChange:  true,
+			expectDiffKey: "disks",
+		},
+		{
+			name: "disk storage changed",
+			inputDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			stateDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			expectChange:  false, // Same size and interface
+			expectDiffKey: "",
+		},
+		{
+			name: "disk added",
+			inputDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+				{
+					Size:      50,
+					Interface: "scsi1",
+				},
+			},
+			stateDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			expectChange:  true,
+			expectDiffKey: "disks",
+		},
+		{
+			name: "disk removed",
+			inputDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			stateDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+				{
+					Size:      50,
+					Interface: "scsi1",
+				},
+			},
+			expectChange:  true,
+			expectDiffKey: "disks",
+		},
+		{
+			name: "no disk changes",
+			inputDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			stateDisks: []*vmResource.Disk{
+				{
+					Size:      40,
+					Interface: "scsi0",
+				},
+			},
+			expectChange:  false,
+			expectDiffKey: "",
+		},
+		{
+			name:          "both empty",
+			inputDisks:    []*vmResource.Disk{},
+			stateDisks:    []*vmResource.Disk{},
+			expectChange:  false,
+			expectDiffKey: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			vmInstance := &vmResource.VM{}
+			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+				ID: "100",
+				Inputs: vmResource.Inputs{
+					Name:  testutils.StrPtr("test-vm"),
+					Disks: tt.inputDisks,
+				},
+				State: vmResource.Outputs{
+					Inputs: vmResource.Inputs{
+						Name:  testutils.StrPtr("test-vm"),
+						Disks: tt.stateDisks,
+					},
+				},
+			}
+
+			resp, err := vmInstance.Diff(context.Background(), req)
+			require.NoError(t, err)
+
+			if tt.expectChange {
+				assert.True(t, resp.HasChanges, "Expected changes to be detected")
+				assert.Contains(t, resp.DetailedDiff, tt.expectDiffKey, "Expected diff key to be present")
+				assert.Equal(t, p.Update, resp.DetailedDiff[tt.expectDiffKey].Kind)
+			} else {
+				assert.False(t, resp.HasChanges, "Expected no changes")
+			}
+		})
+	}
+}

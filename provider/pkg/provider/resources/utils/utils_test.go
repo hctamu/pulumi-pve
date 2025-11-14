@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resources_test
+package utils_test
 
 import (
 	"context"
@@ -21,7 +21,8 @@ import (
 	"testing"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
@@ -89,7 +90,7 @@ func TestGetSortedMapKeys(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := resources.GetSortedMapKeys(tt.input)
+			result := utils.GetSortedMapKeys(tt.input)
 			assert.Equal(t, tt.expected, result, "Keys should be sorted correctly")
 		})
 	}
@@ -107,7 +108,7 @@ func TestGetSortedMapKeys_IntKeys(t *testing.T) {
 	}
 	expected := []int{1, 2, 5, 10}
 
-	result := resources.GetSortedMapKeys(input)
+	result := utils.GetSortedMapKeys(input)
 	assert.Equal(t, expected, result, "Integer keys should be sorted numerically")
 }
 
@@ -124,7 +125,7 @@ func TestGetSortedMapKeys_Consistency(t *testing.T) {
 
 	var previousResult []string
 	for i := 0; i < 5; i++ {
-		result := resources.GetSortedMapKeys(input)
+		result := utils.GetSortedMapKeys(input)
 
 		if i == 0 {
 			previousResult = result
@@ -150,7 +151,7 @@ func TestSliceToString(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := resources.SliceToString(tt.in)
+			got := utils.SliceToString(tt.in)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -172,7 +173,7 @@ func TestStringToSlice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := resources.StringToSlice(tt.in)
+			got := utils.StringToSlice(tt.in)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -181,8 +182,8 @@ func TestStringToSlice(t *testing.T) {
 func TestSliceStringRoundTrip(t *testing.T) {
 	t.Parallel()
 	in := []string{"delta", "alpha", "charlie", "bravo"}
-	s := resources.SliceToString(in)
-	back := resources.StringToSlice(s)
+	s := utils.SliceToString(in)
+	back := utils.StringToSlice(s)
 	assert.ElementsMatch(t, []string{"alpha", "bravo", "charlie", "delta"}, back)
 	// Ensure sorted order
 	assert.Equal(t, []string{"alpha", "bravo", "charlie", "delta"}, back)
@@ -195,26 +196,26 @@ func TestMapToStringSlice(t *testing.T) {
 		"alpha": api.IntOrBool(false),
 		"gamma": api.IntOrBool(true),
 	}
-	got := resources.MapToStringSlice(m)
+	got := utils.MapToStringSlice(m)
 	assert.Equal(t, []string{"alpha", "beta", "gamma"}, got)
 }
 
 func TestIsNotFound(t *testing.T) {
 	t.Parallel()
-	assert.True(t, resources.IsNotFound(errors.New("resource 'x' does not exist")))
-	assert.False(t, resources.IsNotFound(errors.New("some other error")))
+	assert.True(t, utils.IsNotFound(errors.New("resource 'x' does not exist")))
+	assert.False(t, utils.IsNotFound(errors.New("some other error")))
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestDeleteResourceSuccess(t *testing.T) {
-	mockServer, cleanup := resources.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
 		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.OK()),
 	).Enable()
 
-	_, err := resources.DeleteResource(resources.DeletedResource{
+	_, err := utils.DeleteResource(utils.DeletedResource{
 		Ctx: context.Background(), ResourceID: "testuser", URL: "/access/users/testuser", ResourceType: "user",
 	})
 	require.NoError(t, err)
@@ -226,7 +227,7 @@ func TestDeleteResourceClientError(t *testing.T) {
 	defer func() { client.GetProxmoxClientFn = original }()
 	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
 
-	_, err := resources.DeleteResource(resources.DeletedResource{
+	_, err := utils.DeleteResource(utils.DeletedResource{
 		Ctx: context.Background(), ResourceID: "x", URL: "/access/users/x", ResourceType: "user",
 	})
 	require.Error(t, err)
@@ -235,14 +236,14 @@ func TestDeleteResourceClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestDeleteResourceDeleteError(t *testing.T) {
-	mockServer, cleanup := resources.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
 		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.InternalServerError()),
 	).Enable()
 
-	_, err := resources.DeleteResource(resources.DeletedResource{
+	_, err := utils.DeleteResource(utils.DeletedResource{
 		Ctx: context.Background(), ResourceID: "testuser", URL: "/access/users/testuser", ResourceType: "user",
 	})
 	require.Error(t, err)

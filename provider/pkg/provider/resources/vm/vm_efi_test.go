@@ -23,8 +23,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -32,186 +32,8 @@ import (
 	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
 
-	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
-
-// Helper function to create a pointer to a string
-func strPtr(s string) *string {
-	return &s
-}
-
-// Helper function to create a pointer to an int
-func intPtr(i int) *int {
-	return &i
-}
-
-// Helper function to create a pointer to a bool
-func boolPtr(b bool) *bool {
-	return &b
-}
-
-func TestVMDiffDisksChange(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name          string
-		inputDisks    []*vmResource.Disk
-		stateDisks    []*vmResource.Disk
-		expectChange  bool
-		expectDiffKey string
-	}{
-		{
-			name: "disk size changed",
-			inputDisks: []*vmResource.Disk{
-				{
-					Size:      50,
-					Interface: "scsi0",
-				},
-			},
-			stateDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			expectChange:  true,
-			expectDiffKey: "disks",
-		},
-		{
-			name: "disk interface changed",
-			inputDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi1",
-				},
-			},
-			stateDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			expectChange:  true,
-			expectDiffKey: "disks",
-		},
-		{
-			name: "disk storage changed",
-			inputDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			stateDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			expectChange:  false, // Same size and interface
-			expectDiffKey: "",
-		},
-		{
-			name: "disk added",
-			inputDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-				{
-					Size:      50,
-					Interface: "scsi1",
-				},
-			},
-			stateDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			expectChange:  true,
-			expectDiffKey: "disks",
-		},
-		{
-			name: "disk removed",
-			inputDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			stateDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-				{
-					Size:      50,
-					Interface: "scsi1",
-				},
-			},
-			expectChange:  true,
-			expectDiffKey: "disks",
-		},
-		{
-			name: "no disk changes",
-			inputDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			stateDisks: []*vmResource.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			expectChange:  false,
-			expectDiffKey: "",
-		},
-		{
-			name:          "both empty",
-			inputDisks:    []*vmResource.Disk{},
-			stateDisks:    []*vmResource.Disk{},
-			expectChange:  false,
-			expectDiffKey: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			vm := &vmResource.VM{}
-			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
-				ID: "100",
-				Inputs: vmResource.Inputs{
-					Name:  strPtr("test-vm"),
-					Disks: tt.inputDisks,
-				},
-				State: vmResource.Outputs{
-					Inputs: vmResource.Inputs{
-						Name:  strPtr("test-vm"),
-						Disks: tt.stateDisks,
-					},
-				},
-			}
-
-			resp, err := vm.Diff(context.Background(), req)
-			require.NoError(t, err)
-
-			if tt.expectChange {
-				assert.True(t, resp.HasChanges, "Expected changes to be detected")
-				assert.Contains(t, resp.DetailedDiff, tt.expectDiffKey, "Expected diff key to be present")
-				assert.Equal(t, p.Update, resp.DetailedDiff[tt.expectDiffKey].Kind)
-			} else {
-				assert.False(t, resp.HasChanges, "Expected no changes")
-			}
-		})
-	}
-}
 
 func TestVMDiffEfiDiskChange(t *testing.T) {
 	t.Parallel()
@@ -307,11 +129,11 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			name: "PreEnrolledKeys changed from true to false",
 			inputEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(false),
+				PreEnrolledKeys: testutils.BoolPtr(false),
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(true),
+				PreEnrolledKeys: testutils.BoolPtr(true),
 			},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
@@ -321,7 +143,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			name: "PreEnrolledKeys added",
 			inputEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(true),
+				PreEnrolledKeys: testutils.BoolPtr(true),
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType: vmResource.EfiType4M,
@@ -337,7 +159,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(true),
+				PreEnrolledKeys: testutils.BoolPtr(true),
 			},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
@@ -347,11 +169,11 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			name: "PreEnrolledKeys unchanged",
 			inputEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(true),
+				PreEnrolledKeys: testutils.BoolPtr(true),
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(true),
+				PreEnrolledKeys: testutils.BoolPtr(true),
 			},
 			expectChange: false,
 			description:  "Same PreEnrolledKeys should not trigger diff",
@@ -385,13 +207,13 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
 				ID: "100",
 				Inputs: vmResource.Inputs{
-					Name:    strPtr("test-vm"),
+					Name:    testutils.StrPtr("test-vm"),
 					EfiDisk: tt.inputEfiDisk,
 					Disks:   []*vmResource.Disk{}, // Empty disks to focus on EFI
 				},
 				State: vmResource.Outputs{
 					Inputs: vmResource.Inputs{
-						Name:    strPtr("test-vm"),
+						Name:    testutils.StrPtr("test-vm"),
 						EfiDisk: tt.stateEfiDisk,
 						Disks:   []*vmResource.Disk{},
 					},
@@ -420,221 +242,9 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 	}
 }
 
-func TestVMDiffComputedFields(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name              string
-		inputVMID         *int
-		stateVMID         *int
-		inputNode         *string
-		stateNode         *string
-		expectChange      bool
-		expectReplace     bool
-		expectedDiffField string
-	}{
-		{
-			name:         "vmId nil in input, present in state (computed)",
-			inputVMID:    nil,
-			stateVMID:    intPtr(100),
-			expectChange: false, // Computed field, no change expected
-		},
-		{
-			name:              "vmId changed - should trigger replace",
-			inputVMID:         intPtr(200),
-			stateVMID:         intPtr(100),
-			expectChange:      true,
-			expectReplace:     true,
-			expectedDiffField: "vmId",
-		},
-		{
-			name:         "vmId unchanged",
-			inputVMID:    intPtr(100),
-			stateVMID:    intPtr(100),
-			expectChange: false,
-		},
-		{
-			name:         "node nil in input, present in state (computed)",
-			inputNode:    nil,
-			stateNode:    strPtr("pve-node1"),
-			expectChange: false, // Computed field, no change expected
-		},
-		{
-			name:              "node changed",
-			inputNode:         strPtr("pve-node2"),
-			stateNode:         strPtr("pve-node1"),
-			expectChange:      true,
-			expectedDiffField: "node",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			vm := &vmResource.VM{}
-			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
-				ID: "100",
-				Inputs: vmResource.Inputs{
-					Name:  strPtr("test-vm"),
-					VMID:  tt.inputVMID,
-					Node:  tt.inputNode,
-					Disks: []*vmResource.Disk{},
-				},
-				State: vmResource.Outputs{
-					Inputs: vmResource.Inputs{
-						Name:  strPtr("test-vm"),
-						VMID:  tt.stateVMID,
-						Node:  tt.stateNode,
-						Disks: []*vmResource.Disk{},
-					},
-				},
-			}
-
-			resp, err := vm.Diff(context.Background(), req)
-			require.NoError(t, err)
-
-			if tt.expectChange {
-				assert.True(t, resp.HasChanges, "Expected changes to be detected")
-				if tt.expectReplace {
-					assert.Equal(t, p.UpdateReplace, resp.DetailedDiff[tt.expectedDiffField].Kind)
-					assert.True(t, resp.DeleteBeforeReplace)
-				} else if tt.expectedDiffField != "" {
-					assert.Equal(t, p.Update, resp.DetailedDiff[tt.expectedDiffField].Kind)
-				}
-			} else {
-				assert.False(t, resp.HasChanges, "Expected no changes")
-			}
-		})
-	}
-}
-
-func TestVMDiffPointerFields(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name         string
-		inputMemory  *int
-		stateMemory  *int
-		inputCores   *int
-		stateCores   *int
-		expectChange bool
-	}{
-		{
-			name:         "memory changed",
-			inputMemory:  intPtr(4096),
-			stateMemory:  intPtr(2048),
-			expectChange: true,
-		},
-		{
-			name:         "memory unchanged",
-			inputMemory:  intPtr(2048),
-			stateMemory:  intPtr(2048),
-			expectChange: false,
-		},
-		{
-			name:         "memory cleared (set to nil)",
-			inputMemory:  nil,
-			stateMemory:  intPtr(2048),
-			expectChange: true,
-		},
-		{
-			name:         "memory set from nil",
-			inputMemory:  intPtr(2048),
-			stateMemory:  nil,
-			expectChange: true,
-		},
-		{
-			name:         "cores changed",
-			inputCores:   intPtr(4),
-			stateCores:   intPtr(2),
-			expectChange: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			vm := &vmResource.VM{}
-			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
-				ID: "100",
-				Inputs: vmResource.Inputs{
-					Name:   strPtr("test-vm"),
-					Memory: tt.inputMemory,
-					Cores:  tt.inputCores,
-					Disks:  []*vmResource.Disk{},
-				},
-				State: vmResource.Outputs{
-					Inputs: vmResource.Inputs{
-						Name:   strPtr("test-vm"),
-						Memory: tt.stateMemory,
-						Cores:  tt.stateCores,
-						Disks:  []*vmResource.Disk{},
-					},
-				},
-			}
-
-			resp, err := vm.Diff(context.Background(), req)
-			require.NoError(t, err)
-
-			assert.Equal(t, tt.expectChange, resp.HasChanges)
-		})
-	}
-}
-
-func TestVMDiffMultipleChanges(t *testing.T) {
-	t.Parallel()
-
-	vm := &vmResource.VM{}
-	req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
-		ID: "100",
-		Inputs: vmResource.Inputs{
-			Name:   strPtr("new-name"),
-			Memory: intPtr(4096),
-			Cores:  intPtr(4),
-			Disks: []*vmResource.Disk{
-				{Size: 50, Interface: "scsi0"},
-			},
-			EfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
-		},
-		State: vmResource.Outputs{
-			Inputs: vmResource.Inputs{
-				Name:   strPtr("old-name"),
-				Memory: intPtr(2048),
-				Cores:  intPtr(2),
-				Disks: []*vmResource.Disk{
-					{Size: 40, Interface: "scsi0"},
-				},
-				EfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
-			},
-		},
-	}
-
-	resp, err := vm.Diff(context.Background(), req)
-	require.NoError(t, err)
-
-	assert.True(t, resp.HasChanges)
-	assert.Contains(t, resp.DetailedDiff, "name")
-	assert.Contains(t, resp.DetailedDiff, "memory")
-	assert.Contains(t, resp.DetailedDiff, "cores")
-	assert.Contains(t, resp.DetailedDiff, "disks")
-	// EfiDisk now produces granular diffs
-	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
-
-	// All should be updates, not replacements
-	for key, diff := range resp.DetailedDiff {
-		if key == "vmId" {
-			assert.Equal(t, p.UpdateReplace, diff.Kind)
-		} else {
-			assert.Equal(t, p.Update, diff.Kind)
-		}
-	}
-}
-
 //nolint:paralleltest // uses global env + client seam
 func TestVMUpdateEfiDiskSuccess(t *testing.T) {
-	mock, cleanup := resources.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	vmID := 100
@@ -695,16 +305,16 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: intPtr(vmID),
-			Name: strPtr("test-vm"),
+			VMID: testutils.IntPtr(vmID),
+			Name: testutils.StrPtr("test-vm"),
 			EfiDisk: &vmResource.EfiDisk{
 				EfiType: vmResource.EfiType4M, // Changed from 2m
 			},
 		},
 		State: vmResource.Outputs{
 			Inputs: vmResource.Inputs{
-				VMID: intPtr(vmID),
-				Name: strPtr("test-vm"),
+				VMID: testutils.IntPtr(vmID),
+				Name: testutils.StrPtr("test-vm"),
 				Node: &nodeName,
 				EfiDisk: &vmResource.EfiDisk{
 					EfiType: vmResource.EfiType2M,
@@ -716,7 +326,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 	// Set storage and FileID on diskBase (embedded struct)
 	req.Inputs.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.Storage = "local-lvm"
-	req.State.EfiDisk.FileID = strPtr("vm-100-disk-0")
+	req.State.EfiDisk.FileID = testutils.StrPtr("vm-100-disk-0")
 
 	resp, err := vm.Update(context.Background(), req)
 	require.NoError(t, err)
@@ -728,7 +338,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 
 //nolint:paralleltest // uses global env + client seam
 func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
-	mock, cleanup := resources.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	vmID := 100
@@ -785,17 +395,17 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: intPtr(vmID),
-			Name: strPtr("test-vm"),
+			VMID: testutils.IntPtr(vmID),
+			Name: testutils.StrPtr("test-vm"),
 			EfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(true), // Changed from nil
+				PreEnrolledKeys: testutils.BoolPtr(true), // Changed from nil
 			},
 		},
 		State: vmResource.Outputs{
 			Inputs: vmResource.Inputs{
-				VMID: intPtr(vmID),
-				Name: strPtr("test-vm"),
+				VMID: testutils.IntPtr(vmID),
+				Name: testutils.StrPtr("test-vm"),
 				Node: &nodeName,
 				EfiDisk: &vmResource.EfiDisk{
 					EfiType: vmResource.EfiType4M,
@@ -807,7 +417,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 	// Set storage and FileID on diskBase
 	req.Inputs.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.Storage = "local-lvm"
-	req.State.EfiDisk.FileID = strPtr("vm-100-disk-0")
+	req.State.EfiDisk.FileID = testutils.StrPtr("vm-100-disk-0")
 
 	resp, err := vm.Update(context.Background(), req)
 	require.NoError(t, err)
@@ -817,7 +427,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 
 //nolint:paralleltest // uses global env + client seam
 func TestVMReadWithEfiDisk(t *testing.T) {
-	mock, cleanup := resources.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	vmID := 100
@@ -859,7 +469,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: intPtr(vmID),
+			VMID: testutils.IntPtr(vmID),
 			Node: &nodeName,
 		},
 	}
@@ -878,7 +488,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 
 //nolint:paralleltest // uses global env + client seam
 func TestVMReadWithoutEfiDisk(t *testing.T) {
-	mock, cleanup := resources.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	vmID := 100
@@ -919,7 +529,7 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: intPtr(vmID),
+			VMID: testutils.IntPtr(vmID),
 			Node: &nodeName,
 		},
 	}
@@ -932,7 +542,7 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 
 //nolint:paralleltest // uses global env + client seam
 func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
-	mock, cleanup := resources.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	nodeName := "pve-node"
@@ -1079,7 +689,7 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "cloned-vm",
 		Inputs: vmResource.Inputs{
-			Name: strPtr("cloned-vm"),
+			Name: testutils.StrPtr("cloned-vm"),
 			Node: &nodeName,
 			Clone: &vmResource.Clone{
 				VMID:    sourceVMID,
@@ -1104,7 +714,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 	sourceVMID := 999
 	newVMID := 100
 
-	mock, _ := resources.NewAPIMock(t)
+	mock, _ := testutils.NewAPIMock(t)
 
 	// Mock cluster status
 	clusterStatusJSON := `{"data":[{"type":"cluster","quorate":1,"nodes":1},{"type":"node","name":"pve-node","online":1}]}`
@@ -1224,7 +834,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "cloned-vm-with-efi",
 		Inputs: vmResource.Inputs{
-			Name: strPtr("cloned-vm"),
+			Name: testutils.StrPtr("cloned-vm"),
 			Node: &nodeName,
 			Clone: &vmResource.Clone{
 				VMID:    sourceVMID,
@@ -1252,7 +862,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	nodeName := "pve-node"
 	newVMID := 100
 
-	mock, _ := resources.NewAPIMock(t)
+	mock, _ := testutils.NewAPIMock(t)
 
 	// Mock cluster status
 	clusterStatusJSON := `{"data":[{"type":"cluster","quorate":1,"nodes":1},{"type":"node","name":"pve-node","online":1}]}`
@@ -1331,14 +941,14 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "test-vm-with-efi",
 		Inputs: vmResource.Inputs{
-			Name:   strPtr("test-vm-with-efi"),
+			Name:   testutils.StrPtr("test-vm-with-efi"),
 			Node:   &nodeName,
-			Cores:  intPtr(2),
-			Memory: intPtr(2048),
+			Cores:  testutils.IntPtr(2),
+			Memory: testutils.IntPtr(2048),
 			// No Clone settings - creating a new VM from scratch
 			EfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: boolPtr(false),
+				PreEnrolledKeys: testutils.BoolPtr(false),
 			},
 		},
 	}

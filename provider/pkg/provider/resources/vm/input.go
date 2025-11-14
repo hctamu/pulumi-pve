@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	api "github.com/luthermonson/go-proxmox"
 	"golang.org/x/exp/slices"
 )
@@ -535,7 +535,7 @@ func (efi *EfiDisk) ParseEfiDiskConfig(diskConfig string) error {
 
 // parseDiskSize parses the disk size string and returns the size in gigabytes.
 func parseDiskSize(value string) (size int, err error) {
-	if resources.EndsWithLetter(value) {
+	if utils.EndsWithLetter(value) {
 		unit := value[len(value)-1]
 		size, err = strconv.Atoi(value[:len(value)-1])
 		if err != nil {
@@ -563,7 +563,7 @@ func compareAndAddOption[T comparable](
 	options *[]api.VirtualMachineOption,
 	newValue, currentValue *T,
 ) {
-	if resources.DifferPtr(newValue, currentValue) {
+	if utils.DifferPtr(newValue, currentValue) {
 		// Only add option if newValue is not nil - we don't try to "clear" fields
 		// by sending nil or empty values as this can cause validation errors
 		if newValue != nil {

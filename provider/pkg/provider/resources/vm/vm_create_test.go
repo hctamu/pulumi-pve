@@ -37,8 +37,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -260,7 +260,7 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 				Interface: "virtio1",
 				DiskBase: vm.DiskBase{
 					Storage: "local-lvm",
-					FileID:  resources.String("vm-100-disk-1"),
+					FileID:  testutils.StrPtr("vm-100-disk-1"),
 				},
 				Size: 64,
 			},
