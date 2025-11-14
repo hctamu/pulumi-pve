@@ -129,6 +129,28 @@
         "size",
         "storage"
       ]
+    },
+    "pve:vm:EfiDisk": {
+      "description": "EFI disk configuration for the virtual machine.",
+      "properties": {
+        "efitype": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "preEnrolledKeys": {
+          "type": "boolean"
+        },
+        "storage": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "efitype",
+        "storage"
+      ]
     }
   },
   "provider": {
@@ -448,41 +470,52 @@
     "pve:user:User": {
       "properties": {
         "comment": {
-          "type": "string"
+          "type": "string",
+          "description": "An optional comment for the user."
         },
         "email": {
-          "type": "string"
+          "type": "string",
+          "description": "An optional email address for the user."
         },
         "enable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the user is enabled. Defaults to true."
         },
         "expire": {
-          "type": "integer"
+          "type": "integer",
+          "description": "The expiration time for the user as a Unix timestamp."
         },
         "firstname": {
-          "type": "string"
+          "type": "string",
+          "description": "The first name of the user."
         },
         "groups": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "A list of groups the user belongs to."
         },
         "keys": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "A list of SSH keys associated with the user."
         },
         "lastname": {
-          "type": "string"
+          "type": "string",
+          "description": "The last name of the user."
         },
         "password": {
           "type": "string",
+          "description": "The password for the user. This field is treated as a secret.",
+          "secret": true,
           "replaceOnChanges": true
         },
         "userid": {
           "type": "string",
+          "description": "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').",
           "replaceOnChanges": true
         }
       },
@@ -492,41 +525,52 @@
       ],
       "inputProperties": {
         "comment": {
-          "type": "string"
+          "type": "string",
+          "description": "An optional comment for the user."
         },
         "email": {
-          "type": "string"
+          "type": "string",
+          "description": "An optional email address for the user."
         },
         "enable": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether the user is enabled. Defaults to true."
         },
         "expire": {
-          "type": "integer"
+          "type": "integer",
+          "description": "The expiration time for the user as a Unix timestamp."
         },
         "firstname": {
-          "type": "string"
+          "type": "string",
+          "description": "The first name of the user."
         },
         "groups": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "A list of groups the user belongs to."
         },
         "keys": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "A list of SSH keys associated with the user."
         },
         "lastname": {
-          "type": "string"
+          "type": "string",
+          "description": "The last name of the user."
         },
         "password": {
           "type": "string",
+          "description": "The password for the user. This field is treated as a secret.",
+          "secret": true,
           "replaceOnChanges": true
         },
         "userid": {
           "type": "string",
+          "description": "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').",
           "replaceOnChanges": true
         }
       },
@@ -594,8 +638,8 @@
             "$ref": "#/types/pve:vm:Disk"
           }
         },
-        "efidisk0": {
-          "type": "string"
+        "efidisk": {
+          "$ref": "#/types/pve:vm:EfiDisk"
         },
         "hookscript": {
           "type": "string"
@@ -746,8 +790,8 @@
             "$ref": "#/types/pve:vm:Disk"
           }
         },
-        "efidisk0": {
-          "type": "string"
+        "efidisk": {
+          "$ref": "#/types/pve:vm:EfiDisk"
         },
         "hookscript": {
           "type": "string"

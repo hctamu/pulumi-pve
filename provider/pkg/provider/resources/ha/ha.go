@@ -34,6 +34,7 @@ var (
 	_ = (infer.CustomDelete[Outputs])((*Ha)(nil))
 	_ = (infer.CustomUpdate[Inputs, Outputs])((*Ha)(nil))
 	_ = (infer.CustomRead[Inputs, Outputs])((*Ha)(nil))
+	_ = infer.Annotated((*Ha)(nil))
 )
 
 // Ha represents a Proxmox HA resource

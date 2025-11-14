@@ -19,33 +19,23 @@ package vm
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"strings"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	api "github.com/luthermonson/go-proxmox"
 	"golang.org/x/exp/slices"
 )
 
-// Disk represents a virtual machine disk configuration.
-type Disk struct {
-	Storage   string `pulumi:"storage"`
-	Size      int    `pulumi:"size"`      // Size in Gigabytes.
-	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
-	FileID    string `pulumi:"filename,optional"`
-}
+const (
+	efiDiskID = "efidisk0"
 
-// ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
-func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
-	fullDiskPath := fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
-	if disk.FileID != "" {
-		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, disk.FileID)
-	}
+	// Efi disk size is constant because it is ignored by the API anyway
+	efiDiskSize = "1"
 
-	diskKey = disk.Interface
-	diskConfig = fmt.Sprintf("file=%v,size=%v", fullDiskPath, disk.Size)
-	return
-}
+	efiDiskInputName = "efidisk"
+)
 
 // Inputs represents the input configuration for a virtual machine.
 type Inputs struct {
@@ -67,11 +57,13 @@ type Inputs struct {
 	// Boot   *string `pulumi:"boot,optional"`
 	// OnBoot *int    `pulumi:"onboot,optional"`
 
-	OSType   *string `pulumi:"ostype,optional"`
-	Machine  *string `pulumi:"machine,optional"`
-	Bio      *string `pulumi:"bios,optional"`
-	EFIDisk0 *string `pulumi:"efidisk0,optional"`
-	// SMBios1  *string `pulumi:"smbios1,optional"`
+	OSType  *string `pulumi:"ostype,optional"`
+	Machine *string `pulumi:"machine,optional"`
+	Bio     *string `pulumi:"bios,optional"`
+
+	EfiDisk *EfiDisk `pulumi:"efidisk,optional"`
+
+	// SMBios1 *string `pulumi:"smbios1,optional"`
 	Acpi *int `pulumi:"acpi,optional"`
 
 	// Sockets  *int    `pulumi:"sockets,optional"`
@@ -130,6 +122,145 @@ type Clone struct {
 	Timeout     int     `pulumi:"timeout,optional"`
 }
 
+// DiskBase contains common fields shared between Disk and EfiDisk.
+type DiskBase struct {
+	Storage string  `pulumi:"storage"`
+	FileID  *string `pulumi:"filename,optional"` // Optional, computed if not provided
+}
+
+// Disk represents a virtual machine disk configuration.
+type Disk struct {
+	DiskBase
+	Size      int    `pulumi:"size"`      // Size in Gigabytes (required for regular disks).
+	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
+}
+
+// ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
+func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
+	var fullDiskPath string
+
+	if disk.FileID == nil || *disk.FileID == "" {
+		// No file Id means we are creating the disk now, so we use the storage:size format to create the disk
+		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
+	} else {
+		// We already have a disk file, so we use the storage:file_id format
+		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, *disk.FileID)
+	}
+
+	diskKey = disk.Interface
+	diskConfig = fmt.Sprintf("file=%v,size=%v", fullDiskPath, disk.Size)
+	return
+}
+
+// EfiType represents the EFI type for an EFI disk.
+type EfiType string
+
+// EFI type constants.
+const (
+	EfiType2M EfiType = "2m"
+	EfiType4M EfiType = "4m"
+)
+
+// EfiDisk represents an EFI disk configuration.
+type EfiDisk struct {
+	DiskBase
+	EfiType         EfiType `pulumi:"efitype"`
+	PreEnrolledKeys *bool   `pulumi:"preEnrolledKeys,optional"`
+}
+
+// ValidateEfiType checks if the EfiType is valid.
+func (efi EfiDisk) ValidateEfiType() error {
+	switch efi.EfiType {
+	case EfiType2M, EfiType4M:
+		return nil
+	default:
+		return fmt.Errorf("invalid EFI type: %v", efi.EfiType)
+	}
+}
+
+// ToProxmoxEfiDiskConfig converts the EfiDisk struct to Proxmox EFI disk config string.
+func (efi EfiDisk) ToProxmoxEfiDiskConfig() string {
+	var fullDiskPath string
+	if efi.FileID == nil || *efi.FileID == "" {
+		// No file Id means we are creating the disk now, so we use the storage:size format to create the disk
+		fullDiskPath = fmt.Sprintf("%v:%v", efi.Storage, efiDiskSize)
+	} else {
+		// We already have a disk file, so we use the storage:file_id format
+		fullDiskPath = fmt.Sprintf("%v:%v", efi.Storage, *efi.FileID)
+	}
+
+	config := fmt.Sprintf("file=%v", fullDiskPath)
+	if efi.EfiType != "" {
+		config += fmt.Sprintf(",efitype=%v", efi.EfiType)
+	}
+	if efi.PreEnrolledKeys != nil {
+		if *efi.PreEnrolledKeys {
+			config += ",pre-enrolled-keys=1"
+		} else {
+			config += ",pre-enrolled-keys=0"
+		}
+	}
+	return config
+}
+
+// parsedDiskBase contains the result of parsing common disk configuration.
+type parsedDiskBase struct {
+	DiskBase
+	Size   *int              // Size is optional for EFI disks but required for regular disks
+	Extras map[string]string // Additional key-value pairs not in diskBase
+}
+
+// parseDiskBase parses common disk configuration fields shared by Disk and EfiDisk.
+func parseDiskBase(diskConfig string) (parsedDiskBase, error) {
+	result := parsedDiskBase{
+		Extras: make(map[string]string),
+	}
+
+	parts := strings.Split(diskConfig, ",")
+
+	for _, part := range parts {
+		kv := strings.Split(part, "=")
+		if len(kv) != 2 {
+			// Handle storage:fileID format (no key)
+			if strings.Contains(kv[0], ":") {
+				diskFile := strings.Split(kv[0], ":")
+				result.Storage = diskFile[0]
+				if len(diskFile) > 1 {
+					fileID := diskFile[1]
+					result.FileID = &fileID
+				}
+			}
+			continue
+		}
+
+		key, value := kv[0], kv[1]
+		switch key {
+		case "file":
+			diskFile := strings.Split(value, ":")
+			result.Storage = diskFile[0]
+			if len(diskFile) > 1 {
+				fileID := diskFile[1]
+				result.FileID = &fileID
+			}
+		case "size":
+			size, err := parseDiskSize(value)
+			if err != nil {
+				return parsedDiskBase{}, err
+			}
+			result.Size = &size
+		default:
+			// Store any other key-value pairs
+			result.Extras[key] = value
+		}
+	}
+
+	if result.Storage == "" {
+		return parsedDiskBase{}, fmt.Errorf("failed to parse disk config: missing storage in %s", diskConfig)
+	}
+
+	return result, nil
+}
+
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
 func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Inputs, error) {
 	vmConfig := vm.VirtualMachineConfig
@@ -162,6 +293,14 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 		disks = append(disks, &disk)
 	}
 
+	var efiDisk *EfiDisk
+	if vmConfig.EFIDisk0 != "" {
+		efiDisk = &EfiDisk{}
+		if err := efiDisk.ParseEfiDiskConfig(vmConfig.EFIDisk0); err != nil {
+			return Inputs{}, err
+		}
+	}
+
 	var vmID int
 	if vm.VMID > math.MaxInt {
 		return Inputs{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
@@ -175,22 +314,21 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 		Hookscript:  strOrNil(vmConfig.Hookscript),
 		Hotplug:     strOrNil(vmConfig.Hotplug),
 		Template:    intOrNil(vmConfig.Template),
-		// Agent:       strOrNil(vmConfig.Agent),
-		Autostart: intOrNil(vmConfig.Autostart),
-		Tablet:    intOrNil(vmConfig.Tablet),
-		KVM:       intOrNil(vmConfig.KVM),
-		// Tags:       strOrNil(vmConfig.Tags),
-		Protection: intOrNil(vmConfig.Protection),
-		Lock:       strOrNil(vmConfig.Lock),
+		Autostart:   intOrNil(vmConfig.Autostart),
+		Tablet:      intOrNil(vmConfig.Tablet),
+		KVM:         intOrNil(vmConfig.KVM),
+		Protection:  intOrNil(vmConfig.Protection),
+		Lock:        strOrNil(vmConfig.Lock),
+
+		EfiDisk: efiDisk,
 
 		// Boot:   strOrNil(vmConfig.Boot),
 		// OnBoot: intOrNil(vmConfig.OnBoot),
 
-		OSType:   strOrNil(vmConfig.OSType),
-		Machine:  strOrNil(vmConfig.Machine),
-		Bio:      strOrNil(vmConfig.Bios),
-		EFIDisk0: strOrNil(vmConfig.EFIDisk0),
-		// SMBios1:  strOrNil(vmConfig.SMBios1),
+		OSType:  strOrNil(vmConfig.OSType),
+		Machine: strOrNil(vmConfig.Machine),
+		Bio:     strOrNil(vmConfig.Bios),
+
 		Acpi: intOrNil(vmConfig.Acpi),
 
 		// Sockets:  intOrNil(vmConfig.Sockets),
@@ -264,12 +402,14 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("sshkeys", &options, inputs.SSHKeys, currentInputs.SSHKeys)
 	compareAndAddOption("cicustom", &options, inputs.CICustom, currentInputs.CICustom)
 	compareAndAddOption("ciupgrade", &options, inputs.CIUpgrade, currentInputs.CIUpgrade)
-	//nolint:gocritic // commentedOutCode
-	// compareAndAddOption("boot", &options, inputs.Boot, currentInputs.Boot)
-	// compareAndAddOption("onboot", &options, inputs.OnBoot, currentInputs.OnBoot)
-	// compareAndAddOption("scsihw", &options, inputs.SCSIHW, currentInputs.SCSIHW)
-	// compareAndAddOption("net0", &options, inputs.Net0, currentInputs.Net0)
-	// compareAndAddOption("tags", &options, inputs.Tags, currentInputs.Tags)
+
+	// Handle EFI disk changes
+	if !reflect.DeepEqual(inputs.EfiDisk, currentInputs.EfiDisk) {
+		if inputs.EfiDisk != nil {
+			efiConfig := inputs.EfiDisk.ToProxmoxEfiDiskConfig()
+			options = append(options, api.VirtualMachineOption{Name: "efidisk0", Value: efiConfig})
+		}
+	}
 
 	if !slices.Equal(inputs.Disks, currentInputs.Disks) {
 		for _, disk := range inputs.Disks {
@@ -308,12 +448,12 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
-	//nolint:gocritic // commentedOutCode
-	// addOption("net0", &options, inputs.Net0)
-	// addOption("boot", &options, inputs.Boot)
-	// addOption("onboot", &options, inputs.OnBoot)
-	// addOption("tags", &options, inputs.Tags)
-	// addOption("scsihw", &options, inputs.SCSIHW)
+
+	// Add EFI disk if configured
+	if inputs.EfiDisk != nil {
+		efiConfig := inputs.EfiDisk.ToProxmoxEfiDiskConfig()
+		options = append(options, api.VirtualMachineOption{Name: efiDiskID, Value: efiConfig})
+	}
 
 	for _, disk := range inputs.Disks {
 		diskKey, diskConfig := disk.ToProxmoxDiskKeyConfig()
@@ -354,41 +494,40 @@ func intOrNil(value int) *int {
 }
 
 // ParseDiskConfig parses the disk configuration string and sets the Disk fields accordingly.
-func (disk *Disk) ParseDiskConfig(diskConfig string) (err error) {
-	parts := strings.Split(diskConfig, ",")
-	for _, part := range parts {
-		kv := strings.Split(part, "=")
-		if len(kv) != 2 {
-			if !strings.Contains(kv[0], ":") {
-				return fmt.Errorf("invalid disk config part: %s", part)
-			}
-
-			// Handle disk file configuration
-			diskFile := strings.Split(kv[0], ":")
-			disk.Storage = diskFile[0]
-			disk.FileID = diskFile[1]
-		} else {
-			key, value := kv[0], kv[1]
-			switch key {
-			case "file":
-				// Handle file configuration
-				diskFile := strings.Split(value, ":")
-				disk.Storage = diskFile[0]
-				disk.FileID = diskFile[1]
-			case "size":
-				// Parse and set disk size
-				var size int
-				size, err = parseDiskSize(value)
-				if err != nil {
-					return err
-				}
-				disk.Size = size
-			}
-		}
+func (disk *Disk) ParseDiskConfig(diskConfig string) error {
+	parsed, err := parseDiskBase(diskConfig)
+	if err != nil {
+		return err
 	}
 
-	if disk.Storage == "" || disk.Size == 0 {
-		return fmt.Errorf("failed to parse disk config: %s", diskConfig)
+	// Size is required for regular disks
+	if parsed.Size == nil {
+		return fmt.Errorf("size is required for disk: %s", diskConfig)
+	}
+
+	disk.DiskBase = parsed.DiskBase
+	disk.Size = *parsed.Size
+	return nil
+}
+
+// ParseEfiDiskConfig parses the EFI disk configuration string and sets the EfiDisk fields.
+func (efi *EfiDisk) ParseEfiDiskConfig(diskConfig string) error {
+	parsed, err := parseDiskBase(diskConfig)
+	if err != nil {
+		return err
+	}
+
+	efi.DiskBase = parsed.DiskBase
+
+	// Extract efitype if present in extras
+	if efitype, ok := parsed.Extras["efitype"]; ok {
+		efi.EfiType = EfiType(efitype)
+	}
+
+	// Extract pre-enrolled-keys if present in extras
+	if preEnrolledKeys, ok := parsed.Extras["pre-enrolled-keys"]; ok {
+		value := preEnrolledKeys == "1"
+		efi.PreEnrolledKeys = &value
 	}
 
 	return nil
@@ -396,7 +535,7 @@ func (disk *Disk) ParseDiskConfig(diskConfig string) (err error) {
 
 // parseDiskSize parses the disk size string and returns the size in gigabytes.
 func parseDiskSize(value string) (size int, err error) {
-	if resources.EndsWithLetter(value) {
+	if utils.EndsWithLetter(value) {
 		unit := value[len(value)-1]
 		size, err = strconv.Atoi(value[:len(value)-1])
 		if err != nil {
@@ -424,7 +563,7 @@ func compareAndAddOption[T comparable](
 	options *[]api.VirtualMachineOption,
 	newValue, currentValue *T,
 ) {
-	if resources.DifferPtr(newValue, currentValue) {
+	if utils.DifferPtr(newValue, currentValue) {
 		// Only add option if newValue is not nil - we don't try to "clear" fields
 		// by sending nil or empty values as this can cause validation errors
 		if newValue != nil {

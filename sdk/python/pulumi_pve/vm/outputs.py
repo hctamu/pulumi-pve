@@ -17,6 +17,7 @@ from .. import _utilities
 __all__ = [
     'Clone',
     'Disk',
+    'EfiDisk',
 ]
 
 @pulumi.output_type
@@ -116,5 +117,63 @@ class Disk(dict):
     @pulumi.getter
     def filename(self) -> Optional[_builtins.str]:
         return pulumi.get(self, "filename")
+
+
+@pulumi.output_type
+class EfiDisk(dict):
+    """
+    EFI disk configuration for the virtual machine.
+    """
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "preEnrolledKeys":
+            suggest = "pre_enrolled_keys"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in EfiDisk. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        EfiDisk.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        EfiDisk.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 efitype: _builtins.str,
+                 storage: _builtins.str,
+                 filename: Optional[_builtins.str] = None,
+                 pre_enrolled_keys: Optional[_builtins.bool] = None):
+        """
+        EFI disk configuration for the virtual machine.
+        """
+        pulumi.set(__self__, "efitype", efitype)
+        pulumi.set(__self__, "storage", storage)
+        if filename is not None:
+            pulumi.set(__self__, "filename", filename)
+        if pre_enrolled_keys is not None:
+            pulumi.set(__self__, "pre_enrolled_keys", pre_enrolled_keys)
+
+    @_builtins.property
+    @pulumi.getter
+    def efitype(self) -> _builtins.str:
+        return pulumi.get(self, "efitype")
+
+    @_builtins.property
+    @pulumi.getter
+    def storage(self) -> _builtins.str:
+        return pulumi.get(self, "storage")
+
+    @_builtins.property
+    @pulumi.getter
+    def filename(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "filename")
+
+    @_builtins.property
+    @pulumi.getter(name="preEnrolledKeys")
+    def pre_enrolled_keys(self) -> Optional[_builtins.bool]:
+        return pulumi.get(self, "pre_enrolled_keys")
 
 

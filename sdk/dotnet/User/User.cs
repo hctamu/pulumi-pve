@@ -13,33 +13,63 @@ namespace Hctamu.Pve.User
     [PveResourceType("pve:user:User")]
     public partial class User : global::Pulumi.CustomResource
     {
+        /// <summary>
+        /// An optional comment for the user.
+        /// </summary>
         [Output("comment")]
         public Output<string?> Comment { get; private set; } = null!;
 
+        /// <summary>
+        /// An optional email address for the user.
+        /// </summary>
         [Output("email")]
         public Output<string?> Email { get; private set; } = null!;
 
+        /// <summary>
+        /// Whether the user is enabled. Defaults to true.
+        /// </summary>
         [Output("enable")]
         public Output<bool?> Enable { get; private set; } = null!;
 
+        /// <summary>
+        /// The expiration time for the user as a Unix timestamp.
+        /// </summary>
         [Output("expire")]
         public Output<int?> Expire { get; private set; } = null!;
 
+        /// <summary>
+        /// The first name of the user.
+        /// </summary>
         [Output("firstname")]
         public Output<string?> Firstname { get; private set; } = null!;
 
+        /// <summary>
+        /// A list of groups the user belongs to.
+        /// </summary>
         [Output("groups")]
         public Output<ImmutableArray<string>> Groups { get; private set; } = null!;
 
+        /// <summary>
+        /// A list of SSH keys associated with the user.
+        /// </summary>
         [Output("keys")]
         public Output<ImmutableArray<string>> Keys { get; private set; } = null!;
 
+        /// <summary>
+        /// The last name of the user.
+        /// </summary>
         [Output("lastname")]
         public Output<string?> Lastname { get; private set; } = null!;
 
+        /// <summary>
+        /// The password for the user. This field is treated as a secret.
+        /// </summary>
         [Output("password")]
         public Output<string?> Password { get; private set; } = null!;
 
+        /// <summary>
+        /// The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+        /// </summary>
         [Output("userid")]
         public Output<string> Userid { get; private set; } = null!;
 
@@ -66,6 +96,10 @@ namespace Hctamu.Pve.User
             var defaultOptions = new CustomResourceOptions
             {
                 Version = Utilities.Version,
+                AdditionalSecretOutputs =
+                {
+                    "password",
+                },
                 ReplaceOnChanges =
                 {
                     "password",
@@ -93,23 +127,42 @@ namespace Hctamu.Pve.User
 
     public sealed class UserArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// An optional comment for the user.
+        /// </summary>
         [Input("comment")]
         public Input<string>? Comment { get; set; }
 
+        /// <summary>
+        /// An optional email address for the user.
+        /// </summary>
         [Input("email")]
         public Input<string>? Email { get; set; }
 
+        /// <summary>
+        /// Whether the user is enabled. Defaults to true.
+        /// </summary>
         [Input("enable")]
         public Input<bool>? Enable { get; set; }
 
+        /// <summary>
+        /// The expiration time for the user as a Unix timestamp.
+        /// </summary>
         [Input("expire")]
         public Input<int>? Expire { get; set; }
 
+        /// <summary>
+        /// The first name of the user.
+        /// </summary>
         [Input("firstname")]
         public Input<string>? Firstname { get; set; }
 
         [Input("groups")]
         private InputList<string>? _groups;
+
+        /// <summary>
+        /// A list of groups the user belongs to.
+        /// </summary>
         public InputList<string> Groups
         {
             get => _groups ?? (_groups = new InputList<string>());
@@ -118,18 +171,41 @@ namespace Hctamu.Pve.User
 
         [Input("keys")]
         private InputList<string>? _keys;
+
+        /// <summary>
+        /// A list of SSH keys associated with the user.
+        /// </summary>
         public InputList<string> Keys
         {
             get => _keys ?? (_keys = new InputList<string>());
             set => _keys = value;
         }
 
+        /// <summary>
+        /// The last name of the user.
+        /// </summary>
         [Input("lastname")]
         public Input<string>? Lastname { get; set; }
 
         [Input("password")]
-        public Input<string>? Password { get; set; }
+        private Input<string>? _password;
 
+        /// <summary>
+        /// The password for the user. This field is treated as a secret.
+        /// </summary>
+        public Input<string>? Password
+        {
+            get => _password;
+            set
+            {
+                var emptySecret = Output.CreateSecret(0);
+                _password = Output.Tuple<Input<string>?, int>(value, emptySecret).Apply(t => t.Item1);
+            }
+        }
+
+        /// <summary>
+        /// The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+        /// </summary>
         [Input("userid", required: true)]
         public Input<string> Userid { get; set; } = null!;
 
