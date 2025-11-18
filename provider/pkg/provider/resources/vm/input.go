@@ -45,7 +45,7 @@ type NumaNode struct {
 
 // Cpu represents the structured CPU configuration.
 type Cpu struct {
-	Type          string     `pulumi:"type,optional"`
+	Type          *string    `pulumi:"type,optional"`
 	FlagsEnabled  []string   `pulumi:"flagsEnabled,optional"`
 	FlagsDisabled []string   `pulumi:"flagsDisabled,optional"`
 	Hidden        *bool      `pulumi:"hidden,optional"`
@@ -79,11 +79,11 @@ func (n *NumaNode) ToProxmoxNumaString() string {
 }
 
 // ParseNumaNode parses a Proxmox NUMA node config string.
-func ParseNumaNode(value string) (*NumaNode, error) {
+func ParseNumaNode(value string) (node *NumaNode, err error) {
 	if value == "" {
 		return nil, nil
 	}
-	node := &NumaNode{}
+	node = &NumaNode{}
 	segments := strings.Split(value, ",")
 	for _, seg := range segments {
 		if seg == "" {
@@ -121,8 +121,8 @@ func (c *Cpu) ToProxmoxString() string {
 		return ""
 	}
 	parts := make([]string, 0, 6)
-	if c.Type != "" {
-		parts = append(parts, c.Type)
+	if c.Type != nil && *c.Type != "" {
+		parts = append(parts, *c.Type)
 	}
 	if len(c.FlagsEnabled) > 0 || len(c.FlagsDisabled) > 0 {
 		flags := make([]string, 0, len(c.FlagsEnabled)+len(c.FlagsDisabled))
@@ -159,11 +159,11 @@ func (c *Cpu) ToProxmoxString() string {
 }
 
 // ParseCpu parses a Proxmox CPU config string into Cpu.
-func ParseCpu(value string) (*Cpu, error) {
+func ParseCpu(value string) (cfg *Cpu, err error) {
 	if value == "" {
 		return nil, nil
 	}
-	cfg := &Cpu{}
+	cfg = &Cpu{}
 	segments := strings.Split(value, ",")
 	for i, seg := range segments {
 		if seg == "" {
@@ -173,14 +173,14 @@ func ParseCpu(value string) (*Cpu, error) {
 		if len(kv) != 2 {
 			// First segment without '=' is the CPU type
 			if i == 0 {
-				cfg.Type = seg
+				cfg.Type = &seg
 			}
 			continue
 		}
 		key, val := kv[0], kv[1]
 		switch key {
 		case "cputype":
-			cfg.Type = val
+			cfg.Type = &val
 		case "flags":
 			if val != "" {
 				flags := strings.Split(val, ";")
@@ -303,64 +303,48 @@ type Clone struct {
 }
 
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
+func ConvertVMConfigToInputs(vm *api.VirtualMachine) (inputs Inputs, err error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
 	var parsedCPU *Cpu
 	if vmConfig.CPU != "" {
-		cpuCfg, err := ParseCpu(vmConfig.CPU)
-		if err != nil {
-			return Inputs{}, fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, err)
+		cpuCfg, parseErr := ParseCpu(vmConfig.CPU)
+		if parseErr != nil {
+			err = fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, parseErr)
+			return
 		}
 		parsedCPU = cpuCfg
 	}
 
+	if parsedCPU == nil {
+		parsedCPU = &Cpu{}
+	}
+
 	if vmConfig.Cores > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		c := vmConfig.Cores
 		parsedCPU.Cores = &c
 	}
 	if vmConfig.Sockets > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		s := vmConfig.Sockets
 		parsedCPU.Sockets = &s
 	}
 	if vmConfig.CPULimit > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		limit := float64(vmConfig.CPULimit)
 		parsedCPU.Limit = &limit
 	}
 	if vmConfig.CPUUnits > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		parsedCPU.Units = &vmConfig.CPUUnits
 	}
 	if vmConfig.Vcpus > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		parsedCPU.Vcpus = &vmConfig.Vcpus
 	}
 	// TODO: Affinity is currently buggy in Proxmox VE
 	// if vmConfig.Affinity != "" {
-	// 	if parsedCPU == nil {
-	// 		parsedCPU = &Cpu{}
-	// 	}
 	// 	parsedCPU.Affinity = &vmConfig.Affinity
 	// }
 
 	if vmConfig.Numa > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		numaEnabled := vmConfig.Numa > 0
 		parsedCPU.Numa = &numaEnabled
 	}
@@ -372,9 +356,10 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 	var numaNodes []NumaNode
 	for _, numaStr := range numaStrings {
 		if numaStr != "" {
-			node, err := ParseNumaNode(numaStr)
-			if err != nil {
-				return Inputs{}, fmt.Errorf("failed to parse NUMA node '%s': %w", numaStr, err)
+			node, parseErr := ParseNumaNode(numaStr)
+			if parseErr != nil {
+				err = fmt.Errorf("failed to parse NUMA node '%s': %w", numaStr, parseErr)
+				return
 			}
 			if node != nil {
 				numaNodes = append(numaNodes, *node)
@@ -382,28 +367,27 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 		}
 	}
 	if len(numaNodes) > 0 {
-		if parsedCPU == nil {
-			parsedCPU = &Cpu{}
-		}
 		parsedCPU.NumaNodes = numaNodes
 	}
 
 	disks := make([]*Disk, 0, len(diskMap))
 	for diskInterface, diskStr := range diskMap {
 		disk := Disk{Interface: diskInterface}
-		if err := disk.ParseDiskConfig(diskStr); err != nil {
-			return Inputs{}, err
+		if parseErr := disk.ParseDiskConfig(diskStr); parseErr != nil {
+			err = parseErr
+			return
 		}
 		disks = append(disks, &disk)
 	}
 
 	var vmID int
 	if vm.VMID > math.MaxInt {
-		return Inputs{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
+		err = fmt.Errorf("VMID %d overflows int", vm.VMID)
+		return
 	}
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
-	return Inputs{
+	inputs = Inputs{
 		Name:        strOrNil(vmConfig.Name),
 		Description: strOrNil(vmConfig.Description),
 		VMID:        &vmID,
@@ -463,7 +447,8 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine) (Inputs, error) {
 
 		IPConfig0: strOrNil(vmConfig.IPConfig0),
 		Node:      strOrNil(vm.Node),
-	}, nil
+	}
+	return
 }
 
 // BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the
@@ -726,32 +711,21 @@ func numaNodesEqual(a, b []NumaNode) bool {
 		if a[i].Cpus != b[i].Cpus {
 			return false
 		}
-		if !ptrStringEqual(a[i].HostNodes, b[i].HostNodes) {
+		if !ptrEqual(a[i].HostNodes, b[i].HostNodes) {
 			return false
 		}
-		if !ptrIntEqual(a[i].Memory, b[i].Memory) {
+		if !ptrEqual(a[i].Memory, b[i].Memory) {
 			return false
 		}
-		if !ptrStringEqual(a[i].Policy, b[i].Policy) {
+		if !ptrEqual(a[i].Policy, b[i].Policy) {
 			return false
 		}
 	}
 	return true
 }
 
-// ptrStringEqual compares two string pointers.
-func ptrStringEqual(a, b *string) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
-}
-
-// ptrIntEqual compares two int pointers.
-func ptrIntEqual(a, b *int) bool {
+// ptrEqual compares two pointers of any comparable type.
+func ptrEqual[T comparable](a, b *T) bool {
 	if a == nil && b == nil {
 		return true
 	}
