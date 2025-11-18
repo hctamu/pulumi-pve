@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -257,9 +258,11 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 			name: "VirtIO disk with FileID",
 			disk: &vm.Disk{
 				Interface: "virtio1",
-				Storage:   "local-lvm",
-				Size:      64,
-				FileID:    "vm-100-disk-1",
+				DiskBase: vm.DiskBase{
+					Storage: "local-lvm",
+					FileID:  testutils.Ptr("vm-100-disk-1"),
+				},
+				Size: 64,
 			},
 			expectedKey:   "virtio1",
 			expectedValue: "file=local-lvm:vm-100-disk-1,size=64",
@@ -268,8 +271,10 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 			name: "CD-ROM disk",
 			disk: &vm.Disk{
 				Interface: "ide2",
-				Storage:   "none",
-				Size:      0,
+				DiskBase: vm.DiskBase{
+					Storage: "none",
+				},
+				Size: 0,
 			},
 			expectedKey:   "ide2",
 			expectedValue: "file=none:0,size=0",
@@ -293,8 +298,10 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 func createTestDisk(iface, storage string, size int) *vm.Disk {
 	return &vm.Disk{
 		Interface: iface,
-		Storage:   storage,
-		Size:      size,
+		DiskBase: vm.DiskBase{
+			Storage: storage,
+		},
+		Size: size,
 	}
 }
 
@@ -302,8 +309,10 @@ func createTestDisk(iface, storage string, size int) *vm.Disk {
 func createTestCDROMDisk(iface, storage string) *vm.Disk {
 	return &vm.Disk{
 		Interface: iface,
-		Storage:   storage,
-		Size:      0,
+		DiskBase: vm.DiskBase{
+			Storage: storage,
+		},
+		Size: 0,
 	}
 }
 

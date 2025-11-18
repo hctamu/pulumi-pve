@@ -34,8 +34,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
-	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	haResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/ha"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,7 +87,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 
 //nolint:paralleltest // uses global env + client seam
 func TestHaHealthyLifeCycle(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// GET resource used by Read operations (after create + update + refreshes)
@@ -178,7 +178,7 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaCreateSuccess(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// Mock successful POST to create HA resource
@@ -204,7 +204,7 @@ func TestHaCreateSuccess(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaCreateBackendFailure(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// Mock API returning 500 error to test error handling
@@ -244,7 +244,7 @@ func TestHaCreateClientAcquisitionFailure(t *testing.T) {
 
 //nolint:paralleltest // uses env + seam
 func TestHaReadSuccess(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 	mock.AddMocks(
 		mocha.Get(expect.URLPath(apiPathHAResources + id100)).
@@ -268,7 +268,7 @@ func TestHaReadSuccess(t *testing.T) {
 
 //nolint:paralleltest // uses env + seam
 func TestHaReadFailure(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 	mock.AddMocks(
 		mocha.Get(expect.URLPath(apiPathHAResources + id100)).
@@ -322,7 +322,7 @@ func TestHaUpdateClientAcquisitionFailure(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaUpdateBackendFailure(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// Mock PUT request returning 500 error to test update error handling
@@ -348,7 +348,7 @@ func TestHaUpdateBackendFailure(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaUpdateRemoveGroupSuccess(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// Mock successful PUT request when removing group field
@@ -372,7 +372,7 @@ func TestHaUpdateRemoveGroupSuccess(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaDeleteSuccess(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 	mock.AddMocks(
 		mocha.Delete(expect.URLPath(apiPathHAResources + id100)).Reply(reply.OK()),
@@ -389,7 +389,7 @@ func TestHaDeleteSuccess(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaDeleteBackendFailure(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 	mock.AddMocks(
 		mocha.Delete(expect.URLPath(apiPathHAResources + id100)).
@@ -412,7 +412,7 @@ func TestHaDeleteBackendFailure(t *testing.T) {
 
 //nolint:paralleltest // env + seam
 func TestHaCreateWithoutGroup(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// Test creating HA resource without optional group field
@@ -435,7 +435,7 @@ func TestHaCreateWithoutGroup(t *testing.T) {
 
 //nolint:paralleltest // uses global env + client seam
 func TestHaResourceIDChangeTriggersReplace(t *testing.T) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// Track the order of operations to verify replace behavior

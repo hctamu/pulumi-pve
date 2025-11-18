@@ -35,4 +35,14 @@ export namespace vm {
         storage: string;
     }
 
+    /**
+     * EFI disk configuration for the virtual machine.
+     */
+    export interface EfiDisk {
+        efitype: string;
+        filename?: string;
+        preEnrolledKeys?: boolean;
+        storage: string;
+    }
+
 }

@@ -24,8 +24,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
-	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	aclResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,7 +56,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 
 // aclHealthyLifeCycleHelper is used to test healthy lifecycle of ACL resource for different types.
 func aclLHealthyLifeCycleHelper(t *testing.T, typ, bodystring, ugid string) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// get the type entity
@@ -198,7 +198,7 @@ func TestACLCreateClientError(t *testing.T) {
 
 // aclCreateTypeNotFoundHelper is used to test Create failure when the specified type entity is not found.
 func aclCreateTypeNotFoundHelper(t *testing.T, typ string) {
-	mock, cleanup := utils.NewAPIMock(t)
+	mock, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mock.AddMocks(
@@ -234,7 +234,7 @@ func TestACLCreateUserNotFound(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLCreateInvalidType(t *testing.T) {
-	_, cleanup := utils.NewAPIMock(t)
+	_, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	acl := &aclResource.ACL{}
@@ -255,7 +255,7 @@ func TestACLCreateInvalidType(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLCreateCreationError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -294,7 +294,7 @@ func TestACLCreateCreationError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLCreateFetchError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -375,7 +375,7 @@ func TestACLDeleteClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLDeleteDeletionError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -411,7 +411,7 @@ func TestACLDeleteDeletionError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLReadSuccess(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -479,7 +479,7 @@ func TestACLReadClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLReadACLIDError(t *testing.T) {
-	_, cleanup := utils.NewAPIMock(t)
+	_, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	acl := &aclResource.ACL{}
@@ -492,7 +492,7 @@ func TestACLReadACLIDError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLReadNotFound(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(

@@ -11,6 +11,7 @@ import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.vm.VMArgs;
 import io.github.hctamu.pve.vm.outputs.Clone;
 import io.github.hctamu.pve.vm.outputs.Disk;
+import io.github.hctamu.pve.vm.outputs.EfiDisk;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
@@ -127,11 +128,11 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<List<Disk>> disks() {
         return this.disks;
     }
-    @Export(name="efidisk0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> efidisk0;
+    @Export(name="efidisk", refs={EfiDisk.class}, tree="[0]")
+    private Output</* @Nullable */ EfiDisk> efidisk;
 
-    public Output<Optional<String>> efidisk0() {
-        return Codegen.optional(this.efidisk0);
+    public Output<Optional<EfiDisk>> efidisk() {
+        return Codegen.optional(this.efidisk);
     }
     @Export(name="hookscript", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> hookscript;

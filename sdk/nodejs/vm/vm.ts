@@ -51,7 +51,7 @@ export class VM extends pulumi.CustomResource {
     declare public readonly cpuunits: pulumi.Output<number | undefined>;
     declare public readonly description: pulumi.Output<string | undefined>;
     declare public readonly disks: pulumi.Output<outputs.vm.Disk[]>;
-    declare public readonly efidisk0: pulumi.Output<string | undefined>;
+    declare public readonly efidisk: pulumi.Output<outputs.vm.EfiDisk | undefined>;
     declare public readonly hookscript: pulumi.Output<string | undefined>;
     declare public readonly hostpci0: pulumi.Output<string | undefined>;
     declare public readonly hotplug: pulumi.Output<string | undefined>;
@@ -116,7 +116,7 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["cpuunits"] = args?.cpuunits;
             resourceInputs["description"] = args?.description;
             resourceInputs["disks"] = args?.disks;
-            resourceInputs["efidisk0"] = args?.efidisk0;
+            resourceInputs["efidisk"] = args?.efidisk;
             resourceInputs["hookscript"] = args?.hookscript;
             resourceInputs["hostpci0"] = args?.hostpci0;
             resourceInputs["hotplug"] = args?.hotplug;
@@ -164,7 +164,7 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["cpuunits"] = undefined /*out*/;
             resourceInputs["description"] = undefined /*out*/;
             resourceInputs["disks"] = undefined /*out*/;
-            resourceInputs["efidisk0"] = undefined /*out*/;
+            resourceInputs["efidisk"] = undefined /*out*/;
             resourceInputs["hookscript"] = undefined /*out*/;
             resourceInputs["hostpci0"] = undefined /*out*/;
             resourceInputs["hotplug"] = undefined /*out*/;
@@ -221,7 +221,7 @@ export interface VMArgs {
     cpuunits?: pulumi.Input<number>;
     description?: pulumi.Input<string>;
     disks: pulumi.Input<pulumi.Input<inputs.vm.DiskArgs>[]>;
-    efidisk0?: pulumi.Input<string>;
+    efidisk?: pulumi.Input<inputs.vm.EfiDiskArgs>;
     hookscript?: pulumi.Input<string>;
     hostpci0?: pulumi.Input<string>;
     hotplug?: pulumi.Input<string>;

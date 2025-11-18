@@ -13,8 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package resources provides utility functions for resource management.
-package resources
+// Package utils provides utility functions for resource management.
+//
+//nolint:revive // Generic package name is acceptable for cross-resource utilities
+package utils
 
 import (
 	"cmp"

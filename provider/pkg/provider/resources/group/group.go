@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 

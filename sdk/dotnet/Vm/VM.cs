@@ -67,8 +67,8 @@ namespace Hctamu.Pve.Vm
         [Output("disks")]
         public Output<ImmutableArray<Outputs.Disk>> Disks { get; private set; } = null!;
 
-        [Output("efidisk0")]
-        public Output<string?> Efidisk0 { get; private set; } = null!;
+        [Output("efidisk")]
+        public Output<Outputs.EfiDisk?> Efidisk { get; private set; } = null!;
 
         [Output("hookscript")]
         public Output<string?> Hookscript { get; private set; } = null!;
@@ -258,8 +258,8 @@ namespace Hctamu.Pve.Vm
             set => _disks = value;
         }
 
-        [Input("efidisk0")]
-        public Input<string>? Efidisk0 { get; set; }
+        [Input("efidisk")]
+        public Input<Inputs.EfiDiskArgs>? Efidisk { get; set; }
 
         [Input("hookscript")]
         public Input<string>? Hookscript { get; set; }

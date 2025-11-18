@@ -40,7 +40,7 @@ class VMArgs:
                  cpulimit: Optional[pulumi.Input[_builtins.str]] = None,
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
+                 efidisk: Optional[pulumi.Input['EfiDiskArgs']] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
@@ -109,8 +109,8 @@ class VMArgs:
             pulumi.set(__self__, "cpuunits", cpuunits)
         if description is not None:
             pulumi.set(__self__, "description", description)
-        if efidisk0 is not None:
-            pulumi.set(__self__, "efidisk0", efidisk0)
+        if efidisk is not None:
+            pulumi.set(__self__, "efidisk", efidisk)
         if hookscript is not None:
             pulumi.set(__self__, "hookscript", hookscript)
         if hostpci0 is not None:
@@ -339,12 +339,12 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def efidisk0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "efidisk0")
+    def efidisk(self) -> Optional[pulumi.Input['EfiDiskArgs']]:
+        return pulumi.get(self, "efidisk")
 
-    @efidisk0.setter
-    def efidisk0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "efidisk0", value)
+    @efidisk.setter
+    def efidisk(self, value: Optional[pulumi.Input['EfiDiskArgs']]):
+        pulumi.set(self, "efidisk", value)
 
     @_builtins.property
     @pulumi.getter
@@ -614,7 +614,7 @@ class VM(pulumi.CustomResource):
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
-                 efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
+                 efidisk: Optional[pulumi.Input[Union['EfiDiskArgs', 'EfiDiskArgsDict']]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
@@ -690,7 +690,7 @@ class VM(pulumi.CustomResource):
                  cpuunits: Optional[pulumi.Input[_builtins.int]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
-                 efidisk0: Optional[pulumi.Input[_builtins.str]] = None,
+                 efidisk: Optional[pulumi.Input[Union['EfiDiskArgs', 'EfiDiskArgsDict']]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
@@ -750,7 +750,7 @@ class VM(pulumi.CustomResource):
             if disks is None and not opts.urn:
                 raise TypeError("Missing required property 'disks'")
             __props__.__dict__["disks"] = disks
-            __props__.__dict__["efidisk0"] = efidisk0
+            __props__.__dict__["efidisk"] = efidisk
             __props__.__dict__["hookscript"] = hookscript
             __props__.__dict__["hostpci0"] = hostpci0
             __props__.__dict__["hotplug"] = hotplug
@@ -821,7 +821,7 @@ class VM(pulumi.CustomResource):
         __props__.__dict__["cpuunits"] = None
         __props__.__dict__["description"] = None
         __props__.__dict__["disks"] = None
-        __props__.__dict__["efidisk0"] = None
+        __props__.__dict__["efidisk"] = None
         __props__.__dict__["hookscript"] = None
         __props__.__dict__["hostpci0"] = None
         __props__.__dict__["hotplug"] = None
@@ -944,8 +944,8 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def efidisk0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "efidisk0")
+    def efidisk(self) -> pulumi.Output[Optional['outputs.EfiDisk']]:
+        return pulumi.get(self, "efidisk")
 
     @_builtins.property
     @pulumi.getter

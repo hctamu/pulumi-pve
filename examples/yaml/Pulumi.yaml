@@ -14,15 +14,20 @@ resources:
       sourceRaw:
         fileData: |
           hello world
-        fileName: testfile01.yaml
+        fileName: testfile011.yaml
 
   myVM:
     type: pve:vm:VM
     properties:
-      name: "testVM"
+      vmId: 129
+      name: "MyTestVM"
       description: "test VM"
       cpu: "EPYC-v3"
       memory: 32768
+      efidisk:
+        storage: "ceph-ha"
+        efitype: "4m"
+        preEnrolledKeys: false
       disks:
         - storage: "ceph-ha"
           size: 20
@@ -31,7 +36,7 @@ resources:
           size: 17
           interface: "scsi1"
         - storage: "ceph-ha"
-          size: 20
+          size: 21
           interface: "sata0"
       clone:
         vmId: 102

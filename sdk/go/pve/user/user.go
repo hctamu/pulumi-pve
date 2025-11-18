@@ -15,16 +15,26 @@ import (
 type User struct {
 	pulumi.CustomResourceState
 
-	Comment   pulumi.StringPtrOutput   `pulumi:"comment"`
-	Email     pulumi.StringPtrOutput   `pulumi:"email"`
-	Enable    pulumi.BoolPtrOutput     `pulumi:"enable"`
-	Expire    pulumi.IntPtrOutput      `pulumi:"expire"`
-	Firstname pulumi.StringPtrOutput   `pulumi:"firstname"`
-	Groups    pulumi.StringArrayOutput `pulumi:"groups"`
-	Keys      pulumi.StringArrayOutput `pulumi:"keys"`
-	Lastname  pulumi.StringPtrOutput   `pulumi:"lastname"`
-	Password  pulumi.StringPtrOutput   `pulumi:"password"`
-	Userid    pulumi.StringOutput      `pulumi:"userid"`
+	// An optional comment for the user.
+	Comment pulumi.StringPtrOutput `pulumi:"comment"`
+	// An optional email address for the user.
+	Email pulumi.StringPtrOutput `pulumi:"email"`
+	// Whether the user is enabled. Defaults to true.
+	Enable pulumi.BoolPtrOutput `pulumi:"enable"`
+	// The expiration time for the user as a Unix timestamp.
+	Expire pulumi.IntPtrOutput `pulumi:"expire"`
+	// The first name of the user.
+	Firstname pulumi.StringPtrOutput `pulumi:"firstname"`
+	// A list of groups the user belongs to.
+	Groups pulumi.StringArrayOutput `pulumi:"groups"`
+	// A list of SSH keys associated with the user.
+	Keys pulumi.StringArrayOutput `pulumi:"keys"`
+	// The last name of the user.
+	Lastname pulumi.StringPtrOutput `pulumi:"lastname"`
+	// The password for the user. This field is treated as a secret.
+	Password pulumi.StringPtrOutput `pulumi:"password"`
+	// The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+	Userid pulumi.StringOutput `pulumi:"userid"`
 }
 
 // NewUser registers a new resource with the given unique name, arguments, and options.
@@ -37,6 +47,13 @@ func NewUser(ctx *pulumi.Context,
 	if args.Userid == nil {
 		return nil, errors.New("invalid value for required argument 'Userid'")
 	}
+	if args.Password != nil {
+		args.Password = pulumi.ToSecret(args.Password).(pulumi.StringPtrInput)
+	}
+	secrets := pulumi.AdditionalSecretOutputs([]string{
+		"password",
+	})
+	opts = append(opts, secrets)
 	replaceOnChanges := pulumi.ReplaceOnChanges([]string{
 		"password",
 		"userid",
@@ -75,30 +92,50 @@ func (UserState) ElementType() reflect.Type {
 }
 
 type userArgs struct {
-	Comment   *string  `pulumi:"comment"`
-	Email     *string  `pulumi:"email"`
-	Enable    *bool    `pulumi:"enable"`
-	Expire    *int     `pulumi:"expire"`
-	Firstname *string  `pulumi:"firstname"`
-	Groups    []string `pulumi:"groups"`
-	Keys      []string `pulumi:"keys"`
-	Lastname  *string  `pulumi:"lastname"`
-	Password  *string  `pulumi:"password"`
-	Userid    string   `pulumi:"userid"`
+	// An optional comment for the user.
+	Comment *string `pulumi:"comment"`
+	// An optional email address for the user.
+	Email *string `pulumi:"email"`
+	// Whether the user is enabled. Defaults to true.
+	Enable *bool `pulumi:"enable"`
+	// The expiration time for the user as a Unix timestamp.
+	Expire *int `pulumi:"expire"`
+	// The first name of the user.
+	Firstname *string `pulumi:"firstname"`
+	// A list of groups the user belongs to.
+	Groups []string `pulumi:"groups"`
+	// A list of SSH keys associated with the user.
+	Keys []string `pulumi:"keys"`
+	// The last name of the user.
+	Lastname *string `pulumi:"lastname"`
+	// The password for the user. This field is treated as a secret.
+	Password *string `pulumi:"password"`
+	// The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+	Userid string `pulumi:"userid"`
 }
 
 // The set of arguments for constructing a User resource.
 type UserArgs struct {
-	Comment   pulumi.StringPtrInput
-	Email     pulumi.StringPtrInput
-	Enable    pulumi.BoolPtrInput
-	Expire    pulumi.IntPtrInput
+	// An optional comment for the user.
+	Comment pulumi.StringPtrInput
+	// An optional email address for the user.
+	Email pulumi.StringPtrInput
+	// Whether the user is enabled. Defaults to true.
+	Enable pulumi.BoolPtrInput
+	// The expiration time for the user as a Unix timestamp.
+	Expire pulumi.IntPtrInput
+	// The first name of the user.
 	Firstname pulumi.StringPtrInput
-	Groups    pulumi.StringArrayInput
-	Keys      pulumi.StringArrayInput
-	Lastname  pulumi.StringPtrInput
-	Password  pulumi.StringPtrInput
-	Userid    pulumi.StringInput
+	// A list of groups the user belongs to.
+	Groups pulumi.StringArrayInput
+	// A list of SSH keys associated with the user.
+	Keys pulumi.StringArrayInput
+	// The last name of the user.
+	Lastname pulumi.StringPtrInput
+	// The password for the user. This field is treated as a secret.
+	Password pulumi.StringPtrInput
+	// The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
+	Userid pulumi.StringInput
 }
 
 func (UserArgs) ElementType() reflect.Type {
@@ -188,42 +225,52 @@ func (o UserOutput) ToUserOutputWithContext(ctx context.Context) UserOutput {
 	return o
 }
 
+// An optional comment for the user.
 func (o UserOutput) Comment() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.StringPtrOutput { return v.Comment }).(pulumi.StringPtrOutput)
 }
 
+// An optional email address for the user.
 func (o UserOutput) Email() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.StringPtrOutput { return v.Email }).(pulumi.StringPtrOutput)
 }
 
+// Whether the user is enabled. Defaults to true.
 func (o UserOutput) Enable() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.BoolPtrOutput { return v.Enable }).(pulumi.BoolPtrOutput)
 }
 
+// The expiration time for the user as a Unix timestamp.
 func (o UserOutput) Expire() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.IntPtrOutput { return v.Expire }).(pulumi.IntPtrOutput)
 }
 
+// The first name of the user.
 func (o UserOutput) Firstname() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.StringPtrOutput { return v.Firstname }).(pulumi.StringPtrOutput)
 }
 
+// A list of groups the user belongs to.
 func (o UserOutput) Groups() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v *User) pulumi.StringArrayOutput { return v.Groups }).(pulumi.StringArrayOutput)
 }
 
+// A list of SSH keys associated with the user.
 func (o UserOutput) Keys() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v *User) pulumi.StringArrayOutput { return v.Keys }).(pulumi.StringArrayOutput)
 }
 
+// The last name of the user.
 func (o UserOutput) Lastname() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.StringPtrOutput { return v.Lastname }).(pulumi.StringPtrOutput)
 }
 
+// The password for the user. This field is treated as a secret.
 func (o UserOutput) Password() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *User) pulumi.StringPtrOutput { return v.Password }).(pulumi.StringPtrOutput)
 }
 
+// The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
 func (o UserOutput) Userid() pulumi.StringOutput {
 	return o.ApplyT(func(v *User) pulumi.StringOutput { return v.Userid }).(pulumi.StringOutput)
 }

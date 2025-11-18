@@ -9,6 +9,7 @@ import com.pulumi.core.internal.Codegen;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
 import io.github.hctamu.pve.vm.inputs.CloneArgs;
 import io.github.hctamu.pve.vm.inputs.DiskArgs;
+import io.github.hctamu.pve.vm.inputs.EfiDiskArgs;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
@@ -147,11 +148,11 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         return this.disks;
     }
 
-    @Import(name="efidisk0")
-    private @Nullable Output<String> efidisk0;
+    @Import(name="efidisk")
+    private @Nullable Output<EfiDiskArgs> efidisk;
 
-    public Optional<Output<String>> efidisk0() {
-        return Optional.ofNullable(this.efidisk0);
+    public Optional<Output<EfiDiskArgs>> efidisk() {
+        return Optional.ofNullable(this.efidisk);
     }
 
     @Import(name="hookscript")
@@ -371,7 +372,7 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         this.cpuunits = $.cpuunits;
         this.description = $.description;
         this.disks = $.disks;
-        this.efidisk0 = $.efidisk0;
+        this.efidisk = $.efidisk;
         this.hookscript = $.hookscript;
         this.hostpci0 = $.hostpci0;
         this.hotplug = $.hotplug;
@@ -586,13 +587,13 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return disks(List.of(disks));
         }
 
-        public Builder efidisk0(@Nullable Output<String> efidisk0) {
-            $.efidisk0 = efidisk0;
+        public Builder efidisk(@Nullable Output<EfiDiskArgs> efidisk) {
+            $.efidisk = efidisk;
             return this;
         }
 
-        public Builder efidisk0(String efidisk0) {
-            return efidisk0(Output.of(efidisk0));
+        public Builder efidisk(EfiDiskArgs efidisk) {
+            return efidisk(Output.of(efidisk));
         }
 
         public Builder hookscript(@Nullable Output<String> hookscript) {
