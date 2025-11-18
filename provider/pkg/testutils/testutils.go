@@ -13,7 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package resources
+// Package testutils provides common test utilities and helpers for the provider tests.
+package testutils
 
 import (
 	"context"
@@ -51,4 +52,9 @@ func NewAPIMock(
 		_ = mock.Close()
 	}
 	return
+}
+
+// Ptr creates a pointer to any value.
+func Ptr[T any](v T) *T {
+	return &v
 }

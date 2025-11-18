@@ -23,8 +23,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
-	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	groupResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupHealthyLifeCycle(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// fetch created resource to confirm
@@ -159,7 +159,7 @@ func TestGroupCreateClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupCreateCreationError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -179,7 +179,7 @@ func TestGroupCreateCreationError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupCreateFetchError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -219,7 +219,7 @@ func TestGroupDeleteClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupDeleteDeletionError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -239,7 +239,7 @@ func TestGroupDeleteDeletionError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupReadSuccess(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 	mockServer.AddMocks(
 		mocha.Get(expect.URLPath("/access/groups/testgroup")).Reply(reply.OK().BodyString(`{
@@ -293,7 +293,7 @@ func TestGroupReadClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupReadNotFound(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -317,7 +317,7 @@ func TestGroupReadNotFound(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupReadGetResourceError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -354,7 +354,7 @@ func TestGroupUpdateClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestGroupUpdateUpdateError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(

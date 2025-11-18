@@ -19,7 +19,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,52 +28,214 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// TestVMCustomDiffComputedVMID ensures vmId difference is ignored when user didn't set it.
-func TestVMCustomDiffComputedVMID(t *testing.T) {
+func TestVMDiffComputedFields(t *testing.T) {
 	t.Parallel()
-	v := &vm.VM{}
-	vmid := 101
-	state := vm.Outputs{Inputs: vm.Inputs{VMID: &vmid}}
-	// User inputs omit vmId (nil) -> should not produce diff for vmId
-	req := infer.DiffRequest[vm.Inputs, vm.Outputs]{
-		Inputs: vm.Inputs{},
-		State:  state,
+
+	tests := []struct {
+		name              string
+		inputVMID         *int
+		stateVMID         *int
+		inputNode         *string
+		stateNode         *string
+		expectChange      bool
+		expectReplace     bool
+		expectedDiffField string
+	}{
+		{
+			name:         "vmId nil in input, present in state (computed)",
+			inputVMID:    nil,
+			stateVMID:    testutils.Ptr(100),
+			expectChange: false, // Computed field, no change expected
+		},
+		{
+			name:              "vmId changed - should trigger replace",
+			inputVMID:         testutils.Ptr(200),
+			stateVMID:         testutils.Ptr(100),
+			expectChange:      true,
+			expectReplace:     true,
+			expectedDiffField: "vmId",
+		},
+		{
+			name:         "vmId unchanged",
+			inputVMID:    testutils.Ptr(100),
+			stateVMID:    testutils.Ptr(100),
+			expectChange: false,
+		},
+		{
+			name:         "node nil in input, present in state (computed)",
+			inputNode:    nil,
+			stateNode:    testutils.Ptr("pve-node1"),
+			expectChange: false, // Computed field, no change expected
+		},
+		{
+			name:              "node changed",
+			inputNode:         testutils.Ptr("pve-node2"),
+			stateNode:         testutils.Ptr("pve-node1"),
+			expectChange:      true,
+			expectedDiffField: "node",
+		},
 	}
-	resp, err := v.Diff(context.Background(), req)
-	require.NoError(t, err)
-	// No changes expected because only difference is computed vmId
-	assert.False(t, resp.HasChanges)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &vmResource.VM{}
+			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+				ID: "100",
+				Inputs: vmResource.Inputs{
+					Name:  testutils.Ptr("test-vm"),
+					VMID:  tt.inputVMID,
+					Node:  tt.inputNode,
+					Disks: []*vmResource.Disk{},
+				},
+				State: vmResource.Outputs{
+					Inputs: vmResource.Inputs{
+						Name:  testutils.Ptr("test-vm"),
+						VMID:  tt.stateVMID,
+						Node:  tt.stateNode,
+						Disks: []*vmResource.Disk{},
+					},
+				},
+			}
+
+			resp, err := vm.Diff(context.Background(), req)
+			require.NoError(t, err)
+
+			if tt.expectChange {
+				assert.True(t, resp.HasChanges, "Expected changes to be detected")
+				if tt.expectReplace {
+					assert.Equal(t, p.UpdateReplace, resp.DetailedDiff[tt.expectedDiffField].Kind)
+					assert.True(t, resp.DeleteBeforeReplace)
+				} else if tt.expectedDiffField != "" {
+					assert.Equal(t, p.Update, resp.DetailedDiff[tt.expectedDiffField].Kind)
+				}
+			} else {
+				assert.False(t, resp.HasChanges, "Expected no changes")
+			}
+		})
+	}
 }
 
-// TestVMCustomDiffVMIDReplace ensures replacement when vmId explicitly changes.
-func TestVMCustomDiffVMIDReplace(t *testing.T) {
+func TestVMDiffPointerFields(t *testing.T) {
 	t.Parallel()
-	v := &vm.VM{}
-	oldID := 200
-	newID := 300
-	req := infer.DiffRequest[vm.Inputs, vm.Outputs]{
-		Inputs: vm.Inputs{VMID: &newID},
-		State:  vm.Outputs{Inputs: vm.Inputs{VMID: &oldID}},
+
+	tests := []struct {
+		name         string
+		inputMemory  *int
+		stateMemory  *int
+		inputCores   *int
+		stateCores   *int
+		expectChange bool
+	}{
+		{
+			name:         "memory changed",
+			inputMemory:  testutils.Ptr(4096),
+			stateMemory:  testutils.Ptr(2048),
+			expectChange: true,
+		},
+		{
+			name:         "memory unchanged",
+			inputMemory:  testutils.Ptr(2048),
+			stateMemory:  testutils.Ptr(2048),
+			expectChange: false,
+		},
+		{
+			name:         "memory cleared (set to nil)",
+			inputMemory:  nil,
+			stateMemory:  testutils.Ptr(2048),
+			expectChange: true,
+		},
+		{
+			name:         "memory set from nil",
+			inputMemory:  testutils.Ptr(2048),
+			stateMemory:  nil,
+			expectChange: true,
+		},
+		{
+			name:         "cores changed",
+			inputCores:   testutils.Ptr(4),
+			stateCores:   testutils.Ptr(2),
+			expectChange: true,
+		},
 	}
-	resp, err := v.Diff(context.Background(), req)
-	require.NoError(t, err)
-	assert.True(t, resp.HasChanges)
-	assert.Equal(t, p.UpdateReplace, resp.DetailedDiff["vmId"].Kind)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &vmResource.VM{}
+			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+				ID: "100",
+				Inputs: vmResource.Inputs{
+					Name:   testutils.Ptr("test-vm"),
+					Memory: tt.inputMemory,
+					Cores:  tt.inputCores,
+					Disks:  []*vmResource.Disk{},
+				},
+				State: vmResource.Outputs{
+					Inputs: vmResource.Inputs{
+						Name:   testutils.Ptr("test-vm"),
+						Memory: tt.stateMemory,
+						Cores:  tt.stateCores,
+						Disks:  []*vmResource.Disk{},
+					},
+				},
+			}
+
+			resp, err := vm.Diff(context.Background(), req)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectChange, resp.HasChanges)
+		})
+	}
 }
 
-// TestVMCustomDiffRegularUpdate ensures normal update diff for a regular field.
-func TestVMCustomDiffRegularUpdate(t *testing.T) {
+func TestVMDiffMultipleChanges(t *testing.T) {
 	t.Parallel()
-	v := &vm.VM{}
-	nameOld := "vm-old"
-	nameNew := "vm-new"
-	state := vm.Outputs{Inputs: vm.Inputs{Name: &nameOld}}
-	req := infer.DiffRequest[vm.Inputs, vm.Outputs]{
-		Inputs: vm.Inputs{Name: &nameNew},
-		State:  state,
+
+	vm := &vmResource.VM{}
+	req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+		ID: "100",
+		Inputs: vmResource.Inputs{
+			Name:   testutils.Ptr("new-name"),
+			Memory: testutils.Ptr(4096),
+			Cores:  testutils.Ptr(4),
+			Disks: []*vmResource.Disk{
+				{Size: 50, Interface: "scsi0"},
+			},
+			EfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
+		},
+		State: vmResource.Outputs{
+			Inputs: vmResource.Inputs{
+				Name:   testutils.Ptr("old-name"),
+				Memory: testutils.Ptr(2048),
+				Cores:  testutils.Ptr(2),
+				Disks: []*vmResource.Disk{
+					{Size: 40, Interface: "scsi0"},
+				},
+				EfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
+			},
+		},
 	}
-	resp, err := v.Diff(context.Background(), req)
+
+	resp, err := vm.Diff(context.Background(), req)
 	require.NoError(t, err)
+
 	assert.True(t, resp.HasChanges)
-	assert.Equal(t, p.Update, resp.DetailedDiff["name"].Kind)
+	assert.Contains(t, resp.DetailedDiff, "name")
+	assert.Contains(t, resp.DetailedDiff, "memory")
+	assert.Contains(t, resp.DetailedDiff, "cores")
+	assert.Contains(t, resp.DetailedDiff, "disks")
+	// EfiDisk now produces granular diffs
+	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
+
+	// All should be updates, not replacements
+	for key, diff := range resp.DetailedDiff {
+		if key == "vmId" {
+			assert.Equal(t, p.UpdateReplace, diff.Kind)
+		} else {
+			assert.Equal(t, p.Update, diff.Kind)
+		}
+	}
 }

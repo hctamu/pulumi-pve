@@ -23,8 +23,8 @@ import (
 	"github.com/blang/semver"
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
-	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources"
 	roleResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleHealthyLifeCycle(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// fetch created resource to confirm
@@ -171,7 +171,7 @@ func TestRoleCreateClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleCreateCreationError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -195,7 +195,7 @@ func TestRoleCreateCreationError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleCreateFetchError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -241,7 +241,7 @@ func TestRoleDeleteClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleDeleteDeletionError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -261,7 +261,7 @@ func TestRoleDeleteDeletionError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleReadSuccess(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	// List endpoint returns our target role with privileges unsorted to test normalization
@@ -322,7 +322,7 @@ func TestRoleReadClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleReadNotFound(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -346,7 +346,7 @@ func TestRoleReadNotFound(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleReadGetResourceError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
@@ -393,7 +393,7 @@ func TestRoleUpdateClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestRoleUpdateUpdateError(t *testing.T) {
-	mockServer, cleanup := utils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
 	mockServer.AddMocks(
