@@ -129,11 +129,11 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			name: "PreEnrolledKeys changed from true to false",
 			inputEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(false),
+				PreEnrolledKeys: testutils.Ptr(false),
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(true),
+				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
@@ -143,7 +143,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			name: "PreEnrolledKeys added",
 			inputEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(true),
+				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType: vmResource.EfiType4M,
@@ -159,7 +159,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(true),
+				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
@@ -169,11 +169,11 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			name: "PreEnrolledKeys unchanged",
 			inputEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(true),
+				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			stateEfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(true),
+				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			expectChange: false,
 			description:  "Same PreEnrolledKeys should not trigger diff",
@@ -207,13 +207,13 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
 				ID: "100",
 				Inputs: vmResource.Inputs{
-					Name:    testutils.StrPtr("test-vm"),
+					Name:    testutils.Ptr("test-vm"),
 					EfiDisk: tt.inputEfiDisk,
 					Disks:   []*vmResource.Disk{}, // Empty disks to focus on EFI
 				},
 				State: vmResource.Outputs{
 					Inputs: vmResource.Inputs{
-						Name:    testutils.StrPtr("test-vm"),
+						Name:    testutils.Ptr("test-vm"),
 						EfiDisk: tt.stateEfiDisk,
 						Disks:   []*vmResource.Disk{},
 					},
@@ -305,16 +305,16 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: testutils.IntPtr(vmID),
-			Name: testutils.StrPtr("test-vm"),
+			VMID: testutils.Ptr(vmID),
+			Name: testutils.Ptr("test-vm"),
 			EfiDisk: &vmResource.EfiDisk{
 				EfiType: vmResource.EfiType4M, // Changed from 2m
 			},
 		},
 		State: vmResource.Outputs{
 			Inputs: vmResource.Inputs{
-				VMID: testutils.IntPtr(vmID),
-				Name: testutils.StrPtr("test-vm"),
+				VMID: testutils.Ptr(vmID),
+				Name: testutils.Ptr("test-vm"),
 				Node: &nodeName,
 				EfiDisk: &vmResource.EfiDisk{
 					EfiType: vmResource.EfiType2M,
@@ -326,7 +326,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 	// Set storage and FileID on diskBase (embedded struct)
 	req.Inputs.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.Storage = "local-lvm"
-	req.State.EfiDisk.FileID = testutils.StrPtr("vm-100-disk-0")
+	req.State.EfiDisk.FileID = testutils.Ptr("vm-100-disk-0")
 
 	resp, err := vm.Update(context.Background(), req)
 	require.NoError(t, err)
@@ -395,17 +395,17 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: testutils.IntPtr(vmID),
-			Name: testutils.StrPtr("test-vm"),
+			VMID: testutils.Ptr(vmID),
+			Name: testutils.Ptr("test-vm"),
 			EfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(true), // Changed from nil
+				PreEnrolledKeys: testutils.Ptr(true), // Changed from nil
 			},
 		},
 		State: vmResource.Outputs{
 			Inputs: vmResource.Inputs{
-				VMID: testutils.IntPtr(vmID),
-				Name: testutils.StrPtr("test-vm"),
+				VMID: testutils.Ptr(vmID),
+				Name: testutils.Ptr("test-vm"),
 				Node: &nodeName,
 				EfiDisk: &vmResource.EfiDisk{
 					EfiType: vmResource.EfiType4M,
@@ -417,7 +417,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 	// Set storage and FileID on diskBase
 	req.Inputs.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.Storage = "local-lvm"
-	req.State.EfiDisk.FileID = testutils.StrPtr("vm-100-disk-0")
+	req.State.EfiDisk.FileID = testutils.Ptr("vm-100-disk-0")
 
 	resp, err := vm.Update(context.Background(), req)
 	require.NoError(t, err)
@@ -469,7 +469,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: testutils.IntPtr(vmID),
+			VMID: testutils.Ptr(vmID),
 			Node: &nodeName,
 		},
 	}
@@ -529,7 +529,7 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			VMID: testutils.IntPtr(vmID),
+			VMID: testutils.Ptr(vmID),
 			Node: &nodeName,
 		},
 	}
@@ -689,7 +689,7 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "cloned-vm",
 		Inputs: vmResource.Inputs{
-			Name: testutils.StrPtr("cloned-vm"),
+			Name: testutils.Ptr("cloned-vm"),
 			Node: &nodeName,
 			Clone: &vmResource.Clone{
 				VMID:    sourceVMID,
@@ -834,7 +834,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "cloned-vm-with-efi",
 		Inputs: vmResource.Inputs{
-			Name: testutils.StrPtr("cloned-vm"),
+			Name: testutils.Ptr("cloned-vm"),
 			Node: &nodeName,
 			Clone: &vmResource.Clone{
 				VMID:    sourceVMID,
@@ -941,14 +941,14 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "test-vm-with-efi",
 		Inputs: vmResource.Inputs{
-			Name:   testutils.StrPtr("test-vm-with-efi"),
+			Name:   testutils.Ptr("test-vm-with-efi"),
 			Node:   &nodeName,
-			Cores:  testutils.IntPtr(2),
-			Memory: testutils.IntPtr(2048),
+			Cores:  testutils.Ptr(2),
+			Memory: testutils.Ptr(2048),
 			// No Clone settings - creating a new VM from scratch
 			EfiDisk: &vmResource.EfiDisk{
 				EfiType:         vmResource.EfiType4M,
-				PreEnrolledKeys: testutils.BoolPtr(false),
+				PreEnrolledKeys: testutils.Ptr(false),
 			},
 		},
 	}

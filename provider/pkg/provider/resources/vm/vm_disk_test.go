@@ -775,12 +775,12 @@ func TestVMDiffDisksChange(t *testing.T) {
 			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
 				ID: "100",
 				Inputs: vmResource.Inputs{
-					Name:  testutils.StrPtr("test-vm"),
+					Name:  testutils.Ptr("test-vm"),
 					Disks: tt.inputDisks,
 				},
 				State: vmResource.Outputs{
 					Inputs: vmResource.Inputs{
-						Name:  testutils.StrPtr("test-vm"),
+						Name:  testutils.Ptr("test-vm"),
 						Disks: tt.stateDisks,
 					},
 				},

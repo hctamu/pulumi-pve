@@ -54,17 +54,7 @@ func NewAPIMock(
 	return
 }
 
-// StrPtr creates a pointer to a string.
-func StrPtr(s string) *string {
-	return &s
-}
-
-// IntPtr creates a pointer to an int.
-func IntPtr(i int) *int {
-	return &i
-}
-
-// BoolPtr creates a pointer to a bool.
-func BoolPtr(b bool) *bool {
-	return &b
+// Ptr creates a pointer to any value.
+func Ptr[T any](v T) *T {
+	return &v
 }

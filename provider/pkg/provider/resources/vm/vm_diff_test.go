@@ -44,33 +44,33 @@ func TestVMDiffComputedFields(t *testing.T) {
 		{
 			name:         "vmId nil in input, present in state (computed)",
 			inputVMID:    nil,
-			stateVMID:    testutils.IntPtr(100),
+			stateVMID:    testutils.Ptr(100),
 			expectChange: false, // Computed field, no change expected
 		},
 		{
 			name:              "vmId changed - should trigger replace",
-			inputVMID:         testutils.IntPtr(200),
-			stateVMID:         testutils.IntPtr(100),
+			inputVMID:         testutils.Ptr(200),
+			stateVMID:         testutils.Ptr(100),
 			expectChange:      true,
 			expectReplace:     true,
 			expectedDiffField: "vmId",
 		},
 		{
 			name:         "vmId unchanged",
-			inputVMID:    testutils.IntPtr(100),
-			stateVMID:    testutils.IntPtr(100),
+			inputVMID:    testutils.Ptr(100),
+			stateVMID:    testutils.Ptr(100),
 			expectChange: false,
 		},
 		{
 			name:         "node nil in input, present in state (computed)",
 			inputNode:    nil,
-			stateNode:    testutils.StrPtr("pve-node1"),
+			stateNode:    testutils.Ptr("pve-node1"),
 			expectChange: false, // Computed field, no change expected
 		},
 		{
 			name:              "node changed",
-			inputNode:         testutils.StrPtr("pve-node2"),
-			stateNode:         testutils.StrPtr("pve-node1"),
+			inputNode:         testutils.Ptr("pve-node2"),
+			stateNode:         testutils.Ptr("pve-node1"),
 			expectChange:      true,
 			expectedDiffField: "node",
 		},
@@ -84,14 +84,14 @@ func TestVMDiffComputedFields(t *testing.T) {
 			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
 				ID: "100",
 				Inputs: vmResource.Inputs{
-					Name:  testutils.StrPtr("test-vm"),
+					Name:  testutils.Ptr("test-vm"),
 					VMID:  tt.inputVMID,
 					Node:  tt.inputNode,
 					Disks: []*vmResource.Disk{},
 				},
 				State: vmResource.Outputs{
 					Inputs: vmResource.Inputs{
-						Name:  testutils.StrPtr("test-vm"),
+						Name:  testutils.Ptr("test-vm"),
 						VMID:  tt.stateVMID,
 						Node:  tt.stateNode,
 						Disks: []*vmResource.Disk{},
@@ -130,32 +130,32 @@ func TestVMDiffPointerFields(t *testing.T) {
 	}{
 		{
 			name:         "memory changed",
-			inputMemory:  testutils.IntPtr(4096),
-			stateMemory:  testutils.IntPtr(2048),
+			inputMemory:  testutils.Ptr(4096),
+			stateMemory:  testutils.Ptr(2048),
 			expectChange: true,
 		},
 		{
 			name:         "memory unchanged",
-			inputMemory:  testutils.IntPtr(2048),
-			stateMemory:  testutils.IntPtr(2048),
+			inputMemory:  testutils.Ptr(2048),
+			stateMemory:  testutils.Ptr(2048),
 			expectChange: false,
 		},
 		{
 			name:         "memory cleared (set to nil)",
 			inputMemory:  nil,
-			stateMemory:  testutils.IntPtr(2048),
+			stateMemory:  testutils.Ptr(2048),
 			expectChange: true,
 		},
 		{
 			name:         "memory set from nil",
-			inputMemory:  testutils.IntPtr(2048),
+			inputMemory:  testutils.Ptr(2048),
 			stateMemory:  nil,
 			expectChange: true,
 		},
 		{
 			name:         "cores changed",
-			inputCores:   testutils.IntPtr(4),
-			stateCores:   testutils.IntPtr(2),
+			inputCores:   testutils.Ptr(4),
+			stateCores:   testutils.Ptr(2),
 			expectChange: true,
 		},
 	}
@@ -168,14 +168,14 @@ func TestVMDiffPointerFields(t *testing.T) {
 			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
 				ID: "100",
 				Inputs: vmResource.Inputs{
-					Name:   testutils.StrPtr("test-vm"),
+					Name:   testutils.Ptr("test-vm"),
 					Memory: tt.inputMemory,
 					Cores:  tt.inputCores,
 					Disks:  []*vmResource.Disk{},
 				},
 				State: vmResource.Outputs{
 					Inputs: vmResource.Inputs{
-						Name:   testutils.StrPtr("test-vm"),
+						Name:   testutils.Ptr("test-vm"),
 						Memory: tt.stateMemory,
 						Cores:  tt.stateCores,
 						Disks:  []*vmResource.Disk{},
@@ -198,9 +198,9 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
 		ID: "100",
 		Inputs: vmResource.Inputs{
-			Name:   testutils.StrPtr("new-name"),
-			Memory: testutils.IntPtr(4096),
-			Cores:  testutils.IntPtr(4),
+			Name:   testutils.Ptr("new-name"),
+			Memory: testutils.Ptr(4096),
+			Cores:  testutils.Ptr(4),
 			Disks: []*vmResource.Disk{
 				{Size: 50, Interface: "scsi0"},
 			},
@@ -208,9 +208,9 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 		},
 		State: vmResource.Outputs{
 			Inputs: vmResource.Inputs{
-				Name:   testutils.StrPtr("old-name"),
-				Memory: testutils.IntPtr(2048),
-				Cores:  testutils.IntPtr(2),
+				Name:   testutils.Ptr("old-name"),
+				Memory: testutils.Ptr(2048),
+				Cores:  testutils.Ptr(2),
 				Disks: []*vmResource.Disk{
 					{Size: 40, Interface: "scsi0"},
 				},

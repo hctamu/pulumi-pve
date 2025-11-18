@@ -260,7 +260,7 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 				Interface: "virtio1",
 				DiskBase: vm.DiskBase{
 					Storage: "local-lvm",
-					FileID:  testutils.StrPtr("vm-100-disk-1"),
+					FileID:  testutils.Ptr("vm-100-disk-1"),
 				},
 				Size: 64,
 			},
