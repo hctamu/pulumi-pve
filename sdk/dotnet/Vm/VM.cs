@@ -16,9 +16,6 @@ namespace Hctamu.Pve.Vm
         [Output("acpi")]
         public Output<int?> Acpi { get; private set; } = null!;
 
-        [Output("affinity")]
-        public Output<string?> Affinity { get; private set; } = null!;
-
         [Output("audio0")]
         public Output<string?> Audio0 { get; private set; } = null!;
 
@@ -49,17 +46,8 @@ namespace Hctamu.Pve.Vm
         [Output("clone")]
         public Output<Outputs.Clone?> Clone { get; private set; } = null!;
 
-        [Output("cores")]
-        public Output<int?> Cores { get; private set; } = null!;
-
         [Output("cpu")]
-        public Output<string?> Cpu { get; private set; } = null!;
-
-        [Output("cpulimit")]
-        public Output<string?> Cpulimit { get; private set; } = null!;
-
-        [Output("cpuunits")]
-        public Output<int?> Cpuunits { get; private set; } = null!;
+        public Output<Outputs.Cpu?> Cpu { get; private set; } = null!;
 
         [Output("description")]
         public Output<string?> Description { get; private set; } = null!;
@@ -106,12 +94,6 @@ namespace Hctamu.Pve.Vm
         [Output("node")]
         public Output<string?> Node { get; private set; } = null!;
 
-        [Output("numa")]
-        public Output<int?> Numa { get; private set; } = null!;
-
-        [Output("numa0")]
-        public Output<string?> Numa0 { get; private set; } = null!;
-
         [Output("ostype")]
         public Output<string?> Ostype { get; private set; } = null!;
 
@@ -144,9 +126,6 @@ namespace Hctamu.Pve.Vm
 
         [Output("usb0")]
         public Output<string?> Usb0 { get; private set; } = null!;
-
-        [Output("vcpus")]
-        public Output<int?> Vcpus { get; private set; } = null!;
 
         [Output("vga")]
         public Output<string?> Vga { get; private set; } = null!;
@@ -202,9 +181,6 @@ namespace Hctamu.Pve.Vm
         [Input("acpi")]
         public Input<int>? Acpi { get; set; }
 
-        [Input("affinity")]
-        public Input<string>? Affinity { get; set; }
-
         [Input("audio0")]
         public Input<string>? Audio0 { get; set; }
 
@@ -235,17 +211,8 @@ namespace Hctamu.Pve.Vm
         [Input("clone")]
         public Input<Inputs.CloneArgs>? Clone { get; set; }
 
-        [Input("cores")]
-        public Input<int>? Cores { get; set; }
-
         [Input("cpu")]
-        public Input<string>? Cpu { get; set; }
-
-        [Input("cpulimit")]
-        public Input<string>? Cpulimit { get; set; }
-
-        [Input("cpuunits")]
-        public Input<int>? Cpuunits { get; set; }
+        public Input<Inputs.CpuArgs>? Cpu { get; set; }
 
         [Input("description")]
         public Input<string>? Description { get; set; }
@@ -297,12 +264,6 @@ namespace Hctamu.Pve.Vm
         [Input("node")]
         public Input<string>? Node { get; set; }
 
-        [Input("numa")]
-        public Input<int>? Numa { get; set; }
-
-        [Input("numa0")]
-        public Input<string>? Numa0 { get; set; }
-
         [Input("ostype")]
         public Input<string>? Ostype { get; set; }
 
@@ -336,9 +297,6 @@ namespace Hctamu.Pve.Vm
         [Input("usb0")]
         public Input<string>? Usb0 { get; set; }
 
-        [Input("vcpus")]
-        public Input<int>? Vcpus { get; set; }
-
         [Input("vga")]
         public Input<string>? Vga { get; set; }
 
@@ -347,7 +305,6 @@ namespace Hctamu.Pve.Vm
 
         public VMArgs()
         {
-            Cores = 1;
         }
         public static new VMArgs Empty => new VMArgs();
     }
