@@ -8,7 +8,6 @@ NUGET_PKG_NAME   := Pulumi.Pve
 
 PROVIDER        := pulumi-resource-${PACK}
 PROVIDER_PATH   := provider
-VERSION_PATH    := ${PROVIDER_PATH}/pkg/version.Version
 
 PULUMI          := .pulumi/bin/pulumi
 
