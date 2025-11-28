@@ -811,7 +811,16 @@ func (inputs *Inputs) Annotate(a infer.Annotator) {
 		"A Proxmox Virtual Machine (VM) resource that manages virtual machines in the Proxmox VE.",
 	)
 
-	a.SetDefault(&inputs.Cores, 1)
+	// Only set default cores if user hasn't provided a CPU configuration
+	if inputs.CPU == nil {
+		inputs.CPU = &CPU{}
+		defaultCores := 1
+		inputs.CPU.Cores = &defaultCores
+	} else if inputs.CPU.Cores == nil {
+		// User provided CPU config but no cores - set default
+		defaultCores := 1
+		inputs.CPU.Cores = &defaultCores
+	}
 }
 
 // Annotate provides documentation for the EfiDisk type.

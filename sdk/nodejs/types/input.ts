@@ -27,6 +27,22 @@ export namespace vm {
         vmId: pulumi.Input<number>;
     }
 
+    export interface CpuArgs {
+        cores?: pulumi.Input<number>;
+        flagsDisabled?: pulumi.Input<pulumi.Input<string>[]>;
+        flagsEnabled?: pulumi.Input<pulumi.Input<string>[]>;
+        hidden?: pulumi.Input<boolean>;
+        hvVendorId?: pulumi.Input<string>;
+        limit?: pulumi.Input<number>;
+        numa?: pulumi.Input<boolean>;
+        numaNodes?: pulumi.Input<pulumi.Input<inputs.vm.NumaNodeArgs>[]>;
+        physBits?: pulumi.Input<string>;
+        sockets?: pulumi.Input<number>;
+        type?: pulumi.Input<string>;
+        units?: pulumi.Input<number>;
+        vcpus?: pulumi.Input<number>;
+    }
+
     export interface DiskArgs {
         filename?: pulumi.Input<string>;
         interface: pulumi.Input<string>;
@@ -42,5 +58,12 @@ export namespace vm {
         filename?: pulumi.Input<string>;
         preEnrolledKeys?: pulumi.Input<boolean>;
         storage: pulumi.Input<string>;
+    }
+
+    export interface NumaNodeArgs {
+        cpus: pulumi.Input<string>;
+        hostNodes?: pulumi.Input<string>;
+        memory?: pulumi.Input<number>;
+        policy?: pulumi.Input<string>;
     }
 }
