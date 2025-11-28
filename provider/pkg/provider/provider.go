@@ -34,7 +34,7 @@ import (
 )
 
 // Version is initialized by the Go linker to contain the semver of this build.
-var Version string
+var Version string = "0.0.6"
 
 // Name is the name of the PVE provider.
 const Name string = "pve"
@@ -53,7 +53,7 @@ func NewProvider() p.Provider {
 			infer.Resource(&acl.ACL{}),
 			infer.Resource(&user.User{}),
 		},
-		Config: infer.Config[config.Config](config.Config{}),
+		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
 			"provider": "index",
 		},
