@@ -508,6 +508,264 @@ func TestParseNumaNode(t *testing.T) {
 	}
 }
 
+// TestNumaNodesEqual verifies that numaNodesEqual correctly compares NUMA node slices
+func TestNumaNodesEqual(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		inputA   []vm.NumaNode
+		inputB   []vm.NumaNode
+		expected bool
+	}{
+		{
+			name:     "both nil slices",
+			inputA:   nil,
+			inputB:   nil,
+			expected: true,
+		},
+		{
+			name:     "both empty slices",
+			inputA:   []vm.NumaNode{},
+			inputB:   []vm.NumaNode{},
+			expected: true,
+		},
+		{
+			name: "equal single node - all fields",
+			inputA: []vm.NumaNode{
+				{
+					Cpus:      "0-3",
+					HostNodes: testutils.Ptr("0-1"),
+					Memory:    testutils.Ptr(2048),
+					Policy:    testutils.Ptr("bind"),
+				},
+			},
+			inputB: []vm.NumaNode{
+				{
+					Cpus:      "0-3",
+					HostNodes: testutils.Ptr("0-1"),
+					Memory:    testutils.Ptr(2048),
+					Policy:    testutils.Ptr("bind"),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "equal single node - minimal",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3"},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3"},
+			},
+			expected: true,
+		},
+		{
+			name: "equal multiple nodes",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+				{Cpus: "4-7", Memory: testutils.Ptr(4096)},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+				{Cpus: "4-7", Memory: testutils.Ptr(4096)},
+			},
+			expected: true,
+		},
+		{
+			name: "different lengths - first longer",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3"},
+				{Cpus: "4-7"},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3"},
+			},
+			expected: false,
+		},
+		{
+			name: "different lengths - second longer",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3"},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3"},
+				{Cpus: "4-7"},
+			},
+			expected: false,
+		},
+		{
+			name: "different Cpus field",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3"},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-7"},
+			},
+			expected: false,
+		},
+		{
+			name: "different HostNodes - first nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: testutils.Ptr("0-1")},
+			},
+			expected: false,
+		},
+		{
+			name: "different HostNodes - second nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: testutils.Ptr("0-1")},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: nil},
+			},
+			expected: false,
+		},
+		{
+			name: "different HostNodes - both non-nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: testutils.Ptr("0-1")},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: testutils.Ptr("0-2")},
+			},
+			expected: false,
+		},
+		{
+			name: "equal HostNodes - both nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: nil},
+			},
+			expected: true,
+		},
+		{
+			name: "different Memory - first nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Memory: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+			},
+			expected: false,
+		},
+		{
+			name: "different Memory - second nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Memory: nil},
+			},
+			expected: false,
+		},
+		{
+			name: "different Memory - both non-nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(4096)},
+			},
+			expected: false,
+		},
+		{
+			name: "equal Memory - both nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Memory: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Memory: nil},
+			},
+			expected: true,
+		},
+		{
+			name: "different Policy - first nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Policy: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Policy: testutils.Ptr("bind")},
+			},
+			expected: false,
+		},
+		{
+			name: "different Policy - second nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Policy: testutils.Ptr("bind")},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Policy: nil},
+			},
+			expected: false,
+		},
+		{
+			name: "different Policy - both non-nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Policy: testutils.Ptr("bind")},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Policy: testutils.Ptr("interleave")},
+			},
+			expected: false,
+		},
+		{
+			name: "equal Policy - both nil",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Policy: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Policy: nil},
+			},
+			expected: true,
+		},
+		{
+			name: "complex - multiple nodes with all equal",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: testutils.Ptr("0"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("bind")},
+				{Cpus: "4-7", HostNodes: testutils.Ptr("1"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("bind")},
+				{Cpus: "8-11", HostNodes: nil, Memory: nil, Policy: nil},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", HostNodes: testutils.Ptr("0"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("bind")},
+				{Cpus: "4-7", HostNodes: testutils.Ptr("1"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("bind")},
+				{Cpus: "8-11", HostNodes: nil, Memory: nil, Policy: nil},
+			},
+			expected: true,
+		},
+		{
+			name: "complex - difference in second node",
+			inputA: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+				{Cpus: "4-7", Memory: testutils.Ptr(2048)},
+			},
+			inputB: []vm.NumaNode{
+				{Cpus: "0-3", Memory: testutils.Ptr(2048)},
+				{Cpus: "4-7", Memory: testutils.Ptr(4096)},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := vm.NumaNodesEqual(tt.inputA, tt.inputB)
+			assert.Equal(t, tt.expected, result)
+
+			// Verify symmetry - NumaNodesEqual(a, b) should equal NumaNodesEqual(b, a)
+			resultReverse := vm.NumaNodesEqual(tt.inputB, tt.inputA)
+			assert.Equal(t, tt.expected, resultReverse, "NumaNodesEqual should be symmetric")
+		})
+	}
+}
+
 // TestCPUToProxmoxString verifies that ToProxmoxString correctly serializes CPU struct to Proxmox format
 func TestCPUToProxmoxString(t *testing.T) {
 	t.Parallel()
@@ -644,6 +902,15 @@ func TestCPUToProxmoxString(t *testing.T) {
 				FlagsEnabled: []string{"aes", "", "avx2"},
 			},
 			expected: "host,flags=+aes;+avx2",
+		},
+		{
+			name: "flags with only empty strings - all filtered out",
+			input: &vm.CPU{
+				Type:          testutils.Ptr("host"),
+				FlagsEnabled:  []string{"", ""},
+				FlagsDisabled: []string{""},
+			},
+			expected: "host",
 		},
 		{
 			name: "only disabled flags",
