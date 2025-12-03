@@ -17,6 +17,7 @@ limitations under the License.
 package provider
 
 import (
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
@@ -39,14 +40,31 @@ var Version string = "0.0.6"
 // Name is the name of the PVE provider.
 const Name string = "pve"
 
+// newHAResourceWithConfig creates a new HA resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newHAResourceWithConfig(cfg *config.Config) *ha.HA {
+	// Create ProxmoxAdapter with config
+	proxmoxClient := adapters.NewProxmoxAdapter(cfg)
+
+	// Create HAAdapter using the ProxmoxClient interface
+	haAdapter := adapters.NewHAAdapter(proxmoxClient)
+
+	return &ha.HA{HAOps: haAdapter}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
+	return NewProviderWithConfig(nil)
+}
+
+// NewProviderWithConfig returns a new instance of the PVE provider with a specific config (for testing).
+func NewProviderWithConfig(cfg *config.Config) p.Provider {
 	// We tell the provider what resources it needs to support.
 	return infer.Provider(infer.Options{
 		Resources: []infer.InferredResource{
 			infer.Resource(&pool.Pool{}),
 			infer.Resource(&storage.File{}),
-			infer.Resource(&ha.Ha{}),
+			infer.Resource(newHAResourceWithConfig(cfg)),
 			infer.Resource(&vm.VM{}),
 			infer.Resource(&group.Group{}),
 			infer.Resource(&role.Role{}),

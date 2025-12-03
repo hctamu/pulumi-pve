@@ -19,112 +19,70 @@ package ha
 import (
 	"context"
 	"fmt"
-	"strconv"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	px2 "github.com/hctamu/pulumi-pve/provider/px"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// Ensure Ha implements the required interfaces
+// Ensure HA implements the required interfaces
 var (
-	_ = (infer.CustomResource[Inputs, Outputs])((*Ha)(nil))
-	_ = (infer.CustomDelete[Outputs])((*Ha)(nil))
-	_ = (infer.CustomUpdate[Inputs, Outputs])((*Ha)(nil))
-	_ = (infer.CustomRead[Inputs, Outputs])((*Ha)(nil))
-	_ = infer.Annotated((*Ha)(nil))
+	_ = (infer.CustomResource[proxmox.HAInputs, proxmox.HAOutputs])((*HA)(nil))
+	_ = (infer.CustomDelete[proxmox.HAOutputs])((*HA)(nil))
+	_ = (infer.CustomUpdate[proxmox.HAInputs, proxmox.HAOutputs])((*HA)(nil))
+	_ = (infer.CustomRead[proxmox.HAInputs, proxmox.HAOutputs])((*HA)(nil))
+	_ = infer.Annotated((*HA)(nil))
 )
 
-// Ha represents a Proxmox HA resource
-type Ha struct{}
-
-// State represents the state of the HA resource
-type State string
-
-const (
-	// StateIgnored represents the "ignored" state for HA.
-	StateIgnored State = "ignored"
-	// StateStarted represents the "started" state for HA (default).
-	StateStarted State = "started"
-	// StateStopped represents the "stopped" state for HA.
-	StateStopped State = "stopped"
-)
-
-// ValidateState validates the HA state
-func (state State) ValidateState(ctx context.Context) (err error) {
-	switch state {
-	case StateIgnored, StateStarted, StateStopped:
-		return nil
-	default:
-		err = fmt.Errorf("invalid state: %s", state)
-		p.GetLogger(ctx).Error(err.Error())
-		return err
-	}
-}
-
-// Inputs represents the input properties for the HA resource
-type Inputs struct {
-	Group      string `pulumi:"group,optional"`
-	State      State  `pulumi:"state,optional"`
-	ResourceID int    `pulumi:"resourceId"     provider:"replaceOnChanges"`
-}
-
-// Outputs represents the output properties for the HA resource
-type Outputs struct {
-	Inputs
+// HA represents a Proxmox HA resource
+type HA struct {
+	HAOps proxmox.HAOperations
 }
 
 // Create creates a new HA resource
-func (ha *Ha) Create(
+func (ha *HA) Create(
 	ctx context.Context,
-	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
+	request infer.CreateRequest[proxmox.HAInputs],
+) (response infer.CreateResponse[proxmox.HAOutputs], err error) {
 	inputs := request.Inputs
 	preview := request.DryRun
 
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Creating ha resource: %v", inputs)
-	response = infer.CreateResponse[Outputs]{
+	response = infer.CreateResponse[proxmox.HAOutputs]{
 		ID:     request.Name,
-		Output: Outputs{Inputs: inputs},
+		Output: proxmox.HAOutputs{HAInputs: inputs},
 	}
 
 	if preview {
 		return response, nil
 	}
 
-	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		err = fmt.Errorf("failed to get Proxmox client: %w", err)
+	if ha.HAOps == nil {
+		err = fmt.Errorf("HAOperations not configured")
 		return response, err
 	}
 
-	err = pxc.CreateHA(ctx, &px2.HaResource{
-		Group: inputs.Group,
-		State: string(inputs.State),
-		Sid:   strconv.Itoa(inputs.ResourceID),
-	})
+	err = ha.HAOps.Create(ctx, inputs)
 
 	return response, err
 }
 
 // Delete deletes an existing HA resource
-func (ha *Ha) Delete(
+func (ha *HA) Delete(
 	ctx context.Context,
-	request infer.DeleteRequest[Outputs],
+	request infer.DeleteRequest[proxmox.HAOutputs],
 ) (response infer.DeleteResponse, err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting ha resource: %v", request.State)
 
-	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
+	if ha.HAOps == nil {
+		return response, fmt.Errorf("HAOperations not configured")
 	}
 
 	id := request.State.ResourceID
-	if err := pxc.DeleteHA(ctx, id); err != nil {
+	if err := ha.HAOps.Delete(ctx, id); err != nil {
 		return response, err
 	}
 	logger.Debugf("HA resource %v deleted", id)
@@ -133,10 +91,10 @@ func (ha *Ha) Delete(
 }
 
 // Update updates an existing HA resource
-func (ha *Ha) Update(
+func (ha *HA) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[Inputs, Outputs],
-) (response infer.UpdateResponse[Outputs], err error) {
+	request infer.UpdateRequest[proxmox.HAInputs, proxmox.HAOutputs],
+) (response infer.UpdateResponse[proxmox.HAOutputs], err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Updating ha resource: %v", request.ID)
 	response.Output = request.State
@@ -145,77 +103,50 @@ func (ha *Ha) Update(
 		return response, nil
 	}
 
-	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		err = fmt.Errorf("failed to get Proxmox client: %w", err)
+	if ha.HAOps == nil {
+		err = fmt.Errorf("HAOperations not configured")
 		return response, err
 	}
 
-	response.Output.Inputs = request.Inputs
+	response.Output.HAInputs = request.Inputs
 
-	haResource := px2.HaResource{
-		State: string(request.Inputs.State),
-	}
-
-	if request.Inputs.Group == "" && request.State.Group != "" {
-		haResource.Delete = []string{"group"}
-	} else if request.Inputs.Group != "" {
-		haResource.Group = request.Inputs.Group
-	}
-	err = pxc.UpdateHA(ctx, request.State.ResourceID, &haResource)
+	err = ha.HAOps.Update(ctx, request.State.ResourceID, request.Inputs, request.State)
 
 	return response, err
 }
 
 // Read reads the current state of an HA resource
-func (ha *Ha) Read(
+func (ha *HA) Read(
 	ctx context.Context,
-	request infer.ReadRequest[Inputs, Outputs],
-) (response infer.ReadResponse[Inputs, Outputs], err error) {
+	request infer.ReadRequest[proxmox.HAInputs, proxmox.HAOutputs],
+) (response infer.ReadResponse[proxmox.HAInputs, proxmox.HAOutputs], err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Reading ha resource: %v", request.ID)
 	response.Inputs = request.Inputs
 	response.State = request.State
 	response.ID = request.ID
 
-	var pxc *px2.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		err = fmt.Errorf("failed to get Proxmox client: %w", err)
+	if ha.HAOps == nil {
+		err = fmt.Errorf("HAOperations not configured")
 		return response, err
 	}
 
-	var haResource *px2.HaResource
+	var outputs *proxmox.HAOutputs
 
-	if haResource, err = pxc.GetHA(ctx, request.Inputs.ResourceID); err != nil {
+	if outputs, err = ha.HAOps.Get(ctx, request.Inputs.ResourceID); err != nil {
 		return response, err
 	}
 
-	response.Inputs.Group = haResource.Group
-	response.Inputs.State = State(haResource.State)
-	response.Inputs.ResourceID = request.State.ResourceID
-
-	response.State.Group = haResource.Group
-	response.State.State = State(haResource.State)
-	response.State.ResourceID = request.State.ResourceID
+	response.Inputs = outputs.HAInputs
+	response.State = *outputs
 
 	return response, nil
 }
 
 // Annotate adds descriptions to the HA resource and its properties
-func (ha *Ha) Annotate(a infer.Annotator) {
+func (ha *HA) Annotate(a infer.Annotator) {
 	a.Describe(
 		ha,
 		"A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.",
 	)
-}
-
-// Annotate adds descriptions to the Input properties for documentation and schema generation.
-func (inputs *Inputs) Annotate(a infer.Annotator) {
-	a.Describe(&inputs.Group, "The HA group identifier.")
-	a.Describe(
-		&inputs.ResourceID,
-		"The ID of the virtual machine that will be managed by HA (required).",
-	)
-	a.Describe(&inputs.State, "The state of the HA resource (default: started).")
-	a.SetDefault(&inputs.State, "started")
 }
