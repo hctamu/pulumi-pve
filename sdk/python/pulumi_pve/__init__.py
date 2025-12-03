@@ -63,7 +63,7 @@ _utilities.register(
   "mod": "ha",
   "fqn": "pulumi_pve.ha",
   "classes": {
-   "pve:ha:Ha": "Ha"
+   "pve:ha:HA": "HA"
   }
  },
  {

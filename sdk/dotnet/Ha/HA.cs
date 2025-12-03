@@ -13,8 +13,8 @@ namespace Hctamu.Pve.Ha
     /// <summary>
     /// A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
     /// </summary>
-    [PveResourceType("pve:ha:Ha")]
-    public partial class Ha : global::Pulumi.CustomResource
+    [PveResourceType("pve:ha:HA")]
+    public partial class HA : global::Pulumi.CustomResource
     {
         /// <summary>
         /// The HA group identifier.
@@ -36,19 +36,19 @@ namespace Hctamu.Pve.Ha
 
 
         /// <summary>
-        /// Create a Ha resource with the given unique name, arguments, and options.
+        /// Create a HA resource with the given unique name, arguments, and options.
         /// </summary>
         ///
         /// <param name="name">The unique name of the resource</param>
         /// <param name="args">The arguments used to populate this resource's properties</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
-        public Ha(string name, HaArgs args, CustomResourceOptions? options = null)
-            : base("pve:ha:Ha", name, args ?? new HaArgs(), MakeResourceOptions(options, ""))
+        public HA(string name, HAArgs args, CustomResourceOptions? options = null)
+            : base("pve:ha:HA", name, args ?? new HAArgs(), MakeResourceOptions(options, ""))
         {
         }
 
-        private Ha(string name, Input<string> id, CustomResourceOptions? options = null)
-            : base("pve:ha:Ha", name, null, MakeResourceOptions(options, id))
+        private HA(string name, Input<string> id, CustomResourceOptions? options = null)
+            : base("pve:ha:HA", name, null, MakeResourceOptions(options, id))
         {
         }
 
@@ -68,20 +68,20 @@ namespace Hctamu.Pve.Ha
             return merged;
         }
         /// <summary>
-        /// Get an existing Ha resource's state with the given name, ID, and optional extra
+        /// Get an existing HA resource's state with the given name, ID, and optional extra
         /// properties used to qualify the lookup.
         /// </summary>
         ///
         /// <param name="name">The unique name of the resulting resource.</param>
         /// <param name="id">The unique provider ID of the resource to lookup.</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
-        public static Ha Get(string name, Input<string> id, CustomResourceOptions? options = null)
+        public static HA Get(string name, Input<string> id, CustomResourceOptions? options = null)
         {
-            return new Ha(name, id, options);
+            return new HA(name, id, options);
         }
     }
 
-    public sealed class HaArgs : global::Pulumi.ResourceArgs
+    public sealed class HAArgs : global::Pulumi.ResourceArgs
     {
         /// <summary>
         /// The HA group identifier.
@@ -101,10 +101,10 @@ namespace Hctamu.Pve.Ha
         [Input("state")]
         public Input<string>? State { get; set; }
 
-        public HaArgs()
+        public HAArgs()
         {
             State = "started";
         }
-        public static new HaArgs Empty => new HaArgs();
+        public static new HAArgs Empty => new HAArgs();
     }
 }

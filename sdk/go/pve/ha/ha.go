@@ -13,7 +13,7 @@ import (
 )
 
 // A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
-type Ha struct {
+type HA struct {
 	pulumi.CustomResourceState
 
 	// The HA group identifier.
@@ -24,9 +24,9 @@ type Ha struct {
 	State pulumi.StringPtrOutput `pulumi:"state"`
 }
 
-// NewHa registers a new resource with the given unique name, arguments, and options.
-func NewHa(ctx *pulumi.Context,
-	name string, args *HaArgs, opts ...pulumi.ResourceOption) (*Ha, error) {
+// NewHA registers a new resource with the given unique name, arguments, and options.
+func NewHA(ctx *pulumi.Context,
+	name string, args *HAArgs, opts ...pulumi.ResourceOption) (*HA, error) {
 	if args == nil {
 		return nil, errors.New("missing one or more required arguments")
 	}
@@ -42,34 +42,34 @@ func NewHa(ctx *pulumi.Context,
 	})
 	opts = append(opts, replaceOnChanges)
 	opts = internal.PkgResourceDefaultOpts(opts)
-	var resource Ha
-	err := ctx.RegisterResource("pve:ha:Ha", name, args, &resource, opts...)
+	var resource HA
+	err := ctx.RegisterResource("pve:ha:HA", name, args, &resource, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return &resource, nil
 }
 
-// GetHa gets an existing Ha resource's state with the given name, ID, and optional
+// GetHA gets an existing HA resource's state with the given name, ID, and optional
 // state properties that are used to uniquely qualify the lookup (nil if not required).
-func GetHa(ctx *pulumi.Context,
-	name string, id pulumi.IDInput, state *HaState, opts ...pulumi.ResourceOption) (*Ha, error) {
-	var resource Ha
-	err := ctx.ReadResource("pve:ha:Ha", name, id, state, &resource, opts...)
+func GetHA(ctx *pulumi.Context,
+	name string, id pulumi.IDInput, state *HAState, opts ...pulumi.ResourceOption) (*HA, error) {
+	var resource HA
+	err := ctx.ReadResource("pve:ha:HA", name, id, state, &resource, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return &resource, nil
 }
 
-// Input properties used for looking up and filtering Ha resources.
+// Input properties used for looking up and filtering HA resources.
 type haState struct {
 }
 
-type HaState struct {
+type HAState struct {
 }
 
-func (HaState) ElementType() reflect.Type {
+func (HAState) ElementType() reflect.Type {
 	return reflect.TypeOf((*haState)(nil)).Elem()
 }
 
@@ -82,8 +82,8 @@ type haArgs struct {
 	State *string `pulumi:"state"`
 }
 
-// The set of arguments for constructing a Ha resource.
-type HaArgs struct {
+// The set of arguments for constructing a HA resource.
+type HAArgs struct {
 	// The HA group identifier.
 	Group pulumi.StringPtrInput
 	// The ID of the virtual machine that will be managed by HA (required).
@@ -92,153 +92,153 @@ type HaArgs struct {
 	State pulumi.StringPtrInput
 }
 
-func (HaArgs) ElementType() reflect.Type {
+func (HAArgs) ElementType() reflect.Type {
 	return reflect.TypeOf((*haArgs)(nil)).Elem()
 }
 
-type HaInput interface {
+type HAInput interface {
 	pulumi.Input
 
-	ToHaOutput() HaOutput
-	ToHaOutputWithContext(ctx context.Context) HaOutput
+	ToHAOutput() HAOutput
+	ToHAOutputWithContext(ctx context.Context) HAOutput
 }
 
-func (*Ha) ElementType() reflect.Type {
-	return reflect.TypeOf((**Ha)(nil)).Elem()
+func (*HA) ElementType() reflect.Type {
+	return reflect.TypeOf((**HA)(nil)).Elem()
 }
 
-func (i *Ha) ToHaOutput() HaOutput {
-	return i.ToHaOutputWithContext(context.Background())
+func (i *HA) ToHAOutput() HAOutput {
+	return i.ToHAOutputWithContext(context.Background())
 }
 
-func (i *Ha) ToHaOutputWithContext(ctx context.Context) HaOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(HaOutput)
+func (i *HA) ToHAOutputWithContext(ctx context.Context) HAOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(HAOutput)
 }
 
-// HaArrayInput is an input type that accepts HaArray and HaArrayOutput values.
-// You can construct a concrete instance of `HaArrayInput` via:
+// HAArrayInput is an input type that accepts HAArray and HAArrayOutput values.
+// You can construct a concrete instance of `HAArrayInput` via:
 //
-//	HaArray{ HaArgs{...} }
-type HaArrayInput interface {
+//	HAArray{ HAArgs{...} }
+type HAArrayInput interface {
 	pulumi.Input
 
-	ToHaArrayOutput() HaArrayOutput
-	ToHaArrayOutputWithContext(context.Context) HaArrayOutput
+	ToHAArrayOutput() HAArrayOutput
+	ToHAArrayOutputWithContext(context.Context) HAArrayOutput
 }
 
-type HaArray []HaInput
+type HAArray []HAInput
 
-func (HaArray) ElementType() reflect.Type {
-	return reflect.TypeOf((*[]*Ha)(nil)).Elem()
+func (HAArray) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*HA)(nil)).Elem()
 }
 
-func (i HaArray) ToHaArrayOutput() HaArrayOutput {
-	return i.ToHaArrayOutputWithContext(context.Background())
+func (i HAArray) ToHAArrayOutput() HAArrayOutput {
+	return i.ToHAArrayOutputWithContext(context.Background())
 }
 
-func (i HaArray) ToHaArrayOutputWithContext(ctx context.Context) HaArrayOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(HaArrayOutput)
+func (i HAArray) ToHAArrayOutputWithContext(ctx context.Context) HAArrayOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(HAArrayOutput)
 }
 
-// HaMapInput is an input type that accepts HaMap and HaMapOutput values.
-// You can construct a concrete instance of `HaMapInput` via:
+// HAMapInput is an input type that accepts HAMap and HAMapOutput values.
+// You can construct a concrete instance of `HAMapInput` via:
 //
-//	HaMap{ "key": HaArgs{...} }
-type HaMapInput interface {
+//	HAMap{ "key": HAArgs{...} }
+type HAMapInput interface {
 	pulumi.Input
 
-	ToHaMapOutput() HaMapOutput
-	ToHaMapOutputWithContext(context.Context) HaMapOutput
+	ToHAMapOutput() HAMapOutput
+	ToHAMapOutputWithContext(context.Context) HAMapOutput
 }
 
-type HaMap map[string]HaInput
+type HAMap map[string]HAInput
 
-func (HaMap) ElementType() reflect.Type {
-	return reflect.TypeOf((*map[string]*Ha)(nil)).Elem()
+func (HAMap) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*HA)(nil)).Elem()
 }
 
-func (i HaMap) ToHaMapOutput() HaMapOutput {
-	return i.ToHaMapOutputWithContext(context.Background())
+func (i HAMap) ToHAMapOutput() HAMapOutput {
+	return i.ToHAMapOutputWithContext(context.Background())
 }
 
-func (i HaMap) ToHaMapOutputWithContext(ctx context.Context) HaMapOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(HaMapOutput)
+func (i HAMap) ToHAMapOutputWithContext(ctx context.Context) HAMapOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(HAMapOutput)
 }
 
-type HaOutput struct{ *pulumi.OutputState }
+type HAOutput struct{ *pulumi.OutputState }
 
-func (HaOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((**Ha)(nil)).Elem()
+func (HAOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**HA)(nil)).Elem()
 }
 
-func (o HaOutput) ToHaOutput() HaOutput {
+func (o HAOutput) ToHAOutput() HAOutput {
 	return o
 }
 
-func (o HaOutput) ToHaOutputWithContext(ctx context.Context) HaOutput {
+func (o HAOutput) ToHAOutputWithContext(ctx context.Context) HAOutput {
 	return o
 }
 
 // The HA group identifier.
-func (o HaOutput) Group() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *Ha) pulumi.StringPtrOutput { return v.Group }).(pulumi.StringPtrOutput)
+func (o HAOutput) Group() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *HA) pulumi.StringPtrOutput { return v.Group }).(pulumi.StringPtrOutput)
 }
 
 // The ID of the virtual machine that will be managed by HA (required).
-func (o HaOutput) ResourceId() pulumi.IntOutput {
-	return o.ApplyT(func(v *Ha) pulumi.IntOutput { return v.ResourceId }).(pulumi.IntOutput)
+func (o HAOutput) ResourceId() pulumi.IntOutput {
+	return o.ApplyT(func(v *HA) pulumi.IntOutput { return v.ResourceId }).(pulumi.IntOutput)
 }
 
 // The state of the HA resource (default: started).
-func (o HaOutput) State() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *Ha) pulumi.StringPtrOutput { return v.State }).(pulumi.StringPtrOutput)
+func (o HAOutput) State() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *HA) pulumi.StringPtrOutput { return v.State }).(pulumi.StringPtrOutput)
 }
 
-type HaArrayOutput struct{ *pulumi.OutputState }
+type HAArrayOutput struct{ *pulumi.OutputState }
 
-func (HaArrayOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*[]*Ha)(nil)).Elem()
+func (HAArrayOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*[]*HA)(nil)).Elem()
 }
 
-func (o HaArrayOutput) ToHaArrayOutput() HaArrayOutput {
+func (o HAArrayOutput) ToHAArrayOutput() HAArrayOutput {
 	return o
 }
 
-func (o HaArrayOutput) ToHaArrayOutputWithContext(ctx context.Context) HaArrayOutput {
+func (o HAArrayOutput) ToHAArrayOutputWithContext(ctx context.Context) HAArrayOutput {
 	return o
 }
 
-func (o HaArrayOutput) Index(i pulumi.IntInput) HaOutput {
-	return pulumi.All(o, i).ApplyT(func(vs []interface{}) *Ha {
-		return vs[0].([]*Ha)[vs[1].(int)]
-	}).(HaOutput)
+func (o HAArrayOutput) Index(i pulumi.IntInput) HAOutput {
+	return pulumi.All(o, i).ApplyT(func(vs []interface{}) *HA {
+		return vs[0].([]*HA)[vs[1].(int)]
+	}).(HAOutput)
 }
 
-type HaMapOutput struct{ *pulumi.OutputState }
+type HAMapOutput struct{ *pulumi.OutputState }
 
-func (HaMapOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*map[string]*Ha)(nil)).Elem()
+func (HAMapOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]*HA)(nil)).Elem()
 }
 
-func (o HaMapOutput) ToHaMapOutput() HaMapOutput {
+func (o HAMapOutput) ToHAMapOutput() HAMapOutput {
 	return o
 }
 
-func (o HaMapOutput) ToHaMapOutputWithContext(ctx context.Context) HaMapOutput {
+func (o HAMapOutput) ToHAMapOutputWithContext(ctx context.Context) HAMapOutput {
 	return o
 }
 
-func (o HaMapOutput) MapIndex(k pulumi.StringInput) HaOutput {
-	return pulumi.All(o, k).ApplyT(func(vs []interface{}) *Ha {
-		return vs[0].(map[string]*Ha)[vs[1].(string)]
-	}).(HaOutput)
+func (o HAMapOutput) MapIndex(k pulumi.StringInput) HAOutput {
+	return pulumi.All(o, k).ApplyT(func(vs []interface{}) *HA {
+		return vs[0].(map[string]*HA)[vs[1].(string)]
+	}).(HAOutput)
 }
 
 func init() {
-	pulumi.RegisterInputType(reflect.TypeOf((*HaInput)(nil)).Elem(), &Ha{})
-	pulumi.RegisterInputType(reflect.TypeOf((*HaArrayInput)(nil)).Elem(), HaArray{})
-	pulumi.RegisterInputType(reflect.TypeOf((*HaMapInput)(nil)).Elem(), HaMap{})
-	pulumi.RegisterOutputType(HaOutput{})
-	pulumi.RegisterOutputType(HaArrayOutput{})
-	pulumi.RegisterOutputType(HaMapOutput{})
+	pulumi.RegisterInputType(reflect.TypeOf((*HAInput)(nil)).Elem(), &HA{})
+	pulumi.RegisterInputType(reflect.TypeOf((*HAArrayInput)(nil)).Elem(), HAArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*HAMapInput)(nil)).Elem(), HAMap{})
+	pulumi.RegisterOutputType(HAOutput{})
+	pulumi.RegisterOutputType(HAArrayOutput{})
+	pulumi.RegisterOutputType(HAMapOutput{})
 }
