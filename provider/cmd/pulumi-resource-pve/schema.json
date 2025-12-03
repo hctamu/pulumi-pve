@@ -311,7 +311,7 @@
         "name"
       ]
     },
-    "pve:ha:Ha": {
+    "pve:ha:HA": {
       "description": "A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.",
       "properties": {
         "group": {

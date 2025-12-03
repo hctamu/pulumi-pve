@@ -14,9 +14,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
-public final class HaArgs extends com.pulumi.resources.ResourceArgs {
+public final class HAArgs extends com.pulumi.resources.ResourceArgs {
 
-    public static final HaArgs Empty = new HaArgs();
+    public static final HAArgs Empty = new HAArgs();
 
     /**
      * The HA group identifier.
@@ -63,9 +63,9 @@ public final class HaArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.state);
     }
 
-    private HaArgs() {}
+    private HAArgs() {}
 
-    private HaArgs(HaArgs $) {
+    private HAArgs(HAArgs $) {
         this.group = $.group;
         this.resourceId = $.resourceId;
         this.state = $.state;
@@ -74,19 +74,19 @@ public final class HaArgs extends com.pulumi.resources.ResourceArgs {
     public static Builder builder() {
         return new Builder();
     }
-    public static Builder builder(HaArgs defaults) {
+    public static Builder builder(HAArgs defaults) {
         return new Builder(defaults);
     }
 
     public static final class Builder {
-        private HaArgs $;
+        private HAArgs $;
 
         public Builder() {
-            $ = new HaArgs();
+            $ = new HAArgs();
         }
 
-        public Builder(HaArgs defaults) {
-            $ = new HaArgs(Objects.requireNonNull(defaults));
+        public Builder(HAArgs defaults) {
+            $ = new HAArgs(Objects.requireNonNull(defaults));
         }
 
         /**
@@ -152,9 +152,9 @@ public final class HaArgs extends com.pulumi.resources.ResourceArgs {
             return state(Output.of(state));
         }
 
-        public HaArgs build() {
+        public HAArgs build() {
             if ($.resourceId == null) {
-                throw new MissingRequiredPropertyException("HaArgs", "resourceId");
+                throw new MissingRequiredPropertyException("HAArgs", "resourceId");
             }
             $.state = Codegen.stringProp("state").output().arg($.state).def("started").getNullable();
             return $;

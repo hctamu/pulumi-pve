@@ -5,18 +5,18 @@ import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "../utilities";
 
 // Export members:
-export { HaArgs } from "./ha";
-export type Ha = import("./ha").Ha;
-export const Ha: typeof import("./ha").Ha = null as any;
-utilities.lazyLoad(exports, ["Ha"], () => require("./ha"));
+export { HAArgs } from "./ha";
+export type HA = import("./ha").HA;
+export const HA: typeof import("./ha").HA = null as any;
+utilities.lazyLoad(exports, ["HA"], () => require("./ha"));
 
 
 const _module = {
     version: utilities.getVersion(),
     construct: (name: string, type: string, urn: string): pulumi.Resource => {
         switch (type) {
-            case "pve:ha:Ha":
-                return new Ha(name, <any>undefined, { urn })
+            case "pve:ha:HA":
+                return new HA(name, <any>undefined, { urn })
             default:
                 throw new Error(`unknown resource type ${type}`);
         }

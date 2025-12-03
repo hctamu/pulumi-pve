@@ -16,12 +16,13 @@ limitations under the License.
 // Package proxmox provides interfaces and domain types for interacting with Proxmox VE.
 package proxmox
 
-import "context"
+import (
+	"context"
+)
 
-// ProxmoxClient is the general interface for interacting with Proxmox VE.
+// Client is the general interface for interacting with Proxmox VE.
 // It provides low-level HTTP operations for communicating with the Proxmox API.
-type ProxmoxClient interface {
-
+type Client interface {
 	// Get performs a GET request to the Proxmox API.
 	Get(ctx context.Context, path string, result any) error
 

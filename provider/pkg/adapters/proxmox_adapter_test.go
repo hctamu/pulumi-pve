@@ -148,7 +148,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 			"data": innerData,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify request method and path (go-proxmox adds /api2/json prefix)
 			assert.Equal(t, http.MethodGet, r.Method)
 			// Note: The path passed to adapter.Get() doesn't include /api2/json
@@ -191,7 +191,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 	t.Run("GET request with query parameters", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify query parameters are preserved
 			assert.Equal(t, "value1", r.URL.Query().Get("param1"))
 			assert.Equal(t, "value2", r.URL.Query().Get("param2"))
@@ -223,7 +223,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 	t.Run("GET request handles 500 error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			// go-proxmox expects proper JSON response structure even for errors
@@ -266,7 +266,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 			"data": innerData,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/test/resources")
@@ -276,7 +276,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 
 			// Verify request body
 			var receivedBody map[string]interface{}
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "test-resource", receivedBody["name"])
 			assert.Equal(t, "active", receivedBody["status"])
@@ -318,7 +318,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 
 		requestBody := map[string]string{"key": "value"}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.WriteHeader(http.StatusNoContent)
 		})
 		defer server.Close()
@@ -349,7 +349,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 			"value":  100,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Contains(t, r.URL.Path, "/test/resources/123")
@@ -359,7 +359,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 
 			// Verify request body
 			var receivedBody map[string]interface{}
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "updated", receivedBody["status"])
 			assert.Equal(t, float64(100), receivedBody["value"])
@@ -399,7 +399,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 
 		requestBody := map[string]string{"key": "value"}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "internal error"}`))
 		})
@@ -427,7 +427,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 	t.Run("successful DELETE request", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Contains(t, r.URL.Path, "/test/resources/456")
@@ -468,7 +468,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 	t.Run("DELETE request with nil result", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.WriteHeader(http.StatusNoContent)
 		})
 		defer server.Close()
@@ -497,7 +497,7 @@ func TestProxmoxAdapterAuthenticationHeaders(t *testing.T) {
 		expectedUser := "admin@pam"
 		expectedToken := "secret-token-123"
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify Authorization header format
 			authHeader := r.Header.Get("Authorization")
 			assert.Contains(t, authHeader, "PVEAPIToken")

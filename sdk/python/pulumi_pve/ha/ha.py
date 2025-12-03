@@ -14,16 +14,16 @@ else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
 
-__all__ = ['HaArgs', 'Ha']
+__all__ = ['HAArgs', 'HA']
 
 @pulumi.input_type
-class HaArgs:
+class HAArgs:
     def __init__(__self__, *,
                  resource_id: pulumi.Input[_builtins.int],
                  group: Optional[pulumi.Input[_builtins.str]] = None,
                  state: Optional[pulumi.Input[_builtins.str]] = None):
         """
-        The set of arguments for constructing a Ha resource.
+        The set of arguments for constructing a HA resource.
         :param pulumi.Input[_builtins.int] resource_id: The ID of the virtual machine that will be managed by HA (required).
         :param pulumi.Input[_builtins.str] group: The HA group identifier.
         :param pulumi.Input[_builtins.str] state: The state of the HA resource (default: started).
@@ -73,8 +73,8 @@ class HaArgs:
         pulumi.set(self, "state", value)
 
 
-@pulumi.type_token("pve:ha:Ha")
-class Ha(pulumi.CustomResource):
+@pulumi.type_token("pve:ha:HA")
+class HA(pulumi.CustomResource):
     @overload
     def __init__(__self__,
                  resource_name: str,
@@ -96,18 +96,18 @@ class Ha(pulumi.CustomResource):
     @overload
     def __init__(__self__,
                  resource_name: str,
-                 args: HaArgs,
+                 args: HAArgs,
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
 
         :param str resource_name: The name of the resource.
-        :param HaArgs args: The arguments to use to populate this resource's properties.
+        :param HAArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
         """
         ...
     def __init__(__self__, resource_name: str, *args, **kwargs):
-        resource_args, opts = _utilities.get_resource_args_opts(HaArgs, pulumi.ResourceOptions, *args, **kwargs)
+        resource_args, opts = _utilities.get_resource_args_opts(HAArgs, pulumi.ResourceOptions, *args, **kwargs)
         if resource_args is not None:
             __self__._internal_init(resource_name, opts, **resource_args.__dict__)
         else:
@@ -126,7 +126,7 @@ class Ha(pulumi.CustomResource):
         if opts.id is None:
             if __props__ is not None:
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
-            __props__ = HaArgs.__new__(HaArgs)
+            __props__ = HAArgs.__new__(HAArgs)
 
             __props__.__dict__["group"] = group
             if resource_id is None and not opts.urn:
@@ -137,8 +137,8 @@ class Ha(pulumi.CustomResource):
             __props__.__dict__["state"] = state
         replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["resourceId"])
         opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
-        super(Ha, __self__).__init__(
-            'pve:ha:Ha',
+        super(HA, __self__).__init__(
+            'pve:ha:HA',
             resource_name,
             __props__,
             opts)
@@ -146,9 +146,9 @@ class Ha(pulumi.CustomResource):
     @staticmethod
     def get(resource_name: str,
             id: pulumi.Input[str],
-            opts: Optional[pulumi.ResourceOptions] = None) -> 'Ha':
+            opts: Optional[pulumi.ResourceOptions] = None) -> 'HA':
         """
-        Get an existing Ha resource's state with the given name, id, and optional extra
+        Get an existing HA resource's state with the given name, id, and optional extra
         properties used to qualify the lookup.
 
         :param str resource_name: The unique name of the resulting resource.
@@ -157,12 +157,12 @@ class Ha(pulumi.CustomResource):
         """
         opts = pulumi.ResourceOptions.merge(opts, pulumi.ResourceOptions(id=id))
 
-        __props__ = HaArgs.__new__(HaArgs)
+        __props__ = HAArgs.__new__(HAArgs)
 
         __props__.__dict__["group"] = None
         __props__.__dict__["resource_id"] = None
         __props__.__dict__["state"] = None
-        return Ha(resource_name, opts=opts, __props__=__props__)
+        return HA(resource_name, opts=opts, __props__=__props__)
 
     @_builtins.property
     @pulumi.getter

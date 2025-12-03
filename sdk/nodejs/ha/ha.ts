@@ -7,31 +7,31 @@ import * as utilities from "../utilities";
 /**
  * A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
  */
-export class Ha extends pulumi.CustomResource {
+export class HA extends pulumi.CustomResource {
     /**
-     * Get an existing Ha resource's state with the given name, ID, and optional extra
+     * Get an existing HA resource's state with the given name, ID, and optional extra
      * properties used to qualify the lookup.
      *
      * @param name The _unique_ name of the resulting resource.
      * @param id The _unique_ provider ID of the resource to lookup.
      * @param opts Optional settings to control the behavior of the CustomResource.
      */
-    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): Ha {
-        return new Ha(name, undefined as any, { ...opts, id: id });
+    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): HA {
+        return new HA(name, undefined as any, { ...opts, id: id });
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'pve:ha:Ha';
+    public static readonly __pulumiType = 'pve:ha:HA';
 
     /**
-     * Returns true if the given object is an instance of Ha.  This is designed to work even
+     * Returns true if the given object is an instance of HA.  This is designed to work even
      * when multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is Ha {
+    public static isInstance(obj: any): obj is HA {
         if (obj === undefined || obj === null) {
             return false;
         }
-        return obj['__pulumiType'] === Ha.__pulumiType;
+        return obj['__pulumiType'] === HA.__pulumiType;
     }
 
     /**
@@ -48,13 +48,13 @@ export class Ha extends pulumi.CustomResource {
     declare public readonly state: pulumi.Output<string | undefined>;
 
     /**
-     * Create a Ha resource with the given unique name, arguments, and options.
+     * Create a HA resource with the given unique name, arguments, and options.
      *
      * @param name The _unique_ name of the resource.
      * @param args The arguments to use to populate this resource's properties.
      * @param opts A bag of options that control this resource's behavior.
      */
-    constructor(name: string, args: HaArgs, opts?: pulumi.CustomResourceOptions) {
+    constructor(name: string, args: HAArgs, opts?: pulumi.CustomResourceOptions) {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
@@ -72,14 +72,14 @@ export class Ha extends pulumi.CustomResource {
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
         const replaceOnChanges = { replaceOnChanges: ["resourceId"] };
         opts = pulumi.mergeOptions(opts, replaceOnChanges);
-        super(Ha.__pulumiType, name, resourceInputs, opts);
+        super(HA.__pulumiType, name, resourceInputs, opts);
     }
 }
 
 /**
- * The set of arguments for constructing a Ha resource.
+ * The set of arguments for constructing a HA resource.
  */
-export interface HaArgs {
+export interface HAArgs {
     /**
      * The HA group identifier.
      */

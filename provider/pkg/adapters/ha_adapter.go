@@ -28,11 +28,11 @@ var _ proxmox.HAOperations = (*HAAdapter)(nil)
 
 // HAAdapter implements proxmox.HAOperations using a ProxmoxClient.
 type HAAdapter struct {
-	client proxmox.ProxmoxClient
+	client proxmox.Client
 }
 
 // NewHAAdapter creates a new HAAdapter wrapping the given ProxmoxClient.
-func NewHAAdapter(client proxmox.ProxmoxClient) *HAAdapter {
+func NewHAAdapter(client proxmox.Client) *HAAdapter {
 	return &HAAdapter{client: client}
 }
 

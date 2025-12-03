@@ -8,7 +8,7 @@ import com.pulumi.core.annotations.Export;
 import com.pulumi.core.annotations.ResourceType;
 import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
-import io.github.hctamu.pve.ha.HaArgs;
+import io.github.hctamu.pve.ha.HAArgs;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.Optional;
@@ -18,8 +18,8 @@ import javax.annotation.Nullable;
  * A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
  * 
  */
-@ResourceType(type="pve:ha:Ha")
-public class Ha extends com.pulumi.resources.CustomResource {
+@ResourceType(type="pve:ha:HA")
+public class HA extends com.pulumi.resources.CustomResource {
     /**
      * The HA group identifier.
      * 
@@ -67,15 +67,15 @@ public class Ha extends com.pulumi.resources.CustomResource {
      *
      * @param name The _unique_ name of the resulting resource.
      */
-    public Ha(java.lang.String name) {
-        this(name, HaArgs.Empty);
+    public HA(java.lang.String name) {
+        this(name, HAArgs.Empty);
     }
     /**
      *
      * @param name The _unique_ name of the resulting resource.
      * @param args The arguments to use to populate this resource's properties.
      */
-    public Ha(java.lang.String name, HaArgs args) {
+    public HA(java.lang.String name, HAArgs args) {
         this(name, args, null);
     }
     /**
@@ -84,19 +84,19 @@ public class Ha extends com.pulumi.resources.CustomResource {
      * @param args The arguments to use to populate this resource's properties.
      * @param options A bag of options that control this resource's behavior.
      */
-    public Ha(java.lang.String name, HaArgs args, @Nullable com.pulumi.resources.CustomResourceOptions options) {
-        super("pve:ha:Ha", name, makeArgs(args, options), makeResourceOptions(options, Codegen.empty()), false);
+    public HA(java.lang.String name, HAArgs args, @Nullable com.pulumi.resources.CustomResourceOptions options) {
+        super("pve:ha:HA", name, makeArgs(args, options), makeResourceOptions(options, Codegen.empty()), false);
     }
 
-    private Ha(java.lang.String name, Output<java.lang.String> id, @Nullable com.pulumi.resources.CustomResourceOptions options) {
-        super("pve:ha:Ha", name, null, makeResourceOptions(options, id), false);
+    private HA(java.lang.String name, Output<java.lang.String> id, @Nullable com.pulumi.resources.CustomResourceOptions options) {
+        super("pve:ha:HA", name, null, makeResourceOptions(options, id), false);
     }
 
-    private static HaArgs makeArgs(HaArgs args, @Nullable com.pulumi.resources.CustomResourceOptions options) {
+    private static HAArgs makeArgs(HAArgs args, @Nullable com.pulumi.resources.CustomResourceOptions options) {
         if (options != null && options.getUrn().isPresent()) {
             return null;
         }
-        return args == null ? HaArgs.Empty : args;
+        return args == null ? HAArgs.Empty : args;
     }
 
     private static com.pulumi.resources.CustomResourceOptions makeResourceOptions(@Nullable com.pulumi.resources.CustomResourceOptions options, @Nullable Output<java.lang.String> id) {
@@ -114,7 +114,7 @@ public class Ha extends com.pulumi.resources.CustomResource {
      * @param id The _unique_ provider ID of the resource to lookup.
      * @param options Optional settings to control the behavior of the CustomResource.
      */
-    public static Ha get(java.lang.String name, Output<java.lang.String> id, @Nullable com.pulumi.resources.CustomResourceOptions options) {
-        return new Ha(name, id, options);
+    public static HA get(java.lang.String name, Output<java.lang.String> id, @Nullable com.pulumi.resources.CustomResourceOptions options) {
+        return new HA(name, id, options);
     }
 }
