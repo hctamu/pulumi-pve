@@ -35,7 +35,7 @@ import (
 )
 
 // Version is initialized by the Go linker to contain the semver of this build.
-var Version string = "0.0.6"
+var Version = "0.0.6"
 
 // Name is the name of the PVE provider.
 const Name string = "pve"

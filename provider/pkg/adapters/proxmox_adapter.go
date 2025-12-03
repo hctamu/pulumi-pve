@@ -25,13 +25,13 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	api "github.com/luthermonson/go-proxmox"
-	"github.com/pulumi/pulumi-go-provider/infer"
 
 	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // Ensure ProxmoxAdapter implements the ProxmoxClient interface
-var _ proxmox.ProxmoxClient = (*ProxmoxAdapter)(nil)
+var _ proxmox.Client = (*ProxmoxAdapter)(nil)
 
 // ProxmoxAdapter adapts the px.Client to implement the proxmox.ProxmoxClient interface
 // It handles lazy initialization of the underlying client
@@ -100,7 +100,7 @@ func (proxmoxAdapter *ProxmoxAdapter) Get(ctx context.Context, path string, resu
 }
 
 // Post performs a POST request to the Proxmox API.
-func (proxmoxAdapter *ProxmoxAdapter) Post(ctx context.Context, path string, body any, result any) error {
+func (proxmoxAdapter *ProxmoxAdapter) Post(ctx context.Context, path string, body, result any) error {
 	if err := proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (proxmoxAdapter *ProxmoxAdapter) Post(ctx context.Context, path string, bod
 }
 
 // Put performs a PUT request to the Proxmox API.
-func (proxmoxAdapter *ProxmoxAdapter) Put(ctx context.Context, path string, body any, result any) error {
+func (proxmoxAdapter *ProxmoxAdapter) Put(ctx context.Context, path string, body, result any) error {
 	if err := proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}

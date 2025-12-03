@@ -116,24 +116,26 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 
 		case http.MethodGet:
 			// Read HA resource - return different state after first call
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/"+id100)
-			getCount++
-
-			state := stateStarted
-			group := group1
-			if getCount >= 2 { // After update, return new state
-				state = stateStopped
-				group = group2
+			switch r.URL.Path {
+			case apiPathHAResources + id100:
+				getCount++
+				state := stateStarted
+				group := group1
+				if getCount >= 2 { // After update, return new state
+					state = stateStopped
+					group = group2
+				}
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"sid":   id100,
+						"state": state,
+						"group": group,
+					},
+				})
+			default:
+				w.WriteHeader(http.StatusNotFound)
 			}
-
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"data": map[string]interface{}{
-					"sid":   id100,
-					"state": state,
-					"group": group,
-				},
-			})
 
 		case http.MethodPut:
 			// Update HA resource
@@ -302,7 +304,8 @@ func TestHaResourceIDChangeTriggersReplace(t *testing.T) {
 
 		case http.MethodGet:
 			// Read HA resource
-			if r.URL.Path == apiPathHAResources+id100 {
+			switch r.URL.Path {
+			case apiPathHAResources + id100:
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"data": map[string]interface{}{
@@ -311,7 +314,7 @@ func TestHaResourceIDChangeTriggersReplace(t *testing.T) {
 						"group": group1,
 					},
 				})
-			} else if r.URL.Path == apiPathHAResources+id200 {
+			case apiPathHAResources + id200:
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"data": map[string]interface{}{
@@ -320,15 +323,16 @@ func TestHaResourceIDChangeTriggersReplace(t *testing.T) {
 						"group": group1,
 					},
 				})
-			} else {
+			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
 
 		case http.MethodDelete:
 			// Delete HA resource
-			if r.URL.Path == apiPathHAResources+id100 {
+			switch r.URL.Path {
+			case apiPathHAResources + id100:
 				recordOp("delete-100")
-			} else if r.URL.Path == apiPathHAResources+id200 {
+			case apiPathHAResources + id200:
 				recordOp("delete-200")
 			}
 
@@ -427,9 +431,10 @@ func TestHaResourceIDChangeTriggersReplace(t *testing.T) {
 	var create100Req, create200Req *capturedRequest
 	for i := range requests {
 		if requests[i].method == http.MethodPost {
-			if requests[i].body["sid"] == id100 {
+			switch requests[i].body["sid"] {
+			case id100:
 				create100Req = &requests[i]
-			} else if requests[i].body["sid"] == id200 {
+			case id200:
 				create200Req = &requests[i]
 			}
 		}

@@ -40,14 +40,14 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 100,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/")
 
 			// Verify request body
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "test-group", receivedBody.Group)
 			assert.Equal(t, "started", receivedBody.State)
@@ -91,10 +91,10 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 101,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
 			// Verify request body
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Empty(t, receivedBody.Group)
 			assert.Equal(t, "stopped", receivedBody.State)
@@ -135,9 +135,9 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 102,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "ignored", receivedBody.State)
 
@@ -172,7 +172,7 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 100,
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "resource already exists"}`))
 		})
@@ -207,7 +207,7 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "100",
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodGet, r.Method)
 			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/100")
@@ -257,7 +257,7 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "101",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/101")
 
 			w.WriteHeader(http.StatusOK)
@@ -292,7 +292,7 @@ func TestHAAdapterGet(t *testing.T) {
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			// go-proxmox expects proper JSON response structure even for errors
@@ -326,7 +326,7 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "102",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.WriteHeader(http.StatusOK)
 			responseData := map[string]interface{}{
 				"data": apiResponse,
@@ -373,14 +373,14 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/100")
 
 			// Verify request body
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "stopped", receivedBody.State)
 			assert.Equal(t, "test-group", receivedBody.Group)
@@ -430,10 +430,10 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request body contains delete field
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "started", receivedBody.State)
 			assert.Contains(t, receivedBody.Delete, "group")
@@ -480,9 +480,9 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "new-group", receivedBody.Group)
 			assert.Equal(t, "started", receivedBody.State)
@@ -528,9 +528,9 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(cap.Body)).Decode(&receivedBody)
+			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "new-group", receivedBody.Group)
 			assert.Equal(t, "ignored", receivedBody.State)
@@ -577,7 +577,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "update failed"}`))
 		})
@@ -606,13 +606,13 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("successful delete", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/100")
 
 			// Verify no body
-			assert.Empty(t, cap.Body)
+			assert.Empty(t, req.Body)
 
 			// Send response
 			w.WriteHeader(http.StatusOK)
@@ -643,7 +643,7 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("delete different resource ID", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/999")
 
 			w.WriteHeader(http.StatusOK)
@@ -671,7 +671,7 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("delete handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, cap *mockRequest) {
+		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			// go-proxmox expects proper JSON response structure even for errors

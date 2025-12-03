@@ -18,7 +18,7 @@ package ha
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 
@@ -60,7 +60,7 @@ func (ha *HA) Create(
 	}
 
 	if ha.HAOps == nil {
-		err = fmt.Errorf("HAOperations not configured")
+		err = errors.New("HAOperations not configured")
 		return response, err
 	}
 
@@ -78,7 +78,7 @@ func (ha *HA) Delete(
 	logger.Debugf("Deleting ha resource: %v", request.State)
 
 	if ha.HAOps == nil {
-		return response, fmt.Errorf("HAOperations not configured")
+		return response, errors.New("HAOperations not configured")
 	}
 
 	id := request.State.ResourceID
@@ -104,7 +104,7 @@ func (ha *HA) Update(
 	}
 
 	if ha.HAOps == nil {
-		err = fmt.Errorf("HAOperations not configured")
+		err = errors.New("HAOperations not configured")
 		return response, err
 	}
 
@@ -127,7 +127,7 @@ func (ha *HA) Read(
 	response.ID = request.ID
 
 	if ha.HAOps == nil {
-		err = fmt.Errorf("HAOperations not configured")
+		err = errors.New("HAOperations not configured")
 		return response, err
 	}
 
