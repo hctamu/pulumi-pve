@@ -31,7 +31,8 @@
 					"ms-azuretools.vscode-docker",
 					"github.vscode-github-actions",
 					"pulumi.pulumi-vscode-tools",
-          "emeraldwalk.runonsave"
+          "emeraldwalk.runonsave",
+          "anthropic.claude-code"
 				],
         "settings": {
           "emeraldwalk.runonsave": {
