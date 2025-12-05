@@ -113,14 +113,14 @@ func TestProxmoxAdapterConnect(t *testing.T) {
 		t.Parallel()
 
 		cfg := &config.Config{
-			PveURL:   "", // Empty URL - client creation succeeds but requests fail
+			PveURL:   "",
 			PveUser:  "test@pam",
 			PveToken: "test-token",
 		}
 
 		adapter := NewProxmoxAdapter(cfg)
 
-		// Connect succeeds (luthermonson library doesn't validate URL at creation time)
+		// Connect succeeds
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -309,7 +309,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 
 		// Verify captured request details
 		assert.Equal(t, http.MethodPost, captured.Method)
-		assert.Contains(t, captured.Path, "/test/resources")
+		assert.Equal(t, "/test/resources", captured.Path)
 		assert.Contains(t, captured.Body, "test-resource")
 	})
 
@@ -352,7 +352,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Contains(t, r.URL.Path, "/test/resources/123")
+			assert.Equal(t, "/test/resources/123", r.URL.Path)
 
 			// Verify headers
 			assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
@@ -390,7 +390,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 
 		// Verify captured request
 		assert.Equal(t, http.MethodPut, captured.Method)
-		assert.Contains(t, captured.Path, "/test/resources/123")
+		assert.Equal(t, "/test/resources/123", captured.Path)
 		assert.Contains(t, captured.Body, "updated")
 	})
 
@@ -430,7 +430,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Contains(t, r.URL.Path, "/test/resources/456")
+			assert.Equal(t, "/test/resources/456", r.URL.Path)
 
 			// Verify headers
 			assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
@@ -584,25 +584,36 @@ func TestProxmoxAdapterConnectionFailureHandling(t *testing.T) {
 	})
 }
 
-func TestProxmoxAdapterSetClient(t *testing.T) {
+func TestProxmoxAdapterConfigFromContext(t *testing.T) {
 	t.Parallel()
 
-	t.Run("SetClient bypasses normal initialization", func(t *testing.T) {
+	t.Run("panics when config is nil and context has no Pulumi config", func(t *testing.T) {
 		t.Parallel()
 
+		// Create adapter without explicit config
+		adapter := NewProxmoxAdapter(nil)
+
+		// Attempting to connect with a plain context (no Pulumi config) should panic
+		// because infer.GetConfig will panic when called on a non-Pulumi context
+		assert.Panics(t, func() {
+			_ = adapter.Connect(context.Background())
+		}, "Expected panic when trying to get config from non-Pulumi context")
+	})
+
+	t.Run("works with explicit config even without Pulumi context", func(t *testing.T) {
+		t.Parallel()
+
+		// Create adapter with explicit config
 		cfg := &config.Config{
 			PveURL:   "https://test.proxmox.com:8006",
 			PveUser:  "test@pam",
 			PveToken: "test-token",
 		}
-
 		adapter := NewProxmoxAdapter(cfg)
 
-		// Verify that once.Do was called
-		assert.NotNil(t, adapter) // Client is set via SetClient
-
-		// Connect should not change anything
+		// Should work fine even with plain context because config is explicit
 		err := adapter.Connect(context.Background())
-		require.NoError(t, err) // Should not error even though client is nil
+		require.NoError(t, err)
+		assert.NotNil(t, adapter.client)
 	})
 }

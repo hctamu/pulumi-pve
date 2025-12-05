@@ -77,8 +77,8 @@ func (rc *requestCapture) get() []capturedRequest {
 	return append([]capturedRequest(nil), rc.requests...)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestHaHealthyLifeCycle(t *testing.T) {
+	t.Parallel()
 	var getCount int
 	var capture requestCapture
 
@@ -100,7 +100,7 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 		switch r.Method {
 		case http.MethodPost:
 			// Create HA resource
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources")
+			assert.Equal(t, "/cluster/ha/resources/", r.URL.Path)
 			assert.Equal(t, group1, bodyData["group"])
 			assert.Equal(t, stateStarted, bodyData["state"])
 			assert.Equal(t, id100, bodyData["sid"])
@@ -139,7 +139,7 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 
 		case http.MethodPut:
 			// Update HA resource
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/"+id100)
+			assert.Equal(t, "/cluster/ha/resources/"+id100, r.URL.Path)
 			assert.Equal(t, group2, bodyData["group"])
 			assert.Equal(t, stateStopped, bodyData["state"])
 
@@ -154,7 +154,7 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 
 		case http.MethodDelete:
 			// Delete HA resource
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/"+id100)
+			assert.Equal(t, "/cluster/ha/resources/"+id100, r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -241,8 +241,8 @@ func TestHaHealthyLifeCycle(t *testing.T) {
 	assert.True(t, hasDELETE, "Should have made DELETE request (cleanup)")
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestHaResourceIDChangeTriggersReplace(t *testing.T) {
+	t.Parallel()
 	var operations []string
 	var mu sync.Mutex
 	var capture requestCapture

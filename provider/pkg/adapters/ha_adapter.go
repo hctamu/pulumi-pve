@@ -23,6 +23,10 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
+const (
+	haResourcePath = "/cluster/ha/resources/"
+)
+
 // Ensure HAAdapter implements the HAOperations interface
 var _ proxmox.HAOperations = (*HAAdapter)(nil)
 
@@ -45,7 +49,7 @@ func (ha *HAAdapter) Create(ctx context.Context, inputs proxmox.HAInputs) error 
 		Sid:   strconv.Itoa(inputs.ResourceID),
 	}
 
-	if err := ha.client.Post(ctx, "/cluster/ha/resources/", apiResource, nil); err != nil {
+	if err := ha.client.Post(ctx, haResourcePath, apiResource, nil); err != nil {
 		return fmt.Errorf("failed to create HA resource: %w", err)
 	}
 	return nil
@@ -54,7 +58,7 @@ func (ha *HAAdapter) Create(ctx context.Context, inputs proxmox.HAInputs) error 
 // Get retrieves an existing HA resource by its ID.
 func (ha *HAAdapter) Get(ctx context.Context, id int) (*proxmox.HAOutputs, error) {
 	var apiResource *proxmox.HaResource
-	url := fmt.Sprintf("/cluster/ha/resources/%v", id)
+	url := fmt.Sprintf("%s%v", haResourcePath, id)
 
 	if err := ha.client.Get(ctx, url, &apiResource); err != nil {
 		return nil, fmt.Errorf("failed to get HA resource: %w", err)
@@ -84,7 +88,7 @@ func (ha *HAAdapter) Update(ctx context.Context, id int, inputs proxmox.HAInputs
 		apiResource.Group = inputs.Group
 	}
 
-	url := fmt.Sprintf("/cluster/ha/resources/%v", id)
+	url := fmt.Sprintf("%s%v", haResourcePath, id)
 	if err := ha.client.Put(ctx, url, apiResource, nil); err != nil {
 		return fmt.Errorf("failed to update HA resource: %w", err)
 	}
@@ -93,7 +97,7 @@ func (ha *HAAdapter) Update(ctx context.Context, id int, inputs proxmox.HAInputs
 
 // Delete deletes an existing HA resource by its ID.
 func (ha *HAAdapter) Delete(ctx context.Context, id int) error {
-	deleteURL := fmt.Sprintf("/cluster/ha/resources/%v", id)
+	deleteURL := fmt.Sprintf("%s%v", haResourcePath, id)
 	if err := ha.client.Delete(ctx, deleteURL, nil); err != nil {
 		return fmt.Errorf("failed to delete HA resource: %w", err)
 	}
