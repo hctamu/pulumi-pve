@@ -11,8 +11,11 @@ using Pulumi;
 namespace Hctamu.Pve.Vm.Outputs
 {
 
+    /// <summary>
+    /// CPU configuration for the virtual machine.
+    /// </summary>
     [OutputType]
-    public sealed class Cpu
+    public sealed class CPU
     {
         public readonly int? Cores;
         public readonly ImmutableArray<string> FlagsDisabled;
@@ -29,7 +32,7 @@ namespace Hctamu.Pve.Vm.Outputs
         public readonly int? Vcpus;
 
         [OutputConstructor]
-        private Cpu(
+        private CPU(
             int? cores,
 
             ImmutableArray<string> flagsDisabled,

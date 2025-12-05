@@ -5,6 +5,7 @@ package io.github.hctamu.pve.vm.inputs;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
+import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.vm.inputs.NumaNodeArgs;
 import java.lang.Boolean;
 import java.lang.Double;
@@ -16,9 +17,13 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
-public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
+/**
+ * CPU configuration for the virtual machine.
+ * 
+ */
+public final class CPUArgs extends com.pulumi.resources.ResourceArgs {
 
-    public static final CpuArgs Empty = new CpuArgs();
+    public static final CPUArgs Empty = new CPUArgs();
 
     @Import(name="cores")
     private @Nullable Output<Integer> cores;
@@ -111,9 +116,9 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.vcpus);
     }
 
-    private CpuArgs() {}
+    private CPUArgs() {}
 
-    private CpuArgs(CpuArgs $) {
+    private CPUArgs(CPUArgs $) {
         this.cores = $.cores;
         this.flagsDisabled = $.flagsDisabled;
         this.flagsEnabled = $.flagsEnabled;
@@ -132,19 +137,19 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
     public static Builder builder() {
         return new Builder();
     }
-    public static Builder builder(CpuArgs defaults) {
+    public static Builder builder(CPUArgs defaults) {
         return new Builder(defaults);
     }
 
     public static final class Builder {
-        private CpuArgs $;
+        private CPUArgs $;
 
         public Builder() {
-            $ = new CpuArgs();
+            $ = new CPUArgs();
         }
 
-        public Builder(CpuArgs defaults) {
-            $ = new CpuArgs(Objects.requireNonNull(defaults));
+        public Builder(CPUArgs defaults) {
+            $ = new CPUArgs(Objects.requireNonNull(defaults));
         }
 
         public Builder cores(@Nullable Output<Integer> cores) {
@@ -276,7 +281,8 @@ public final class CpuArgs extends com.pulumi.resources.ResourceArgs {
             return vcpus(Output.of(vcpus));
         }
 
-        public CpuArgs build() {
+        public CPUArgs build() {
+            $.cores = Codegen.integerProp("cores").output().arg($.cores).env("Number of CPU cores").def(1).getNullable();
             return $;
         }
     }
