@@ -43,7 +43,7 @@ func TestHAAdapterCreate(t *testing.T) {
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/")
+			assert.Equal(t, "/cluster/ha/resources/", r.URL.Path)
 
 			// Verify request body
 			var receivedBody proxmox.HaResource
@@ -76,7 +76,7 @@ func TestHAAdapterCreate(t *testing.T) {
 
 		// Verify captured request
 		assert.Equal(t, http.MethodPost, captured.Method)
-		assert.Contains(t, captured.Path, "/cluster/ha/resources/")
+		assert.Equal(t, "/cluster/ha/resources/", captured.Path)
 		assert.Contains(t, captured.Body, "test-group")
 		assert.Contains(t, captured.Body, "started")
 		assert.Contains(t, captured.Body, "100")
@@ -191,7 +191,7 @@ func TestHAAdapterCreate(t *testing.T) {
 		haAdapter := NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Create(context.Background(), inputs)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create HA resource")
+		assert.EqualError(t, err, "failed to create HA resource: 500 Internal Server Error", "error message should match")
 	})
 }
 
@@ -210,7 +210,7 @@ func TestHAAdapterGet(t *testing.T) {
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/100")
+			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
 
 			// Send response
 			w.Header().Set("Content-Type", "application/json")
@@ -245,7 +245,7 @@ func TestHAAdapterGet(t *testing.T) {
 
 		// Verify captured request
 		assert.Equal(t, http.MethodGet, captured.Method)
-		assert.Contains(t, captured.Path, "/cluster/ha/resources/100")
+		assert.Equal(t, "/cluster/ha/resources/100", captured.Path)
 	})
 
 	t.Run("successful get without group", func(t *testing.T) {
@@ -258,7 +258,7 @@ func TestHAAdapterGet(t *testing.T) {
 		}
 
 		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/101")
+			assert.Equal(t, "/cluster/ha/resources/101", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 			responseData := map[string]interface{}{
@@ -314,7 +314,7 @@ func TestHAAdapterGet(t *testing.T) {
 		outputs, err := haAdapter.Get(context.Background(), 999)
 		require.Error(t, err)
 		assert.Nil(t, outputs)
-		assert.Contains(t, err.Error(), "failed to get HA resource")
+		assert.EqualError(t, err, "failed to get HA resource: 500 Internal Server Error", "error message should match")
 	})
 
 	t.Run("get with ignored state", func(t *testing.T) {
@@ -376,7 +376,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/100")
+			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
 
 			// Verify request body
 			var receivedBody proxmox.HaResource
@@ -408,7 +408,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 
 		// Verify captured request
 		assert.Equal(t, http.MethodPut, captured.Method)
-		assert.Contains(t, captured.Path, "/cluster/ha/resources/100")
+		assert.Equal(t, "/cluster/ha/resources/100", captured.Path)
 		assert.Contains(t, captured.Body, "stopped")
 		assert.Contains(t, captured.Body, "test-group")
 	})
@@ -436,7 +436,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
 			assert.Equal(t, "started", receivedBody.State)
-			assert.Contains(t, receivedBody.Delete, "group")
+			assert.Equal(t, []string{"group"}, receivedBody.Delete)
 			assert.Empty(t, receivedBody.Group)
 
 			w.WriteHeader(http.StatusOK)
@@ -596,7 +596,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 		haAdapter := NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to update HA resource")
+		assert.EqualError(t, err, "failed to update HA resource: 500 Internal Server Error", "error message should match")
 	})
 }
 
@@ -609,7 +609,7 @@ func TestHAAdapterDelete(t *testing.T) {
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/100")
+			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
 
 			// Verify no body
 			assert.Empty(t, req.Body)
@@ -636,7 +636,7 @@ func TestHAAdapterDelete(t *testing.T) {
 
 		// Verify captured request
 		assert.Equal(t, http.MethodDelete, captured.Method)
-		assert.Contains(t, captured.Path, "/cluster/ha/resources/100")
+		assert.Equal(t, "/cluster/ha/resources/100", captured.Path)
 		assert.Empty(t, captured.Body)
 	})
 
@@ -644,7 +644,7 @@ func TestHAAdapterDelete(t *testing.T) {
 		t.Parallel()
 
 		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			assert.Contains(t, r.URL.Path, "/cluster/ha/resources/999")
+			assert.Equal(t, "/cluster/ha/resources/999", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"data": null}`))
@@ -665,7 +665,7 @@ func TestHAAdapterDelete(t *testing.T) {
 		err = haAdapter.Delete(context.Background(), 999)
 		require.NoError(t, err)
 
-		assert.Contains(t, captured.Path, "/cluster/ha/resources/999")
+		assert.Equal(t, "/cluster/ha/resources/999", captured.Path)
 	})
 
 	t.Run("delete handles API error", func(t *testing.T) {
@@ -692,7 +692,7 @@ func TestHAAdapterDelete(t *testing.T) {
 		haAdapter := NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Delete(context.Background(), 100)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to delete HA resource")
+		assert.EqualError(t, err, "failed to delete HA resource: 500 Internal Server Error", "error message should match")
 	})
 }
 
