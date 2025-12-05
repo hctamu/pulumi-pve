@@ -56,6 +56,7 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 
 		var pveConfig config.Config
 		if proxmoxAdapter.PVEConfig == nil {
+			// If no config provided, get from context
 			pveConfig = infer.GetConfig[config.Config](ctx)
 		} else {
 			pveConfig = *proxmoxAdapter.PVEConfig
