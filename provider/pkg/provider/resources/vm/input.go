@@ -701,22 +701,11 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 			options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuStr})
 		}
 
-		if inputs.CPU.Cores != nil {
-			options = append(options, api.VirtualMachineOption{Name: "cores", Value: inputs.CPU.Cores})
-		}
-		if inputs.CPU.Sockets != nil {
-			options = append(options, api.VirtualMachineOption{Name: "sockets", Value: inputs.CPU.Sockets})
-		}
-
-		if inputs.CPU.Limit != nil {
-			options = append(options, api.VirtualMachineOption{Name: "cpulimit", Value: inputs.CPU.Limit})
-		}
-		if inputs.CPU.Units != nil {
-			options = append(options, api.VirtualMachineOption{Name: "cpuunits", Value: inputs.CPU.Units})
-		}
-		if inputs.CPU.Vcpus != nil {
-			options = append(options, api.VirtualMachineOption{Name: "vcpus", Value: inputs.CPU.Vcpus})
-		}
+		addOptionPtr("cores", &options, inputs.CPU.Cores)
+		addOptionPtr("sockets", &options, inputs.CPU.Sockets)
+		addOptionPtr("cpulimit", &options, inputs.CPU.Limit)
+		addOptionPtr("cpuunits", &options, inputs.CPU.Units)
+		addOptionPtr("vcpus", &options, inputs.CPU.Vcpus)
 
 		if inputs.CPU.Numa != nil {
 			numaValue := 0
@@ -762,7 +751,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 			*options = append(*options, api.VirtualMachineOption{Name: "cpu", Value: newCPU})
 		}
 
-		// Diff cores
+		// Diff CPU numeric fields using helper
 		var newCores, oldCores *int
 		if newInputs.CPU != nil {
 			newCores = newInputs.CPU.Cores
@@ -770,13 +759,8 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 		if currentInputs.CPU != nil {
 			oldCores = currentInputs.CPU.Cores
 		}
-		if utils.DifferPtr(newCores, oldCores) {
-			if newCores != nil { // skip clear operations
-				*options = append(*options, api.VirtualMachineOption{Name: "cores", Value: newCores})
-			}
-		}
+		compareAndAddOptionPtr("cores", options, newCores, oldCores)
 
-		// Diff sockets
 		var newSockets, oldSockets *int
 		if newInputs.CPU != nil {
 			newSockets = newInputs.CPU.Sockets
@@ -784,13 +768,8 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 		if currentInputs.CPU != nil {
 			oldSockets = currentInputs.CPU.Sockets
 		}
-		if utils.DifferPtr(newSockets, oldSockets) {
-			if newSockets != nil {
-				*options = append(*options, api.VirtualMachineOption{Name: "sockets", Value: newSockets})
-			}
-		}
+		compareAndAddOptionPtr("sockets", options, newSockets, oldSockets)
 
-		// Diff cpulimit
 		var newLimit, oldLimit *float64
 		if newInputs.CPU != nil {
 			newLimit = newInputs.CPU.Limit
@@ -798,13 +777,8 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 		if currentInputs.CPU != nil {
 			oldLimit = currentInputs.CPU.Limit
 		}
-		if utils.DifferPtr(newLimit, oldLimit) {
-			if newLimit != nil {
-				*options = append(*options, api.VirtualMachineOption{Name: "cpulimit", Value: newLimit})
-			}
-		}
+		compareAndAddOptionPtr("cpulimit", options, newLimit, oldLimit)
 
-		// Diff cpuunits
 		var newUnits, oldUnits *int
 		if newInputs.CPU != nil {
 			newUnits = newInputs.CPU.Units
@@ -812,13 +786,8 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 		if currentInputs.CPU != nil {
 			oldUnits = currentInputs.CPU.Units
 		}
-		if utils.DifferPtr(newUnits, oldUnits) {
-			if newUnits != nil {
-				*options = append(*options, api.VirtualMachineOption{Name: "cpuunits", Value: newUnits})
-			}
-		}
+		compareAndAddOptionPtr("cpuunits", options, newUnits, oldUnits)
 
-		// Diff vcpus
 		var newVcpus, oldVcpus *int
 		if newInputs.CPU != nil {
 			newVcpus = newInputs.CPU.Vcpus
@@ -826,11 +795,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 		if currentInputs.CPU != nil {
 			oldVcpus = currentInputs.CPU.Vcpus
 		}
-		if utils.DifferPtr(newVcpus, oldVcpus) {
-			if newVcpus != nil {
-				*options = append(*options, api.VirtualMachineOption{Name: "vcpus", Value: newVcpus})
-			}
-		}
+		compareAndAddOptionPtr("vcpus", options, newVcpus, oldVcpus)
 
 		// Diff NUMA enabled
 		var newNuma, oldNuma *bool
@@ -999,9 +964,31 @@ func compareAndAddOption[T comparable](
 	}
 }
 
-// addOption adds the option to the list if the value is not nil.
+// compareAndAddOptionPtr compares the new value with the current value and adds the option if they differ,
+// passing the pointer as-is. This is used for fields where the Proxmox API expects a pointer value.
+func compareAndAddOptionPtr[T comparable](
+	name string,
+	options *[]api.VirtualMachineOption,
+	newValue, currentValue *T,
+) {
+	if utils.DifferPtr(newValue, currentValue) {
+		if newValue != nil {
+			*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
+		}
+	}
+}
+
+// addOption adds the option to the list if the value is not nil, dereferencing the pointer.
 func addOption[T comparable](name string, options *[]api.VirtualMachineOption, value *T) {
 	if value != nil {
 		*options = append(*options, api.VirtualMachineOption{Name: name, Value: *value})
+	}
+}
+
+// addOptionPtr adds the option to the list if the value is not nil, passing the pointer as-is.
+// This is used for fields where the Proxmox API expects a pointer value (e.g., CPU numeric fields).
+func addOptionPtr[T comparable](name string, options *[]api.VirtualMachineOption, value *T) {
+	if value != nil {
+		*options = append(*options, api.VirtualMachineOption{Name: name, Value: value})
 	}
 }
