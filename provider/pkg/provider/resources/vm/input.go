@@ -830,7 +830,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 		if currentInputs.CPU != nil {
 			oldNodes = currentInputs.CPU.NumaNodes
 		}
-		if !numaNodesEqual(newNodes, oldNodes) {
+		if !NumaNodesEqual(newNodes, oldNodes) {
 			for i, node := range newNodes {
 				numaKey := fmt.Sprintf("numa%d", i)
 				numaValue := node.ToProxmoxNumaString()
@@ -854,22 +854,22 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 	}
 }
 
-// numaNodesEqual checks if two NumaNode slices are equal.
-func numaNodesEqual(a, b []NumaNode) bool {
-	if len(a) != len(b) {
+// NumaNodesEqual checks if two NumaNode slices are equal.
+func NumaNodesEqual(inputA, inputB []NumaNode) bool {
+	if len(inputA) != len(inputB) {
 		return false
 	}
-	for i := range a {
-		if a[i].Cpus != b[i].Cpus {
+	for i := range inputA {
+		if inputA[i].Cpus != inputB[i].Cpus {
 			return false
 		}
-		if !ptrEqual(a[i].HostNodes, b[i].HostNodes) {
+		if !ptrEqual(inputA[i].HostNodes, inputB[i].HostNodes) {
 			return false
 		}
-		if !ptrEqual(a[i].Memory, b[i].Memory) {
+		if !ptrEqual(inputA[i].Memory, inputB[i].Memory) {
 			return false
 		}
-		if !ptrEqual(a[i].Policy, b[i].Policy) {
+		if !ptrEqual(inputA[i].Policy, inputB[i].Policy) {
 			return false
 		}
 	}
