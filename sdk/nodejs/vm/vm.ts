@@ -34,7 +34,6 @@ export class VM extends pulumi.CustomResource {
     }
 
     declare public readonly acpi: pulumi.Output<number | undefined>;
-    declare public readonly affinity: pulumi.Output<string | undefined>;
     declare public readonly audio0: pulumi.Output<string | undefined>;
     declare public readonly autostart: pulumi.Output<number | undefined>;
     declare public readonly balloon: pulumi.Output<number | undefined>;
@@ -45,10 +44,7 @@ export class VM extends pulumi.CustomResource {
     declare public readonly ciupgrade: pulumi.Output<number | undefined>;
     declare public readonly ciuser: pulumi.Output<string | undefined>;
     declare public readonly clone: pulumi.Output<outputs.vm.Clone | undefined>;
-    declare public readonly cores: pulumi.Output<number | undefined>;
-    declare public readonly cpu: pulumi.Output<string | undefined>;
-    declare public readonly cpulimit: pulumi.Output<string | undefined>;
-    declare public readonly cpuunits: pulumi.Output<number | undefined>;
+    declare public readonly cpu: pulumi.Output<outputs.vm.Cpu | undefined>;
     declare public readonly description: pulumi.Output<string | undefined>;
     declare public readonly disks: pulumi.Output<outputs.vm.Disk[]>;
     declare public readonly efidisk: pulumi.Output<outputs.vm.EfiDisk | undefined>;
@@ -64,8 +60,6 @@ export class VM extends pulumi.CustomResource {
     declare public readonly name: pulumi.Output<string>;
     declare public readonly nameserver: pulumi.Output<string | undefined>;
     declare public readonly node: pulumi.Output<string | undefined>;
-    declare public readonly numa: pulumi.Output<number | undefined>;
-    declare public readonly numa0: pulumi.Output<string | undefined>;
     declare public readonly ostype: pulumi.Output<string | undefined>;
     declare public readonly parallel0: pulumi.Output<string | undefined>;
     declare public readonly protection: pulumi.Output<number | undefined>;
@@ -77,7 +71,6 @@ export class VM extends pulumi.CustomResource {
     declare public readonly template: pulumi.Output<number | undefined>;
     declare public readonly tpmstate0: pulumi.Output<string | undefined>;
     declare public readonly usb0: pulumi.Output<string | undefined>;
-    declare public readonly vcpus: pulumi.Output<number | undefined>;
     declare public readonly vga: pulumi.Output<string | undefined>;
     declare public readonly vmId: pulumi.Output<number | undefined>;
 
@@ -99,7 +92,6 @@ export class VM extends pulumi.CustomResource {
                 throw new Error("Missing required property 'name'");
             }
             resourceInputs["acpi"] = args?.acpi;
-            resourceInputs["affinity"] = args?.affinity;
             resourceInputs["audio0"] = args?.audio0;
             resourceInputs["autostart"] = args?.autostart;
             resourceInputs["balloon"] = args?.balloon;
@@ -110,10 +102,7 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["ciupgrade"] = args?.ciupgrade;
             resourceInputs["ciuser"] = args?.ciuser;
             resourceInputs["clone"] = args?.clone;
-            resourceInputs["cores"] = (args?.cores) ?? 1;
             resourceInputs["cpu"] = args?.cpu;
-            resourceInputs["cpulimit"] = args?.cpulimit;
-            resourceInputs["cpuunits"] = args?.cpuunits;
             resourceInputs["description"] = args?.description;
             resourceInputs["disks"] = args?.disks;
             resourceInputs["efidisk"] = args?.efidisk;
@@ -129,8 +118,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["name"] = args?.name;
             resourceInputs["nameserver"] = args?.nameserver;
             resourceInputs["node"] = args?.node;
-            resourceInputs["numa"] = args?.numa;
-            resourceInputs["numa0"] = args?.numa0;
             resourceInputs["ostype"] = args?.ostype;
             resourceInputs["parallel0"] = args?.parallel0;
             resourceInputs["protection"] = args?.protection;
@@ -142,12 +129,10 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["template"] = args?.template;
             resourceInputs["tpmstate0"] = args?.tpmstate0;
             resourceInputs["usb0"] = args?.usb0;
-            resourceInputs["vcpus"] = args?.vcpus;
             resourceInputs["vga"] = args?.vga;
             resourceInputs["vmId"] = args?.vmId;
         } else {
             resourceInputs["acpi"] = undefined /*out*/;
-            resourceInputs["affinity"] = undefined /*out*/;
             resourceInputs["audio0"] = undefined /*out*/;
             resourceInputs["autostart"] = undefined /*out*/;
             resourceInputs["balloon"] = undefined /*out*/;
@@ -158,10 +143,7 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["ciupgrade"] = undefined /*out*/;
             resourceInputs["ciuser"] = undefined /*out*/;
             resourceInputs["clone"] = undefined /*out*/;
-            resourceInputs["cores"] = undefined /*out*/;
             resourceInputs["cpu"] = undefined /*out*/;
-            resourceInputs["cpulimit"] = undefined /*out*/;
-            resourceInputs["cpuunits"] = undefined /*out*/;
             resourceInputs["description"] = undefined /*out*/;
             resourceInputs["disks"] = undefined /*out*/;
             resourceInputs["efidisk"] = undefined /*out*/;
@@ -177,8 +159,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["name"] = undefined /*out*/;
             resourceInputs["nameserver"] = undefined /*out*/;
             resourceInputs["node"] = undefined /*out*/;
-            resourceInputs["numa"] = undefined /*out*/;
-            resourceInputs["numa0"] = undefined /*out*/;
             resourceInputs["ostype"] = undefined /*out*/;
             resourceInputs["parallel0"] = undefined /*out*/;
             resourceInputs["protection"] = undefined /*out*/;
@@ -190,7 +170,6 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["template"] = undefined /*out*/;
             resourceInputs["tpmstate0"] = undefined /*out*/;
             resourceInputs["usb0"] = undefined /*out*/;
-            resourceInputs["vcpus"] = undefined /*out*/;
             resourceInputs["vga"] = undefined /*out*/;
             resourceInputs["vmId"] = undefined /*out*/;
         }
@@ -204,7 +183,6 @@ export class VM extends pulumi.CustomResource {
  */
 export interface VMArgs {
     acpi?: pulumi.Input<number>;
-    affinity?: pulumi.Input<string>;
     audio0?: pulumi.Input<string>;
     autostart?: pulumi.Input<number>;
     balloon?: pulumi.Input<number>;
@@ -215,10 +193,7 @@ export interface VMArgs {
     ciupgrade?: pulumi.Input<number>;
     ciuser?: pulumi.Input<string>;
     clone?: pulumi.Input<inputs.vm.CloneArgs>;
-    cores?: pulumi.Input<number>;
-    cpu?: pulumi.Input<string>;
-    cpulimit?: pulumi.Input<string>;
-    cpuunits?: pulumi.Input<number>;
+    cpu?: pulumi.Input<inputs.vm.CpuArgs>;
     description?: pulumi.Input<string>;
     disks: pulumi.Input<pulumi.Input<inputs.vm.DiskArgs>[]>;
     efidisk?: pulumi.Input<inputs.vm.EfiDiskArgs>;
@@ -234,8 +209,6 @@ export interface VMArgs {
     name: pulumi.Input<string>;
     nameserver?: pulumi.Input<string>;
     node?: pulumi.Input<string>;
-    numa?: pulumi.Input<number>;
-    numa0?: pulumi.Input<string>;
     ostype?: pulumi.Input<string>;
     parallel0?: pulumi.Input<string>;
     protection?: pulumi.Input<number>;
@@ -247,7 +220,6 @@ export interface VMArgs {
     template?: pulumi.Input<number>;
     tpmstate0?: pulumi.Input<string>;
     usb0?: pulumi.Input<string>;
-    vcpus?: pulumi.Input<number>;
     vga?: pulumi.Input<string>;
     vmId?: pulumi.Input<number>;
 }

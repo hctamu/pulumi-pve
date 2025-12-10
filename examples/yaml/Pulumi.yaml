@@ -19,11 +19,32 @@ resources:
   myVM:
     type: pve:vm:VM
     properties:
-      vmId: 129
-      name: "MyTestVM"
+      name: "aTestVM"
       description: "test VM"
-      cpu: "EPYC-v3"
-      memory: 32768
+      cpu:
+        type: EPYC-v3
+        flagsEnabled:
+          - virt-ssbd
+        flagsDisabled:
+          - spec-ctrl
+        hidden: true
+        hvVendorId: AuthenticAMD
+        physBits: "48"
+        cores: 4
+        sockets: 2
+        limit: 3.0
+        units: 2048
+        vcpus: 3
+        numa: true
+        numaNodes:
+          - cpus: "0-1"
+            hostNodes: "0"
+            memory: 2048
+            policy: "preferred"
+          - cpus: "2-3"
+            hostNodes: "1"
+            policy: "interleave"
+      memory: 27875
       efidisk:
         storage: "ceph-ha"
         efitype: "4m"

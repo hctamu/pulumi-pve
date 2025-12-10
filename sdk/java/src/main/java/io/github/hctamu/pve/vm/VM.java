@@ -10,6 +10,7 @@ import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.vm.VMArgs;
 import io.github.hctamu.pve.vm.outputs.Clone;
+import io.github.hctamu.pve.vm.outputs.Cpu;
 import io.github.hctamu.pve.vm.outputs.Disk;
 import io.github.hctamu.pve.vm.outputs.EfiDisk;
 import java.lang.Integer;
@@ -25,12 +26,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<Integer>> acpi() {
         return Codegen.optional(this.acpi);
-    }
-    @Export(name="affinity", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> affinity;
-
-    public Output<Optional<String>> affinity() {
-        return Codegen.optional(this.affinity);
     }
     @Export(name="audio0", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> audio0;
@@ -92,29 +87,11 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<Clone>> clone_() {
         return Codegen.optional(this.clone);
     }
-    @Export(name="cores", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> cores;
+    @Export(name="cpu", refs={Cpu.class}, tree="[0]")
+    private Output</* @Nullable */ Cpu> cpu;
 
-    public Output<Optional<Integer>> cores() {
-        return Codegen.optional(this.cores);
-    }
-    @Export(name="cpu", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> cpu;
-
-    public Output<Optional<String>> cpu() {
+    public Output<Optional<Cpu>> cpu() {
         return Codegen.optional(this.cpu);
-    }
-    @Export(name="cpulimit", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> cpulimit;
-
-    public Output<Optional<String>> cpulimit() {
-        return Codegen.optional(this.cpulimit);
-    }
-    @Export(name="cpuunits", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> cpuunits;
-
-    public Output<Optional<Integer>> cpuunits() {
-        return Codegen.optional(this.cpuunits);
     }
     @Export(name="description", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> description;
@@ -206,18 +183,6 @@ public class VM extends com.pulumi.resources.CustomResource {
     public Output<Optional<String>> node() {
         return Codegen.optional(this.node);
     }
-    @Export(name="numa", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> numa;
-
-    public Output<Optional<Integer>> numa() {
-        return Codegen.optional(this.numa);
-    }
-    @Export(name="numa0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> numa0;
-
-    public Output<Optional<String>> numa0() {
-        return Codegen.optional(this.numa0);
-    }
     @Export(name="ostype", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> ostype;
 
@@ -283,12 +248,6 @@ public class VM extends com.pulumi.resources.CustomResource {
 
     public Output<Optional<String>> usb0() {
         return Codegen.optional(this.usb0);
-    }
-    @Export(name="vcpus", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> vcpus;
-
-    public Output<Optional<Integer>> vcpus() {
-        return Codegen.optional(this.vcpus);
     }
     @Export(name="vga", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> vga;

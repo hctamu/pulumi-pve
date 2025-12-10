@@ -170,15 +170,19 @@ func TestVMDiffPointerFields(t *testing.T) {
 				Inputs: vmResource.Inputs{
 					Name:   testutils.Ptr("test-vm"),
 					Memory: tt.inputMemory,
-					Cores:  tt.inputCores,
-					Disks:  []*vmResource.Disk{},
+					Cpu: &vmResource.Cpu{
+						Cores: tt.inputCores,
+					},
+					Disks: []*vmResource.Disk{},
 				},
 				State: vmResource.Outputs{
 					Inputs: vmResource.Inputs{
 						Name:   testutils.Ptr("test-vm"),
 						Memory: tt.stateMemory,
-						Cores:  tt.stateCores,
-						Disks:  []*vmResource.Disk{},
+						Cpu: &vmResource.Cpu{
+							Cores: tt.stateCores,
+						},
+						Disks: []*vmResource.Disk{},
 					},
 				},
 			}
@@ -200,7 +204,9 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 		Inputs: vmResource.Inputs{
 			Name:   testutils.Ptr("new-name"),
 			Memory: testutils.Ptr(4096),
-			Cores:  testutils.Ptr(4),
+			Cpu: &vmResource.Cpu{
+				Cores: testutils.Ptr(4),
+			},
 			Disks: []*vmResource.Disk{
 				{Size: 50, Interface: "scsi0"},
 			},
@@ -210,7 +216,9 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 			Inputs: vmResource.Inputs{
 				Name:   testutils.Ptr("old-name"),
 				Memory: testutils.Ptr(2048),
-				Cores:  testutils.Ptr(2),
+				Cpu: &vmResource.Cpu{
+					Cores: testutils.Ptr(2),
+				},
 				Disks: []*vmResource.Disk{
 					{Size: 40, Interface: "scsi0"},
 				},

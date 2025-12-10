@@ -37,6 +37,187 @@ const (
 	efiDiskInputName = "efidisk"
 )
 
+// NumaNode represents a single NUMA node topology configuration.
+type NumaNode struct {
+	Cpus      string  `pulumi:"cpus"`
+	HostNodes *string `pulumi:"hostNodes,optional"`
+	Memory    *int    `pulumi:"memory,optional"`
+	Policy    *string `pulumi:"policy,optional"`
+}
+
+// Cpu represents the structured CPU configuration.
+type Cpu struct {
+	Type          *string    `pulumi:"type,optional"`
+	FlagsEnabled  []string   `pulumi:"flagsEnabled,optional"`
+	FlagsDisabled []string   `pulumi:"flagsDisabled,optional"`
+	Hidden        *bool      `pulumi:"hidden,optional"`
+	HVVendorID    *string    `pulumi:"hvVendorId,optional"`
+	PhysBits      *string    `pulumi:"physBits,optional"`
+	Cores         *int       `pulumi:"cores,optional"`
+	Sockets       *int       `pulumi:"sockets,optional"`
+	Limit         *float64   `pulumi:"limit,optional"`
+	Units         *int       `pulumi:"units,optional"`
+	Vcpus         *int       `pulumi:"vcpus,optional"`
+	Numa          *bool      `pulumi:"numa,optional"`
+	NumaNodes     []NumaNode `pulumi:"numaNodes,optional"`
+	// TODO: Affinity is currently buggy in Proxmox VE - requires root permissions and has permission issues
+	// Affinity      *string  `pulumi:"affinity,optional"`
+}
+
+// ToProxmoxNumaString converts a NumaNode to Proxmox format.
+func (n *NumaNode) ToProxmoxNumaString() string {
+	parts := make([]string, 0, 4)
+	parts = append(parts, "cpus="+n.Cpus)
+	if n.HostNodes != nil {
+		parts = append(parts, "hostnodes="+*n.HostNodes)
+	}
+	if n.Memory != nil {
+		parts = append(parts, fmt.Sprintf("memory=%d", *n.Memory))
+	}
+	if n.Policy != nil {
+		parts = append(parts, "policy="+*n.Policy)
+	}
+	return strings.Join(parts, ",")
+}
+
+// ParseNumaNode parses a Proxmox NUMA node config string.
+func ParseNumaNode(value string) (node *NumaNode, err error) {
+	if value == "" {
+		return nil, nil
+	}
+	node = &NumaNode{}
+	segments := strings.Split(value, ",")
+	for _, seg := range segments {
+		if seg == "" {
+			continue
+		}
+		kv := strings.SplitN(seg, "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		key, val := kv[0], kv[1]
+		switch key {
+		case "cpus":
+			node.Cpus = val
+		case "hostnodes":
+			node.HostNodes = &val
+		case "memory":
+			mem, err := strconv.Atoi(val)
+			if err != nil {
+				return nil, fmt.Errorf("invalid memory value '%s': %w", val, err)
+			}
+			node.Memory = &mem
+		case "policy":
+			node.Policy = &val
+		}
+	}
+	if node.Cpus == "" {
+		return nil, fmt.Errorf("NUMA node missing required 'cpus' field")
+	}
+	return node, nil
+}
+
+// ToProxmoxString converts the Cpu config to Proxmox format.
+func (c *Cpu) ToProxmoxString() string {
+	if c == nil {
+		return ""
+	}
+	parts := make([]string, 0, 6)
+	if c.Type != nil && *c.Type != "" {
+		parts = append(parts, *c.Type)
+	}
+	if len(c.FlagsEnabled) > 0 || len(c.FlagsDisabled) > 0 {
+		flags := make([]string, 0, len(c.FlagsEnabled)+len(c.FlagsDisabled))
+		for _, f := range c.FlagsEnabled {
+			if f == "" {
+				continue
+			}
+			flags = append(flags, "+"+f)
+		}
+		for _, f := range c.FlagsDisabled {
+			if f == "" {
+				continue
+			}
+			flags = append(flags, "-"+f)
+		}
+		if len(flags) > 0 {
+			parts = append(parts, "flags="+strings.Join(flags, ";"))
+		}
+	}
+	if c.Hidden != nil {
+		if *c.Hidden {
+			parts = append(parts, "hidden=1")
+		} else {
+			parts = append(parts, "hidden=0")
+		}
+	}
+	if c.HVVendorID != nil {
+		parts = append(parts, "hv-vendor-id="+*c.HVVendorID)
+	}
+	if c.PhysBits != nil {
+		parts = append(parts, "phys-bits="+*c.PhysBits)
+	}
+	return strings.Join(parts, ",")
+}
+
+// ParseCpu parses a Proxmox CPU config string into Cpu.
+func ParseCpu(value string) (cfg *Cpu, err error) {
+	if value == "" {
+		return nil, nil
+	}
+	cfg = &Cpu{}
+	segments := strings.Split(value, ",")
+	for i, seg := range segments {
+		if seg == "" {
+			continue
+		}
+		kv := strings.SplitN(seg, "=", 2)
+		if len(kv) != 2 {
+			// First segment without '=' is the CPU type
+			if i == 0 {
+				cfg.Type = &seg
+			}
+			continue
+		}
+		key, val := kv[0], kv[1]
+		switch key {
+		case "cputype":
+			cfg.Type = &val
+		case "flags":
+			if val != "" {
+				flags := strings.Split(val, ";")
+				for _, f := range flags {
+					if f == "" {
+						continue
+					}
+					switch f[0] {
+					case '+':
+						cfg.FlagsEnabled = append(cfg.FlagsEnabled, f[1:])
+					case '-':
+						cfg.FlagsDisabled = append(cfg.FlagsDisabled, f[1:])
+					default:
+						cfg.FlagsEnabled = append(cfg.FlagsEnabled, f)
+					}
+				}
+			}
+		case "hidden":
+			if val == "1" {
+				b := true
+				cfg.Hidden = &b
+			} else if val == "0" {
+				b := false
+				cfg.Hidden = &b
+			}
+		case "hv-vendor-id":
+			cfg.HVVendorID = &val
+		case "phys-bits":
+			cfg.PhysBits = &val
+			// other keys ignored
+		}
+	}
+	return cfg, nil
+}
+
 // Inputs represents the input configuration for a virtual machine.
 type Inputs struct {
 	Name        *string `pulumi:"name"`
@@ -67,14 +248,8 @@ type Inputs struct {
 	Acpi *int `pulumi:"acpi,optional"`
 
 	// Sockets  *int    `pulumi:"sockets,optional"`
-	Cores    *int    `pulumi:"cores,optional"`
-	CPU      *string `pulumi:"cpu,optional"`
-	CPULimit *string `pulumi:"cpulimit,optional"`
-	CPUUnits *int    `pulumi:"cpuunits,optional"`
-	Vcpus    *int    `pulumi:"vcpus,optional"`
-	Affinity *string `pulumi:"affinity,optional"`
 
-	Numa      *int    `pulumi:"numa,optional"`
+	Cpu       *Cpu    `pulumi:"cpu,optional"`
 	Memory    *int    `pulumi:"memory,optional"`
 	Hugepages *string `pulumi:"hugepages,optional"`
 	Balloon   *int    `pulumi:"balloon,optional"`
@@ -88,8 +263,6 @@ type Inputs struct {
 	Disks []*Disk `pulumi:"disks"`
 
 	// Net0 *string `pulumi:"net0,optional"`
-
-	Numa0 *string `pulumi:"numa0,optional"`
 
 	HostPCI0 *string `pulumi:"hostpci0,optional"`
 
@@ -262,9 +435,72 @@ func parseDiskBase(diskConfig string) (parsedDiskBase, error) {
 }
 
 // ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Inputs, error) {
+func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (inputs Inputs, err error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
+
+	var parsedCPU *Cpu
+	if vmConfig.CPU != "" {
+		cpuCfg, parseErr := ParseCpu(vmConfig.CPU)
+		if parseErr != nil {
+			err = fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, parseErr)
+			return
+		}
+		parsedCPU = cpuCfg
+	}
+
+	if parsedCPU == nil {
+		parsedCPU = &Cpu{}
+	}
+
+	if vmConfig.Cores > 0 {
+		c := vmConfig.Cores
+		parsedCPU.Cores = &c
+	}
+	if vmConfig.Sockets > 0 {
+		s := vmConfig.Sockets
+		parsedCPU.Sockets = &s
+	}
+	if vmConfig.CPULimit > 0 {
+		limit := float64(vmConfig.CPULimit)
+		parsedCPU.Limit = &limit
+	}
+	if vmConfig.CPUUnits > 0 {
+		parsedCPU.Units = &vmConfig.CPUUnits
+	}
+	if vmConfig.Vcpus > 0 {
+		parsedCPU.Vcpus = &vmConfig.Vcpus
+	}
+	// TODO: Affinity is currently buggy in Proxmox VE
+	// if vmConfig.Affinity != "" {
+	// 	parsedCPU.Affinity = &vmConfig.Affinity
+	// }
+
+	if vmConfig.Numa > 0 {
+		numaEnabled := vmConfig.Numa > 0
+		parsedCPU.Numa = &numaEnabled
+	}
+
+	numaStrings := []string{
+		vmConfig.Numa0, vmConfig.Numa1, vmConfig.Numa2, vmConfig.Numa3, vmConfig.Numa4,
+		vmConfig.Numa5, vmConfig.Numa6, vmConfig.Numa7, vmConfig.Numa8, vmConfig.Numa9,
+	}
+	var numaNodes []NumaNode
+	for _, numaStr := range numaStrings {
+		if numaStr != "" {
+			node, parseErr := ParseNumaNode(numaStr)
+			if parseErr != nil {
+				err = fmt.Errorf("failed to parse NUMA node '%s': %w", numaStr, parseErr)
+				return
+			}
+			if node != nil {
+				numaNodes = append(numaNodes, *node)
+			}
+		}
+	}
+	if len(numaNodes) > 0 {
+		parsedCPU.NumaNodes = numaNodes
+	}
 
 	// Sort disk interfaces to ensure consistent ordering
 	disks := []*Disk{}
@@ -331,14 +567,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 
 		Acpi: intOrNil(vmConfig.Acpi),
 
-		// Sockets:  intOrNil(vmConfig.Sockets),
-		Cores:    intOrNil(vmConfig.Cores),
-		CPU:      strOrNil(vmConfig.CPU),
-		CPUUnits: intOrNil(vmConfig.CPUUnits),
-		Vcpus:    intOrNil(vmConfig.Vcpus),
-		Affinity: strOrNil(vmConfig.Affinity),
-
-		Numa:      intOrNil(vmConfig.Numa),
+		Cpu:       parsedCPU,
 		Memory:    intOrNil(int(vmConfig.Memory)), // MB (no conversion)
 		Hugepages: strOrNil(vmConfig.Hugepages),
 		Balloon:   intOrNil(vmConfig.Balloon),
@@ -352,8 +581,6 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (Input
 		Disks: disks,
 
 		// Net0: strOrNil(vmConfig.Net0),
-
-		Numa0: strOrNil(vmConfig.Numa0),
 
 		HostPCI0: strOrNil(vmConfig.HostPCI0),
 
@@ -386,15 +613,10 @@ func (inputs *Inputs) BuildOptionsDiff(
 	// Memory already stored in MB; no conversion required.
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
-	compareAndAddOption("cores", &options, inputs.Cores, currentInputs.Cores)
 	compareAndAddOption("description", &options, inputs.Description, currentInputs.Description)
 	compareAndAddOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
 	compareAndAddOption("protection", &options, inputs.Protection, currentInputs.Protection)
 	compareAndAddOption("lock", &options, inputs.Lock, currentInputs.Lock)
-	compareAndAddOption("cpu", &options, inputs.CPU, currentInputs.CPU)
-	compareAndAddOption("cpulimit", &options, inputs.CPULimit, currentInputs.CPULimit)
-	compareAndAddOption("cpuunits", &options, inputs.CPUUnits, currentInputs.CPUUnits)
-	compareAndAddOption("vcpus", &options, inputs.Vcpus, currentInputs.Vcpus)
 	compareAndAddOption("hugepages", &options, inputs.Hugepages, currentInputs.Hugepages)
 	compareAndAddOption("balloon", &options, inputs.Balloon, currentInputs.Balloon)
 	compareAndAddOption("vga", &options, inputs.VGA, currentInputs.VGA)
@@ -402,7 +624,7 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("sshkeys", &options, inputs.SSHKeys, currentInputs.SSHKeys)
 	compareAndAddOption("cicustom", &options, inputs.CICustom, currentInputs.CICustom)
 	compareAndAddOption("ciupgrade", &options, inputs.CIUpgrade, currentInputs.CIUpgrade)
-
+	addCpuDiff(&options, inputs, currentInputs)
 	// Handle EFI disk changes
 	if !reflect.DeepEqual(inputs.EfiDisk, currentInputs.EfiDisk) {
 		if inputs.EfiDisk != nil {
@@ -427,15 +649,10 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 
 	addOption("name", &options, inputs.Name)
 	addOption("memory", &options, inputs.Memory)
-	addOption("cores", &options, inputs.Cores)
 	addOption("description", &options, inputs.Description)
 	addOption("autostart", &options, inputs.Autostart)
 	addOption("protection", &options, inputs.Protection)
 	addOption("lock", &options, inputs.Lock)
-	addOption("cpu", &options, inputs.CPU)
-	addOption("cpulimit", &options, inputs.CPULimit)
-	addOption("cpuunits", &options, inputs.CPUUnits)
-	addOption("vcpus", &options, inputs.Vcpus)
 	addOption("hugepages", &options, inputs.Hugepages)
 	addOption("balloon", &options, inputs.Balloon)
 	addOption("vga", &options, inputs.VGA)
@@ -448,6 +665,43 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
+	if inputs.Cpu != nil {
+		cpuStr := inputs.Cpu.ToProxmoxString()
+		if cpuStr != "" {
+			options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuStr})
+		}
+		if inputs.Cpu.Cores != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cores", Value: inputs.Cpu.Cores})
+		}
+		if inputs.Cpu.Sockets != nil {
+			options = append(options, api.VirtualMachineOption{Name: "sockets", Value: inputs.Cpu.Sockets})
+		}
+		if inputs.Cpu.Limit != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cpulimit", Value: inputs.Cpu.Limit})
+		}
+		if inputs.Cpu.Units != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cpuunits", Value: inputs.Cpu.Units})
+		}
+		if inputs.Cpu.Vcpus != nil {
+			options = append(options, api.VirtualMachineOption{Name: "vcpus", Value: inputs.Cpu.Vcpus})
+		}
+		if inputs.Cpu.Numa != nil {
+			numaValue := 0
+			if *inputs.Cpu.Numa {
+				numaValue = 1
+			}
+			options = append(options, api.VirtualMachineOption{Name: "numa", Value: numaValue})
+		}
+		for i, node := range inputs.Cpu.NumaNodes {
+			numaKey := fmt.Sprintf("numa%d", i)
+			numaValue := node.ToProxmoxNumaString()
+			options = append(options, api.VirtualMachineOption{Name: numaKey, Value: numaValue})
+		}
+		// TODO: Affinity is currently buggy in Proxmox VE
+		// if inputs.Cpu.Affinity != nil {
+		// 	options = append(options, api.VirtualMachineOption{Name: "affinity", Value: inputs.Cpu.Affinity})
+		// }
+	}
 
 	// Add EFI disk if configured
 	if inputs.EfiDisk != nil {
@@ -461,6 +715,174 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	}
 
 	return options
+}
+
+// addCpuDiff appends VirtualMachineOption entries for cpu string, cores, and sockets when they differ.
+func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *Inputs) {
+	if newInputs.Cpu != nil || currentInputs.Cpu != nil {
+		// Diff CPU string
+		var newCPU, oldCPU string
+		if newInputs.Cpu != nil {
+			newCPU = newInputs.Cpu.ToProxmoxString()
+		}
+		if currentInputs.Cpu != nil {
+			oldCPU = currentInputs.Cpu.ToProxmoxString()
+		}
+		if newCPU != oldCPU && newCPU != "" {
+			*options = append(*options, api.VirtualMachineOption{Name: "cpu", Value: newCPU})
+		}
+
+		// Diff cores
+		var newCores, oldCores *int
+		if newInputs.Cpu != nil {
+			newCores = newInputs.Cpu.Cores
+		}
+		if currentInputs.Cpu != nil {
+			oldCores = currentInputs.Cpu.Cores
+		}
+		if utils.DifferPtr(newCores, oldCores) {
+			if newCores != nil { // skip clear operations
+				*options = append(*options, api.VirtualMachineOption{Name: "cores", Value: newCores})
+			}
+		}
+
+		// Diff sockets
+		var newSockets, oldSockets *int
+		if newInputs.Cpu != nil {
+			newSockets = newInputs.Cpu.Sockets
+		}
+		if currentInputs.Cpu != nil {
+			oldSockets = currentInputs.Cpu.Sockets
+		}
+		if utils.DifferPtr(newSockets, oldSockets) {
+			if newSockets != nil {
+				*options = append(*options, api.VirtualMachineOption{Name: "sockets", Value: newSockets})
+			}
+		}
+
+		// Diff cpulimit
+		var newLimit, oldLimit *float64
+		if newInputs.Cpu != nil {
+			newLimit = newInputs.Cpu.Limit
+		}
+		if currentInputs.Cpu != nil {
+			oldLimit = currentInputs.Cpu.Limit
+		}
+		if utils.DifferPtr(newLimit, oldLimit) {
+			if newLimit != nil {
+				*options = append(*options, api.VirtualMachineOption{Name: "cpulimit", Value: newLimit})
+			}
+		}
+
+		// Diff cpuunits
+		var newUnits, oldUnits *int
+		if newInputs.Cpu != nil {
+			newUnits = newInputs.Cpu.Units
+		}
+		if currentInputs.Cpu != nil {
+			oldUnits = currentInputs.Cpu.Units
+		}
+		if utils.DifferPtr(newUnits, oldUnits) {
+			if newUnits != nil {
+				*options = append(*options, api.VirtualMachineOption{Name: "cpuunits", Value: newUnits})
+			}
+		}
+
+		// Diff vcpus
+		var newVcpus, oldVcpus *int
+		if newInputs.Cpu != nil {
+			newVcpus = newInputs.Cpu.Vcpus
+		}
+		if currentInputs.Cpu != nil {
+			oldVcpus = currentInputs.Cpu.Vcpus
+		}
+		if utils.DifferPtr(newVcpus, oldVcpus) {
+			if newVcpus != nil {
+				*options = append(*options, api.VirtualMachineOption{Name: "vcpus", Value: newVcpus})
+			}
+		}
+
+		// Diff NUMA enabled
+		var newNuma, oldNuma *bool
+		if newInputs.Cpu != nil {
+			newNuma = newInputs.Cpu.Numa
+		}
+		if currentInputs.Cpu != nil {
+			oldNuma = currentInputs.Cpu.Numa
+		}
+		if utils.DifferPtr(newNuma, oldNuma) {
+			if newNuma != nil {
+				numaValue := 0
+				if *newNuma {
+					numaValue = 1
+				}
+				*options = append(*options, api.VirtualMachineOption{Name: "numa", Value: numaValue})
+			}
+		}
+
+		// Diff NUMA nodes
+		var newNodes, oldNodes []NumaNode
+		if newInputs.Cpu != nil {
+			newNodes = newInputs.Cpu.NumaNodes
+		}
+		if currentInputs.Cpu != nil {
+			oldNodes = currentInputs.Cpu.NumaNodes
+		}
+		if !numaNodesEqual(newNodes, oldNodes) {
+			for i, node := range newNodes {
+				numaKey := fmt.Sprintf("numa%d", i)
+				numaValue := node.ToProxmoxNumaString()
+				*options = append(*options, api.VirtualMachineOption{Name: numaKey, Value: numaValue})
+			}
+		}
+
+		// TODO: Affinity is currently buggy in Proxmox VE
+		// var newAffinity, oldAffinity *string
+		// if newInputs.Cpu != nil {
+		// 	newAffinity = newInputs.Cpu.Affinity
+		// }
+		// if currentInputs.Cpu != nil {
+		// 	oldAffinity = currentInputs.Cpu.Affinity
+		// }
+		// if utils.DifferPtr(newAffinity, oldAffinity) {
+		// 	if newAffinity != nil {
+		// 		*options = append(*options, api.VirtualMachineOption{Name: "affinity", Value: newAffinity})
+		// 	}
+		// }
+	}
+}
+
+// numaNodesEqual checks if two NumaNode slices are equal.
+func numaNodesEqual(a, b []NumaNode) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Cpus != b[i].Cpus {
+			return false
+		}
+		if !ptrEqual(a[i].HostNodes, b[i].HostNodes) {
+			return false
+		}
+		if !ptrEqual(a[i].Memory, b[i].Memory) {
+			return false
+		}
+		if !ptrEqual(a[i].Policy, b[i].Policy) {
+			return false
+		}
+	}
+	return true
+}
+
+// ptrEqual compares two pointers of any comparable type.
+func ptrEqual[T comparable](a, b *T) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }
 
 // getDiskOption returns the disk option with the specified interface.

@@ -108,6 +108,59 @@
         "vmId"
       ]
     },
+    "pve:vm:Cpu": {
+      "properties": {
+        "cores": {
+          "type": "integer"
+        },
+        "flagsDisabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "flagsEnabled": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "hvVendorId": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "number"
+        },
+        "numa": {
+          "type": "boolean"
+        },
+        "numaNodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/pve:vm:NumaNode"
+          }
+        },
+        "physBits": {
+          "type": "string"
+        },
+        "sockets": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "string"
+        },
+        "units": {
+          "type": "integer"
+        },
+        "vcpus": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "pve:vm:Disk": {
       "properties": {
         "filename": {
@@ -150,6 +203,26 @@
       "required": [
         "efitype",
         "storage"
+      ]
+    },
+    "pve:vm:NumaNode": {
+      "properties": {
+        "cpus": {
+          "type": "string"
+        },
+        "hostNodes": {
+          "type": "string"
+        },
+        "memory": {
+          "type": "integer"
+        },
+        "policy": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "cpus"
       ]
     }
   },
@@ -583,9 +656,6 @@
         "acpi": {
           "type": "integer"
         },
-        "affinity": {
-          "type": "string"
-        },
         "audio0": {
           "type": "string"
         },
@@ -616,18 +686,8 @@
         "clone": {
           "$ref": "#/types/pve:vm:Clone"
         },
-        "cores": {
-          "type": "integer",
-          "default": 1
-        },
         "cpu": {
-          "type": "string"
-        },
-        "cpulimit": {
-          "type": "string"
-        },
-        "cpuunits": {
-          "type": "integer"
+          "$ref": "#/types/pve:vm:Cpu"
         },
         "description": {
           "type": "string"
@@ -677,12 +737,6 @@
         "node": {
           "type": "string"
         },
-        "numa": {
-          "type": "integer"
-        },
-        "numa0": {
-          "type": "string"
-        },
         "ostype": {
           "type": "string"
         },
@@ -715,9 +769,6 @@
         },
         "usb0": {
           "type": "string"
-        },
-        "vcpus": {
-          "type": "integer"
         },
         "vga": {
           "type": "string"
@@ -735,9 +786,6 @@
         "acpi": {
           "type": "integer"
         },
-        "affinity": {
-          "type": "string"
-        },
         "audio0": {
           "type": "string"
         },
@@ -768,18 +816,8 @@
         "clone": {
           "$ref": "#/types/pve:vm:Clone"
         },
-        "cores": {
-          "type": "integer",
-          "default": 1
-        },
         "cpu": {
-          "type": "string"
-        },
-        "cpulimit": {
-          "type": "string"
-        },
-        "cpuunits": {
-          "type": "integer"
+          "$ref": "#/types/pve:vm:Cpu"
         },
         "description": {
           "type": "string"
@@ -829,12 +867,6 @@
         "node": {
           "type": "string"
         },
-        "numa": {
-          "type": "integer"
-        },
-        "numa0": {
-          "type": "string"
-        },
         "ostype": {
           "type": "string"
         },
@@ -867,9 +899,6 @@
         },
         "usb0": {
           "type": "string"
-        },
-        "vcpus": {
-          "type": "integer"
         },
         "vga": {
           "type": "string"
