@@ -16,80 +16,18 @@ from .. import _utilities
 from . import outputs
 
 __all__ = [
+    'CPU',
     'Clone',
-    'Cpu',
     'Disk',
     'EfiDisk',
     'NumaNode',
 ]
 
 @pulumi.output_type
-class Clone(dict):
-    @staticmethod
-    def __key_warning(key: str):
-        suggest = None
-        if key == "vmId":
-            suggest = "vm_id"
-        elif key == "dataStoreId":
-            suggest = "data_store_id"
-        elif key == "fullClone":
-            suggest = "full_clone"
-
-        if suggest:
-            pulumi.log.warn(f"Key '{key}' not found in Clone. Access the value via the '{suggest}' property getter instead.")
-
-    def __getitem__(self, key: str) -> Any:
-        Clone.__key_warning(key)
-        return super().__getitem__(key)
-
-    def get(self, key: str, default = None) -> Any:
-        Clone.__key_warning(key)
-        return super().get(key, default)
-
-    def __init__(__self__, *,
-                 vm_id: _builtins.int,
-                 data_store_id: Optional[_builtins.str] = None,
-                 full_clone: Optional[_builtins.bool] = None,
-                 node: Optional[_builtins.str] = None,
-                 timeout: Optional[_builtins.int] = None):
-        pulumi.set(__self__, "vm_id", vm_id)
-        if data_store_id is not None:
-            pulumi.set(__self__, "data_store_id", data_store_id)
-        if full_clone is not None:
-            pulumi.set(__self__, "full_clone", full_clone)
-        if node is not None:
-            pulumi.set(__self__, "node", node)
-        if timeout is not None:
-            pulumi.set(__self__, "timeout", timeout)
-
-    @_builtins.property
-    @pulumi.getter(name="vmId")
-    def vm_id(self) -> _builtins.int:
-        return pulumi.get(self, "vm_id")
-
-    @_builtins.property
-    @pulumi.getter(name="dataStoreId")
-    def data_store_id(self) -> Optional[_builtins.str]:
-        return pulumi.get(self, "data_store_id")
-
-    @_builtins.property
-    @pulumi.getter(name="fullClone")
-    def full_clone(self) -> Optional[_builtins.bool]:
-        return pulumi.get(self, "full_clone")
-
-    @_builtins.property
-    @pulumi.getter
-    def node(self) -> Optional[_builtins.str]:
-        return pulumi.get(self, "node")
-
-    @_builtins.property
-    @pulumi.getter
-    def timeout(self) -> Optional[_builtins.int]:
-        return pulumi.get(self, "timeout")
-
-
-@pulumi.output_type
-class Cpu(dict):
+class CPU(dict):
+    """
+    CPU configuration for the virtual machine.
+    """
     @staticmethod
     def __key_warning(key: str):
         suggest = None
@@ -105,14 +43,14 @@ class Cpu(dict):
             suggest = "phys_bits"
 
         if suggest:
-            pulumi.log.warn(f"Key '{key}' not found in Cpu. Access the value via the '{suggest}' property getter instead.")
+            pulumi.log.warn(f"Key '{key}' not found in CPU. Access the value via the '{suggest}' property getter instead.")
 
     def __getitem__(self, key: str) -> Any:
-        Cpu.__key_warning(key)
+        CPU.__key_warning(key)
         return super().__getitem__(key)
 
     def get(self, key: str, default = None) -> Any:
-        Cpu.__key_warning(key)
+        CPU.__key_warning(key)
         return super().get(key, default)
 
     def __init__(__self__, *,
@@ -129,6 +67,11 @@ class Cpu(dict):
                  type: Optional[_builtins.str] = None,
                  units: Optional[_builtins.int] = None,
                  vcpus: Optional[_builtins.int] = None):
+        """
+        CPU configuration for the virtual machine.
+        """
+        if cores is None:
+            cores = (_utilities.get_env_int('Number of CPU cores') or 1)
         if cores is not None:
             pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
@@ -220,6 +163,71 @@ class Cpu(dict):
     @pulumi.getter
     def vcpus(self) -> Optional[_builtins.int]:
         return pulumi.get(self, "vcpus")
+
+
+@pulumi.output_type
+class Clone(dict):
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "vmId":
+            suggest = "vm_id"
+        elif key == "dataStoreId":
+            suggest = "data_store_id"
+        elif key == "fullClone":
+            suggest = "full_clone"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in Clone. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        Clone.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        Clone.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 vm_id: _builtins.int,
+                 data_store_id: Optional[_builtins.str] = None,
+                 full_clone: Optional[_builtins.bool] = None,
+                 node: Optional[_builtins.str] = None,
+                 timeout: Optional[_builtins.int] = None):
+        pulumi.set(__self__, "vm_id", vm_id)
+        if data_store_id is not None:
+            pulumi.set(__self__, "data_store_id", data_store_id)
+        if full_clone is not None:
+            pulumi.set(__self__, "full_clone", full_clone)
+        if node is not None:
+            pulumi.set(__self__, "node", node)
+        if timeout is not None:
+            pulumi.set(__self__, "timeout", timeout)
+
+    @_builtins.property
+    @pulumi.getter(name="vmId")
+    def vm_id(self) -> _builtins.int:
+        return pulumi.get(self, "vm_id")
+
+    @_builtins.property
+    @pulumi.getter(name="dataStoreId")
+    def data_store_id(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "data_store_id")
+
+    @_builtins.property
+    @pulumi.getter(name="fullClone")
+    def full_clone(self) -> Optional[_builtins.bool]:
+        return pulumi.get(self, "full_clone")
+
+    @_builtins.property
+    @pulumi.getter
+    def node(self) -> Optional[_builtins.str]:
+        return pulumi.get(self, "node")
+
+    @_builtins.property
+    @pulumi.getter
+    def timeout(self) -> Optional[_builtins.int]:
+        return pulumi.get(self, "timeout")
 
 
 @pulumi.output_type

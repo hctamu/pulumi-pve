@@ -11,7 +11,10 @@ using Pulumi;
 namespace Hctamu.Pve.Vm.Inputs
 {
 
-    public sealed class CpuArgs : global::Pulumi.ResourceArgs
+    /// <summary>
+    /// CPU configuration for the virtual machine.
+    /// </summary>
+    public sealed class CPUArgs : global::Pulumi.ResourceArgs
     {
         [Input("cores")]
         public Input<int>? Cores { get; set; }
@@ -67,9 +70,10 @@ namespace Hctamu.Pve.Vm.Inputs
         [Input("vcpus")]
         public Input<int>? Vcpus { get; set; }
 
-        public CpuArgs()
+        public CPUArgs()
         {
+            Cores = Utilities.GetEnvInt32("Number of CPU cores") ?? 1;
         }
-        public static new CpuArgs Empty => new CpuArgs();
+        public static new CPUArgs Empty => new CPUArgs();
     }
 }

@@ -15,7 +15,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 @CustomType
-public final class Cpu {
+public final class CPU {
     private @Nullable Integer cores;
     private @Nullable List<String> flagsDisabled;
     private @Nullable List<String> flagsEnabled;
@@ -30,7 +30,7 @@ public final class Cpu {
     private @Nullable Integer units;
     private @Nullable Integer vcpus;
 
-    private Cpu() {}
+    private CPU() {}
     public Optional<Integer> cores() {
         return Optional.ofNullable(this.cores);
     }
@@ -75,7 +75,7 @@ public final class Cpu {
         return new Builder();
     }
 
-    public static Builder builder(Cpu defaults) {
+    public static Builder builder(CPU defaults) {
         return new Builder(defaults);
     }
     @CustomType.Builder
@@ -94,7 +94,7 @@ public final class Cpu {
         private @Nullable Integer units;
         private @Nullable Integer vcpus;
         public Builder() {}
-        public Builder(Cpu defaults) {
+        public Builder(CPU defaults) {
     	      Objects.requireNonNull(defaults);
     	      this.cores = defaults.cores;
     	      this.flagsDisabled = defaults.flagsDisabled;
@@ -198,8 +198,8 @@ public final class Cpu {
             this.vcpus = vcpus;
             return this;
         }
-        public Cpu build() {
-            final var _resultValue = new Cpu();
+        public CPU build() {
+            final var _resultValue = new CPU();
             _resultValue.cores = cores;
             _resultValue.flagsDisabled = flagsDisabled;
             _resultValue.flagsEnabled = flagsEnabled;

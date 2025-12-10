@@ -47,7 +47,7 @@ namespace Hctamu.Pve.Vm
         public Output<Outputs.Clone?> Clone { get; private set; } = null!;
 
         [Output("cpu")]
-        public Output<Outputs.Cpu?> Cpu { get; private set; } = null!;
+        public Output<Outputs.CPU?> Cpu { get; private set; } = null!;
 
         [Output("description")]
         public Output<string?> Description { get; private set; } = null!;
@@ -212,7 +212,7 @@ namespace Hctamu.Pve.Vm
         public Input<Inputs.CloneArgs>? Clone { get; set; }
 
         [Input("cpu")]
-        public Input<Inputs.CpuArgs>? Cpu { get; set; }
+        public Input<Inputs.CPUArgs>? Cpu { get; set; }
 
         [Input("description")]
         public Input<string>? Description { get; set; }

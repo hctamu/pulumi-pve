@@ -44,7 +44,7 @@ export class VM extends pulumi.CustomResource {
     declare public readonly ciupgrade: pulumi.Output<number | undefined>;
     declare public readonly ciuser: pulumi.Output<string | undefined>;
     declare public readonly clone: pulumi.Output<outputs.vm.Clone | undefined>;
-    declare public readonly cpu: pulumi.Output<outputs.vm.Cpu | undefined>;
+    declare public readonly cpu: pulumi.Output<outputs.vm.CPU | undefined>;
     declare public readonly description: pulumi.Output<string | undefined>;
     declare public readonly disks: pulumi.Output<outputs.vm.Disk[]>;
     declare public readonly efidisk: pulumi.Output<outputs.vm.EfiDisk | undefined>;
@@ -102,7 +102,7 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["ciupgrade"] = args?.ciupgrade;
             resourceInputs["ciuser"] = args?.ciuser;
             resourceInputs["clone"] = args?.clone;
-            resourceInputs["cpu"] = args?.cpu;
+            resourceInputs["cpu"] = args ? (args.cpu ? pulumi.output(args.cpu).apply(inputs.vm.cpuargsProvideDefaults) : undefined) : undefined;
             resourceInputs["description"] = args?.description;
             resourceInputs["disks"] = args?.disks;
             resourceInputs["efidisk"] = args?.efidisk;
@@ -193,7 +193,7 @@ export interface VMArgs {
     ciupgrade?: pulumi.Input<number>;
     ciuser?: pulumi.Input<string>;
     clone?: pulumi.Input<inputs.vm.CloneArgs>;
-    cpu?: pulumi.Input<inputs.vm.CpuArgs>;
+    cpu?: pulumi.Input<inputs.vm.CPUArgs>;
     description?: pulumi.Input<string>;
     disks: pulumi.Input<pulumi.Input<inputs.vm.DiskArgs>[]>;
     efidisk?: pulumi.Input<inputs.vm.EfiDiskArgs>;

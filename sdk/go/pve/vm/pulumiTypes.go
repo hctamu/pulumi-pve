@@ -13,6 +13,350 @@ import (
 
 var _ = internal.GetEnvOrDefault
 
+// CPU configuration for the virtual machine.
+type CPU struct {
+	Cores         *int       `pulumi:"cores"`
+	FlagsDisabled []string   `pulumi:"flagsDisabled"`
+	FlagsEnabled  []string   `pulumi:"flagsEnabled"`
+	Hidden        *bool      `pulumi:"hidden"`
+	HvVendorId    *string    `pulumi:"hvVendorId"`
+	Limit         *float64   `pulumi:"limit"`
+	Numa          *bool      `pulumi:"numa"`
+	NumaNodes     []NumaNode `pulumi:"numaNodes"`
+	PhysBits      *string    `pulumi:"physBits"`
+	Sockets       *int       `pulumi:"sockets"`
+	Type          *string    `pulumi:"type"`
+	Units         *int       `pulumi:"units"`
+	Vcpus         *int       `pulumi:"vcpus"`
+}
+
+// Defaults sets the appropriate defaults for CPU
+func (val *CPU) Defaults() *CPU {
+	if val == nil {
+		return nil
+	}
+	tmp := *val
+	if tmp.Cores == nil {
+		if d := internal.GetEnvOrDefault(1, internal.ParseEnvInt, "Number of CPU cores"); d != nil {
+			cores_ := d.(int)
+			tmp.Cores = &cores_
+		}
+	}
+	return &tmp
+}
+
+// CPUInput is an input type that accepts CPUArgs and CPUOutput values.
+// You can construct a concrete instance of `CPUInput` via:
+//
+//	CPUArgs{...}
+type CPUInput interface {
+	pulumi.Input
+
+	ToCPUOutput() CPUOutput
+	ToCPUOutputWithContext(context.Context) CPUOutput
+}
+
+// CPU configuration for the virtual machine.
+type CPUArgs struct {
+	Cores         pulumi.IntPtrInput      `pulumi:"cores"`
+	FlagsDisabled pulumi.StringArrayInput `pulumi:"flagsDisabled"`
+	FlagsEnabled  pulumi.StringArrayInput `pulumi:"flagsEnabled"`
+	Hidden        pulumi.BoolPtrInput     `pulumi:"hidden"`
+	HvVendorId    pulumi.StringPtrInput   `pulumi:"hvVendorId"`
+	Limit         pulumi.Float64PtrInput  `pulumi:"limit"`
+	Numa          pulumi.BoolPtrInput     `pulumi:"numa"`
+	NumaNodes     NumaNodeArrayInput      `pulumi:"numaNodes"`
+	PhysBits      pulumi.StringPtrInput   `pulumi:"physBits"`
+	Sockets       pulumi.IntPtrInput      `pulumi:"sockets"`
+	Type          pulumi.StringPtrInput   `pulumi:"type"`
+	Units         pulumi.IntPtrInput      `pulumi:"units"`
+	Vcpus         pulumi.IntPtrInput      `pulumi:"vcpus"`
+}
+
+// Defaults sets the appropriate defaults for CPUArgs
+func (val *CPUArgs) Defaults() *CPUArgs {
+	if val == nil {
+		return nil
+	}
+	tmp := *val
+	if tmp.Cores == nil {
+		if d := internal.GetEnvOrDefault(1, internal.ParseEnvInt, "Number of CPU cores"); d != nil {
+			tmp.Cores = pulumi.IntPtr(d.(int))
+		}
+	}
+	return &tmp
+}
+func (CPUArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*CPU)(nil)).Elem()
+}
+
+func (i CPUArgs) ToCPUOutput() CPUOutput {
+	return i.ToCPUOutputWithContext(context.Background())
+}
+
+func (i CPUArgs) ToCPUOutputWithContext(ctx context.Context) CPUOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CPUOutput)
+}
+
+func (i CPUArgs) ToCPUPtrOutput() CPUPtrOutput {
+	return i.ToCPUPtrOutputWithContext(context.Background())
+}
+
+func (i CPUArgs) ToCPUPtrOutputWithContext(ctx context.Context) CPUPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CPUOutput).ToCPUPtrOutputWithContext(ctx)
+}
+
+// CPUPtrInput is an input type that accepts CPUArgs, CPUPtr and CPUPtrOutput values.
+// You can construct a concrete instance of `CPUPtrInput` via:
+//
+//	        CPUArgs{...}
+//
+//	or:
+//
+//	        nil
+type CPUPtrInput interface {
+	pulumi.Input
+
+	ToCPUPtrOutput() CPUPtrOutput
+	ToCPUPtrOutputWithContext(context.Context) CPUPtrOutput
+}
+
+type cpuPtrType CPUArgs
+
+func CPUPtr(v *CPUArgs) CPUPtrInput {
+	return (*cpuPtrType)(v)
+}
+
+func (*cpuPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**CPU)(nil)).Elem()
+}
+
+func (i *cpuPtrType) ToCPUPtrOutput() CPUPtrOutput {
+	return i.ToCPUPtrOutputWithContext(context.Background())
+}
+
+func (i *cpuPtrType) ToCPUPtrOutputWithContext(ctx context.Context) CPUPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(CPUPtrOutput)
+}
+
+// CPU configuration for the virtual machine.
+type CPUOutput struct{ *pulumi.OutputState }
+
+func (CPUOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*CPU)(nil)).Elem()
+}
+
+func (o CPUOutput) ToCPUOutput() CPUOutput {
+	return o
+}
+
+func (o CPUOutput) ToCPUOutputWithContext(ctx context.Context) CPUOutput {
+	return o
+}
+
+func (o CPUOutput) ToCPUPtrOutput() CPUPtrOutput {
+	return o.ToCPUPtrOutputWithContext(context.Background())
+}
+
+func (o CPUOutput) ToCPUPtrOutputWithContext(ctx context.Context) CPUPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v CPU) *CPU {
+		return &v
+	}).(CPUPtrOutput)
+}
+
+func (o CPUOutput) Cores() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v CPU) *int { return v.Cores }).(pulumi.IntPtrOutput)
+}
+
+func (o CPUOutput) FlagsDisabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v CPU) []string { return v.FlagsDisabled }).(pulumi.StringArrayOutput)
+}
+
+func (o CPUOutput) FlagsEnabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v CPU) []string { return v.FlagsEnabled }).(pulumi.StringArrayOutput)
+}
+
+func (o CPUOutput) Hidden() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v CPU) *bool { return v.Hidden }).(pulumi.BoolPtrOutput)
+}
+
+func (o CPUOutput) HvVendorId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v CPU) *string { return v.HvVendorId }).(pulumi.StringPtrOutput)
+}
+
+func (o CPUOutput) Limit() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v CPU) *float64 { return v.Limit }).(pulumi.Float64PtrOutput)
+}
+
+func (o CPUOutput) Numa() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v CPU) *bool { return v.Numa }).(pulumi.BoolPtrOutput)
+}
+
+func (o CPUOutput) NumaNodes() NumaNodeArrayOutput {
+	return o.ApplyT(func(v CPU) []NumaNode { return v.NumaNodes }).(NumaNodeArrayOutput)
+}
+
+func (o CPUOutput) PhysBits() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v CPU) *string { return v.PhysBits }).(pulumi.StringPtrOutput)
+}
+
+func (o CPUOutput) Sockets() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v CPU) *int { return v.Sockets }).(pulumi.IntPtrOutput)
+}
+
+func (o CPUOutput) Type() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v CPU) *string { return v.Type }).(pulumi.StringPtrOutput)
+}
+
+func (o CPUOutput) Units() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v CPU) *int { return v.Units }).(pulumi.IntPtrOutput)
+}
+
+func (o CPUOutput) Vcpus() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v CPU) *int { return v.Vcpus }).(pulumi.IntPtrOutput)
+}
+
+type CPUPtrOutput struct{ *pulumi.OutputState }
+
+func (CPUPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**CPU)(nil)).Elem()
+}
+
+func (o CPUPtrOutput) ToCPUPtrOutput() CPUPtrOutput {
+	return o
+}
+
+func (o CPUPtrOutput) ToCPUPtrOutputWithContext(ctx context.Context) CPUPtrOutput {
+	return o
+}
+
+func (o CPUPtrOutput) Elem() CPUOutput {
+	return o.ApplyT(func(v *CPU) CPU {
+		if v != nil {
+			return *v
+		}
+		var ret CPU
+		return ret
+	}).(CPUOutput)
+}
+
+func (o CPUPtrOutput) Cores() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *CPU) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Cores
+	}).(pulumi.IntPtrOutput)
+}
+
+func (o CPUPtrOutput) FlagsDisabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v *CPU) []string {
+		if v == nil {
+			return nil
+		}
+		return v.FlagsDisabled
+	}).(pulumi.StringArrayOutput)
+}
+
+func (o CPUPtrOutput) FlagsEnabled() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v *CPU) []string {
+		if v == nil {
+			return nil
+		}
+		return v.FlagsEnabled
+	}).(pulumi.StringArrayOutput)
+}
+
+func (o CPUPtrOutput) Hidden() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *CPU) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.Hidden
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o CPUPtrOutput) HvVendorId() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *CPU) *string {
+		if v == nil {
+			return nil
+		}
+		return v.HvVendorId
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o CPUPtrOutput) Limit() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v *CPU) *float64 {
+		if v == nil {
+			return nil
+		}
+		return v.Limit
+	}).(pulumi.Float64PtrOutput)
+}
+
+func (o CPUPtrOutput) Numa() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *CPU) *bool {
+		if v == nil {
+			return nil
+		}
+		return v.Numa
+	}).(pulumi.BoolPtrOutput)
+}
+
+func (o CPUPtrOutput) NumaNodes() NumaNodeArrayOutput {
+	return o.ApplyT(func(v *CPU) []NumaNode {
+		if v == nil {
+			return nil
+		}
+		return v.NumaNodes
+	}).(NumaNodeArrayOutput)
+}
+
+func (o CPUPtrOutput) PhysBits() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *CPU) *string {
+		if v == nil {
+			return nil
+		}
+		return v.PhysBits
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o CPUPtrOutput) Sockets() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *CPU) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Sockets
+	}).(pulumi.IntPtrOutput)
+}
+
+func (o CPUPtrOutput) Type() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *CPU) *string {
+		if v == nil {
+			return nil
+		}
+		return v.Type
+	}).(pulumi.StringPtrOutput)
+}
+
+func (o CPUPtrOutput) Units() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *CPU) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Units
+	}).(pulumi.IntPtrOutput)
+}
+
+func (o CPUPtrOutput) Vcpus() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *CPU) *int {
+		if v == nil {
+			return nil
+		}
+		return v.Vcpus
+	}).(pulumi.IntPtrOutput)
+}
+
 type Clone struct {
 	DataStoreId *string `pulumi:"dataStoreId"`
 	FullClone   *bool   `pulumi:"fullClone"`
@@ -203,319 +547,6 @@ func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 			return nil
 		}
 		return &v.VmId
-	}).(pulumi.IntPtrOutput)
-}
-
-type Cpu struct {
-	Cores         *int       `pulumi:"cores"`
-	FlagsDisabled []string   `pulumi:"flagsDisabled"`
-	FlagsEnabled  []string   `pulumi:"flagsEnabled"`
-	Hidden        *bool      `pulumi:"hidden"`
-	HvVendorId    *string    `pulumi:"hvVendorId"`
-	Limit         *float64   `pulumi:"limit"`
-	Numa          *bool      `pulumi:"numa"`
-	NumaNodes     []NumaNode `pulumi:"numaNodes"`
-	PhysBits      *string    `pulumi:"physBits"`
-	Sockets       *int       `pulumi:"sockets"`
-	Type          *string    `pulumi:"type"`
-	Units         *int       `pulumi:"units"`
-	Vcpus         *int       `pulumi:"vcpus"`
-}
-
-// CpuInput is an input type that accepts CpuArgs and CpuOutput values.
-// You can construct a concrete instance of `CpuInput` via:
-//
-//	CpuArgs{...}
-type CpuInput interface {
-	pulumi.Input
-
-	ToCpuOutput() CpuOutput
-	ToCpuOutputWithContext(context.Context) CpuOutput
-}
-
-type CpuArgs struct {
-	Cores         pulumi.IntPtrInput      `pulumi:"cores"`
-	FlagsDisabled pulumi.StringArrayInput `pulumi:"flagsDisabled"`
-	FlagsEnabled  pulumi.StringArrayInput `pulumi:"flagsEnabled"`
-	Hidden        pulumi.BoolPtrInput     `pulumi:"hidden"`
-	HvVendorId    pulumi.StringPtrInput   `pulumi:"hvVendorId"`
-	Limit         pulumi.Float64PtrInput  `pulumi:"limit"`
-	Numa          pulumi.BoolPtrInput     `pulumi:"numa"`
-	NumaNodes     NumaNodeArrayInput      `pulumi:"numaNodes"`
-	PhysBits      pulumi.StringPtrInput   `pulumi:"physBits"`
-	Sockets       pulumi.IntPtrInput      `pulumi:"sockets"`
-	Type          pulumi.StringPtrInput   `pulumi:"type"`
-	Units         pulumi.IntPtrInput      `pulumi:"units"`
-	Vcpus         pulumi.IntPtrInput      `pulumi:"vcpus"`
-}
-
-func (CpuArgs) ElementType() reflect.Type {
-	return reflect.TypeOf((*Cpu)(nil)).Elem()
-}
-
-func (i CpuArgs) ToCpuOutput() CpuOutput {
-	return i.ToCpuOutputWithContext(context.Background())
-}
-
-func (i CpuArgs) ToCpuOutputWithContext(ctx context.Context) CpuOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(CpuOutput)
-}
-
-func (i CpuArgs) ToCpuPtrOutput() CpuPtrOutput {
-	return i.ToCpuPtrOutputWithContext(context.Background())
-}
-
-func (i CpuArgs) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(CpuOutput).ToCpuPtrOutputWithContext(ctx)
-}
-
-// CpuPtrInput is an input type that accepts CpuArgs, CpuPtr and CpuPtrOutput values.
-// You can construct a concrete instance of `CpuPtrInput` via:
-//
-//	        CpuArgs{...}
-//
-//	or:
-//
-//	        nil
-type CpuPtrInput interface {
-	pulumi.Input
-
-	ToCpuPtrOutput() CpuPtrOutput
-	ToCpuPtrOutputWithContext(context.Context) CpuPtrOutput
-}
-
-type cpuPtrType CpuArgs
-
-func CpuPtr(v *CpuArgs) CpuPtrInput {
-	return (*cpuPtrType)(v)
-}
-
-func (*cpuPtrType) ElementType() reflect.Type {
-	return reflect.TypeOf((**Cpu)(nil)).Elem()
-}
-
-func (i *cpuPtrType) ToCpuPtrOutput() CpuPtrOutput {
-	return i.ToCpuPtrOutputWithContext(context.Background())
-}
-
-func (i *cpuPtrType) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(CpuPtrOutput)
-}
-
-type CpuOutput struct{ *pulumi.OutputState }
-
-func (CpuOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*Cpu)(nil)).Elem()
-}
-
-func (o CpuOutput) ToCpuOutput() CpuOutput {
-	return o
-}
-
-func (o CpuOutput) ToCpuOutputWithContext(ctx context.Context) CpuOutput {
-	return o
-}
-
-func (o CpuOutput) ToCpuPtrOutput() CpuPtrOutput {
-	return o.ToCpuPtrOutputWithContext(context.Background())
-}
-
-func (o CpuOutput) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
-	return o.ApplyTWithContext(ctx, func(_ context.Context, v Cpu) *Cpu {
-		return &v
-	}).(CpuPtrOutput)
-}
-
-func (o CpuOutput) Cores() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v Cpu) *int { return v.Cores }).(pulumi.IntPtrOutput)
-}
-
-func (o CpuOutput) FlagsDisabled() pulumi.StringArrayOutput {
-	return o.ApplyT(func(v Cpu) []string { return v.FlagsDisabled }).(pulumi.StringArrayOutput)
-}
-
-func (o CpuOutput) FlagsEnabled() pulumi.StringArrayOutput {
-	return o.ApplyT(func(v Cpu) []string { return v.FlagsEnabled }).(pulumi.StringArrayOutput)
-}
-
-func (o CpuOutput) Hidden() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v Cpu) *bool { return v.Hidden }).(pulumi.BoolPtrOutput)
-}
-
-func (o CpuOutput) HvVendorId() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v Cpu) *string { return v.HvVendorId }).(pulumi.StringPtrOutput)
-}
-
-func (o CpuOutput) Limit() pulumi.Float64PtrOutput {
-	return o.ApplyT(func(v Cpu) *float64 { return v.Limit }).(pulumi.Float64PtrOutput)
-}
-
-func (o CpuOutput) Numa() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v Cpu) *bool { return v.Numa }).(pulumi.BoolPtrOutput)
-}
-
-func (o CpuOutput) NumaNodes() NumaNodeArrayOutput {
-	return o.ApplyT(func(v Cpu) []NumaNode { return v.NumaNodes }).(NumaNodeArrayOutput)
-}
-
-func (o CpuOutput) PhysBits() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v Cpu) *string { return v.PhysBits }).(pulumi.StringPtrOutput)
-}
-
-func (o CpuOutput) Sockets() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v Cpu) *int { return v.Sockets }).(pulumi.IntPtrOutput)
-}
-
-func (o CpuOutput) Type() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v Cpu) *string { return v.Type }).(pulumi.StringPtrOutput)
-}
-
-func (o CpuOutput) Units() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v Cpu) *int { return v.Units }).(pulumi.IntPtrOutput)
-}
-
-func (o CpuOutput) Vcpus() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v Cpu) *int { return v.Vcpus }).(pulumi.IntPtrOutput)
-}
-
-type CpuPtrOutput struct{ *pulumi.OutputState }
-
-func (CpuPtrOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((**Cpu)(nil)).Elem()
-}
-
-func (o CpuPtrOutput) ToCpuPtrOutput() CpuPtrOutput {
-	return o
-}
-
-func (o CpuPtrOutput) ToCpuPtrOutputWithContext(ctx context.Context) CpuPtrOutput {
-	return o
-}
-
-func (o CpuPtrOutput) Elem() CpuOutput {
-	return o.ApplyT(func(v *Cpu) Cpu {
-		if v != nil {
-			return *v
-		}
-		var ret Cpu
-		return ret
-	}).(CpuOutput)
-}
-
-func (o CpuPtrOutput) Cores() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *Cpu) *int {
-		if v == nil {
-			return nil
-		}
-		return v.Cores
-	}).(pulumi.IntPtrOutput)
-}
-
-func (o CpuPtrOutput) FlagsDisabled() pulumi.StringArrayOutput {
-	return o.ApplyT(func(v *Cpu) []string {
-		if v == nil {
-			return nil
-		}
-		return v.FlagsDisabled
-	}).(pulumi.StringArrayOutput)
-}
-
-func (o CpuPtrOutput) FlagsEnabled() pulumi.StringArrayOutput {
-	return o.ApplyT(func(v *Cpu) []string {
-		if v == nil {
-			return nil
-		}
-		return v.FlagsEnabled
-	}).(pulumi.StringArrayOutput)
-}
-
-func (o CpuPtrOutput) Hidden() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v *Cpu) *bool {
-		if v == nil {
-			return nil
-		}
-		return v.Hidden
-	}).(pulumi.BoolPtrOutput)
-}
-
-func (o CpuPtrOutput) HvVendorId() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *Cpu) *string {
-		if v == nil {
-			return nil
-		}
-		return v.HvVendorId
-	}).(pulumi.StringPtrOutput)
-}
-
-func (o CpuPtrOutput) Limit() pulumi.Float64PtrOutput {
-	return o.ApplyT(func(v *Cpu) *float64 {
-		if v == nil {
-			return nil
-		}
-		return v.Limit
-	}).(pulumi.Float64PtrOutput)
-}
-
-func (o CpuPtrOutput) Numa() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v *Cpu) *bool {
-		if v == nil {
-			return nil
-		}
-		return v.Numa
-	}).(pulumi.BoolPtrOutput)
-}
-
-func (o CpuPtrOutput) NumaNodes() NumaNodeArrayOutput {
-	return o.ApplyT(func(v *Cpu) []NumaNode {
-		if v == nil {
-			return nil
-		}
-		return v.NumaNodes
-	}).(NumaNodeArrayOutput)
-}
-
-func (o CpuPtrOutput) PhysBits() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *Cpu) *string {
-		if v == nil {
-			return nil
-		}
-		return v.PhysBits
-	}).(pulumi.StringPtrOutput)
-}
-
-func (o CpuPtrOutput) Sockets() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *Cpu) *int {
-		if v == nil {
-			return nil
-		}
-		return v.Sockets
-	}).(pulumi.IntPtrOutput)
-}
-
-func (o CpuPtrOutput) Type() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *Cpu) *string {
-		if v == nil {
-			return nil
-		}
-		return v.Type
-	}).(pulumi.StringPtrOutput)
-}
-
-func (o CpuPtrOutput) Units() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *Cpu) *int {
-		if v == nil {
-			return nil
-		}
-		return v.Units
-	}).(pulumi.IntPtrOutput)
-}
-
-func (o CpuPtrOutput) Vcpus() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *Cpu) *int {
-		if v == nil {
-			return nil
-		}
-		return v.Vcpus
 	}).(pulumi.IntPtrOutput)
 }
 
@@ -925,20 +956,20 @@ func (o NumaNodeArrayOutput) Index(i pulumi.IntInput) NumaNodeOutput {
 }
 
 func init() {
+	pulumi.RegisterInputType(reflect.TypeOf((*CPUInput)(nil)).Elem(), CPUArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*CPUPtrInput)(nil)).Elem(), CPUArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*CloneInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
-	pulumi.RegisterInputType(reflect.TypeOf((*CpuInput)(nil)).Elem(), CpuArgs{})
-	pulumi.RegisterInputType(reflect.TypeOf((*CpuPtrInput)(nil)).Elem(), CpuArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
 	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskInput)(nil)).Elem(), EfiDiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskPtrInput)(nil)).Elem(), EfiDiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NumaNodeInput)(nil)).Elem(), NumaNodeArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NumaNodeArrayInput)(nil)).Elem(), NumaNodeArray{})
+	pulumi.RegisterOutputType(CPUOutput{})
+	pulumi.RegisterOutputType(CPUPtrOutput{})
 	pulumi.RegisterOutputType(CloneOutput{})
 	pulumi.RegisterOutputType(ClonePtrOutput{})
-	pulumi.RegisterOutputType(CpuOutput{})
-	pulumi.RegisterOutputType(CpuPtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
 	pulumi.RegisterOutputType(DiskArrayOutput{})
 	pulumi.RegisterOutputType(EfiDiskOutput{})

@@ -6,8 +6,8 @@ package io.github.hctamu.pve.vm;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import io.github.hctamu.pve.vm.inputs.CPUArgs;
 import io.github.hctamu.pve.vm.inputs.CloneArgs;
-import io.github.hctamu.pve.vm.inputs.CpuArgs;
 import io.github.hctamu.pve.vm.inputs.DiskArgs;
 import io.github.hctamu.pve.vm.inputs.EfiDiskArgs;
 import java.lang.Integer;
@@ -100,9 +100,9 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     @Import(name="cpu")
-    private @Nullable Output<CpuArgs> cpu;
+    private @Nullable Output<CPUArgs> cpu;
 
-    public Optional<Output<CpuArgs>> cpu() {
+    public Optional<Output<CPUArgs>> cpu() {
         return Optional.ofNullable(this.cpu);
     }
 
@@ -464,12 +464,12 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             return clone_(Output.of(clone));
         }
 
-        public Builder cpu(@Nullable Output<CpuArgs> cpu) {
+        public Builder cpu(@Nullable Output<CPUArgs> cpu) {
             $.cpu = cpu;
             return this;
         }
 
-        public Builder cpu(CpuArgs cpu) {
+        public Builder cpu(CPUArgs cpu) {
             return cpu(Output.of(cpu));
         }
 
