@@ -943,7 +943,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 		Inputs: vmResource.Inputs{
 			Name: testutils.Ptr("test-vm-with-efi"),
 			Node: &nodeName,
-			Cpu: &vmResource.Cpu{
+			CPU: &vmResource.CPU{
 				Cores: testutils.Ptr(2),
 			},
 			Memory: testutils.Ptr(2048),

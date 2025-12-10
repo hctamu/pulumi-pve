@@ -170,7 +170,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 				Inputs: vmResource.Inputs{
 					Name:   testutils.Ptr("test-vm"),
 					Memory: tt.inputMemory,
-					Cpu: &vmResource.Cpu{
+					CPU: &vmResource.CPU{
 						Cores: tt.inputCores,
 					},
 					Disks: []*vmResource.Disk{},
@@ -179,7 +179,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 					Inputs: vmResource.Inputs{
 						Name:   testutils.Ptr("test-vm"),
 						Memory: tt.stateMemory,
-						Cpu: &vmResource.Cpu{
+						CPU: &vmResource.CPU{
 							Cores: tt.stateCores,
 						},
 						Disks: []*vmResource.Disk{},
@@ -204,7 +204,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 		Inputs: vmResource.Inputs{
 			Name:   testutils.Ptr("new-name"),
 			Memory: testutils.Ptr(4096),
-			Cpu: &vmResource.Cpu{
+			CPU: &vmResource.CPU{
 				Cores: testutils.Ptr(4),
 			},
 			Disks: []*vmResource.Disk{
@@ -216,7 +216,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 			Inputs: vmResource.Inputs{
 				Name:   testutils.Ptr("old-name"),
 				Memory: testutils.Ptr(2048),
-				Cpu: &vmResource.Cpu{
+				CPU: &vmResource.CPU{
 					Cores: testutils.Ptr(2),
 				},
 				Disks: []*vmResource.Disk{
@@ -233,7 +233,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	assert.True(t, resp.HasChanges)
 	assert.Contains(t, resp.DetailedDiff, "name")
 	assert.Contains(t, resp.DetailedDiff, "memory")
-	assert.Contains(t, resp.DetailedDiff, "cores")
+	assert.Contains(t, resp.DetailedDiff, "cpu")
 	assert.Contains(t, resp.DetailedDiff, "disks")
 	// EfiDisk now produces granular diffs
 	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
