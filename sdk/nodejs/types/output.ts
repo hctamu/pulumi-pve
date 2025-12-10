@@ -28,6 +28,22 @@ export namespace vm {
         vmId: number;
     }
 
+    export interface Cpu {
+        cores?: number;
+        flagsDisabled?: string[];
+        flagsEnabled?: string[];
+        hidden?: boolean;
+        hvVendorId?: string;
+        limit?: number;
+        numa?: boolean;
+        numaNodes?: outputs.vm.NumaNode[];
+        physBits?: string;
+        sockets?: number;
+        type?: string;
+        units?: number;
+        vcpus?: number;
+    }
+
     export interface Disk {
         filename?: string;
         interface: string;
@@ -43,6 +59,13 @@ export namespace vm {
         filename?: string;
         preEnrolledKeys?: boolean;
         storage: string;
+    }
+
+    export interface NumaNode {
+        cpus: string;
+        hostNodes?: string;
+        memory?: number;
+        policy?: string;
     }
 
 }
