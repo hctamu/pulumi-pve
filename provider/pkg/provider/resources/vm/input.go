@@ -17,6 +17,7 @@ limitations under the License.
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -45,8 +46,8 @@ type NumaNode struct {
 	Policy    *string `pulumi:"policy,optional"`
 }
 
-// Cpu represents the structured CPU configuration.
-type Cpu struct {
+// CPU represents the structured CPU configuration.
+type CPU struct {
 	Type          *string    `pulumi:"type,optional"`
 	FlagsEnabled  []string   `pulumi:"flagsEnabled,optional"`
 	FlagsDisabled []string   `pulumi:"flagsDisabled,optional"`
@@ -112,13 +113,13 @@ func ParseNumaNode(value string) (node *NumaNode, err error) {
 		}
 	}
 	if node.Cpus == "" {
-		return nil, fmt.Errorf("NUMA node missing required 'cpus' field")
+		return nil, errors.New("NUMA node missing required 'cpus' field")
 	}
 	return node, nil
 }
 
-// ToProxmoxString converts the Cpu config to Proxmox format.
-func (c *Cpu) ToProxmoxString() string {
+// ToProxmoxString converts the CPU config to Proxmox format.
+func (c *CPU) ToProxmoxString() string {
 	if c == nil {
 		return ""
 	}
@@ -160,12 +161,12 @@ func (c *Cpu) ToProxmoxString() string {
 	return strings.Join(parts, ",")
 }
 
-// ParseCpu parses a Proxmox CPU config string into Cpu.
-func ParseCpu(value string) (cfg *Cpu, err error) {
+// ParseCPU parses a Proxmox CPU config string into CPU.
+func ParseCPU(value string) (cfg *CPU, err error) {
 	if value == "" {
 		return nil, nil
 	}
-	cfg = &Cpu{}
+	cfg = &CPU{}
 	segments := strings.Split(value, ",")
 	for i, seg := range segments {
 		if seg == "" {
@@ -201,10 +202,11 @@ func ParseCpu(value string) (cfg *Cpu, err error) {
 				}
 			}
 		case "hidden":
-			if val == "1" {
+			switch val {
+			case "1":
 				b := true
 				cfg.Hidden = &b
-			} else if val == "0" {
+			case "0":
 				b := false
 				cfg.Hidden = &b
 			}
@@ -249,7 +251,7 @@ type Inputs struct {
 
 	// Sockets  *int    `pulumi:"sockets,optional"`
 
-	Cpu       *Cpu    `pulumi:"cpu,optional"`
+	CPU       *CPU    `pulumi:"cpu,optional"`
 	Memory    *int    `pulumi:"memory,optional"`
 	Hugepages *string `pulumi:"hugepages,optional"`
 	Balloon   *int    `pulumi:"balloon,optional"`
@@ -439,18 +441,18 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
-	var parsedCPU *Cpu
+	var parsedCPU *CPU
 	if vmConfig.CPU != "" {
-		cpuCfg, parseErr := ParseCpu(vmConfig.CPU)
+		cpuCfg, parseErr := ParseCPU(vmConfig.CPU)
 		if parseErr != nil {
 			err = fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, parseErr)
-			return
+			return inputs, err
 		}
 		parsedCPU = cpuCfg
 	}
 
 	if parsedCPU == nil {
-		parsedCPU = &Cpu{}
+		parsedCPU = &CPU{}
 	}
 
 	if vmConfig.Cores > 0 {
@@ -491,7 +493,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 			node, parseErr := ParseNumaNode(numaStr)
 			if parseErr != nil {
 				err = fmt.Errorf("failed to parse NUMA node '%s': %w", numaStr, parseErr)
-				return
+				return inputs, err
 			}
 			if node != nil {
 				numaNodes = append(numaNodes, *node)
@@ -567,7 +569,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 
 		Acpi: intOrNil(vmConfig.Acpi),
 
-		Cpu:       parsedCPU,
+		CPU:       parsedCPU,
 		Memory:    intOrNil(int(vmConfig.Memory)), // MB (no conversion)
 		Hugepages: strOrNil(vmConfig.Hugepages),
 		Balloon:   intOrNil(vmConfig.Balloon),
@@ -624,7 +626,7 @@ func (inputs *Inputs) BuildOptionsDiff(
 	compareAndAddOption("sshkeys", &options, inputs.SSHKeys, currentInputs.SSHKeys)
 	compareAndAddOption("cicustom", &options, inputs.CICustom, currentInputs.CICustom)
 	compareAndAddOption("ciupgrade", &options, inputs.CIUpgrade, currentInputs.CIUpgrade)
-	addCpuDiff(&options, inputs, currentInputs)
+	addCPUDiff(&options, inputs, currentInputs)
 	// Handle EFI disk changes
 	if !reflect.DeepEqual(inputs.EfiDisk, currentInputs.EfiDisk) {
 		if inputs.EfiDisk != nil {
@@ -665,41 +667,41 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
-	if inputs.Cpu != nil {
-		cpuStr := inputs.Cpu.ToProxmoxString()
+	if inputs.CPU != nil {
+		cpuStr := inputs.CPU.ToProxmoxString()
 		if cpuStr != "" {
 			options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuStr})
 		}
-		if inputs.Cpu.Cores != nil {
-			options = append(options, api.VirtualMachineOption{Name: "cores", Value: inputs.Cpu.Cores})
+		if inputs.CPU.Cores != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cores", Value: inputs.CPU.Cores})
 		}
-		if inputs.Cpu.Sockets != nil {
-			options = append(options, api.VirtualMachineOption{Name: "sockets", Value: inputs.Cpu.Sockets})
+		if inputs.CPU.Sockets != nil {
+			options = append(options, api.VirtualMachineOption{Name: "sockets", Value: inputs.CPU.Sockets})
 		}
-		if inputs.Cpu.Limit != nil {
-			options = append(options, api.VirtualMachineOption{Name: "cpulimit", Value: inputs.Cpu.Limit})
+		if inputs.CPU.Limit != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cpulimit", Value: inputs.CPU.Limit})
 		}
-		if inputs.Cpu.Units != nil {
-			options = append(options, api.VirtualMachineOption{Name: "cpuunits", Value: inputs.Cpu.Units})
+		if inputs.CPU.Units != nil {
+			options = append(options, api.VirtualMachineOption{Name: "cpuunits", Value: inputs.CPU.Units})
 		}
-		if inputs.Cpu.Vcpus != nil {
-			options = append(options, api.VirtualMachineOption{Name: "vcpus", Value: inputs.Cpu.Vcpus})
+		if inputs.CPU.Vcpus != nil {
+			options = append(options, api.VirtualMachineOption{Name: "vcpus", Value: inputs.CPU.Vcpus})
 		}
-		if inputs.Cpu.Numa != nil {
+		if inputs.CPU.Numa != nil {
 			numaValue := 0
-			if *inputs.Cpu.Numa {
+			if *inputs.CPU.Numa {
 				numaValue = 1
 			}
 			options = append(options, api.VirtualMachineOption{Name: "numa", Value: numaValue})
 		}
-		for i, node := range inputs.Cpu.NumaNodes {
+		for i, node := range inputs.CPU.NumaNodes {
 			numaKey := fmt.Sprintf("numa%d", i)
 			numaValue := node.ToProxmoxNumaString()
 			options = append(options, api.VirtualMachineOption{Name: numaKey, Value: numaValue})
 		}
 		// TODO: Affinity is currently buggy in Proxmox VE
-		// if inputs.Cpu.Affinity != nil {
-		// 	options = append(options, api.VirtualMachineOption{Name: "affinity", Value: inputs.Cpu.Affinity})
+		// if inputs.CPU.Affinity != nil {
+		// 	options = append(options, api.VirtualMachineOption{Name: "affinity", Value: inputs.CPU.Affinity})
 		// }
 	}
 
@@ -717,16 +719,16 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	return options
 }
 
-// addCpuDiff appends VirtualMachineOption entries for cpu string, cores, and sockets when they differ.
-func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *Inputs) {
-	if newInputs.Cpu != nil || currentInputs.Cpu != nil {
+// addCPUDiff appends VirtualMachineOption entries for CPU string, cores, and sockets when they differ.
+func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *Inputs) {
+	if newInputs.CPU != nil || currentInputs.CPU != nil {
 		// Diff CPU string
 		var newCPU, oldCPU string
-		if newInputs.Cpu != nil {
-			newCPU = newInputs.Cpu.ToProxmoxString()
+		if newInputs.CPU != nil {
+			newCPU = newInputs.CPU.ToProxmoxString()
 		}
-		if currentInputs.Cpu != nil {
-			oldCPU = currentInputs.Cpu.ToProxmoxString()
+		if currentInputs.CPU != nil {
+			oldCPU = currentInputs.CPU.ToProxmoxString()
 		}
 		if newCPU != oldCPU && newCPU != "" {
 			*options = append(*options, api.VirtualMachineOption{Name: "cpu", Value: newCPU})
@@ -734,11 +736,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff cores
 		var newCores, oldCores *int
-		if newInputs.Cpu != nil {
-			newCores = newInputs.Cpu.Cores
+		if newInputs.CPU != nil {
+			newCores = newInputs.CPU.Cores
 		}
-		if currentInputs.Cpu != nil {
-			oldCores = currentInputs.Cpu.Cores
+		if currentInputs.CPU != nil {
+			oldCores = currentInputs.CPU.Cores
 		}
 		if utils.DifferPtr(newCores, oldCores) {
 			if newCores != nil { // skip clear operations
@@ -748,11 +750,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff sockets
 		var newSockets, oldSockets *int
-		if newInputs.Cpu != nil {
-			newSockets = newInputs.Cpu.Sockets
+		if newInputs.CPU != nil {
+			newSockets = newInputs.CPU.Sockets
 		}
-		if currentInputs.Cpu != nil {
-			oldSockets = currentInputs.Cpu.Sockets
+		if currentInputs.CPU != nil {
+			oldSockets = currentInputs.CPU.Sockets
 		}
 		if utils.DifferPtr(newSockets, oldSockets) {
 			if newSockets != nil {
@@ -762,11 +764,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff cpulimit
 		var newLimit, oldLimit *float64
-		if newInputs.Cpu != nil {
-			newLimit = newInputs.Cpu.Limit
+		if newInputs.CPU != nil {
+			newLimit = newInputs.CPU.Limit
 		}
-		if currentInputs.Cpu != nil {
-			oldLimit = currentInputs.Cpu.Limit
+		if currentInputs.CPU != nil {
+			oldLimit = currentInputs.CPU.Limit
 		}
 		if utils.DifferPtr(newLimit, oldLimit) {
 			if newLimit != nil {
@@ -776,11 +778,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff cpuunits
 		var newUnits, oldUnits *int
-		if newInputs.Cpu != nil {
-			newUnits = newInputs.Cpu.Units
+		if newInputs.CPU != nil {
+			newUnits = newInputs.CPU.Units
 		}
-		if currentInputs.Cpu != nil {
-			oldUnits = currentInputs.Cpu.Units
+		if currentInputs.CPU != nil {
+			oldUnits = currentInputs.CPU.Units
 		}
 		if utils.DifferPtr(newUnits, oldUnits) {
 			if newUnits != nil {
@@ -790,11 +792,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff vcpus
 		var newVcpus, oldVcpus *int
-		if newInputs.Cpu != nil {
-			newVcpus = newInputs.Cpu.Vcpus
+		if newInputs.CPU != nil {
+			newVcpus = newInputs.CPU.Vcpus
 		}
-		if currentInputs.Cpu != nil {
-			oldVcpus = currentInputs.Cpu.Vcpus
+		if currentInputs.CPU != nil {
+			oldVcpus = currentInputs.CPU.Vcpus
 		}
 		if utils.DifferPtr(newVcpus, oldVcpus) {
 			if newVcpus != nil {
@@ -804,11 +806,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff NUMA enabled
 		var newNuma, oldNuma *bool
-		if newInputs.Cpu != nil {
-			newNuma = newInputs.Cpu.Numa
+		if newInputs.CPU != nil {
+			newNuma = newInputs.CPU.Numa
 		}
-		if currentInputs.Cpu != nil {
-			oldNuma = currentInputs.Cpu.Numa
+		if currentInputs.CPU != nil {
+			oldNuma = currentInputs.CPU.Numa
 		}
 		if utils.DifferPtr(newNuma, oldNuma) {
 			if newNuma != nil {
@@ -822,11 +824,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// Diff NUMA nodes
 		var newNodes, oldNodes []NumaNode
-		if newInputs.Cpu != nil {
-			newNodes = newInputs.Cpu.NumaNodes
+		if newInputs.CPU != nil {
+			newNodes = newInputs.CPU.NumaNodes
 		}
-		if currentInputs.Cpu != nil {
-			oldNodes = currentInputs.Cpu.NumaNodes
+		if currentInputs.CPU != nil {
+			oldNodes = currentInputs.CPU.NumaNodes
 		}
 		if !numaNodesEqual(newNodes, oldNodes) {
 			for i, node := range newNodes {
@@ -838,11 +840,11 @@ func addCpuDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 
 		// TODO: Affinity is currently buggy in Proxmox VE
 		// var newAffinity, oldAffinity *string
-		// if newInputs.Cpu != nil {
-		// 	newAffinity = newInputs.Cpu.Affinity
+		// if newInputs.CPU != nil {
+		// 	newAffinity = newInputs.CPU.Affinity
 		// }
-		// if currentInputs.Cpu != nil {
-		// 	oldAffinity = currentInputs.Cpu.Affinity
+		// if currentInputs.CPU != nil {
+		// 	oldAffinity = currentInputs.CPU.Affinity
 		// }
 		// if utils.DifferPtr(newAffinity, oldAffinity) {
 		// 	if newAffinity != nil {
