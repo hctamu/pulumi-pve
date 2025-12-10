@@ -810,8 +810,15 @@ func (inputs *Inputs) Annotate(a infer.Annotator) {
 		inputs,
 		"A Proxmox Virtual Machine (VM) resource that manages virtual machines in the Proxmox VE.",
 	)
+}
 
-	a.SetDefault(&inputs.Cores, 1)
+// Annotate provides documentation for the CPU type.
+func (cpu *CPU) Annotate(a infer.Annotator) {
+	a.Describe(
+		&cpu,
+		"CPU configuration for the virtual machine.",
+	)
+	a.SetDefault(&cpu.Cores, 1, "Number of CPU cores")
 }
 
 // Annotate provides documentation for the EfiDisk type.

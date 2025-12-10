@@ -142,3 +142,14 @@ func GetSortedMapKeys[K cmp.Ordered, V any](inMap map[K]V) []K {
 	slices.Sort(keys)
 	return keys
 }
+
+// PtrEqual compares two pointers of any comparable type.
+func PtrEqual[T comparable](a, b *T) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
