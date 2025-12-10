@@ -17,6 +17,9 @@ package vm_test
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
@@ -24,6 +27,10 @@ import (
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/vitorsalgado/mocha/v3"
+	"github.com/vitorsalgado/mocha/v3/expect"
+	"github.com/vitorsalgado/mocha/v3/params"
+	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
@@ -35,7 +42,12 @@ func cpuBase(typ string) *vm.CPU {
 
 // cpuWith creates a CPU config with multiple fields set via a map for concise test case definitions
 func cpuWith(typ string, fields map[string]interface{}) *vm.CPU {
-	cpu := cpuBase(typ)
+	var cpu *vm.CPU
+	if typ != "" {
+		cpu = cpuBase(typ)
+	} else {
+		cpu = &vm.CPU{}
+	}
 	for k, v := range fields {
 		switch k {
 		case "cores":
@@ -2298,4 +2310,721 @@ func TestNumaNodeRoundTrip(t *testing.T) {
 			assert.Equal(t, serialized, serialized2, "Second serialization should match first serialization")
 		})
 	}
+}
+
+// TestParseCPUFromVMConfig verifies that CPU parsing from VirtualMachineConfig works correctly
+func TestParseCPUFromVMConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		vmConfig    *api.VirtualMachineConfig
+		expected    *vm.CPU
+		expectError bool
+	}{
+		{
+			name: "empty config returns empty CPU",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU:      "",
+				Cores:    0,
+				Sockets:  0,
+				CPULimit: 0,
+				CPUUnits: 0,
+				Vcpus:    0,
+				Numa:     0,
+			},
+			expected: &vm.CPU{},
+		},
+		{
+			name: "CPU string only - simple type",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU: "host",
+			},
+			expected: cpuBase("host"),
+		},
+		{
+			name: "CPU string with flags",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU: "host,flags=+aes;-pcid",
+			},
+			expected: cpuWith("host", map[string]interface{}{
+				"flags+": []string{"aes"},
+				"flags-": []string{"pcid"},
+			}),
+		},
+		{
+			name: "cores field only",
+			vmConfig: &api.VirtualMachineConfig{
+				Cores: 4,
+			},
+			expected: &vm.CPU{
+				Cores: testutils.Ptr(4),
+			},
+		},
+		{
+			name: "sockets field only",
+			vmConfig: &api.VirtualMachineConfig{
+				Sockets: 2,
+			},
+			expected: &vm.CPU{
+				Sockets: testutils.Ptr(2),
+			},
+		},
+		{
+			name: "CPULimit field",
+			vmConfig: &api.VirtualMachineConfig{
+				CPULimit: 2,
+			},
+			expected: &vm.CPU{
+				Limit: testutils.Ptr(2.0),
+			},
+		},
+		{
+			name: "CPUUnits field",
+			vmConfig: &api.VirtualMachineConfig{
+				CPUUnits: 1024,
+			},
+			expected: &vm.CPU{
+				Units: testutils.Ptr(1024),
+			},
+		},
+		{
+			name: "Vcpus field",
+			vmConfig: &api.VirtualMachineConfig{
+				Vcpus: 8,
+			},
+			expected: &vm.CPU{
+				Vcpus: testutils.Ptr(8),
+			},
+		},
+		{
+			name: "NUMA enabled",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa: 1,
+			},
+			expected: &vm.CPU{
+				Numa: testutils.Ptr(true),
+			},
+		},
+		{
+			name: "single NUMA node",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "cpus=0-3,memory=2048,policy=bind",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []vm.NumaNode{
+					{
+						Cpus:   "0-3",
+						Memory: testutils.Ptr(2048),
+						Policy: testutils.Ptr("bind"),
+					},
+				},
+			}),
+		},
+		{
+			name: "multiple NUMA nodes",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "cpus=0-3,memory=2048",
+				Numa1: "cpus=4-7,memory=4096",
+				Numa2: "cpus=8-11,hostnodes=2",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []vm.NumaNode{
+					{
+						Cpus:   "0-3",
+						Memory: testutils.Ptr(2048),
+					},
+					{
+						Cpus:   "4-7",
+						Memory: testutils.Ptr(4096),
+					},
+					{
+						Cpus:      "8-11",
+						HostNodes: testutils.Ptr("2"),
+					},
+				},
+			}),
+		},
+		{
+			name: "comprehensive config",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU:      "host,flags=+aes;-pcid,hidden=1,hv-vendor-id=GenuineIntel,phys-bits=42",
+				Cores:    8,
+				Sockets:  2,
+				CPULimit: 4,
+				CPUUnits: 2048,
+				Vcpus:    16,
+				Numa:     1,
+				Numa0:    "cpus=0-7,hostnodes=0,memory=4096,policy=bind",
+				Numa1:    "cpus=8-15,hostnodes=1,memory=4096,policy=bind",
+			},
+			expected: cpuWith("host", map[string]interface{}{
+				"cores":        8,
+				"sockets":      2,
+				"limit":        4.0,
+				"units":        2048,
+				"vcpus":        16,
+				"numa":         true,
+				"flags+":       []string{"aes"},
+				"flags-":       []string{"pcid"},
+				"hidden":       true,
+				"hv-vendor-id": "GenuineIntel",
+				"phys-bits":    "42",
+				"numa-nodes": []vm.NumaNode{
+					{
+						Cpus:      "0-7",
+						HostNodes: testutils.Ptr("0"),
+						Memory:    testutils.Ptr(4096),
+						Policy:    testutils.Ptr("bind"),
+					},
+					{
+						Cpus:      "8-15",
+						HostNodes: testutils.Ptr("1"),
+						Memory:    testutils.Ptr(4096),
+						Policy:    testutils.Ptr("bind"),
+					},
+				},
+			}),
+		},
+		{
+			name: "zero values should not set fields",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU:      "",
+				Cores:    0,
+				Sockets:  0,
+				CPULimit: 0,
+				CPUUnits: 0,
+				Vcpus:    0,
+				Numa:     0,
+			},
+			expected: &vm.CPU{},
+		},
+		{
+			name: "NUMA disabled (0) should not set numa field",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa: 0,
+			},
+			expected: &vm.CPU{},
+		},
+		{
+			name: "empty NUMA node strings are skipped",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "",
+				Numa1: "cpus=0-3",
+				Numa2: "",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []vm.NumaNode{
+					{Cpus: "0-3"},
+				},
+			}),
+		},
+		{
+			name: "all NUMA node slots (0-9)",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "cpus=0",
+				Numa1: "cpus=1",
+				Numa2: "cpus=2",
+				Numa3: "cpus=3",
+				Numa4: "cpus=4",
+				Numa5: "cpus=5",
+				Numa6: "cpus=6",
+				Numa7: "cpus=7",
+				Numa8: "cpus=8",
+				Numa9: "cpus=9",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []vm.NumaNode{
+					{Cpus: "0"},
+					{Cpus: "1"},
+					{Cpus: "2"},
+					{Cpus: "3"},
+					{Cpus: "4"},
+					{Cpus: "5"},
+					{Cpus: "6"},
+					{Cpus: "7"},
+					{Cpus: "8"},
+					{Cpus: "9"},
+				},
+			}),
+		},
+		{
+			name: "unusual CPU string - ParseCPU is lenient",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU: "host,flags=invalid[syntax",
+			},
+			expected: cpuWith("host", map[string]interface{}{
+				"flags+": []string{"invalid[syntax"},
+			}),
+		},
+		{
+			name: "invalid NUMA node string",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "memory=invalid",
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create a minimal VirtualMachine to test CPU parsing
+			testVM := &api.VirtualMachine{
+				VirtualMachineConfig: tt.vmConfig,
+			}
+
+			// ConvertVMConfigToInputs calls parseCPUFromVMConfig internally
+			inputs, err := vm.ConvertVMConfigToInputs(testVM, vm.Inputs{})
+
+			if tt.expectError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Compare CPU fields
+			if tt.expected.Type != nil {
+				require.NotNil(t, inputs.CPU, "CPU should not be nil when Type is expected")
+				assert.Equal(t, *tt.expected.Type, *inputs.CPU.Type)
+			}
+
+			if inputs.CPU != nil {
+				assert.Equal(t, tt.expected.Cores, inputs.CPU.Cores)
+				assert.Equal(t, tt.expected.Sockets, inputs.CPU.Sockets)
+				assert.Equal(t, tt.expected.Limit, inputs.CPU.Limit)
+				assert.Equal(t, tt.expected.Units, inputs.CPU.Units)
+				assert.Equal(t, tt.expected.Vcpus, inputs.CPU.Vcpus)
+				assert.Equal(t, tt.expected.Numa, inputs.CPU.Numa)
+				assert.Equal(t, tt.expected.FlagsEnabled, inputs.CPU.FlagsEnabled)
+				assert.Equal(t, tt.expected.FlagsDisabled, inputs.CPU.FlagsDisabled)
+				assert.Equal(t, tt.expected.Hidden, inputs.CPU.Hidden)
+				assert.Equal(t, tt.expected.HVVendorID, inputs.CPU.HVVendorID)
+				assert.Equal(t, tt.expected.PhysBits, inputs.CPU.PhysBits)
+				assert.Equal(t, tt.expected.NumaNodes, inputs.CPU.NumaNodes)
+			}
+		})
+	}
+}
+
+// TestCPUAnnotate verifies that CPU.Annotate method exists and has the correct signature
+func TestCPUAnnotate(t *testing.T) {
+	t.Parallel()
+
+	// Verify the CPU type has an Annotate method by checking interface compliance
+	cpu := &vm.CPU{}
+	var _ interface {
+		Annotate(infer.Annotator)
+	} = cpu
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMReadWithCPU(t *testing.T) {
+	mock, cleanup := testutils.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	// Mock GET /cluster/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/config - VM with CPU config
+	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":4,"sockets":2,"memory":4096,` +
+		`"cpu":"host,flags=+aes;-pcid,hidden=1","cpulimit":2,"cpuunits":2048,"vcpus":8,"numa":1,` +
+		`"numa0":"cpus=0-3,hostnodes=0,memory=2048,policy=bind","numa1":"cpus=4-7,hostnodes=1,memory=2048,policy=bind"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(vmConfigJSON)),
+	).Enable()
+
+	vmRes := &vm.VM{}
+	req := infer.ReadRequest[vm.Inputs, vm.Outputs]{
+		ID: "100",
+		Inputs: vm.Inputs{
+			VMID: testutils.Ptr(vmID),
+			Node: &nodeName,
+		},
+	}
+
+	resp, err := vmRes.Read(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, "100", resp.ID)
+
+	// Verify CPU configuration was read correctly
+	require.NotNil(t, resp.State.CPU)
+	assert.Equal(t, "host", *resp.State.CPU.Type)
+	assert.Equal(t, 4, *resp.State.CPU.Cores)
+	assert.Equal(t, 2, *resp.State.CPU.Sockets)
+	assert.Equal(t, 2.0, *resp.State.CPU.Limit)
+	assert.Equal(t, 2048, *resp.State.CPU.Units)
+	assert.Equal(t, 8, *resp.State.CPU.Vcpus)
+	assert.True(t, *resp.State.CPU.Numa)
+	assert.True(t, *resp.State.CPU.Hidden)
+	assert.Equal(t, []string{"aes"}, resp.State.CPU.FlagsEnabled)
+	assert.Equal(t, []string{"pcid"}, resp.State.CPU.FlagsDisabled)
+
+	// Verify NUMA nodes
+	require.Len(t, resp.State.CPU.NumaNodes, 2)
+	assert.Equal(t, "0-3", resp.State.CPU.NumaNodes[0].Cpus)
+	assert.Equal(t, "0", *resp.State.CPU.NumaNodes[0].HostNodes)
+	assert.Equal(t, 2048, *resp.State.CPU.NumaNodes[0].Memory)
+	assert.Equal(t, "bind", *resp.State.CPU.NumaNodes[0].Policy)
+
+	assert.Equal(t, "4-7", resp.State.CPU.NumaNodes[1].Cpus)
+	assert.Equal(t, "1", *resp.State.CPU.NumaNodes[1].HostNodes)
+	assert.Equal(t, 2048, *resp.State.CPU.NumaNodes[1].Memory)
+	assert.Equal(t, "bind", *resp.State.CPU.NumaNodes[1].Policy)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMUpdateCPUSuccess(t *testing.T) {
+	mock, cleanup := testutils.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	// Mock GET /cluster/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/status
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/config - return updated config
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"vmid":100,"name":"test-vm","cores":4,"cpu":"host"}}`,
+			)),
+	).Enable()
+
+	// Mock POST /nodes/{node}/qemu/{vmid}/config for the update
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
+	).Enable()
+
+	// Mock task status endpoint
+	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
+		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
+		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(taskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}),
+	).Enable()
+
+	vmRes := &vm.VM{}
+	req := infer.UpdateRequest[vm.Inputs, vm.Outputs]{
+		ID: "100",
+		Inputs: vm.Inputs{
+			VMID:    testutils.Ptr(vmID),
+			Name:    testutils.Ptr("test-vm"),
+			Disks:   []*vm.Disk{},  // Empty disks
+			EfiDisk: &vm.EfiDisk{}, // Empty EfiDisk to prevent removal logic
+			CPU: &vm.CPU{
+				Type:  testutils.Ptr("host"),
+				Cores: testutils.Ptr(4), // Changed from 2 to 4
+			},
+		},
+		State: vm.Outputs{
+			Inputs: vm.Inputs{
+				VMID:    testutils.Ptr(vmID),
+				Name:    testutils.Ptr("test-vm"),
+				Node:    &nodeName,
+				Disks:   []*vm.Disk{},  // Empty disks
+				EfiDisk: &vm.EfiDisk{}, // Empty EfiDisk
+				CPU: &vm.CPU{
+					Type:  testutils.Ptr("host"),
+					Cores: testutils.Ptr(2),
+				},
+			},
+		},
+	}
+
+	resp, err := vmRes.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 4, *resp.Output.CPU.Cores)
+	mock.AssertCalled(t)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMUpdateCPUWithNUMA(t *testing.T) {
+	mock, cleanup := testutils.NewAPIMock(t)
+	defer cleanup()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
+			)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
+			)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			Reply(reply.OK().BodyString(
+				`{"data":{"status":"running","vmid":100}}`,
+			)),
+	).Enable()
+
+	// Mock GET /nodes/{node}/qemu/{vmid}/config - return updated config with NUMA
+	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":4,"cpu":"host","numa":1,` +
+		`"numa0":"cpus=0-1,memory=2048","numa1":"cpus=2-3,memory=2048"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(vmConfigJSON)),
+	).Enable()
+
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
+	).Enable()
+
+	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
+		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
+		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(taskStatusURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
+			}),
+	).Enable()
+
+	vmRes := &vm.VM{}
+	req := infer.UpdateRequest[vm.Inputs, vm.Outputs]{
+		ID: "100",
+		Inputs: vm.Inputs{
+			VMID:    testutils.Ptr(vmID),
+			Name:    testutils.Ptr("test-vm"),
+			Disks:   []*vm.Disk{},  // Empty disks
+			EfiDisk: &vm.EfiDisk{}, // Empty EfiDisk to prevent removal logic
+			CPU: &vm.CPU{
+				Type:  testutils.Ptr("host"),
+				Cores: testutils.Ptr(4),
+				Numa:  testutils.Ptr(true), // Enable NUMA
+				NumaNodes: []vm.NumaNode{
+					{
+						Cpus:   "0-1",
+						Memory: testutils.Ptr(2048),
+					},
+					{
+						Cpus:   "2-3",
+						Memory: testutils.Ptr(2048),
+					},
+				},
+			},
+		},
+		State: vm.Outputs{
+			Inputs: vm.Inputs{
+				VMID:    testutils.Ptr(vmID),
+				Name:    testutils.Ptr("test-vm"),
+				Node:    &nodeName,
+				Disks:   []*vm.Disk{},  // Empty disks
+				EfiDisk: &vm.EfiDisk{}, // Empty EfiDisk
+				CPU: &vm.CPU{
+					Type:  testutils.Ptr("host"),
+					Cores: testutils.Ptr(4),
+				},
+			},
+		},
+	}
+
+	resp, err := vmRes.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, *resp.Output.CPU.Numa)
+	require.Len(t, resp.Output.CPU.NumaNodes, 2)
+	assert.Equal(t, "0-1", resp.Output.CPU.NumaNodes[0].Cpus)
+	assert.Equal(t, "2-3", resp.Output.CPU.NumaNodes[1].Cpus)
+	mock.AssertCalled(t)
+}
+
+//nolint:paralleltest // uses global env + client seam
+func TestVMCreateWithCPU(t *testing.T) {
+	mock, cleanup := testutils.NewAPIMock(t)
+	defer cleanup()
+
+	nodeName := "pve-node"
+
+	// Mock cluster status - use Repeat for multiple calls
+	clusterStatusJSON := `{"data":[{"type":"cluster","quorate":1,"nodes":1},` +
+		`{"type":"node","name":"` + nodeName + `","online":1}]}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/status")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
+			}).
+			Repeat(10),
+	).Enable()
+
+	// Mock next VMID
+	nextIDJSON := `{"data":"100"}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/cluster/nextid")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nextIDJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock node status
+	nodeStatusJSON := `{"data":{"status":"online"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nodeStatusJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock VM creation POST - verify it includes CPU settings
+	var capturedBody string
+	createResponseJSON := `{"data":"UPID:pve-node:00001234:00000000:00000000:qmcreate:100:root@pam:"}`
+	mock.AddMocks(
+		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				body, _ := io.ReadAll(r.Body)
+				capturedBody = string(body)
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(createResponseJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock create task status
+	createTaskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmcreate:100:root@pam:",` +
+		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmcreate",` +
+		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
+	createTaskURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmcreate:100:root@pam:/status"
+	mock.AddMocks(
+		mocha.Get(expect.URLPath(createTaskURL)).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(createTaskStatusJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock new VM status
+	newVMStatusJSON := `{"data":{"status":"stopped","vmid":100}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMStatusJSON)}, nil
+			}),
+	).Enable()
+
+	// Mock new VM config - return with CPU config
+	newVMConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":8,"sockets":2,"memory":4096,` +
+		`"cpu":"host,flags=+aes","cpulimit":4,"cpuunits":2048,"vcpus":16,"numa":1,` +
+		`"numa0":"cpus=0-7,memory=2048","numa1":"cpus=8-15,memory=2048"}}`
+	mock.AddMocks(
+		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
+			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
+				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMConfigJSON)}, nil
+			}),
+	).Enable()
+
+	vmRes := &vm.VM{}
+	req := infer.CreateRequest[vm.Inputs]{
+		Name: "test-vm",
+		Inputs: vm.Inputs{
+			Name: testutils.Ptr("test-vm"),
+			Node: &nodeName,
+			CPU: &vm.CPU{
+				Type:         testutils.Ptr("host"),
+				Cores:        testutils.Ptr(8),
+				Sockets:      testutils.Ptr(2),
+				Limit:        testutils.Ptr(4.0),
+				Units:        testutils.Ptr(2048),
+				Vcpus:        testutils.Ptr(16),
+				Numa:         testutils.Ptr(true),
+				FlagsEnabled: []string{"aes"},
+				NumaNodes: []vm.NumaNode{
+					{Cpus: "0-7", Memory: testutils.Ptr(2048)},
+					{Cpus: "8-15", Memory: testutils.Ptr(2048)},
+				},
+			},
+			Disks: []*vm.Disk{},
+		},
+	}
+
+	resp, err := vmRes.Create(context.Background(), req)
+	require.NoError(t, err)
+
+	// Verify CPU was created with correct settings
+	require.NotNil(t, resp.Output.CPU)
+	assert.Equal(t, "host", *resp.Output.CPU.Type)
+	assert.Equal(t, 8, *resp.Output.CPU.Cores)
+	assert.Equal(t, 2, *resp.Output.CPU.Sockets)
+	assert.Equal(t, 4.0, *resp.Output.CPU.Limit)
+	assert.Equal(t, 2048, *resp.Output.CPU.Units)
+	assert.Equal(t, 16, *resp.Output.CPU.Vcpus)
+	assert.True(t, *resp.Output.CPU.Numa)
+	assert.Equal(t, []string{"aes"}, resp.Output.CPU.FlagsEnabled)
+	require.Len(t, resp.Output.CPU.NumaNodes, 2)
+
+	// Verify the request body contains CPU parameters (JSON format)
+	assert.Contains(t, capturedBody, `"cpu":"host`)
+	assert.Contains(t, capturedBody, `"cores":8`)
+	assert.Contains(t, capturedBody, `"sockets":2`)
+	assert.Contains(t, capturedBody, `"numa":1`)
+	mock.AssertCalled(t)
 }

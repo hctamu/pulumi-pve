@@ -26,7 +26,7 @@ type VM struct {
 	Ciupgrade    pulumi.IntPtrOutput    `pulumi:"ciupgrade"`
 	Ciuser       pulumi.StringPtrOutput `pulumi:"ciuser"`
 	Clone        ClonePtrOutput         `pulumi:"clone"`
-	Cpu          CpuPtrOutput           `pulumi:"cpu"`
+	Cpu          CPUPtrOutput           `pulumi:"cpu"`
 	Description  pulumi.StringPtrOutput `pulumi:"description"`
 	Disks        DiskArrayOutput        `pulumi:"disks"`
 	Efidisk      EfiDiskPtrOutput       `pulumi:"efidisk"`
@@ -69,6 +69,9 @@ func NewVM(ctx *pulumi.Context,
 	}
 	if args.Name == nil {
 		return nil, errors.New("invalid value for required argument 'Name'")
+	}
+	if args.Cpu != nil {
+		args.Cpu = args.Cpu.ToCPUPtrOutput().ApplyT(func(v *CPU) *CPU { return v.Defaults() }).(CPUPtrOutput)
 	}
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource VM
@@ -114,7 +117,7 @@ type vmArgs struct {
 	Ciupgrade    *int     `pulumi:"ciupgrade"`
 	Ciuser       *string  `pulumi:"ciuser"`
 	Clone        *Clone   `pulumi:"clone"`
-	Cpu          *Cpu     `pulumi:"cpu"`
+	Cpu          *CPU     `pulumi:"cpu"`
 	Description  *string  `pulumi:"description"`
 	Disks        []Disk   `pulumi:"disks"`
 	Efidisk      *EfiDisk `pulumi:"efidisk"`
@@ -158,7 +161,7 @@ type VMArgs struct {
 	Ciupgrade    pulumi.IntPtrInput
 	Ciuser       pulumi.StringPtrInput
 	Clone        ClonePtrInput
-	Cpu          CpuPtrInput
+	Cpu          CPUPtrInput
 	Description  pulumi.StringPtrInput
 	Disks        DiskArrayInput
 	Efidisk      EfiDiskPtrInput
@@ -320,8 +323,8 @@ func (o VMOutput) Clone() ClonePtrOutput {
 	return o.ApplyT(func(v *VM) ClonePtrOutput { return v.Clone }).(ClonePtrOutput)
 }
 
-func (o VMOutput) Cpu() CpuPtrOutput {
-	return o.ApplyT(func(v *VM) CpuPtrOutput { return v.Cpu }).(CpuPtrOutput)
+func (o VMOutput) Cpu() CPUPtrOutput {
+	return o.ApplyT(func(v *VM) CPUPtrOutput { return v.Cpu }).(CPUPtrOutput)
 }
 
 func (o VMOutput) Description() pulumi.StringPtrOutput {

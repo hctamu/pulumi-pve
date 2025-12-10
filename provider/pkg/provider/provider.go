@@ -37,7 +37,7 @@ import (
 var Version string
 
 // Name is the name of the PVE provider.
-const Name string = "pve"
+const Name = "pve"
 
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {

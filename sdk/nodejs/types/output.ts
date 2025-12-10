@@ -5,6 +5,8 @@ import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "../types/input";
 import * as outputs from "../types/output";
 
+import * as utilities from "../utilities";
+
 export namespace storage {
     export interface FileSourceRaw {
         /**
@@ -20,15 +22,10 @@ export namespace storage {
 }
 
 export namespace vm {
-    export interface Clone {
-        dataStoreId?: string;
-        fullClone?: boolean;
-        node?: string;
-        timeout?: number;
-        vmId: number;
-    }
-
-    export interface Cpu {
+    /**
+     * CPU configuration for the virtual machine.
+     */
+    export interface CPU {
         cores?: number;
         flagsDisabled?: string[];
         flagsEnabled?: string[];
@@ -42,6 +39,23 @@ export namespace vm {
         type?: string;
         units?: number;
         vcpus?: number;
+    }
+    /**
+     * cpuProvideDefaults sets the appropriate defaults for CPU
+     */
+    export function cpuProvideDefaults(val: CPU): CPU {
+        return {
+            ...val,
+            cores: (val.cores) ?? (utilities.getEnvNumber("Number of CPU cores") || 1),
+        };
+    }
+
+    export interface Clone {
+        dataStoreId?: string;
+        fullClone?: boolean;
+        node?: string;
+        timeout?: number;
+        vmId: number;
     }
 
     export interface Disk {

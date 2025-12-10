@@ -34,7 +34,7 @@ class VMArgs:
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input['CloneArgs']] = None,
-                 cpu: Optional[pulumi.Input['CpuArgs']] = None,
+                 cpu: Optional[pulumi.Input['CPUArgs']] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  efidisk: Optional[pulumi.Input['EfiDiskArgs']] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
@@ -262,11 +262,11 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def cpu(self) -> Optional[pulumi.Input['CpuArgs']]:
+    def cpu(self) -> Optional[pulumi.Input['CPUArgs']]:
         return pulumi.get(self, "cpu")
 
     @cpu.setter
-    def cpu(self, value: Optional[pulumi.Input['CpuArgs']]):
+    def cpu(self, value: Optional[pulumi.Input['CPUArgs']]):
         pulumi.set(self, "cpu", value)
 
     @_builtins.property
@@ -521,7 +521,7 @@ class VM(pulumi.CustomResource):
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
-                 cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
+                 cpu: Optional[pulumi.Input[Union['CPUArgs', 'CPUArgsDict']]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
                  efidisk: Optional[pulumi.Input[Union['EfiDiskArgs', 'EfiDiskArgsDict']]] = None,
@@ -590,7 +590,7 @@ class VM(pulumi.CustomResource):
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
-                 cpu: Optional[pulumi.Input[Union['CpuArgs', 'CpuArgsDict']]] = None,
+                 cpu: Optional[pulumi.Input[Union['CPUArgs', 'CPUArgsDict']]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
                  efidisk: Optional[pulumi.Input[Union['EfiDiskArgs', 'EfiDiskArgsDict']]] = None,
@@ -793,7 +793,7 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def cpu(self) -> pulumi.Output[Optional['outputs.Cpu']]:
+    def cpu(self) -> pulumi.Output[Optional['outputs.CPU']]:
         return pulumi.get(self, "cpu")
 
     @_builtins.property

@@ -85,33 +85,17 @@
         "fileName"
       ]
     },
-    "pve:vm:Clone": {
-      "properties": {
-        "dataStoreId": {
-          "type": "string"
-        },
-        "fullClone": {
-          "type": "boolean"
-        },
-        "node": {
-          "type": "string"
-        },
-        "timeout": {
-          "type": "integer"
-        },
-        "vmId": {
-          "type": "integer"
-        }
-      },
-      "type": "object",
-      "required": [
-        "vmId"
-      ]
-    },
-    "pve:vm:Cpu": {
+    "pve:vm:CPU": {
+      "description": "CPU configuration for the virtual machine.",
       "properties": {
         "cores": {
-          "type": "integer"
+          "type": "integer",
+          "default": 1,
+          "defaultInfo": {
+            "environment": [
+              "Number of CPU cores"
+            ]
+          }
         },
         "flagsDisabled": {
           "type": "array",
@@ -160,6 +144,29 @@
         }
       },
       "type": "object"
+    },
+    "pve:vm:Clone": {
+      "properties": {
+        "dataStoreId": {
+          "type": "string"
+        },
+        "fullClone": {
+          "type": "boolean"
+        },
+        "node": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "integer"
+        },
+        "vmId": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "vmId"
+      ]
     },
     "pve:vm:Disk": {
       "properties": {
@@ -687,7 +694,7 @@
           "$ref": "#/types/pve:vm:Clone"
         },
         "cpu": {
-          "$ref": "#/types/pve:vm:Cpu"
+          "$ref": "#/types/pve:vm:CPU"
         },
         "description": {
           "type": "string"
@@ -817,7 +824,7 @@
           "$ref": "#/types/pve:vm:Clone"
         },
         "cpu": {
-          "$ref": "#/types/pve:vm:Cpu"
+          "$ref": "#/types/pve:vm:CPU"
         },
         "description": {
           "type": "string"

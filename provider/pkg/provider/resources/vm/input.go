@@ -61,8 +61,6 @@ type CPU struct {
 	Vcpus         *int       `pulumi:"vcpus,optional"`
 	Numa          *bool      `pulumi:"numa,optional"`
 	NumaNodes     []NumaNode `pulumi:"numaNodes,optional"`
-	// TODO: Affinity is currently buggy in Proxmox VE - requires root permissions and has permission issues
-	// Affinity      *string  `pulumi:"affinity,optional"`
 }
 
 // ToProxmoxNumaString converts a NumaNode to Proxmox format.
@@ -86,16 +84,20 @@ func ParseNumaNode(value string) (node *NumaNode, err error) {
 	if value == "" {
 		return nil, nil
 	}
+
 	node = &NumaNode{}
 	segments := strings.Split(value, ",")
+
 	for _, seg := range segments {
 		if seg == "" {
 			continue
 		}
+
 		kv := strings.SplitN(seg, "=", 2)
 		if len(kv) != 2 {
 			continue
 		}
+
 		key, val := kv[0], kv[1]
 		switch key {
 		case "cpus":
@@ -112,9 +114,11 @@ func ParseNumaNode(value string) (node *NumaNode, err error) {
 			node.Policy = &val
 		}
 	}
+
 	if node.Cpus == "" {
 		return nil, errors.New("NUMA node missing required 'cpus' field")
 	}
+
 	return node, nil
 }
 
@@ -123,28 +127,35 @@ func (c *CPU) ToProxmoxString() string {
 	if c == nil {
 		return ""
 	}
+
 	parts := make([]string, 0, 6)
+
 	if c.Type != nil && *c.Type != "" {
 		parts = append(parts, *c.Type)
 	}
+
 	if len(c.FlagsEnabled) > 0 || len(c.FlagsDisabled) > 0 {
 		flags := make([]string, 0, len(c.FlagsEnabled)+len(c.FlagsDisabled))
+
 		for _, f := range c.FlagsEnabled {
 			if f == "" {
 				continue
 			}
 			flags = append(flags, "+"+f)
 		}
+
 		for _, f := range c.FlagsDisabled {
 			if f == "" {
 				continue
 			}
 			flags = append(flags, "-"+f)
 		}
+
 		if len(flags) > 0 {
 			parts = append(parts, "flags="+strings.Join(flags, ";"))
 		}
 	}
+
 	if c.Hidden != nil {
 		if *c.Hidden {
 			parts = append(parts, "hidden=1")
@@ -152,12 +163,15 @@ func (c *CPU) ToProxmoxString() string {
 			parts = append(parts, "hidden=0")
 		}
 	}
+
 	if c.HVVendorID != nil {
 		parts = append(parts, "hv-vendor-id="+*c.HVVendorID)
 	}
+
 	if c.PhysBits != nil {
 		parts = append(parts, "phys-bits="+*c.PhysBits)
 	}
+
 	return strings.Join(parts, ",")
 }
 
@@ -166,12 +180,15 @@ func ParseCPU(value string) (cfg *CPU, err error) {
 	if value == "" {
 		return nil, nil
 	}
+
 	cfg = &CPU{}
 	segments := strings.Split(value, ",")
+
 	for i, seg := range segments {
 		if seg == "" {
 			continue
 		}
+
 		kv := strings.SplitN(seg, "=", 2)
 		if len(kv) != 2 {
 			// First segment without '=' is the CPU type
@@ -180,10 +197,12 @@ func ParseCPU(value string) (cfg *CPU, err error) {
 			}
 			continue
 		}
+
 		key, val := kv[0], kv[1]
 		switch key {
 		case "cputype":
 			cfg.Type = &val
+
 		case "flags":
 			if val != "" {
 				flags := strings.Split(val, ";")
@@ -191,6 +210,7 @@ func ParseCPU(value string) (cfg *CPU, err error) {
 					if f == "" {
 						continue
 					}
+
 					switch f[0] {
 					case '+':
 						cfg.FlagsEnabled = append(cfg.FlagsEnabled, f[1:])
@@ -201,6 +221,7 @@ func ParseCPU(value string) (cfg *CPU, err error) {
 					}
 				}
 			}
+
 		case "hidden":
 			switch val {
 			case "1":
@@ -210,13 +231,16 @@ func ParseCPU(value string) (cfg *CPU, err error) {
 				b := false
 				cfg.Hidden = &b
 			}
+
 		case "hv-vendor-id":
 			cfg.HVVendorID = &val
+
 		case "phys-bits":
 			cfg.PhysBits = &val
 			// other keys ignored
 		}
 	}
+
 	return cfg, nil
 }
 
@@ -436,17 +460,13 @@ func parseDiskBase(diskConfig string) (parsedDiskBase, error) {
 	return result, nil
 }
 
-// ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (inputs Inputs, err error) {
-	vmConfig := vm.VirtualMachineConfig
-	diskMap := vmConfig.MergeDisks()
-
+// parseCPUFromVMConfig parses CPU configuration from VirtualMachineConfig.
+func parseCPUFromVMConfig(vmConfig *api.VirtualMachineConfig) (*CPU, error) {
 	var parsedCPU *CPU
 	if vmConfig.CPU != "" {
-		cpuCfg, parseErr := ParseCPU(vmConfig.CPU)
-		if parseErr != nil {
-			err = fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, parseErr)
-			return inputs, err
+		cpuCfg, err := ParseCPU(vmConfig.CPU)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse CPU config '%s': %w", vmConfig.CPU, err)
 		}
 		parsedCPU = cpuCfg
 	}
@@ -473,13 +493,9 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 	if vmConfig.Vcpus > 0 {
 		parsedCPU.Vcpus = &vmConfig.Vcpus
 	}
-	// TODO: Affinity is currently buggy in Proxmox VE
-	// if vmConfig.Affinity != "" {
-	// 	parsedCPU.Affinity = &vmConfig.Affinity
-	// }
 
 	if vmConfig.Numa > 0 {
-		numaEnabled := vmConfig.Numa > 0
+		numaEnabled := true
 		parsedCPU.Numa = &numaEnabled
 	}
 
@@ -490,10 +506,9 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 	var numaNodes []NumaNode
 	for _, numaStr := range numaStrings {
 		if numaStr != "" {
-			node, parseErr := ParseNumaNode(numaStr)
-			if parseErr != nil {
-				err = fmt.Errorf("failed to parse NUMA node '%s': %w", numaStr, parseErr)
-				return inputs, err
+			node, err := ParseNumaNode(numaStr)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse NUMA node '%s': %w", numaStr, err)
 			}
 			if node != nil {
 				numaNodes = append(numaNodes, *node)
@@ -502,6 +517,19 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 	}
 	if len(numaNodes) > 0 {
 		parsedCPU.NumaNodes = numaNodes
+	}
+
+	return parsedCPU, nil
+}
+
+// ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
+func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (inputs Inputs, err error) {
+	vmConfig := vm.VirtualMachineConfig
+	diskMap := vmConfig.MergeDisks()
+
+	parsedCPU, err := parseCPUFromVMConfig(vmConfig)
+	if err != nil {
+		return inputs, err
 	}
 
 	// Sort disk interfaces to ensure consistent ordering
@@ -667,17 +695,19 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 	addOption("sshkeys", &options, inputs.SSHKeys)
 	addOption("cicustom", &options, inputs.CICustom)
 	addOption("ciupgrade", &options, inputs.CIUpgrade)
+
 	if inputs.CPU != nil {
-		cpuStr := inputs.CPU.ToProxmoxString()
-		if cpuStr != "" {
+		if cpuStr := inputs.CPU.ToProxmoxString(); cpuStr != "" {
 			options = append(options, api.VirtualMachineOption{Name: "cpu", Value: cpuStr})
 		}
+
 		if inputs.CPU.Cores != nil {
 			options = append(options, api.VirtualMachineOption{Name: "cores", Value: inputs.CPU.Cores})
 		}
 		if inputs.CPU.Sockets != nil {
 			options = append(options, api.VirtualMachineOption{Name: "sockets", Value: inputs.CPU.Sockets})
 		}
+
 		if inputs.CPU.Limit != nil {
 			options = append(options, api.VirtualMachineOption{Name: "cpulimit", Value: inputs.CPU.Limit})
 		}
@@ -687,6 +717,7 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 		if inputs.CPU.Vcpus != nil {
 			options = append(options, api.VirtualMachineOption{Name: "vcpus", Value: inputs.CPU.Vcpus})
 		}
+
 		if inputs.CPU.Numa != nil {
 			numaValue := 0
 			if *inputs.CPU.Numa {
@@ -694,15 +725,12 @@ func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption
 			}
 			options = append(options, api.VirtualMachineOption{Name: "numa", Value: numaValue})
 		}
+
 		for i, node := range inputs.CPU.NumaNodes {
 			numaKey := fmt.Sprintf("numa%d", i)
 			numaValue := node.ToProxmoxNumaString()
 			options = append(options, api.VirtualMachineOption{Name: numaKey, Value: numaValue})
 		}
-		// TODO: Affinity is currently buggy in Proxmox VE
-		// if inputs.CPU.Affinity != nil {
-		// 	options = append(options, api.VirtualMachineOption{Name: "affinity", Value: inputs.CPU.Affinity})
-		// }
 	}
 
 	// Add EFI disk if configured
@@ -837,20 +865,6 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *I
 				*options = append(*options, api.VirtualMachineOption{Name: numaKey, Value: numaValue})
 			}
 		}
-
-		// TODO: Affinity is currently buggy in Proxmox VE
-		// var newAffinity, oldAffinity *string
-		// if newInputs.CPU != nil {
-		// 	newAffinity = newInputs.CPU.Affinity
-		// }
-		// if currentInputs.CPU != nil {
-		// 	oldAffinity = currentInputs.CPU.Affinity
-		// }
-		// if utils.DifferPtr(newAffinity, oldAffinity) {
-		// 	if newAffinity != nil {
-		// 		*options = append(*options, api.VirtualMachineOption{Name: "affinity", Value: newAffinity})
-		// 	}
-		// }
 	}
 }
 
@@ -863,28 +877,17 @@ func NumaNodesEqual(inputA, inputB []NumaNode) bool {
 		if inputA[i].Cpus != inputB[i].Cpus {
 			return false
 		}
-		if !ptrEqual(inputA[i].HostNodes, inputB[i].HostNodes) {
+		if !utils.PtrEqual(inputA[i].HostNodes, inputB[i].HostNodes) {
 			return false
 		}
-		if !ptrEqual(inputA[i].Memory, inputB[i].Memory) {
+		if !utils.PtrEqual(inputA[i].Memory, inputB[i].Memory) {
 			return false
 		}
-		if !ptrEqual(inputA[i].Policy, inputB[i].Policy) {
+		if !utils.PtrEqual(inputA[i].Policy, inputB[i].Policy) {
 			return false
 		}
 	}
 	return true
-}
-
-// ptrEqual compares two pointers of any comparable type.
-func ptrEqual[T comparable](a, b *T) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
 }
 
 // getDiskOption returns the disk option with the specified interface.
@@ -999,6 +1002,6 @@ func compareAndAddOption[T comparable](
 // addOption adds the option to the list if the value is not nil.
 func addOption[T comparable](name string, options *[]api.VirtualMachineOption, value *T) {
 	if value != nil {
-		*options = append(*options, api.VirtualMachineOption{Name: name, Value: value})
+		*options = append(*options, api.VirtualMachineOption{Name: name, Value: *value})
 	}
 }

@@ -15,10 +15,10 @@ else:
 from .. import _utilities
 
 __all__ = [
+    'CPUArgs',
+    'CPUArgsDict',
     'CloneArgs',
     'CloneArgsDict',
-    'CpuArgs',
-    'CpuArgsDict',
     'DiskArgs',
     'DiskArgsDict',
     'EfiDiskArgs',
@@ -30,81 +30,10 @@ __all__ = [
 MYPY = False
 
 if not MYPY:
-    class CloneArgsDict(TypedDict):
-        vm_id: pulumi.Input[_builtins.int]
-        data_store_id: NotRequired[pulumi.Input[_builtins.str]]
-        full_clone: NotRequired[pulumi.Input[_builtins.bool]]
-        node: NotRequired[pulumi.Input[_builtins.str]]
-        timeout: NotRequired[pulumi.Input[_builtins.int]]
-elif False:
-    CloneArgsDict: TypeAlias = Mapping[str, Any]
-
-@pulumi.input_type
-class CloneArgs:
-    def __init__(__self__, *,
-                 vm_id: pulumi.Input[_builtins.int],
-                 data_store_id: Optional[pulumi.Input[_builtins.str]] = None,
-                 full_clone: Optional[pulumi.Input[_builtins.bool]] = None,
-                 node: Optional[pulumi.Input[_builtins.str]] = None,
-                 timeout: Optional[pulumi.Input[_builtins.int]] = None):
-        pulumi.set(__self__, "vm_id", vm_id)
-        if data_store_id is not None:
-            pulumi.set(__self__, "data_store_id", data_store_id)
-        if full_clone is not None:
-            pulumi.set(__self__, "full_clone", full_clone)
-        if node is not None:
-            pulumi.set(__self__, "node", node)
-        if timeout is not None:
-            pulumi.set(__self__, "timeout", timeout)
-
-    @_builtins.property
-    @pulumi.getter(name="vmId")
-    def vm_id(self) -> pulumi.Input[_builtins.int]:
-        return pulumi.get(self, "vm_id")
-
-    @vm_id.setter
-    def vm_id(self, value: pulumi.Input[_builtins.int]):
-        pulumi.set(self, "vm_id", value)
-
-    @_builtins.property
-    @pulumi.getter(name="dataStoreId")
-    def data_store_id(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "data_store_id")
-
-    @data_store_id.setter
-    def data_store_id(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "data_store_id", value)
-
-    @_builtins.property
-    @pulumi.getter(name="fullClone")
-    def full_clone(self) -> Optional[pulumi.Input[_builtins.bool]]:
-        return pulumi.get(self, "full_clone")
-
-    @full_clone.setter
-    def full_clone(self, value: Optional[pulumi.Input[_builtins.bool]]):
-        pulumi.set(self, "full_clone", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def node(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "node")
-
-    @node.setter
-    def node(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "node", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def timeout(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "timeout")
-
-    @timeout.setter
-    def timeout(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "timeout", value)
-
-
-if not MYPY:
-    class CpuArgsDict(TypedDict):
+    class CPUArgsDict(TypedDict):
+        """
+        CPU configuration for the virtual machine.
+        """
         cores: NotRequired[pulumi.Input[_builtins.int]]
         flags_disabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
         flags_enabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
@@ -119,10 +48,10 @@ if not MYPY:
         units: NotRequired[pulumi.Input[_builtins.int]]
         vcpus: NotRequired[pulumi.Input[_builtins.int]]
 elif False:
-    CpuArgsDict: TypeAlias = Mapping[str, Any]
+    CPUArgsDict: TypeAlias = Mapping[str, Any]
 
 @pulumi.input_type
-class CpuArgs:
+class CPUArgs:
     def __init__(__self__, *,
                  cores: Optional[pulumi.Input[_builtins.int]] = None,
                  flags_disabled: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
@@ -137,6 +66,11 @@ class CpuArgs:
                  type: Optional[pulumi.Input[_builtins.str]] = None,
                  units: Optional[pulumi.Input[_builtins.int]] = None,
                  vcpus: Optional[pulumi.Input[_builtins.int]] = None):
+        """
+        CPU configuration for the virtual machine.
+        """
+        if cores is None:
+            cores = (_utilities.get_env_int('Number of CPU cores') or 1)
         if cores is not None:
             pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
@@ -280,6 +214,80 @@ class CpuArgs:
     @vcpus.setter
     def vcpus(self, value: Optional[pulumi.Input[_builtins.int]]):
         pulumi.set(self, "vcpus", value)
+
+
+if not MYPY:
+    class CloneArgsDict(TypedDict):
+        vm_id: pulumi.Input[_builtins.int]
+        data_store_id: NotRequired[pulumi.Input[_builtins.str]]
+        full_clone: NotRequired[pulumi.Input[_builtins.bool]]
+        node: NotRequired[pulumi.Input[_builtins.str]]
+        timeout: NotRequired[pulumi.Input[_builtins.int]]
+elif False:
+    CloneArgsDict: TypeAlias = Mapping[str, Any]
+
+@pulumi.input_type
+class CloneArgs:
+    def __init__(__self__, *,
+                 vm_id: pulumi.Input[_builtins.int],
+                 data_store_id: Optional[pulumi.Input[_builtins.str]] = None,
+                 full_clone: Optional[pulumi.Input[_builtins.bool]] = None,
+                 node: Optional[pulumi.Input[_builtins.str]] = None,
+                 timeout: Optional[pulumi.Input[_builtins.int]] = None):
+        pulumi.set(__self__, "vm_id", vm_id)
+        if data_store_id is not None:
+            pulumi.set(__self__, "data_store_id", data_store_id)
+        if full_clone is not None:
+            pulumi.set(__self__, "full_clone", full_clone)
+        if node is not None:
+            pulumi.set(__self__, "node", node)
+        if timeout is not None:
+            pulumi.set(__self__, "timeout", timeout)
+
+    @_builtins.property
+    @pulumi.getter(name="vmId")
+    def vm_id(self) -> pulumi.Input[_builtins.int]:
+        return pulumi.get(self, "vm_id")
+
+    @vm_id.setter
+    def vm_id(self, value: pulumi.Input[_builtins.int]):
+        pulumi.set(self, "vm_id", value)
+
+    @_builtins.property
+    @pulumi.getter(name="dataStoreId")
+    def data_store_id(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "data_store_id")
+
+    @data_store_id.setter
+    def data_store_id(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "data_store_id", value)
+
+    @_builtins.property
+    @pulumi.getter(name="fullClone")
+    def full_clone(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        return pulumi.get(self, "full_clone")
+
+    @full_clone.setter
+    def full_clone(self, value: Optional[pulumi.Input[_builtins.bool]]):
+        pulumi.set(self, "full_clone", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def node(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "node")
+
+    @node.setter
+    def node(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "node", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def timeout(self) -> Optional[pulumi.Input[_builtins.int]]:
+        return pulumi.get(self, "timeout")
+
+    @timeout.setter
+    def timeout(self, value: Optional[pulumi.Input[_builtins.int]]):
+        pulumi.set(self, "timeout", value)
 
 
 if not MYPY:
