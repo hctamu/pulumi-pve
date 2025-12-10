@@ -38,7 +38,7 @@ import (
 var Version = "0.0.6"
 
 // Name is the name of the PVE provider.
-const Name string = "pve"
+const Name = "pve"
 
 // newHAResourceWithConfig creates a new HA resource with a specific config.
 // Passing nil will cause it to fetch config from context when Connect() is called.

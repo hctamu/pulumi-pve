@@ -941,9 +941,11 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[vmResource.Inputs]{
 		Name: "test-vm-with-efi",
 		Inputs: vmResource.Inputs{
-			Name:   testutils.Ptr("test-vm-with-efi"),
-			Node:   &nodeName,
-			Cores:  testutils.Ptr(2),
+			Name: testutils.Ptr("test-vm-with-efi"),
+			Node: &nodeName,
+			CPU: &vmResource.CPU{
+				Cores: testutils.Ptr(2),
+			},
 			Memory: testutils.Ptr(2048),
 			// No Clone settings - creating a new VM from scratch
 			EfiDisk: &vmResource.EfiDisk{

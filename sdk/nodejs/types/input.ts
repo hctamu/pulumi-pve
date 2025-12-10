@@ -5,6 +5,8 @@ import * as pulumi from "@pulumi/pulumi";
 import * as inputs from "../types/input";
 import * as outputs from "../types/output";
 
+import * as utilities from "../utilities";
+
 export namespace storage {
     export interface FileSourceRawArgs {
         /**
@@ -19,6 +21,34 @@ export namespace storage {
 }
 
 export namespace vm {
+    /**
+     * CPU configuration for the virtual machine.
+     */
+    export interface CPUArgs {
+        cores?: pulumi.Input<number>;
+        flagsDisabled?: pulumi.Input<pulumi.Input<string>[]>;
+        flagsEnabled?: pulumi.Input<pulumi.Input<string>[]>;
+        hidden?: pulumi.Input<boolean>;
+        hvVendorId?: pulumi.Input<string>;
+        limit?: pulumi.Input<number>;
+        numa?: pulumi.Input<boolean>;
+        numaNodes?: pulumi.Input<pulumi.Input<inputs.vm.NumaNodeArgs>[]>;
+        physBits?: pulumi.Input<string>;
+        sockets?: pulumi.Input<number>;
+        type?: pulumi.Input<string>;
+        units?: pulumi.Input<number>;
+        vcpus?: pulumi.Input<number>;
+    }
+    /**
+     * cpuargsProvideDefaults sets the appropriate defaults for CPUArgs
+     */
+    export function cpuargsProvideDefaults(val: CPUArgs): CPUArgs {
+        return {
+            ...val,
+            cores: (val.cores) ?? (utilities.getEnvNumber("Number of CPU cores") || 1),
+        };
+    }
+
     export interface CloneArgs {
         dataStoreId?: pulumi.Input<string>;
         fullClone?: pulumi.Input<boolean>;
@@ -42,5 +72,12 @@ export namespace vm {
         filename?: pulumi.Input<string>;
         preEnrolledKeys?: pulumi.Input<boolean>;
         storage: pulumi.Input<string>;
+    }
+
+    export interface NumaNodeArgs {
+        cpus: pulumi.Input<string>;
+        hostNodes?: pulumi.Input<string>;
+        memory?: pulumi.Input<number>;
+        policy?: pulumi.Input<string>;
     }
 }
