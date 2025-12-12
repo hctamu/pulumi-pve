@@ -17,11 +17,11 @@ package pool_test
 
 import (
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/blang/semver"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,20 +113,19 @@ func TestPoolCreate(t *testing.T) {
 	getPool.Enable()
 	updatePool.Enable()
 
-	// Set environment variable to direct Proxmox API requests to the mock server
-	_ = os.Setenv("PVE_API_URL", mockServer.URL())
-	defer func() {
-		if err := os.Unsetenv("PVE_API_URL"); err != nil {
-			t.Errorf("failed to unset PVE_API_URL: %v", err)
-		}
-	}()
+	// Create provider with test config pointing to mock server
+	testConfig := &config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "test@pam",
+		PveToken: "test-token",
+	}
 
 	// Start the integration server with the mock setup
 	server, err := integration.NewServer(
 		t.Context(),
 		provider.Name,
 		semver.Version{Minor: 1},
-		integration.WithProvider(provider.NewProvider()),
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
 	)
 	require.NoError(t, err)
 
