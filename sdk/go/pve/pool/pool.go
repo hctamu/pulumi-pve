@@ -32,9 +32,10 @@ func NewPool(ctx *pulumi.Context,
 	if args.Name == nil {
 		return nil, errors.New("invalid value for required argument 'Name'")
 	}
-	if args.Comment == nil {
-		args.Comment = pulumi.StringPtr("Default pool comment")
-	}
+	replaceOnChanges := pulumi.ReplaceOnChanges([]string{
+		"name",
+	})
+	opts = append(opts, replaceOnChanges)
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource Pool
 	err := ctx.RegisterResource("pve:pool:Pool", name, args, &resource, opts...)
