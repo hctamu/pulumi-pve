@@ -51,6 +51,10 @@ namespace Hctamu.Pve.Pool
             var defaultOptions = new CustomResourceOptions
             {
                 Version = Utilities.Version,
+                ReplaceOnChanges =
+                {
+                    "name",
+                },
             };
             var merged = CustomResourceOptions.Merge(defaultOptions, options);
             // Override the ID if one was specified for consistency with other language SDKs.
@@ -87,7 +91,6 @@ namespace Hctamu.Pve.Pool
 
         public PoolArgs()
         {
-            Comment = "Default pool comment";
         }
         public static new PoolArgs Empty => new PoolArgs();
     }

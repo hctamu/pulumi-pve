@@ -57,13 +57,15 @@ export class Pool extends pulumi.CustomResource {
             if (args?.name === undefined && !opts.urn) {
                 throw new Error("Missing required property 'name'");
             }
-            resourceInputs["comment"] = (args?.comment) ?? "Default pool comment";
+            resourceInputs["comment"] = args?.comment;
             resourceInputs["name"] = args?.name;
         } else {
             resourceInputs["comment"] = undefined /*out*/;
             resourceInputs["name"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
+        const replaceOnChanges = { replaceOnChanges: ["name"] };
+        opts = pulumi.mergeOptions(opts, replaceOnChanges);
         super(Pool.__pulumiType, name, resourceInputs, opts);
     }
 }

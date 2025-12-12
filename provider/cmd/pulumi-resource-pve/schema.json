@@ -438,12 +438,12 @@
       "properties": {
         "comment": {
           "type": "string",
-          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
-          "default": "Default pool comment"
+          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'."
         },
         "name": {
           "type": "string",
-          "description": "The name of the Proxmox pool."
+          "description": "The name of the Proxmox pool.",
+          "replaceOnChanges": true
         }
       },
       "type": "object",
@@ -453,12 +453,12 @@
       "inputProperties": {
         "comment": {
           "type": "string",
-          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
-          "default": "Default pool comment"
+          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'."
         },
         "name": {
           "type": "string",
-          "description": "The name of the Proxmox pool."
+          "description": "The name of the Proxmox pool.",
+          "replaceOnChanges": true
         }
       },
       "requiredInputs": [

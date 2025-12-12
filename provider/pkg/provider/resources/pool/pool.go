@@ -32,7 +32,6 @@ var (
 	_ = (infer.CustomDelete[proxmox.PoolOutputs])((*Pool)(nil))
 	_ = (infer.CustomUpdate[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
 	_ = (infer.CustomRead[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
-	_ = (infer.CustomDiff[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
 	_ = infer.Annotated((*Pool)(nil))
 )
 
@@ -156,28 +155,6 @@ func (pool *Pool) Update(
 	err = pool.PoolOps.Update(ctx, request.State.Name, request.Inputs)
 
 	return response, err
-}
-
-// Diff is used to compute the difference between the current state and the desired state of a pool resource
-func (pool *Pool) Diff(
-	_ context.Context,
-	request infer.DiffRequest[proxmox.PoolInputs, proxmox.PoolOutputs],
-) (response infer.DiffResponse, err error) {
-	diff := map[string]p.PropertyDiff{}
-	if request.Inputs.Name != request.State.Name {
-		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-	if request.Inputs.Comment != request.State.Comment {
-		diff["comment"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	response = p.DiffResponse{
-		DeleteBeforeReplace: true,
-		HasChanges:          len(diff) > 0,
-		DetailedDiff:        diff,
-	}
-
-	return response, nil
 }
 
 // Annotate is used to annotate the pool resource

@@ -36,28 +36,15 @@ type PoolOperations interface {
 	Delete(ctx context.Context, name string) error
 }
 
-// PoolResource represents a pool in the Proxmox cluster (API level).
-// This is used for API communication only.
-type PoolResource struct {
-	PoolID  string `json:"poolid,omitempty"`
-	Comment string `json:"comment,omitempty"`
-}
-
-// PoolUpdateOption represents the options for updating a pool (API level).
-type PoolUpdateOption struct {
-	Comment string `json:"comment,omitempty"`
-}
-
 // PoolInputs represents the input properties for the Pool resource
 type PoolInputs struct {
-	Name    string `pulumi:"name"`
+	Name    string `pulumi:"name"             provider:"replaceOnChanges"`
 	Comment string `pulumi:"comment,optional"`
 }
 
 // Annotate adds descriptions to the Input properties for documentation and schema generation.
 func (inputs *PoolInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Name, "The name of the Proxmox pool.")
-	a.SetDefault(&inputs.Comment, "Default pool comment")
 	a.Describe(
 		&inputs.Comment,
 		"An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
