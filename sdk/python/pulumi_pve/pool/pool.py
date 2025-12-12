@@ -27,8 +27,6 @@ class PoolArgs:
         :param pulumi.Input[_builtins.str] comment: An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
         """
         pulumi.set(__self__, "name", name)
-        if comment is None:
-            comment = 'Default pool comment'
         if comment is not None:
             pulumi.set(__self__, "comment", comment)
 
@@ -109,12 +107,12 @@ class Pool(pulumi.CustomResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = PoolArgs.__new__(PoolArgs)
 
-            if comment is None:
-                comment = 'Default pool comment'
             __props__.__dict__["comment"] = comment
             if name is None and not opts.urn:
                 raise TypeError("Missing required property 'name'")
             __props__.__dict__["name"] = name
+        replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["name"])
+        opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
         super(Pool, __self__).__init__(
             'pve:pool:Pool',
             resource_name,
