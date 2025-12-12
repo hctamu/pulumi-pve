@@ -52,6 +52,18 @@ func newHAResourceWithConfig(cfg *config.Config) *ha.HA {
 	return &ha.HA{HAOps: haAdapter}
 }
 
+// newPoolResourceWithConfig creates a new Pool resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newPoolResourceWithConfig(cfg *config.Config) *pool.Pool {
+	// Create ProxmoxAdapter with config
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+
+	// Create PoolAdapter using the ProxmoxAdapter
+	poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
+
+	return &pool.Pool{PoolOps: poolAdapter}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -62,7 +74,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 	// We tell the provider what resources it needs to support.
 	return infer.Provider(infer.Options{
 		Resources: []infer.InferredResource{
-			infer.Resource(&pool.Pool{}),
+			infer.Resource(newPoolResourceWithConfig(cfg)),
 			infer.Resource(&storage.File{}),
 			infer.Resource(newHAResourceWithConfig(cfg)),
 			infer.Resource(&vm.VM{}),
