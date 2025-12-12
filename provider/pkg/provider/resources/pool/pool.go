@@ -19,67 +19,54 @@ package pool
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	"github.com/hctamu/pulumi-pve/provider/px"
-	api "github.com/luthermonson/go-proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// Pool represents a Proxmox pool resource.
-type Pool struct{}
-
+// Ensure Pool implements the required interfaces
 var (
-	_ = (infer.CustomResource[Inputs, Outputs])((*Pool)(nil))
-	_ = (infer.CustomDelete[Outputs])((*Pool)(nil))
-	_ = (infer.CustomRead[Inputs, Outputs])((*Pool)(nil))
-	_ = (infer.CustomUpdate[Inputs, Outputs])((*Pool)(nil))
-	_ = (infer.CustomDiff[Inputs, Outputs])((*Pool)(nil))
+	_ = (infer.CustomResource[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomDelete[proxmox.PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomUpdate[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomRead[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomDiff[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
+	_ = infer.Annotated((*Pool)(nil))
 )
 
-// Inputs defines the input properties for a Proxmox pool resource.
-type Inputs struct {
-	Name    string `pulumi:"name"`
-	Comment string `pulumi:"comment,optional"`
-}
-
-// Annotate is used to annotate the input and output properties of the resource.
-func (args *Inputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The name of the Proxmox pool.")
-	a.SetDefault(&args.Comment, "Default pool comment")
-	a.Describe(
-		&args.Comment,
-		"An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
-	)
-}
-
-// Outputs defines the output properties for a Proxmox pool resource.
-type Outputs struct {
-	Inputs
+// Pool represents a Proxmox pool resource
+type Pool struct {
+	PoolOps proxmox.PoolOperations
 }
 
 // Create is used to create a new pool resource
 func (pool *Pool) Create(
 	ctx context.Context,
-	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
-	response.ID = request.Name
-	response.Output = Outputs{Inputs: request.Inputs}
-	l := p.GetLogger(ctx)
-	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
-	if request.DryRun {
+	request infer.CreateRequest[proxmox.PoolInputs],
+) (response infer.CreateResponse[proxmox.PoolOutputs], err error) {
+	inputs := request.Inputs
+	preview := request.DryRun
+
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Creating pool resource: %v", inputs)
+
+	response = infer.CreateResponse[proxmox.PoolOutputs]{
+		ID:     request.Name,
+		Output: proxmox.PoolOutputs{PoolInputs: inputs},
+	}
+
+	if preview {
 		return response, nil
 	}
 
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pool.PoolOps == nil {
+		err = errors.New("PoolOperations not configured")
 		return response, err
 	}
 
-	err = pxc.NewPool(ctx, request.Inputs.Name, request.Inputs.Comment)
+	err = pool.PoolOps.Create(ctx, inputs)
 
 	return response, err
 }
@@ -87,77 +74,60 @@ func (pool *Pool) Create(
 // Read is used to read the state of a pool resource
 func (pool *Pool) Read(
 	ctx context.Context,
-	request infer.ReadRequest[Inputs, Outputs],
-) (response infer.ReadResponse[Inputs, Outputs], err error) {
-	response.ID = request.ID
-	response.Inputs = request.Inputs
-	l := p.GetLogger(ctx)
-	l.Debugf(
+	request infer.ReadRequest[proxmox.PoolInputs, proxmox.PoolOutputs],
+) (response infer.ReadResponse[proxmox.PoolInputs, proxmox.PoolOutputs], err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf(
 		"Read called for Pool with ID: %s, Inputs: %+v, State: %+v",
 		request.ID,
 		request.Inputs,
 		request.State,
 	)
 
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	response.ID = request.ID
+	response.Inputs = request.Inputs
+	response.State = request.State
+
+	if pool.PoolOps == nil {
+		err = errors.New("PoolOperations not configured")
 		return response, err
 	}
 
 	if request.ID == "" {
-		l.Warningf("Missing Pool ID")
+		logger.Warningf("Missing Pool ID")
 		err = errors.New("missing pool ID")
 		return response, err
 	}
 
-	var existingPool *api.Pool
-	if existingPool, err = pxc.Pool(ctx, response.Inputs.Name); err != nil {
-		err = fmt.Errorf("failed to get pool %s: %v", response.Inputs.Name, err)
+	var outputs *proxmox.PoolOutputs
+
+	if outputs, err = pool.PoolOps.Get(ctx, request.Inputs.Name); err != nil {
 		return response, err
 	}
 
-	poolName := existingPool.PoolID
+	response.Inputs = outputs.PoolInputs
+	response.State = *outputs
 
-	l.Debugf("Successfully fetched pool: %+v", poolName)
-
-	response.State = Outputs{
-		Inputs: Inputs{
-			Name:    poolName,
-			Comment: existingPool.Comment,
-		},
-	}
-
-	response.Inputs = response.State.Inputs
-
-	l.Debugf("Returning updated state: %+v", response.State)
+	logger.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
 }
 
 // Delete is used to delete a pool resource
 func (pool *Pool) Delete(
 	ctx context.Context,
-	request infer.DeleteRequest[Outputs],
+	request infer.DeleteRequest[proxmox.PoolOutputs],
 ) (response infer.DeleteResponse, err error) {
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
-		return response, err
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Deleting pool resource: %v", request.State)
+
+	if pool.PoolOps == nil {
+		return response, errors.New("PoolOperations not configured")
 	}
 
-	l := p.GetLogger(ctx)
-	l.Debugf("Deleting pool %v", request.State.Name)
-
-	var existingPool *api.Pool
-	if existingPool, err = pxc.Pool(ctx, request.State.Name); err != nil {
-		err = fmt.Errorf("failed to get pool %s: %v", request.State.Name, err)
-		l.Error(err.Error())
+	if err := pool.PoolOps.Delete(ctx, request.State.Name); err != nil {
 		return response, err
 	}
-
-	if err = existingPool.Delete(ctx); err != nil {
-		err = fmt.Errorf("failed to delete pool %s: %v", request.State.Name, err)
-		l.Error(err.Error())
-		return response, err
-	}
+	logger.Debugf("Pool resource %v deleted", request.State.Name)
 
 	return response, nil
 }
@@ -165,44 +135,33 @@ func (pool *Pool) Delete(
 // Update is used to update a pool resource
 func (pool *Pool) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[Inputs, Outputs],
-) (response infer.UpdateResponse[Outputs], err error) {
+	request infer.UpdateRequest[proxmox.PoolInputs, proxmox.PoolOutputs],
+) (response infer.UpdateResponse[proxmox.PoolOutputs], err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Updating pool resource: %v", request.ID)
+
 	response.Output = request.State
-	l := p.GetLogger(ctx)
-	l.Debugf("Updating pool: %v", request.State.Name)
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClient(ctx); err != nil {
+	if pool.PoolOps == nil {
+		err = errors.New("PoolOperations not configured")
 		return response, err
 	}
 
-	var existingPool *api.Pool
-	if existingPool, err = pxc.Pool(ctx, request.State.Name); err != nil {
-		err = fmt.Errorf("failed to get pool %s: %v", request.State.Name, err)
-		return response, err
-	}
+	response.Output.PoolInputs = request.Inputs
 
-	poolUpdateOption := &api.PoolUpdateOption{
-		Comment: request.Inputs.Comment,
-	}
+	err = pool.PoolOps.Update(ctx, request.State.Name, request.Inputs)
 
-	if err = existingPool.Update(ctx, poolUpdateOption); err != nil {
-		err = fmt.Errorf("failed to update pool %s: %v", request.State.Name, err)
-		return response, err
-	}
-
-	response.Output = Outputs{request.Inputs}
-	return response, nil
+	return response, err
 }
 
 // Diff is used to compute the difference between the current state and the desired state of a pool resource
 func (pool *Pool) Diff(
 	_ context.Context,
-	request infer.DiffRequest[Inputs, Outputs],
+	request infer.DiffRequest[proxmox.PoolInputs, proxmox.PoolOutputs],
 ) (response infer.DiffResponse, err error) {
 	diff := map[string]p.PropertyDiff{}
 	if request.Inputs.Name != request.State.Name {
