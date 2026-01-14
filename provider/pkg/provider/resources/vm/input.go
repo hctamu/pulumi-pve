@@ -663,14 +663,64 @@ func (inputs *Inputs) BuildOptionsDiff(
 		}
 	}
 
-	if !slices.Equal(inputs.Disks, currentInputs.Disks) {
-		for _, disk := range inputs.Disks {
-			diskKey, diskConfig := disk.ToProxmoxDiskKeyConfig()
-			options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+	options = append(options, buildDiskDiffOptions(inputs.Disks, currentInputs.Disks)...)
+
+	return options
+}
+
+// buildDiskDiffOptions returns options only for disks that actually changed or are new, avoiding
+// re-sending unchanged disks which can cause Proxmox to detach and recreate them (leading to unused entries).
+func buildDiskDiffOptions(newDisks, currentDisks []*Disk) []api.VirtualMachineOption {
+	opts := make([]api.VirtualMachineOption, 0, len(newDisks))
+
+	// Index current disks by interface for quick lookup
+	currentByIface := make(map[string]*Disk, len(currentDisks))
+	for _, d := range currentDisks {
+		if d == nil || d.Interface == "" {
+			continue
+		}
+		currentByIface[d.Interface] = d
+	}
+
+	for _, nd := range newDisks {
+		if nd == nil || nd.Interface == "" {
+			continue
+		}
+		cd := currentByIface[nd.Interface]
+		if cd == nil {
+			// New disk (not present before) -> create
+			key, cfg := nd.ToProxmoxDiskKeyConfig()
+			opts = append(opts, api.VirtualMachineOption{Name: key, Value: cfg})
+			continue
+		}
+
+		// Compare meaningful fields; ignore FileID differences when input FileID is nil (computed)
+		changed := false
+		if nd.Storage != cd.Storage {
+			changed = true
+		}
+		if nd.Size != cd.Size {
+			changed = true
+		}
+		// Interface should match (we keyed by it), but guard anyway
+		if nd.Interface != cd.Interface {
+			changed = true
+		}
+		// Only treat FileID differences as changes if user explicitly set FileID in new inputs
+		if nd.FileID != nil {
+			if cd.FileID == nil || *nd.FileID != *cd.FileID {
+				changed = true
+			}
+		}
+
+		if changed {
+			key, cfg := nd.ToProxmoxDiskKeyConfig()
+			opts = append(opts, api.VirtualMachineOption{Name: key, Value: cfg})
 		}
 	}
 
-	return options
+	// Note: removed disks (present in current but not in new) are handled in Update via reconcileRemovedDisks.
+	return opts
 }
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
