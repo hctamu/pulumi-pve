@@ -82,18 +82,21 @@ func (vm *VM) Create(
 	request.Inputs.Node = &nodeName
 
 	if request.Inputs.VMID == nil {
-		if err = setNextVMId(ctx, cluster, &request.Inputs); err != nil {
+		if err = setNextVMId(ctx, cluster, &response.Output); err != nil {
 			l.Errorf("error: %v", err)
 			return response, err
 		}
 	}
 
-	l.Infof("Create VM '%v(%v)' on '%v'", *request.Inputs.Name, *request.Inputs.VMID, nodeName)
-	options := request.Inputs.BuildOptions(*request.Inputs.VMID)
+	vmID := *response.Output.VMID
+
+	l.Infof("Create VM '%v(%v)' on '%v'", *response.Output.Name, vmID, nodeName)
+	options := request.Inputs.BuildOptions(vmID)
 
 	var createTask *api.Task
 	var timeout time.Duration
-	if createTask, timeout, err = createVMTask(ctx, request.Inputs, options); err != nil {
+
+	if createTask, timeout, err = createVMTask(ctx, request.Inputs, vmID, options); err != nil {
 		l.Errorf("error: %v", err)
 		return response, err
 	}
@@ -105,14 +108,14 @@ func (vm *VM) Create(
 	}
 
 	if request.Inputs.Clone != nil {
-		if err = finalizeClone(ctx, pxClient, request.Inputs, options); err != nil {
+		if err = finalizeClone(ctx, pxClient, request.Inputs, vmID, options); err != nil {
 			l.Errorf("error: %v", err)
 			return response, err
 		}
 	}
 
 	// Read the current state of the VM after creation
-	if response.Output, err = readCurrentOutput(ctx, vm, &request); err != nil {
+	if response.Output, err = readCurrentOutput(ctx, vm, &request, vmID); err != nil {
 		l.Errorf("error: %v", err)
 		return response, err
 	}
@@ -127,12 +130,12 @@ func (vm *VM) Create(
 }
 
 // setNextVMId sets the next available VM ID.
-func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *Inputs) error {
+func setNextVMId(ctx context.Context, cluster *api.Cluster, outputs *Outputs) error {
 	vmIDInt, err := cluster.NextID(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get next VM ID: %v", err)
 	}
-	inputs.VMID = &vmIDInt
+	outputs.VMID = &vmIDInt
 	return nil
 }
 
@@ -140,6 +143,7 @@ func setNextVMId(ctx context.Context, cluster *api.Cluster, inputs *Inputs) erro
 func createVMTask(
 	ctx context.Context,
 	inputs Inputs,
+	vmID int,
 	options []api.VirtualMachineOption,
 ) (
 	createTask *api.Task,
@@ -147,10 +151,10 @@ func createVMTask(
 	err error,
 ) {
 	if inputs.Clone != nil {
-		createTask, err = handleClone(ctx, inputs)
+		createTask, err = handleClone(ctx, inputs, vmID)
 		timeout = time.Duration(inputs.Clone.Timeout) * time.Second
 	} else {
-		createTask, err = handleNewVM(ctx, inputs, options)
+		createTask, err = handleNewVM(ctx, inputs, vmID, options)
 		timeout = 60 * time.Second
 	}
 
@@ -162,10 +166,11 @@ func finalizeClone(
 	ctx context.Context,
 	pxClient *px.Client,
 	inputs Inputs,
+	vmID int,
 	options []api.VirtualMachineOption,
 ) (err error) {
 	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *inputs.VMID, inputs.Node)
+	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, vmID, inputs.Node)
 	if err != nil {
 		return fmt.Errorf("failed to find cloned VM: %v", err)
 	}
@@ -194,11 +199,14 @@ func readCurrentOutput(
 	ctx context.Context,
 	vm *VM,
 	request *infer.CreateRequest[Inputs],
+	vmID int,
 ) (currentOutput Outputs, err error) {
+	state := Outputs{Inputs: request.Inputs}
+	state.VMID = &vmID
 	readRequest := infer.ReadRequest[Inputs, Outputs]{
 		ID:     request.Name,
 		Inputs: request.Inputs,
-		State:  Outputs{Inputs: request.Inputs},
+		State:  state,
 	}
 
 	var readResponse infer.ReadResponse[Inputs, Outputs]
@@ -228,7 +236,7 @@ func getNodeName(inputs Inputs, cluster *api.Cluster) (string, error) {
 }
 
 // handleClone handles the cloning of a virtual machine.
-func handleClone(ctx context.Context, inputs Inputs) (createTask *api.Task, err error) {
+func handleClone(ctx context.Context, inputs Inputs, vmID int) (createTask *api.Task, err error) {
 	pxc, err := client.GetProxmoxClientFn(ctx)
 	if err != nil {
 		return nil, err
@@ -247,7 +255,7 @@ func handleClone(ctx context.Context, inputs Inputs) (createTask *api.Task, err 
 	cloneOptions := api.VirtualMachineCloneOptions{
 		Full:   fullClone,
 		Target: *inputs.Node,
-		NewID:  *inputs.VMID,
+		NewID:  vmID,
 	}
 
 	var cloneTask *api.Task
@@ -262,6 +270,7 @@ func handleClone(ctx context.Context, inputs Inputs) (createTask *api.Task, err 
 func handleNewVM(
 	ctx context.Context,
 	inputs Inputs,
+	vmID int,
 	options []api.VirtualMachineOption,
 ) (createTask *api.Task, err error) {
 	pxc, err := client.GetProxmoxClientFn(ctx)
@@ -274,7 +283,7 @@ func handleNewVM(
 		return nil, err
 	}
 
-	if createTask, err = node.NewVirtualMachine(ctx, *inputs.VMID, options...); err != nil {
+	if createTask, err = node.NewVirtualMachine(ctx, vmID, options...); err != nil {
 		return nil, err
 	}
 
@@ -318,18 +327,20 @@ func (vm *VM) Read(
 		return response, err
 
 	}
-
-	if response.State.Inputs, err = ConvertVMConfigToInputs(virtualMachine, request.State.Inputs); err != nil {
+	var apiInputs Inputs
+	if apiInputs, err = ConvertVMConfigToInputs(virtualMachine, request.State.Inputs); err != nil {
 		err = fmt.Errorf("failed to convert VM to inputs %v", err)
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
 		return response, err
 	}
+	// State (outputs) should contain fully computed values from API
+	response.State.Inputs = apiInputs
+	// Build Inputs that preserve emptiness for computed fields if they were empty before
+	response.Inputs = preserveComputedInputEmptiness(request.State.Inputs, apiInputs)
 	// Preserve clone info from prior state (not derivable from VM config).
 	if request.State.Clone != nil && response.State.Clone == nil {
 		response.State.Clone = request.State.Clone
 	}
-
-	response.Inputs = response.State.Inputs
 
 	response.ID = request.ID
 
@@ -417,31 +428,45 @@ func (vm *VM) Update(
 		}
 	}
 
+	// Ensure disks removed from desired state are actually deleted, not left as "unused".
+	if err := reconcileRemovedDisks(ctx, virtualMachine, request.Inputs.Disks); err != nil {
+		return response, err
+	}
+
 	l.Debugf("VM: %v", virtualMachine)
 	options := request.Inputs.BuildOptionsDiff(*vmID, &request.State.Inputs)
 	l.Debugf("Update options: %+v", options)
-
+	// Only call Config if there are options to apply; Proxmox returns 500 otherwise.
 	var task *api.Task
-	if task, err = virtualMachine.Config(ctx, options...); err != nil {
-		err = fmt.Errorf("failed to update VM %d: %v", *vmID, err)
-		return response, err
+	if len(options) > 0 {
+		if task, err = virtualMachine.Config(ctx, options...); err != nil {
+			err = fmt.Errorf("failed to update VM %d: %v", *vmID, err)
+			return response, err
+		}
+
+		// Wait for the task to complete
+		interval := 5 * time.Second
+		timeout := time.Duration(60) * time.Second
+		if err = task.Wait(ctx, interval, timeout); err != nil {
+			err = fmt.Errorf("failed to wait for VM %d update: %v", *vmID, err)
+			return response, err
+		}
+
+		// Check task status and handle failure
+		if task.IsFailed {
+			err = fmt.Errorf("update task for VM %d failed: %v", *vmID, task.ExitStatus)
+			return response, err
+		}
+
+		l.Debugf("Update VM Task: %v", task)
+	} else {
+		l.Debugf("No VM config options to apply; skipping Config call")
 	}
 
-	// Wait for the task to complete
-	interval := 5 * time.Second
-	timeout := time.Duration(60) * time.Second
-	if err = task.Wait(ctx, interval, timeout); err != nil {
-		err = fmt.Errorf("failed to wait for VM %d update: %v", *vmID, err)
+	// Cleanup lingering unused disks regardless of whether Config ran.
+	if err := cleanupUnusedDisks(ctx, virtualMachine); err != nil {
 		return response, err
 	}
-
-	// Check task status and handle failure
-	if task.IsFailed {
-		err = fmt.Errorf("update task for VM %d failed: %v", *vmID, task.ExitStatus)
-		return response, err
-	}
-
-	l.Debugf("Update VM Task: %v", task)
 	return response, nil
 }
 
@@ -731,6 +756,50 @@ func indexRune(s string, r rune) int {
 	return -1
 }
 
+// preserveComputedInputEmptiness returns a copy of apiInputs with computed fields
+// cleared (set to nil) where they were previously empty in prev inputs. This keeps
+// Inputs reflecting user intent while Outputs (state) carry the full computed values.
+func preserveComputedInputEmptiness(prev, apiInputs Inputs) Inputs {
+	newInputs := apiInputs
+
+	// Computed: VMID and Node
+	if prev.VMID == nil {
+		newInputs.VMID = nil
+	}
+	if prev.Node == nil {
+		newInputs.Node = nil
+	}
+
+	// Computed: Disk filenames per interface
+	if len(newInputs.Disks) > 0 && len(prev.Disks) > 0 {
+		prevByIf := make(map[string]*Disk, len(prev.Disks))
+		for _, d := range prev.Disks {
+			if d != nil && d.Interface != "" {
+				prevByIf[d.Interface] = d
+			}
+		}
+		for i, d := range newInputs.Disks {
+			if d == nil || d.Interface == "" {
+				continue
+			}
+			if prevDisk, ok := prevByIf[d.Interface]; ok {
+				if prevDisk.FileID == nil {
+					newInputs.Disks[i].FileID = nil
+				}
+			}
+		}
+	}
+
+	// Computed: EFI disk filename; remove entire EFI disk if it didn't exist previously
+	if prev.EfiDisk == nil {
+		newInputs.EfiDisk = nil
+	} else if newInputs.EfiDisk != nil && prev.EfiDisk.FileID == nil {
+		newInputs.EfiDisk.FileID = nil
+	}
+
+	return newInputs
+}
+
 // UpdateDisksAfterClone updates the disks of the virtual machine after a clone operation.
 // It updates the file and size of the disks and resizes them if necessary.
 // It also removes disks that are not present in the new configuration.
@@ -791,6 +860,11 @@ func removeEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) erro
 		return fmt.Errorf("failed to unlink EFI disk: %v", err)
 	}
 
+	// Some Proxmox operations may not return a task (nil) if no-op or immediate.
+	if unlinkTask == nil {
+		return nil
+	}
+
 	interval := 5 * time.Second
 	timeout := time.Duration(60) * time.Second
 	if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
@@ -801,6 +875,79 @@ func removeEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) erro
 		return fmt.Errorf("EFI disk removal task failed: %v", unlinkTask.ExitStatus)
 	}
 
+	return nil
+}
+
+// reconcileRemovedDisks deletes any existing VM disks that are not present in the desired inputs.
+// Without this, Proxmox detaches disks and leaves them as "unused" entries instead of deleting.
+func reconcileRemovedDisks(
+	ctx context.Context,
+	virtualMachine *api.VirtualMachine,
+	desiredDisks []*Disk,
+) error {
+	// Build a set of desired disk interfaces (e.g., scsi0, sata0, etc.).
+	desired := make(map[string]struct{}, len(desiredDisks))
+	for _, d := range desiredDisks {
+		if d == nil || d.Interface == "" {
+			continue
+		}
+		desired[d.Interface] = struct{}{}
+	}
+
+	// Current disks from VM config.
+	current := virtualMachine.VirtualMachineConfig.MergeDisks()
+	for iface := range current {
+		if _, keep := desired[iface]; keep {
+			continue
+		}
+
+		// Disk exists on VM but not in desired config -> delete it.
+		unlinkTask, err := virtualMachine.UnlinkDisk(ctx, iface, true)
+		if err != nil {
+			return fmt.Errorf("failed to unlink disk %s: %v", iface, err)
+		}
+
+		// Some operations can be synchronous and return no task.
+		if unlinkTask == nil {
+			continue
+		}
+
+		interval := 5 * time.Second
+		timeout := time.Duration(60) * time.Second
+		if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
+			return fmt.Errorf("failed to wait for unlink of disk %s: %v", iface, err)
+		}
+		if unlinkTask.IsFailed {
+			return fmt.Errorf("unlink task failed for disk %s: %v", iface, unlinkTask.ExitStatus)
+		}
+	}
+
+	return nil
+}
+
+// cleanupUnusedDisks removes any unused disk entries (unused0, unused1, ...) and their files.
+// Proxmox often leaves detached disks as unused entries; this cleans them up to keep config tidy.
+func cleanupUnusedDisks(ctx context.Context, virtualMachine *api.VirtualMachine) error {
+	// Try a reasonable range of potential unused slots.
+	for i := 0; i < 32; i++ {
+		id := fmt.Sprintf("unused%d", i)
+		task, err := virtualMachine.UnlinkDisk(ctx, id, true)
+		if err != nil {
+			// Ignore errors (slot may not exist); proceed to next.
+			continue
+		}
+		if task == nil {
+			continue
+		}
+		interval := 5 * time.Second
+		timeout := time.Duration(60) * time.Second
+		if err = task.Wait(ctx, interval, timeout); err != nil {
+			return fmt.Errorf("failed to cleanup %s: %v", id, err)
+		}
+		if task.IsFailed {
+			return fmt.Errorf("cleanup task failed for %s: %v", id, task.ExitStatus)
+		}
+	}
 	return nil
 }
 
