@@ -24,13 +24,14 @@ import (
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	api "github.com/luthermonson/go-proxmox"
-	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
 	"github.com/vitorsalgado/mocha/v3/expect"
 	"github.com/vitorsalgado/mocha/v3/params"
 	"github.com/vitorsalgado/mocha/v3/reply"
+
+	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // createMockVMWithConfig creates a minimal api.VirtualMachine with basic fields populated
@@ -352,7 +353,8 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 	).Enable()
 
 	// VM config with disks and EFI
-	vmConfigJSON := `{"data":{"vmid":200,"name":"test-vm","scsi0":"local-lvm:vm-200-disk-0,size=32G","efidisk0":"local-lvm:vm-200-efidisk,size=1G,efitype=4m"}}`
+	vmConfigJSON := `{"data":{"vmid":200,"name":"test-vm","scsi0":"local-lvm:vm-200-disk-0,
+					size=32G","efidisk0":"local-lvm:vm-200-efidisk,size=1G,efitype=4m"}}`
 	mock.AddMocks(
 		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/200/config")).
 			Reply(reply.OK().BodyString(vmConfigJSON)),
@@ -428,7 +430,8 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 	).Enable()
 
 	// VM config with disks and EFI
-	vmConfigJSON := `{"data":{"vmid":300,"name":"test-vm","scsi0":"local-lvm:vm-300-disk-0,size=32G","efidisk0":"local-lvm:vm-300-efidisk,size=1G,efitype=4m"}}`
+	vmConfigJSON := `{"data":{"vmid":300,"name":"test-vm","scsi0":"local-lvm:vm-300-disk-0,
+					size=32G","efidisk0":"local-lvm:vm-300-efidisk,size=1G,efitype=4m"}}`
 	mock.AddMocks(
 		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/300/config")).
 			Reply(reply.OK().BodyString(vmConfigJSON)),
@@ -510,7 +513,8 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 	// Mock POST /nodes/{node}/qemu to create VM
 	mock.AddMocks(
 		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu")).
-			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:0000cafe:00000000:00000000:qmcreate:` + strconv.Itoa(nextID) + `:root@pam:"}`)),
+			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:0000cafe:00000000:00000000:qmcreate:` +
+				strconv.Itoa(nextID) + `:root@pam:"}`)),
 	).Enable()
 
 	// Mock task status endpoint
@@ -519,7 +523,8 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 	) + ":root@pam:/status"
 	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:0000cafe:00000000:00000000:qmcreate:` + strconv.Itoa(
 		nextID,
-	) + `:root@pam:","node":"` + nodeName + `","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmcreate","id":"` + strconv.Itoa(
+	) + `:root@pam:","node":"` + nodeName +
+		`","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmcreate","id":"` + strconv.Itoa(
 		nextID,
 	) + `","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
 	mock.AddMocks(
