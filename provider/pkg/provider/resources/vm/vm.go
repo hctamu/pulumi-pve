@@ -120,12 +120,6 @@ func (vm *VM) Create(
 		return response, err
 	}
 
-	// Preserve EFI disk FileID if user did not supply it
-	if (request.Inputs.EfiDisk != nil && response.Output.EfiDisk != nil) &&
-		(request.Inputs.EfiDisk.FileID == nil) {
-		request.Inputs.EfiDisk.FileID = response.Output.EfiDisk.FileID
-	}
-
 	return response, nil
 }
 
@@ -328,7 +322,7 @@ func (vm *VM) Read(
 
 	}
 	var apiInputs Inputs
-	if apiInputs, err = ConvertVMConfigToInputs(virtualMachine, request.State.Inputs); err != nil {
+	if apiInputs, err = ConvertVMConfigToInputs(virtualMachine, request.Inputs); err != nil {
 		err = fmt.Errorf("failed to convert VM to inputs %v", err)
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
 		return response, err
@@ -336,7 +330,7 @@ func (vm *VM) Read(
 	// State (outputs) should contain fully computed values from API
 	response.State.Inputs = apiInputs
 	// Build Inputs that preserve emptiness for computed fields if they were empty before
-	response.Inputs = preserveComputedInputEmptiness(request.State.Inputs, apiInputs)
+	response.Inputs = preserveComputedInputEmptiness(request.Inputs, apiInputs)
 	// Preserve clone info from prior state (not derivable from VM config).
 	if request.State.Clone != nil && response.State.Clone == nil {
 		response.State.Clone = request.State.Clone
@@ -383,6 +377,28 @@ func copyMissingDiskFileIDs(inputs *Inputs, state Inputs) {
 	}
 }
 
+// buildOutputWithComputedFromState constructs Outputs for Update by starting from new inputs
+// and copying computed values (VMID, Node, disk and EFI FileIDs) from the prior state when
+// the user omitted them. Inputs remain as provided by the user; Outputs carry computed values.
+func buildOutputWithComputedFromState(newInputs, oldState Inputs) Outputs {
+	out := Outputs{Inputs: newInputs}
+
+	// VMID and Node: copy from state if user did not provide
+	if out.VMID == nil && oldState.VMID != nil {
+		out.VMID = oldState.VMID
+	}
+	if out.Node == nil && oldState.Node != nil {
+		out.Node = oldState.Node
+	}
+
+	// Disks and EFI FileIDs: copy from state when omitted in inputs
+	merged := out.Inputs
+	copyMissingDiskFileIDs(&merged, oldState)
+	out.Inputs = merged
+
+	return out
+}
+
 // Update updates the state of the virtual machine.
 func (vm *VM) Update(
 	ctx context.Context,
@@ -404,9 +420,8 @@ func (vm *VM) Update(
 	// Propagate missing FileIDs from state to inputs to avoid recreating disks/efi disk
 	copyMissingDiskFileIDs(&request.Inputs, request.State.Inputs)
 
-	response.Output = Outputs{
-		Inputs: request.Inputs,
-	}
+	// Build outputs by copying computed fields from prior state where inputs omit them
+	response.Output = buildOutputWithComputedFromState(request.Inputs, request.State.Inputs)
 
 	if request.DryRun {
 		return response, nil
@@ -426,11 +441,6 @@ func (vm *VM) Update(
 		if err := removeEfiDisk(ctx, virtualMachine); err != nil {
 			return response, err
 		}
-	}
-
-	// Ensure disks removed from desired state are actually deleted, not left as "unused".
-	if err := reconcileRemovedDisks(ctx, virtualMachine, request.Inputs.Disks); err != nil {
-		return response, err
 	}
 
 	l.Debugf("VM: %v", virtualMachine)
@@ -463,10 +473,6 @@ func (vm *VM) Update(
 		l.Debugf("No VM config options to apply; skipping Config call")
 	}
 
-	// Cleanup lingering unused disks regardless of whether Config ran.
-	if err := cleanupUnusedDisks(ctx, virtualMachine); err != nil {
-		return response, err
-	}
 	return response, nil
 }
 
@@ -875,79 +881,6 @@ func removeEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) erro
 		return fmt.Errorf("EFI disk removal task failed: %v", unlinkTask.ExitStatus)
 	}
 
-	return nil
-}
-
-// reconcileRemovedDisks deletes any existing VM disks that are not present in the desired inputs.
-// Without this, Proxmox detaches disks and leaves them as "unused" entries instead of deleting.
-func reconcileRemovedDisks(
-	ctx context.Context,
-	virtualMachine *api.VirtualMachine,
-	desiredDisks []*Disk,
-) error {
-	// Build a set of desired disk interfaces (e.g., scsi0, sata0, etc.).
-	desired := make(map[string]struct{}, len(desiredDisks))
-	for _, d := range desiredDisks {
-		if d == nil || d.Interface == "" {
-			continue
-		}
-		desired[d.Interface] = struct{}{}
-	}
-
-	// Current disks from VM config.
-	current := virtualMachine.VirtualMachineConfig.MergeDisks()
-	for iface := range current {
-		if _, keep := desired[iface]; keep {
-			continue
-		}
-
-		// Disk exists on VM but not in desired config -> delete it.
-		unlinkTask, err := virtualMachine.UnlinkDisk(ctx, iface, true)
-		if err != nil {
-			return fmt.Errorf("failed to unlink disk %s: %v", iface, err)
-		}
-
-		// Some operations can be synchronous and return no task.
-		if unlinkTask == nil {
-			continue
-		}
-
-		interval := 5 * time.Second
-		timeout := time.Duration(60) * time.Second
-		if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
-			return fmt.Errorf("failed to wait for unlink of disk %s: %v", iface, err)
-		}
-		if unlinkTask.IsFailed {
-			return fmt.Errorf("unlink task failed for disk %s: %v", iface, unlinkTask.ExitStatus)
-		}
-	}
-
-	return nil
-}
-
-// cleanupUnusedDisks removes any unused disk entries (unused0, unused1, ...) and their files.
-// Proxmox often leaves detached disks as unused entries; this cleans them up to keep config tidy.
-func cleanupUnusedDisks(ctx context.Context, virtualMachine *api.VirtualMachine) error {
-	// Try a reasonable range of potential unused slots.
-	for i := 0; i < 32; i++ {
-		id := fmt.Sprintf("unused%d", i)
-		task, err := virtualMachine.UnlinkDisk(ctx, id, true)
-		if err != nil {
-			// Ignore errors (slot may not exist); proceed to next.
-			continue
-		}
-		if task == nil {
-			continue
-		}
-		interval := 5 * time.Second
-		timeout := time.Duration(60) * time.Second
-		if err = task.Wait(ctx, interval, timeout); err != nil {
-			return fmt.Errorf("failed to cleanup %s: %v", id, err)
-		}
-		if task.IsFailed {
-			return fmt.Errorf("cleanup task failed for %s: %v", id, task.ExitStatus)
-		}
-	}
 	return nil
 }
 
