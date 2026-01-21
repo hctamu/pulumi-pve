@@ -321,16 +321,13 @@ func (vm *VM) Read(
 		return response, err
 
 	}
-	var apiInputs Inputs
-	if apiInputs, err = ConvertVMConfigToInputs(virtualMachine, request.Inputs); err != nil {
+
+	if response.State.Inputs, response.Inputs, err = ConvertVMConfigToInputs(virtualMachine, request.Inputs); err != nil {
 		err = fmt.Errorf("failed to convert VM to inputs %v", err)
 		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
 		return response, err
 	}
-	// State (outputs) should contain fully computed values from API
-	response.State.Inputs = apiInputs
-	// Build Inputs that preserve emptiness for computed fields if they were empty before
-	response.Inputs = preserveComputedInputEmptiness(request.Inputs, apiInputs)
+
 	// Preserve clone info from prior state (not derivable from VM config).
 	if request.State.Clone != nil && response.State.Clone == nil {
 		response.State.Clone = request.State.Clone
@@ -760,50 +757,6 @@ func indexRune(s string, r rune) int {
 		}
 	}
 	return -1
-}
-
-// preserveComputedInputEmptiness returns a copy of apiInputs with computed fields
-// cleared (set to nil) where they were previously empty in prev inputs. This keeps
-// Inputs reflecting user intent while Outputs (state) carry the full computed values.
-func preserveComputedInputEmptiness(prev, apiInputs Inputs) Inputs {
-	newInputs := apiInputs
-
-	// Computed: VMID and Node
-	if prev.VMID == nil {
-		newInputs.VMID = nil
-	}
-	if prev.Node == nil {
-		newInputs.Node = nil
-	}
-
-	// Computed: Disk filenames per interface
-	if len(newInputs.Disks) > 0 && len(prev.Disks) > 0 {
-		prevByIf := make(map[string]*Disk, len(prev.Disks))
-		for _, d := range prev.Disks {
-			if d != nil && d.Interface != "" {
-				prevByIf[d.Interface] = d
-			}
-		}
-		for i, d := range newInputs.Disks {
-			if d == nil || d.Interface == "" {
-				continue
-			}
-			if prevDisk, ok := prevByIf[d.Interface]; ok {
-				if prevDisk.FileID == nil {
-					newInputs.Disks[i].FileID = nil
-				}
-			}
-		}
-	}
-
-	// Computed: EFI disk filename; remove entire EFI disk if it didn't exist previously
-	if prev.EfiDisk == nil {
-		newInputs.EfiDisk = nil
-	} else if newInputs.EfiDisk != nil && prev.EfiDisk.FileID == nil {
-		newInputs.EfiDisk.FileID = nil
-	}
-
-	return newInputs
 }
 
 // UpdateDisksAfterClone updates the disks of the virtual machine after a clone operation.

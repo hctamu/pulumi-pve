@@ -91,7 +91,7 @@ func TestConvertAndPreserve_NoVMIDOrNodeInPrev(t *testing.T) {
 		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=0",
 	)
 
-	computed, err := ConvertVMConfigToInputs(vm, prev)
+	computed, preserved, err := ConvertVMConfigToInputs(vm, prev)
 	require.NoError(t, err)
 
 	// Computed should carry values from API
@@ -107,8 +107,7 @@ func TestConvertAndPreserve_NoVMIDOrNodeInPrev(t *testing.T) {
 	require.NotNil(t, computed.EfiDisk)
 	require.NotNil(t, computed.EfiDisk.FileID)
 
-	// Preserve emptiness based on prev
-	preserved := preserveComputedInputEmptiness(prev, computed)
+	// Preserve emptiness based on prev (returned from ConvertVMConfigToInputs)
 
 	// VMID and Node must remain nil in Inputs
 	assert.Nil(t, preserved.VMID)
@@ -148,10 +147,8 @@ func TestConvertAndPreserve_WithVMIDAndNodeInPrev(t *testing.T) {
 		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=1",
 	)
 
-	computed, err := ConvertVMConfigToInputs(vm, prev)
+	_, preserved, err := ConvertVMConfigToInputs(vm, prev)
 	require.NoError(t, err)
-
-	preserved := preserveComputedInputEmptiness(prev, computed)
 
 	// VMID and Node should remain set
 	require.NotNil(t, preserved.VMID)

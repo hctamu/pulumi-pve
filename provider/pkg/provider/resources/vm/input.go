@@ -522,30 +522,55 @@ func parseCPUFromVMConfig(vmConfig *api.VirtualMachineConfig) (*CPU, error) {
 	return parsedCPU, nil
 }
 
-// ConvertVMConfigToInputs converts a VirtualMachine configuration to Args.
-func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (inputs Inputs, err error) {
+// ConvertVMConfigToInputs converts a VirtualMachine configuration to Inputs.
+// It returns two Inputs:
+//   - stateInputs: fully computed values from API (for Outputs/State)
+//   - preservedInputs: values adjusted to preserve user-omitted computed fields (for Inputs)
+func ConvertVMConfigToInputs(
+	vm *api.VirtualMachine,
+	currentInput Inputs,
+) (stateInputs, preservedInputs Inputs, err error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
 	parsedCPU, err := parseCPUFromVMConfig(vmConfig)
 	if err != nil {
-		return inputs, err
+		return stateInputs, preservedInputs, err
 	}
 
 	// Sort disk interfaces to ensure consistent ordering
-	disks := []*Disk{}
-	var checkedDisks []string
+	stateDisks := []*Disk{}
+	preservedDisks := []*Disk{}
+	checkedDisks := make([]string, 0, len(currentInput.Disks))
+
+	// Map previous inputs by interface for preservation logic
+	prevByIf := make(map[string]*Disk, len(currentInput.Disks))
+	for _, d := range currentInput.Disks {
+		if d != nil && d.Interface != "" {
+			prevByIf[d.Interface] = d
+		}
+	}
 
 	for _, currentDisk := range currentInput.Disks {
 		// check if current input disk is in the read config
-		if _, exists := diskMap[currentDisk.Interface]; exists {
-			disk := &Disk{Interface: currentDisk.Interface}
-			checkedDisks = append(checkedDisks, currentDisk.Interface)
-			if err := disk.ParseDiskConfig(diskMap[currentDisk.Interface]); err != nil {
-				return Inputs{}, err
-			}
-			disks = append(disks, disk)
+		if _, exists := diskMap[currentDisk.Interface]; !exists {
+			continue
 		}
+		disk := &Disk{Interface: currentDisk.Interface}
+		checkedDisks = append(checkedDisks, currentDisk.Interface)
+		if err := disk.ParseDiskConfig(diskMap[currentDisk.Interface]); err != nil {
+			return stateInputs, preservedInputs, err
+		}
+		// Append to state inputs
+		stateDisks = append(stateDisks, disk)
+		// Build preserved disk: copy and clear FileID if prev omitted it
+		pd := *disk
+		if prev, ok := prevByIf[disk.Interface]; ok {
+			if prev.FileID == nil {
+				pd.FileID = nil
+			}
+		}
+		preservedDisks = append(preservedDisks, &pd)
 	}
 
 	for diskInterface, diskParams := range diskMap {
@@ -554,26 +579,48 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 		}
 		disk := Disk{Interface: diskInterface}
 		if err := disk.ParseDiskConfig(diskParams); err != nil {
-			return Inputs{}, err
+			return stateInputs, preservedInputs, err
 		}
-		disks = append(disks, &disk)
+		stateDisks = append(stateDisks, &disk)
+		// For disks not present in previous inputs, preserved keeps computed values
+		pd := disk
+		if prev, ok := prevByIf[disk.Interface]; ok {
+			if prev.FileID == nil {
+				pd.FileID = nil
+			}
+		}
+		preservedDisks = append(preservedDisks, &pd)
 	}
 
 	var efiDisk *EfiDisk
+	var preservedEfi *EfiDisk
 	if vmConfig.EFIDisk0 != "" {
 		efiDisk = &EfiDisk{}
 		if err := efiDisk.ParseEfiDiskConfig(vmConfig.EFIDisk0); err != nil {
-			return Inputs{}, err
+			return stateInputs, preservedInputs, err
 		}
+		// Preserve: if prev omitted EFI entirely, keep it nil; else copy and clear FileID if prev omitted it
+		if currentInput.EfiDisk == nil {
+			preservedEfi = nil
+		} else {
+			pd := *efiDisk
+			if currentInput.EfiDisk.FileID == nil {
+				pd.FileID = nil
+			}
+			preservedEfi = &pd
+		}
+	} else {
+		// No EFI in state; preserved also none
+		preservedEfi = nil
 	}
 
 	var vmID int
 	if vm.VMID > math.MaxInt {
-		return Inputs{}, fmt.Errorf("VMID %d overflows int", vm.VMID)
+		return stateInputs, preservedInputs, fmt.Errorf("VMID %d overflows int", vm.VMID)
 	}
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
-	return Inputs{
+	stateInputs = Inputs{
 		Name:        strOrNil(vmConfig.Name),
 		Description: strOrNil(vmConfig.Description),
 		VMID:        &vmID,
@@ -608,7 +655,7 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 		Rng0:      strOrNil(vmConfig.Rng0),
 		Audio0:    strOrNil(vmConfig.Audio0),
 
-		Disks: disks,
+		Disks: stateDisks,
 
 		// Net0: strOrNil(vmConfig.Net0),
 
@@ -631,7 +678,23 @@ func ConvertVMConfigToInputs(vm *api.VirtualMachine, currentInput Inputs) (input
 
 		IPConfig0: strOrNil(vmConfig.IPConfig0),
 		Node:      strOrNil(vm.Node),
-	}, nil
+	}
+
+	// Build preservedInputs starting from stateInputs and clearing computed emptiness
+	preservedInputs = stateInputs
+	// Computed: VMID and Node should be nil if prev omitted
+	if currentInput.VMID == nil {
+		preservedInputs.VMID = nil
+	}
+	if currentInput.Node == nil {
+		preservedInputs.Node = nil
+	}
+	// Disks: use preservedDisks built above
+	preservedInputs.Disks = preservedDisks
+	// EFI: set preserved according to previous
+	preservedInputs.EfiDisk = preservedEfi
+
+	return stateInputs, preservedInputs, nil
 }
 
 // BuildOptionsDiff builds a list of VirtualMachineOption that represent the differences between the
