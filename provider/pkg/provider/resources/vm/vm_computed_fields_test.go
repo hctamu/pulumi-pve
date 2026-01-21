@@ -353,8 +353,8 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 	).Enable()
 
 	// VM config with disks and EFI
-	vmConfigJSON := `{"data":{"vmid":200,"name":"test-vm","scsi0":"local-lvm:vm-200-disk-0,
-					size=32G","efidisk0":"local-lvm:vm-200-efidisk,size=1G,efitype=4m"}}`
+	vmConfigJSON := `{"data":{"vmid":200,"name":"test-vm","scsi0":"local-lvm:vm-200-disk-0,` +
+		`size=32G","efidisk0":"local-lvm:vm-200-efidisk,size=1G,efitype=4m"}}`
 	mock.AddMocks(
 		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/200/config")).
 			Reply(reply.OK().BodyString(vmConfigJSON)),
@@ -430,8 +430,8 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 	).Enable()
 
 	// VM config with disks and EFI
-	vmConfigJSON := `{"data":{"vmid":300,"name":"test-vm","scsi0":"local-lvm:vm-300-disk-0,
-					size=32G","efidisk0":"local-lvm:vm-300-efidisk,size=1G,efitype=4m"}}`
+	vmConfigJSON := `{"data":{"vmid":300,"name":"test-vm","scsi0":"local-lvm:vm-300-disk-0,` +
+		`size=32G","efidisk0":"local-lvm:vm-300-efidisk,size=1G,efitype=4m"}}`
 	mock.AddMocks(
 		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/300/config")).
 			Reply(reply.OK().BodyString(vmConfigJSON)),
