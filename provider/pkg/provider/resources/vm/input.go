@@ -544,10 +544,10 @@ func ConvertVMConfigToInputs(
 	checkedDisks := make([]string, 0, len(currentInput.Disks))
 
 	// Map previous inputs by interface for preservation logic
-	prevByIf := make(map[string]*Disk, len(currentInput.Disks))
+	prevByInterface := make(map[string]*Disk, len(currentInput.Disks))
 	for _, d := range currentInput.Disks {
 		if d != nil && d.Interface != "" {
-			prevByIf[d.Interface] = d
+			prevByInterface[d.Interface] = d
 		}
 	}
 
@@ -564,13 +564,13 @@ func ConvertVMConfigToInputs(
 		// Append to state inputs
 		stateDisks = append(stateDisks, disk)
 		// Build preserved disk: copy and clear FileID if prev omitted it
-		pd := *disk
-		if prev, ok := prevByIf[disk.Interface]; ok {
+		preservedDisk := *disk
+		if prev, ok := prevByInterface[disk.Interface]; ok {
 			if prev.FileID == nil {
-				pd.FileID = nil
+				preservedDisk.FileID = nil
 			}
 		}
-		preservedDisks = append(preservedDisks, &pd)
+		preservedDisks = append(preservedDisks, &preservedDisk)
 	}
 
 	for diskInterface, diskParams := range diskMap {
@@ -582,14 +582,8 @@ func ConvertVMConfigToInputs(
 			return stateInputs, preservedInputs, err
 		}
 		stateDisks = append(stateDisks, &disk)
-		// For disks not present in previous inputs, preserved keeps computed values
-		pd := disk
-		if prev, ok := prevByIf[disk.Interface]; ok {
-			if prev.FileID == nil {
-				pd.FileID = nil
-			}
-		}
-		preservedDisks = append(preservedDisks, &pd)
+		// Disk not present in previous inputs: keep computed values as-is
+		preservedDisks = append(preservedDisks, &disk)
 	}
 
 	var efiDisk *EfiDisk
@@ -599,16 +593,13 @@ func ConvertVMConfigToInputs(
 		if err := efiDisk.ParseEfiDiskConfig(vmConfig.EFIDisk0); err != nil {
 			return stateInputs, preservedInputs, err
 		}
-		// Preserve: if prev omitted EFI entirely, keep it nil; else copy and clear FileID if prev omitted it
-		if currentInput.EfiDisk == nil {
-			preservedEfi = nil
-		} else {
-			pd := *efiDisk
-			if currentInput.EfiDisk.FileID == nil {
-				pd.FileID = nil
-			}
-			preservedEfi = &pd
+		// Preserve: always include EFI when present in VM config.
+		// If previous input had EfiDisk and omitted FileID, clear it to preserve that omission.
+		preservedEfiDisk := *efiDisk
+		if currentInput.EfiDisk != nil && currentInput.EfiDisk.FileID == nil {
+			preservedEfiDisk.FileID = nil
 		}
+		preservedEfi = &preservedEfiDisk
 	} else {
 		// No EFI in state; preserved also none
 		preservedEfi = nil

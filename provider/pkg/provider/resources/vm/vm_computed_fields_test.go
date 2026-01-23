@@ -115,8 +115,10 @@ func TestConvertAndPreserve_NoVMIDOrNodeInPrev(t *testing.T) {
 	// Disk FileID cleared because prev omitted it
 	require.Len(t, preserved.Disks, 1)
 	assert.Nil(t, preserved.Disks[0].FileID)
-	// EfiDisk removed entirely because prev did not have it
-	assert.Nil(t, preserved.EfiDisk)
+	// EFI was present in VM config; include it in preserved inputs
+	require.NotNil(t, preserved.EfiDisk)
+	require.NotNil(t, preserved.EfiDisk.FileID)
+	assert.Equal(t, "vm-100-efidisk", *preserved.EfiDisk.FileID)
 }
 
 func TestConvertAndPreserve_WithVMIDAndNodeInPrev(t *testing.T) {
@@ -392,7 +394,10 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 	assert.Equal(t, nodeName, *resp.Inputs.Node)
 	require.Len(t, resp.Inputs.Disks, 1)
 	assert.Nil(t, resp.Inputs.Disks[0].FileID)
-	assert.Nil(t, resp.Inputs.EfiDisk)
+	// EFI was added on Proxmox; include it in preserved inputs with computed values
+	require.NotNil(t, resp.Inputs.EfiDisk)
+	require.NotNil(t, resp.Inputs.EfiDisk.FileID)
+	assert.Equal(t, "vm-200-efidisk", *resp.Inputs.EfiDisk.FileID)
 }
 
 //nolint:paralleltest // uses global env + client seam via testutils.NewAPIMock
