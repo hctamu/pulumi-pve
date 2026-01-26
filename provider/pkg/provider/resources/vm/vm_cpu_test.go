@@ -2585,7 +2585,7 @@ func TestParseCPUFromVMConfig(t *testing.T) {
 			}
 
 			// ConvertVMConfigToInputs calls parseCPUFromVMConfig internally
-			inputs, err := vm.ConvertVMConfigToInputs(testVM, vm.Inputs{})
+			inputs, _, err := vm.ConvertVMConfigToInputs(testVM, vm.Inputs{})
 
 			if tt.expectError {
 				require.Error(t, err)
