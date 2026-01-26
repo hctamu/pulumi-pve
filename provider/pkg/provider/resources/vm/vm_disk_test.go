@@ -544,7 +544,7 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 			}
 
 			// Call ConvertVMConfigToInputs with current input to preserve order
-			result, err := vmResource.ConvertVMConfigToInputs(mockVM, currentInput)
+			result, _, err := vmResource.ConvertVMConfigToInputs(mockVM, currentInput)
 			require.NoError(t, err)
 
 			t.Logf("Test case: %s", tc.description)
