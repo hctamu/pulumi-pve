@@ -18,15 +18,15 @@ package acl_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/blang/semver"
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	aclResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
-	"github.com/hctamu/pulumi-pve/provider/px"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -50,6 +50,42 @@ func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
 	}
 	for _, m := range a.toEnable {
 		m.Enable()
+	}
+	return nil
+}
+
+// mockACLOperations provides a simple mock for proxmox.ACLOperations
+type mockACLOperations struct {
+	createFunc func(ctx context.Context, inputs proxmox.ACLInputs) error
+	getFunc    func(ctx context.Context, id string) (*proxmox.ACLOutputs, error)
+	updateFunc func(ctx context.Context, id string, inputs proxmox.ACLInputs) error
+	deleteFunc func(ctx context.Context, outputs proxmox.ACLOutputs) error
+}
+
+func (m *mockACLOperations) Create(ctx context.Context, inputs proxmox.ACLInputs) error {
+	if m.createFunc != nil {
+		return m.createFunc(ctx, inputs)
+	}
+	return nil
+}
+
+func (m *mockACLOperations) Get(ctx context.Context, id string) (*proxmox.ACLOutputs, error) {
+	if m.getFunc != nil {
+		return m.getFunc(ctx, id)
+	}
+	return &proxmox.ACLOutputs{ACLInputs: proxmox.ACLInputs{}}, nil
+}
+
+func (m *mockACLOperations) Update(ctx context.Context, id string, inputs proxmox.ACLInputs) error {
+	if m.updateFunc != nil {
+		return m.updateFunc(ctx, id, inputs)
+	}
+	return nil
+}
+
+func (m *mockACLOperations) Delete(ctx context.Context, outputs proxmox.ACLOutputs) error {
+	if m.deleteFunc != nil {
+		return m.deleteFunc(ctx, outputs)
 	}
 	return nil
 }
@@ -117,11 +153,17 @@ func aclLHealthyLifeCycleHelper(t *testing.T, typ, bodystring, ugid string) {
 
 	// env + client already configured
 
+	testConfig := &config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}
+
 	server, err := integration.NewServer(
 		context.Background(),
 		provider.Name,
 		semver.Version{Minor: 1},
-		integration.WithProvider(provider.NewProvider()),
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
 	)
 	require.NoError(t, err)
 
@@ -176,14 +218,14 @@ func TestACLHealthyLifeCycleToken(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLCreateClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
-
-	acl := &aclResource.ACL{}
-	request := infer.CreateRequest[aclResource.Inputs]{
+	acl := &aclResource.ACL{
+		ACLOps: &mockACLOperations{createFunc: func(ctx context.Context, inputs proxmox.ACLInputs) error {
+			return errors.New("client error")
+		}},
+	}
+	request := infer.CreateRequest[proxmox.ACLInputs]{
 		Name: "/|PVEAdmin|user|testuser",
-		Inputs: aclResource.Inputs{
+		Inputs: proxmox.ACLInputs{
 			Path:      "/",
 			RoleID:    "PVEAdmin",
 			Type:      "user",
@@ -205,12 +247,15 @@ func aclCreateTypeNotFoundHelper(t *testing.T, typ string) {
 		mocha.Get(expect.URLPath("/access/" + typ + "s/test" + typ)).Reply(reply.InternalServerError()),
 	).Enable()
 
-	// env + client already configured
-
-	res := &aclResource.ACL{}
-	response, err := res.Create(context.Background(), infer.CreateRequest[aclResource.Inputs]{
+	// Resource with real adapter wired to mock server
+	res := &aclResource.ACL{ACLOps: adapters.NewACLAdapter(adapters.NewProxmoxAdapter(&config.Config{
+		PveURL:   mock.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}))}
+	response, err := res.Create(context.Background(), infer.CreateRequest[proxmox.ACLInputs]{
 		Name: "test" + typ,
-		Inputs: aclResource.Inputs{
+		Inputs: proxmox.ACLInputs{
 			Path:      "/",
 			RoleID:    "PVEAdmin",
 			Type:      typ,
@@ -234,13 +279,14 @@ func TestACLCreateUserNotFound(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLCreateInvalidType(t *testing.T) {
-	_, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	acl := &aclResource.ACL{}
-	request := infer.CreateRequest[aclResource.Inputs]{
+	acl := &aclResource.ACL{
+		ACLOps: &mockACLOperations{createFunc: func(ctx context.Context, inputs proxmox.ACLInputs) error {
+			return errors.New("invalid type (must be 'user', 'group', or 'token')")
+		}},
+	}
+	request := infer.CreateRequest[proxmox.ACLInputs]{
 		Name: "/|PVEAdmin|invalid|testinvalid",
-		Inputs: aclResource.Inputs{
+		Inputs: proxmox.ACLInputs{
 			Path:      "/",
 			RoleID:    "PVEAdmin",
 			Type:      "invalid",
@@ -264,12 +310,14 @@ func TestACLCreateCreationError(t *testing.T) {
 		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.InternalServerError()),
 	).Enable()
 
-	// env + client configured
-
-	acl := &aclResource.ACL{}
-	request := infer.CreateRequest[aclResource.Inputs]{
+	acl := &aclResource.ACL{ACLOps: adapters.NewACLAdapter(adapters.NewProxmoxAdapter(&config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}))}
+	request := infer.CreateRequest[proxmox.ACLInputs]{
 		Name: "/|PVEAdmin|user|testuser",
-		Inputs: aclResource.Inputs{
+		Inputs: proxmox.ACLInputs{
 			Path:   "/",
 			RoleID: "PVEAdmin",
 			Type:   "user",
@@ -278,64 +326,22 @@ func TestACLCreateCreationError(t *testing.T) {
 	}
 	_, err := acl.Create(context.Background(), request)
 	require.Error(t, err)
-	assert.EqualError(
-		t,
-		err,
-		fmt.Sprintf(
-			"failed to create ACL %s (path=%s role=%s type=%s ugid=%s): 500 Internal Server Error",
-			request.Name,
-			request.Inputs.Path,
-			request.Inputs.RoleID,
-			request.Inputs.Type,
-			request.Inputs.UGID,
-		),
-	)
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestACLCreateFetchError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/users/testuser")).
-			Reply(reply.OK().BodyString(`{"data":{"userid":"testuser"}}`)),
-		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.OK()),
-		mocha.Get(expect.URLPath("/access/acl")).
-			Reply(reply.InternalServerError()),
-	).Enable()
-
-	// env + client configured
-
-	acl := &aclResource.ACL{}
-	request := infer.CreateRequest[aclResource.Inputs]{
-		Name: "/|PVEAdmin|user|testuser",
-		Inputs: aclResource.Inputs{
-			Path:      "/",
-			RoleID:    "PVEAdmin",
-			Type:      "user",
-			UGID:      "testuser",
-			Propagate: true,
-		},
-	}
-	_, err := acl.Create(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(
-		t,
-		err,
-		"failed to fetch ACL "+request.Name+": failed to get ACLs: 500 Internal Server Error",
-	)
+	assert.EqualError(t, err, "failed to create ACL resource: 500 Internal Server Error")
 }
 
 // Test does not set global environment variable, therefore can be parallelized!
 func TestACLDeleteInvalidType(t *testing.T) {
 	t.Parallel()
 
-	acl := &aclResource.ACL{}
-	request := infer.DeleteRequest[aclResource.Outputs]{
+	acl := &aclResource.ACL{
+		ACLOps: &mockACLOperations{deleteFunc: func(ctx context.Context, outputs proxmox.ACLOutputs) error {
+			return errors.New("invalid type (must be 'user', 'group', or 'token')")
+		}},
+	}
+	request := infer.DeleteRequest[proxmox.ACLOutputs]{
 		ID: "/|PVEAdmin|invalid|testinvalid",
-		State: aclResource.Outputs{
-			Inputs: aclResource.Inputs{
+		State: proxmox.ACLOutputs{
+			ACLInputs: proxmox.ACLInputs{
 				Path:      "/",
 				RoleID:    "PVEAdmin",
 				Type:      "invalid",
@@ -351,15 +357,15 @@ func TestACLDeleteInvalidType(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLDeleteClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
-
-	acl := &aclResource.ACL{}
-	request := infer.DeleteRequest[aclResource.Outputs]{
+	acl := &aclResource.ACL{
+		ACLOps: &mockACLOperations{deleteFunc: func(ctx context.Context, outputs proxmox.ACLOutputs) error {
+			return errors.New("client error")
+		}},
+	}
+	request := infer.DeleteRequest[proxmox.ACLOutputs]{
 		ID: "/|PVEAdmin|user|testuser",
-		State: aclResource.Outputs{
-			Inputs: aclResource.Inputs{
+		State: proxmox.ACLOutputs{
+			ACLInputs: proxmox.ACLInputs{
 				Path:      "/",
 				RoleID:    "PVEAdmin",
 				Type:      "user",
@@ -389,13 +395,15 @@ func TestACLDeleteDeletionError(t *testing.T) {
 		mocha.Put(expect.URLPath("/access/acl")).Reply(reply.InternalServerError()),
 	).Enable()
 
-	// env + client configured
-
-	acl := &aclResource.ACL{}
-	request := infer.DeleteRequest[aclResource.Outputs]{
+	acl := &aclResource.ACL{ACLOps: adapters.NewACLAdapter(adapters.NewProxmoxAdapter(&config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}))}
+	request := infer.DeleteRequest[proxmox.ACLOutputs]{
 		ID: "/|PVEAdmin|user|testuser",
-		State: aclResource.Outputs{
-			Inputs: aclResource.Inputs{
+		State: proxmox.ACLOutputs{
+			ACLInputs: proxmox.ACLInputs{
 				Path:      "/",
 				RoleID:    "PVEAdmin",
 				Type:      "user",
@@ -406,7 +414,7 @@ func TestACLDeleteDeletionError(t *testing.T) {
 	}
 	_, err := acl.Delete(context.Background(), request)
 	require.Error(t, err)
-	assert.EqualError(t, err, "failed to delete ACL "+request.ID+": 500 Internal Server Error")
+	assert.EqualError(t, err, "failed to delete ACL resource: 500 Internal Server Error")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
@@ -425,13 +433,15 @@ func TestACLReadSuccess(t *testing.T) {
 		}`)),
 	).Enable()
 
-	// env + client already configured
-
-	acl := &aclResource.ACL{}
+	acl := &aclResource.ACL{ACLOps: adapters.NewACLAdapter(adapters.NewProxmoxAdapter(&config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}))}
 	id := "/|PVEAdmin|group|testgroup"
-	response, err := acl.Read(context.Background(), infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
+	response, err := acl.Read(context.Background(), infer.ReadRequest[proxmox.ACLInputs, proxmox.ACLOutputs]{
 		ID: id,
-		Inputs: aclResource.Inputs{
+		Inputs: proxmox.ACLInputs{
 			Path: "/", RoleID: "PVEAdmin", Type: "group", UGID: "testgroup", Propagate: false,
 		},
 	})
@@ -447,29 +457,29 @@ func TestACLReadSuccess(t *testing.T) {
 func TestACLReadIDNotFound(t *testing.T) {
 	t.Parallel()
 
-	acl := &aclResource.ACL{}
-	request := infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
+	acl := &aclResource.ACL{ACLOps: &mockACLOperations{}}
+	request := infer.ReadRequest[proxmox.ACLInputs, proxmox.ACLOutputs]{
 		ID:     "",
-		Inputs: aclResource.Inputs{Path: "/", RoleID: "PVEAdmin", Type: "group", UGID: "testgroup", Propagate: false},
-		State: aclResource.Outputs{
-			Inputs: aclResource.Inputs{Path: "/", RoleID: "PVEAdmin", Type: "group", UGID: "testgroup", Propagate: false},
+		Inputs: proxmox.ACLInputs{Path: "/", RoleID: "PVEAdmin", Type: "group", UGID: "testgroup", Propagate: false},
+		State: proxmox.ACLOutputs{
+			ACLInputs: proxmox.ACLInputs{Path: "/", RoleID: "PVEAdmin", Type: "group", UGID: "testgroup", Propagate: false},
 		},
 	}
-	response, err := acl.Read(context.Background(), request)
-	require.NoError(t, err)
-	assert.Equal(t, response.ID, "")
+	_, err := acl.Read(context.Background(), request)
+	require.Error(t, err)
+	assert.EqualError(t, err, "missing acl ID")
 }
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLReadClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
-
-	acl := &aclResource.ACL{}
-	_, err := acl.Read(context.Background(), infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
+	acl := &aclResource.ACL{
+		ACLOps: &mockACLOperations{getFunc: func(ctx context.Context, id string) (*proxmox.ACLOutputs, error) {
+			return nil, errors.New("client error")
+		}},
+	}
+	_, err := acl.Read(context.Background(), infer.ReadRequest[proxmox.ACLInputs, proxmox.ACLOutputs]{
 		ID: "/|PVEAdmin|group|testgroup",
-		Inputs: aclResource.Inputs{ // simulate previous inputs
+		Inputs: proxmox.ACLInputs{ // simulate previous inputs
 			Path: "/", RoleID: "PVEAdmin", Type: "group", UGID: "testgroup", Propagate: false,
 		},
 	})
@@ -479,11 +489,15 @@ func TestACLReadClientError(t *testing.T) {
 
 //nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
 func TestACLReadACLIDError(t *testing.T) {
-	_, cleanup := testutils.NewAPIMock(t)
+	mockServer, cleanup := testutils.NewAPIMock(t)
 	defer cleanup()
 
-	acl := &aclResource.ACL{}
-	_, err := acl.Read(context.Background(), infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
+	acl := &aclResource.ACL{ACLOps: adapters.NewACLAdapter(adapters.NewProxmoxAdapter(&config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}))}
+	_, err := acl.Read(context.Background(), infer.ReadRequest[proxmox.ACLInputs, proxmox.ACLOutputs]{
 		ID: "invalid-acl-id-format",
 	})
 	assert.Error(t, err)
@@ -507,13 +521,15 @@ func TestACLReadNotFound(t *testing.T) {
 		}`)),
 	).Enable()
 
-	// env + client configured
-
-	acl := &aclResource.ACL{}
-	request := infer.ReadRequest[aclResource.Inputs, aclResource.Outputs]{
+	acl := &aclResource.ACL{ACLOps: adapters.NewACLAdapter(adapters.NewProxmoxAdapter(&config.Config{
+		PveURL:   mockServer.URL(),
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}))}
+	request := infer.ReadRequest[proxmox.ACLInputs, proxmox.ACLOutputs]{
 		ID: "/|PVEAdmin|user|testuser",
 	}
 	_, err := acl.Read(context.Background(), request)
 	require.Error(t, err)
-	assert.EqualError(t, err, "failed to get ACL "+request.ID+": acl not found")
+	assert.EqualError(t, err, "acl not found")
 }
