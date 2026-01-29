@@ -64,6 +64,18 @@ func newPoolResourceWithConfig(cfg *config.Config) *pool.Pool {
 	return &pool.Pool{PoolOps: poolAdapter}
 }
 
+// newACLResourceWithConfig creates a new ACL resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newACLResourceWithConfig(cfg *config.Config) *acl.ACL {
+	// Create ProxmoxAdapter with config
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+
+	// Create ACLAdapter using the ProxmoxAdapter
+	aclAdapter := adapters.NewACLAdapter(proxmoxAdapter)
+
+	return &acl.ACL{ACLOps: aclAdapter}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -80,7 +92,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(&vm.VM{}),
 			infer.Resource(&group.Group{}),
 			infer.Resource(&role.Role{}),
-			infer.Resource(&acl.ACL{}),
+			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(&user.User{}),
 		},
 		Config: infer.Config(config.Config{}),
