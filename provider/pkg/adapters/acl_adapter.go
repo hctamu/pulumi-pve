@@ -40,19 +40,6 @@ func NewACLAdapter(proxmoxAdapter *ProxmoxAdapter) *ACLAdapter {
 	return &ACLAdapter{proxmoxAdapter: proxmoxAdapter}
 }
 
-// Enum-like constants for ACL Type
-const (
-	ACLTypeUser  = "user"
-	ACLTypeGroup = "group"
-	ACLTypeToken = "token"
-)
-
-// ErrACLNotFound is returned when an ACL cannot be found in Proxmox.
-var ErrACLNotFound = errors.New("acl not found")
-
-// ErrInvalidACLType is returned when an ACL has an invalid type.
-var ErrInvalidACLType = errors.New("invalid type (must be 'user', 'group', or 'token')")
-
 // Create creates a new ACL resource.
 func (acl *ACLAdapter) Create(ctx context.Context, inputs proxmox.ACLInputs) (err error) {
 	if err := acl.proxmoxAdapter.Connect(ctx); err != nil {
@@ -66,21 +53,21 @@ func (acl *ACLAdapter) Create(ctx context.Context, inputs proxmox.ACLInputs) (er
 		Propagate: api.IntOrBool(inputs.Propagate),
 	}
 	switch inputs.Type {
-	case ACLTypeGroup:
+	case proxmox.ACLTypeGroup:
 		if _, err = acl.proxmoxAdapter.client.Group(ctx, inputs.UGID); err != nil {
 			return fmt.Errorf("failed to find group %s for ACL: %w", inputs.UGID, err)
 		}
 		newACL.Groups = inputs.UGID
-	case ACLTypeUser:
+	case proxmox.ACLTypeUser:
 		if _, err = acl.proxmoxAdapter.client.User(ctx, inputs.UGID); err != nil {
 			return fmt.Errorf("failed to find user %s for ACL: %w", inputs.UGID, err)
 		}
 		newACL.Users = inputs.UGID
-	case ACLTypeToken:
+	case proxmox.ACLTypeToken:
 		newACL.Tokens = inputs.UGID
 		// No validation for tokens
 	default:
-		return ErrInvalidACLType
+		return proxmox.ErrInvalidACLType
 	}
 
 	if err := acl.proxmoxAdapter.client.UpdateACL(ctx, newACL); err != nil {
@@ -135,14 +122,14 @@ func (acl *ACLAdapter) Delete(ctx context.Context, outputs proxmox.ACLOutputs) e
 		Delete:    api.IntOrBool(true),
 	}
 	switch outputs.Type {
-	case ACLTypeGroup:
+	case proxmox.ACLTypeGroup:
 		deletedACL.Groups = outputs.UGID
-	case ACLTypeUser:
+	case proxmox.ACLTypeUser:
 		deletedACL.Users = outputs.UGID
-	case ACLTypeToken:
+	case proxmox.ACLTypeToken:
 		deletedACL.Tokens = outputs.UGID
 	default:
-		return ErrInvalidACLType
+		return proxmox.ErrInvalidACLType
 	}
 
 	if err := acl.proxmoxAdapter.client.UpdateACL(ctx, deletedACL); err != nil {
@@ -196,5 +183,5 @@ func GetACL(
 			return r, nil
 		}
 	}
-	return nil, ErrACLNotFound
+	return nil, proxmox.ErrACLNotFound
 }
