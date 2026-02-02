@@ -17,6 +17,7 @@ package proxmox
 
 import (
 	"context"
+	"errors"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
@@ -58,3 +59,16 @@ func (inputs *ACLInputs) Annotate(a infer.Annotator) {
 type ACLOutputs struct {
 	ACLInputs
 }
+
+// Enum-like constants for ACL Type
+const (
+	ACLTypeUser  = "user"
+	ACLTypeGroup = "group"
+	ACLTypeToken = "token"
+)
+
+// ErrACLNotFound is returned when an ACL cannot be found in Proxmox.
+var ErrACLNotFound = errors.New("acl not found")
+
+// ErrInvalidACLType is returned when an ACL has an invalid type.
+var ErrInvalidACLType = errors.New("invalid type (must be 'user', 'group', or 'token')")
