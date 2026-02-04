@@ -10,6 +10,9 @@ using Pulumi;
 
 namespace Hctamu.Pve.Acl
 {
+    /// <summary>
+    /// A Proxmox ACL resource that controls access to Proxmox objects.
+    /// </summary>
     [PveResourceType("pve:acl:ACL")]
     public partial class ACL : global::Pulumi.CustomResource
     {
@@ -20,7 +23,7 @@ namespace Hctamu.Pve.Acl
         public Output<string> Path { get; private set; } = null!;
 
         /// <summary>
-        /// Whether the ACL should be propagated.
+        /// Whether the ACL should propagate to child objects.
         /// </summary>
         [Output("propagate")]
         public Output<bool?> Propagate { get; private set; } = null!;
@@ -32,13 +35,13 @@ namespace Hctamu.Pve.Acl
         public Output<string> Roleid { get; private set; } = null!;
 
         /// <summary>
-        /// The type of the ACL. Must be 'user', 'group', or 'token'.
+        /// The type of the ACL. Must be one of 'user', 'group', or 'token'.
         /// </summary>
         [Output("type")]
         public Output<string> Type { get; private set; } = null!;
 
         /// <summary>
-        /// The user/group/token ID of the ACL.
+        /// The user, group, or token ID associated with the ACL.
         /// </summary>
         [Output("ugid")]
         public Output<string> Ugid { get; private set; } = null!;
@@ -103,7 +106,7 @@ namespace Hctamu.Pve.Acl
         public Input<string> Path { get; set; } = null!;
 
         /// <summary>
-        /// Whether the ACL should be propagated.
+        /// Whether the ACL should propagate to child objects.
         /// </summary>
         [Input("propagate")]
         public Input<bool>? Propagate { get; set; }
@@ -115,13 +118,13 @@ namespace Hctamu.Pve.Acl
         public Input<string> Roleid { get; set; } = null!;
 
         /// <summary>
-        /// The type of the ACL. Must be 'user', 'group', or 'token'.
+        /// The type of the ACL. Must be one of 'user', 'group', or 'token'.
         /// </summary>
         [Input("type", required: true)]
         public Input<string> Type { get; set; } = null!;
 
         /// <summary>
-        /// The user/group/token ID of the ACL.
+        /// The user, group, or token ID associated with the ACL.
         /// </summary>
         [Input("ugid", required: true)]
         public Input<string> Ugid { get; set; } = null!;

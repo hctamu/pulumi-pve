@@ -4,6 +4,9 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "../utilities";
 
+/**
+ * A Proxmox ACL resource that controls access to Proxmox objects.
+ */
 export class ACL extends pulumi.CustomResource {
     /**
      * Get an existing ACL resource's state with the given name, ID, and optional extra
@@ -36,7 +39,7 @@ export class ACL extends pulumi.CustomResource {
      */
     declare public readonly path: pulumi.Output<string>;
     /**
-     * Whether the ACL should be propagated.
+     * Whether the ACL should propagate to child objects.
      */
     declare public readonly propagate: pulumi.Output<boolean | undefined>;
     /**
@@ -44,11 +47,11 @@ export class ACL extends pulumi.CustomResource {
      */
     declare public readonly roleid: pulumi.Output<string>;
     /**
-     * The type of the ACL. Must be 'user', 'group', or 'token'.
+     * The type of the ACL. Must be one of 'user', 'group', or 'token'.
      */
     declare public readonly type: pulumi.Output<string>;
     /**
-     * The user/group/token ID of the ACL.
+     * The user, group, or token ID associated with the ACL.
      */
     declare public readonly ugid: pulumi.Output<string>;
 
@@ -103,7 +106,7 @@ export interface ACLArgs {
      */
     path: pulumi.Input<string>;
     /**
-     * Whether the ACL should be propagated.
+     * Whether the ACL should propagate to child objects.
      */
     propagate?: pulumi.Input<boolean>;
     /**
@@ -111,11 +114,11 @@ export interface ACLArgs {
      */
     roleid: pulumi.Input<string>;
     /**
-     * The type of the ACL. Must be 'user', 'group', or 'token'.
+     * The type of the ACL. Must be one of 'user', 'group', or 'token'.
      */
     type: pulumi.Input<string>;
     /**
-     * The user/group/token ID of the ACL.
+     * The user, group, or token ID associated with the ACL.
      */
     ugid: pulumi.Input<string>;
 }

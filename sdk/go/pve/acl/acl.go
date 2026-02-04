@@ -12,18 +12,19 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// A Proxmox ACL resource that controls access to Proxmox objects.
 type ACL struct {
 	pulumi.CustomResourceState
 
 	// The path of the ACL.
 	Path pulumi.StringOutput `pulumi:"path"`
-	// Whether the ACL should be propagated.
+	// Whether the ACL should propagate to child objects.
 	Propagate pulumi.BoolPtrOutput `pulumi:"propagate"`
 	// The role ID of the ACL.
 	Roleid pulumi.StringOutput `pulumi:"roleid"`
-	// The type of the ACL. Must be 'user', 'group', or 'token'.
+	// The type of the ACL. Must be one of 'user', 'group', or 'token'.
 	Type pulumi.StringOutput `pulumi:"type"`
-	// The user/group/token ID of the ACL.
+	// The user, group, or token ID associated with the ACL.
 	Ugid pulumi.StringOutput `pulumi:"ugid"`
 }
 
@@ -89,13 +90,13 @@ func (ACLState) ElementType() reflect.Type {
 type aclArgs struct {
 	// The path of the ACL.
 	Path string `pulumi:"path"`
-	// Whether the ACL should be propagated.
+	// Whether the ACL should propagate to child objects.
 	Propagate *bool `pulumi:"propagate"`
 	// The role ID of the ACL.
 	Roleid string `pulumi:"roleid"`
-	// The type of the ACL. Must be 'user', 'group', or 'token'.
+	// The type of the ACL. Must be one of 'user', 'group', or 'token'.
 	Type string `pulumi:"type"`
-	// The user/group/token ID of the ACL.
+	// The user, group, or token ID associated with the ACL.
 	Ugid string `pulumi:"ugid"`
 }
 
@@ -103,13 +104,13 @@ type aclArgs struct {
 type ACLArgs struct {
 	// The path of the ACL.
 	Path pulumi.StringInput
-	// Whether the ACL should be propagated.
+	// Whether the ACL should propagate to child objects.
 	Propagate pulumi.BoolPtrInput
 	// The role ID of the ACL.
 	Roleid pulumi.StringInput
-	// The type of the ACL. Must be 'user', 'group', or 'token'.
+	// The type of the ACL. Must be one of 'user', 'group', or 'token'.
 	Type pulumi.StringInput
-	// The user/group/token ID of the ACL.
+	// The user, group, or token ID associated with the ACL.
 	Ugid pulumi.StringInput
 }
 
@@ -205,7 +206,7 @@ func (o ACLOutput) Path() pulumi.StringOutput {
 	return o.ApplyT(func(v *ACL) pulumi.StringOutput { return v.Path }).(pulumi.StringOutput)
 }
 
-// Whether the ACL should be propagated.
+// Whether the ACL should propagate to child objects.
 func (o ACLOutput) Propagate() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *ACL) pulumi.BoolPtrOutput { return v.Propagate }).(pulumi.BoolPtrOutput)
 }
@@ -215,12 +216,12 @@ func (o ACLOutput) Roleid() pulumi.StringOutput {
 	return o.ApplyT(func(v *ACL) pulumi.StringOutput { return v.Roleid }).(pulumi.StringOutput)
 }
 
-// The type of the ACL. Must be 'user', 'group', or 'token'.
+// The type of the ACL. Must be one of 'user', 'group', or 'token'.
 func (o ACLOutput) Type() pulumi.StringOutput {
 	return o.ApplyT(func(v *ACL) pulumi.StringOutput { return v.Type }).(pulumi.StringOutput)
 }
 
-// The user/group/token ID of the ACL.
+// The user, group, or token ID associated with the ACL.
 func (o ACLOutput) Ugid() pulumi.StringOutput {
 	return o.ApplyT(func(v *ACL) pulumi.StringOutput { return v.Ugid }).(pulumi.StringOutput)
 }
