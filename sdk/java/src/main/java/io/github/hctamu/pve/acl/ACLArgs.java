@@ -33,14 +33,14 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * Whether the ACL should be propagated.
+     * Whether the ACL should propagate to child objects.
      * 
      */
     @Import(name="propagate")
     private @Nullable Output<Boolean> propagate;
 
     /**
-     * @return Whether the ACL should be propagated.
+     * @return Whether the ACL should propagate to child objects.
      * 
      */
     public Optional<Output<Boolean>> propagate() {
@@ -63,14 +63,14 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * The type of the ACL. Must be &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
+     * The type of the ACL. Must be one of &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
      * 
      */
     @Import(name="type", required=true)
     private Output<String> type;
 
     /**
-     * @return The type of the ACL. Must be &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
+     * @return The type of the ACL. Must be one of &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
      * 
      */
     public Output<String> type() {
@@ -78,14 +78,14 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * The user/group/token ID of the ACL.
+     * The user, group, or token ID associated with the ACL.
      * 
      */
     @Import(name="ugid", required=true)
     private Output<String> ugid;
 
     /**
-     * @return The user/group/token ID of the ACL.
+     * @return The user, group, or token ID associated with the ACL.
      * 
      */
     public Output<String> ugid() {
@@ -142,7 +142,7 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param propagate Whether the ACL should be propagated.
+         * @param propagate Whether the ACL should propagate to child objects.
          * 
          * @return builder
          * 
@@ -153,7 +153,7 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param propagate Whether the ACL should be propagated.
+         * @param propagate Whether the ACL should propagate to child objects.
          * 
          * @return builder
          * 
@@ -184,7 +184,7 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param type The type of the ACL. Must be &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
+         * @param type The type of the ACL. Must be one of &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
          * 
          * @return builder
          * 
@@ -195,7 +195,7 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param type The type of the ACL. Must be &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
+         * @param type The type of the ACL. Must be one of &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
          * 
          * @return builder
          * 
@@ -205,7 +205,7 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param ugid The user/group/token ID of the ACL.
+         * @param ugid The user, group, or token ID associated with the ACL.
          * 
          * @return builder
          * 
@@ -216,7 +216,7 @@ public final class ACLArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param ugid The user/group/token ID of the ACL.
+         * @param ugid The user, group, or token ID associated with the ACL.
          * 
          * @return builder
          * 

@@ -28,9 +28,9 @@ class ACLArgs:
         The set of arguments for constructing a ACL resource.
         :param pulumi.Input[_builtins.str] path: The path of the ACL.
         :param pulumi.Input[_builtins.str] roleid: The role ID of the ACL.
-        :param pulumi.Input[_builtins.str] type: The type of the ACL. Must be 'user', 'group', or 'token'.
-        :param pulumi.Input[_builtins.str] ugid: The user/group/token ID of the ACL.
-        :param pulumi.Input[_builtins.bool] propagate: Whether the ACL should be propagated.
+        :param pulumi.Input[_builtins.str] type: The type of the ACL. Must be one of 'user', 'group', or 'token'.
+        :param pulumi.Input[_builtins.str] ugid: The user, group, or token ID associated with the ACL.
+        :param pulumi.Input[_builtins.bool] propagate: Whether the ACL should propagate to child objects.
         """
         pulumi.set(__self__, "path", path)
         pulumi.set(__self__, "roleid", roleid)
@@ -67,7 +67,7 @@ class ACLArgs:
     @pulumi.getter
     def type(self) -> pulumi.Input[_builtins.str]:
         """
-        The type of the ACL. Must be 'user', 'group', or 'token'.
+        The type of the ACL. Must be one of 'user', 'group', or 'token'.
         """
         return pulumi.get(self, "type")
 
@@ -79,7 +79,7 @@ class ACLArgs:
     @pulumi.getter
     def ugid(self) -> pulumi.Input[_builtins.str]:
         """
-        The user/group/token ID of the ACL.
+        The user, group, or token ID associated with the ACL.
         """
         return pulumi.get(self, "ugid")
 
@@ -91,7 +91,7 @@ class ACLArgs:
     @pulumi.getter
     def propagate(self) -> Optional[pulumi.Input[_builtins.bool]]:
         """
-        Whether the ACL should be propagated.
+        Whether the ACL should propagate to child objects.
         """
         return pulumi.get(self, "propagate")
 
@@ -113,14 +113,15 @@ class ACL(pulumi.CustomResource):
                  ugid: Optional[pulumi.Input[_builtins.str]] = None,
                  __props__=None):
         """
-        Create a ACL resource with the given unique name, props, and options.
+        A Proxmox ACL resource that controls access to Proxmox objects.
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] path: The path of the ACL.
-        :param pulumi.Input[_builtins.bool] propagate: Whether the ACL should be propagated.
+        :param pulumi.Input[_builtins.bool] propagate: Whether the ACL should propagate to child objects.
         :param pulumi.Input[_builtins.str] roleid: The role ID of the ACL.
-        :param pulumi.Input[_builtins.str] type: The type of the ACL. Must be 'user', 'group', or 'token'.
-        :param pulumi.Input[_builtins.str] ugid: The user/group/token ID of the ACL.
+        :param pulumi.Input[_builtins.str] type: The type of the ACL. Must be one of 'user', 'group', or 'token'.
+        :param pulumi.Input[_builtins.str] ugid: The user, group, or token ID associated with the ACL.
         """
         ...
     @overload
@@ -129,7 +130,8 @@ class ACL(pulumi.CustomResource):
                  args: ACLArgs,
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
-        Create a ACL resource with the given unique name, props, and options.
+        A Proxmox ACL resource that controls access to Proxmox objects.
+
         :param str resource_name: The name of the resource.
         :param ACLArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -215,7 +217,7 @@ class ACL(pulumi.CustomResource):
     @pulumi.getter
     def propagate(self) -> pulumi.Output[Optional[_builtins.bool]]:
         """
-        Whether the ACL should be propagated.
+        Whether the ACL should propagate to child objects.
         """
         return pulumi.get(self, "propagate")
 
@@ -231,7 +233,7 @@ class ACL(pulumi.CustomResource):
     @pulumi.getter
     def type(self) -> pulumi.Output[_builtins.str]:
         """
-        The type of the ACL. Must be 'user', 'group', or 'token'.
+        The type of the ACL. Must be one of 'user', 'group', or 'token'.
         """
         return pulumi.get(self, "type")
 
@@ -239,7 +241,7 @@ class ACL(pulumi.CustomResource):
     @pulumi.getter
     def ugid(self) -> pulumi.Output[_builtins.str]:
         """
-        The user/group/token ID of the ACL.
+        The user, group, or token ID associated with the ACL.
         """
         return pulumi.get(self, "ugid")
 

@@ -290,6 +290,7 @@
   },
   "resources": {
     "pve:acl:ACL": {
+      "description": "A Proxmox ACL resource that controls access to Proxmox objects.",
       "properties": {
         "path": {
           "type": "string",
@@ -298,7 +299,7 @@
         },
         "propagate": {
           "type": "boolean",
-          "description": "Whether the ACL should be propagated.",
+          "description": "Whether the ACL should propagate to child objects.",
           "replaceOnChanges": true
         },
         "roleid": {
@@ -308,12 +309,12 @@
         },
         "type": {
           "type": "string",
-          "description": "The type of the ACL. Must be 'user', 'group', or 'token'.",
+          "description": "The type of the ACL. Must be one of 'user', 'group', or 'token'.",
           "replaceOnChanges": true
         },
         "ugid": {
           "type": "string",
-          "description": "The user/group/token ID of the ACL.",
+          "description": "The user, group, or token ID associated with the ACL.",
           "replaceOnChanges": true
         }
       },
@@ -332,7 +333,7 @@
         },
         "propagate": {
           "type": "boolean",
-          "description": "Whether the ACL should be propagated.",
+          "description": "Whether the ACL should propagate to child objects.",
           "replaceOnChanges": true
         },
         "roleid": {
@@ -342,12 +343,12 @@
         },
         "type": {
           "type": "string",
-          "description": "The type of the ACL. Must be 'user', 'group', or 'token'.",
+          "description": "The type of the ACL. Must be one of 'user', 'group', or 'token'.",
           "replaceOnChanges": true
         },
         "ugid": {
           "type": "string",
-          "description": "The user/group/token ID of the ACL.",
+          "description": "The user, group, or token ID associated with the ACL.",
           "replaceOnChanges": true
         }
       },
