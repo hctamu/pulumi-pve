@@ -33,7 +33,7 @@ type ACLOperations interface {
 	// Update updates an existing ACL resource.
 	Update(ctx context.Context, name string, inputs ACLInputs) error
 
-	// Delete deletes an existing ACL resource by its ID.
+	// Delete deletes an existing ACL resource.
 	Delete(ctx context.Context, ACLOutputs ACLOutputs) error
 }
 

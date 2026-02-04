@@ -32,6 +32,7 @@ var (
 	_ = (infer.CustomResource[proxmox.ACLInputs, proxmox.ACLOutputs])((*ACL)(nil))
 	_ = (infer.CustomDelete[proxmox.ACLOutputs])((*ACL)(nil))
 	_ = (infer.CustomRead[proxmox.ACLInputs, proxmox.ACLOutputs])((*ACL)(nil))
+	_ = infer.Annotated((*ACL)(nil))
 )
 
 // ACL represents a Proxmox ACL resource
@@ -76,7 +77,7 @@ func (acl *ACL) Read(
 ) (response infer.ReadResponse[proxmox.ACLInputs, proxmox.ACLOutputs], err error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf(
-		"Read called for Pool with ID: %s, Inputs: %+v, State: %+v",
+		"Read called for ACL with ID: %s, Inputs: %+v, State: %+v",
 		request.ID,
 		request.Inputs,
 		request.State,
@@ -129,6 +130,16 @@ func (acl *ACL) Delete(
 	logger.Debugf("ACL resource %v deleted", aclid)
 
 	return response, nil
+}
+
+// Annotate is used to annotate the acl resource
+// This is used to provide documentation for the resource in the Pulumi schema
+// and to provide default values for the resource properties.
+func (acl *ACL) Annotate(a infer.Annotator) {
+	a.Describe(
+		acl,
+		"A Proxmox ACL resource that controls access to Proxmox objects.",
+	)
 }
 
 // composeACLID builds a stable composite ID.
