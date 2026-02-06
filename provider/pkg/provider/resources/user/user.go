@@ -18,276 +18,251 @@ package user
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/px"
-	api "github.com/luthermonson/go-proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// User represents a Proxmox user resource.
-type User struct{}
-
+// Ensure User implements the required interfaces
 var (
-	_ = (infer.CustomResource[Inputs, Outputs])((*User)(nil))
-	_ = (infer.CustomDelete[Outputs])((*User)(nil))
-	_ = (infer.CustomRead[Inputs, Outputs])((*User)(nil))
-	_ = (infer.CustomUpdate[Inputs, Outputs])((*User)(nil))
+	_ = (infer.CustomResource[proxmox.UserInputs, proxmox.UserOutputs])((*User)(nil))
+	_ = (infer.CustomDelete[proxmox.UserOutputs])((*User)(nil))
+	_ = (infer.CustomUpdate[proxmox.UserInputs, proxmox.UserOutputs])((*User)(nil))
+	_ = (infer.CustomRead[proxmox.UserInputs, proxmox.UserOutputs])((*User)(nil))
+	_ = (infer.CustomDiff[proxmox.UserInputs, proxmox.UserOutputs])((*User)(nil))
+	_ = infer.Annotated((*User)(nil))
 )
 
-// Inputs defines the input properties for a Proxmox user resource.
-type Inputs struct {
-	Name      string   `pulumi:"userid"             provider:"replaceOnChanges"` // contains realm (e.g., user@pve)
-	Comment   string   `pulumi:"comment,optional"`
-	Email     string   `pulumi:"email,optional"`
-	Enable    bool     `pulumi:"enable,optional"`
-	Expire    int      `pulumi:"expire,optional"`
-	Firstname string   `pulumi:"firstname,optional"`
-	Groups    []string `pulumi:"groups,optional"`
-	Keys      []string `pulumi:"keys,optional"`
-	Lastname  string   `pulumi:"lastname,optional"`
-	Password  string   `pulumi:"password,optional"  provider:"secret,replaceOnChanges"`
-}
-
-// Annotate is used to annotate the input and output properties of the resource.
-func (args *Inputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').")
-	a.Describe(&args.Comment, "An optional comment for the user.")
-	a.Describe(&args.Email, "An optional email address for the user.")
-	a.Describe(&args.Enable, "Whether the user is enabled. Defaults to true.")
-	a.Describe(&args.Expire, "The expiration time for the user as a Unix timestamp.")
-	a.Describe(&args.Firstname, "The first name of the user.")
-	a.Describe(&args.Groups, "A list of groups the user belongs to.")
-	a.Describe(&args.Keys, "A list of SSH keys associated with the user.")
-	a.Describe(&args.Lastname, "The last name of the user.")
-	a.Describe(&args.Password, "The password for the user. This field is treated as a secret.")
-}
-
-// Outputs defines the output properties for a Proxmox user resource.
-type Outputs struct {
-	Inputs
+// User represents a Proxmox user resource
+type User struct {
+	UserOps proxmox.UserOperations
 }
 
 // Create is used to create a new user resource
 func (user *User) Create(
 	ctx context.Context,
-	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
-	l := p.GetLogger(ctx)
-	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+	request infer.CreateRequest[proxmox.UserInputs],
+) (response infer.CreateResponse[proxmox.UserOutputs], err error) {
+	inputs := request.Inputs
+	preview := request.DryRun
 
-	// set provider id to resource primary key
-	response.ID = request.Inputs.Name
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Creating user resource: %v", inputs)
 
-	// set output properties
-	response.Output = Outputs{Inputs: request.Inputs}
+	response = infer.CreateResponse[proxmox.UserOutputs]{
+		ID:     inputs.Name,
+		Output: proxmox.UserOutputs{UserInputs: inputs},
+	}
 
-	if request.DryRun {
+	if preview {
 		return response, nil
 	}
 
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	if user.UserOps == nil {
+		err = errors.New("UserOperations not configured")
 		return response, err
 	}
 
-	// create resource
-	newUser := api.NewUser{
-		UserID:    request.Inputs.Name,
-		Comment:   request.Inputs.Comment,
-		Email:     request.Inputs.Email,
-		Enable:    request.Inputs.Enable,
-		Expire:    request.Inputs.Expire,
-		Firstname: request.Inputs.Firstname,
-		Groups:    request.Inputs.Groups,
-		Keys:      request.Inputs.Keys,
-		Lastname:  request.Inputs.Lastname,
-		Password:  request.Inputs.Password,
-	}
+	err = user.UserOps.Create(ctx, inputs)
 
-	// api.User and api.NewUser inconsistency
-	if len(newUser.Keys) == 0 {
-		newUser.Keys = nil
-	}
-
-	// perform create
-	if err = pxc.NewUser(ctx, &newUser); err != nil {
-		return response, fmt.Errorf("failed to create user %s: %v", request.Inputs.Name, err)
-	}
-
-	// fetch created resource to confirm
-	if _, err = pxc.User(ctx, request.Inputs.Name); err != nil {
-		return response, fmt.Errorf("failed to fetch user %s: %w", request.Inputs.Name, err)
-	}
-
-	l.Debugf("Successfully created user %s", request.Inputs.Name)
-
-	return response, nil
-}
-
-// Delete is used to delete a user resource 103-124
-func (user *User) Delete(
-	ctx context.Context,
-	request infer.DeleteRequest[Outputs],
-) (response infer.DeleteResponse, err error) {
-	response, err = utils.DeleteResource(utils.DeletedResource{
-		Ctx:          ctx,
-		ResourceID:   request.State.Name,
-		URL:          "/access/users/" + request.State.Name,
-		ResourceType: "user",
-	})
 	return response, err
 }
 
 // Read is used to read the state of a user resource
 func (user *User) Read(
 	ctx context.Context,
-	request infer.ReadRequest[Inputs, Outputs],
-) (response infer.ReadResponse[Inputs, Outputs], err error) {
-	response.ID = request.ID
-	response.Inputs = request.Inputs
-
-	l := p.GetLogger(ctx)
-	l.Debugf(
+	request infer.ReadRequest[proxmox.UserInputs, proxmox.UserOutputs],
+) (response infer.ReadResponse[proxmox.UserInputs, proxmox.UserOutputs], err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf(
 		"Read called for User with ID: %s, Inputs: %+v, State: %+v",
 		request.ID,
 		request.Inputs,
 		request.State,
 	)
 
-	// if resource does not exist, pulumi will invoke Create
+	response.ID = request.ID
+	response.Inputs = request.Inputs
+	response.State = request.State
+
+	if user.UserOps == nil {
+		err = errors.New("UserOperations not configured")
+		return response, err
+	}
+
+	// If resource does not exist yet, Pulumi will invoke Create.
 	if request.ID == "" {
 		return response, nil
 	}
 
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
+	var outputs *proxmox.UserOutputs
 
-	// fetch existing resource from server
-	var existingUser *api.User
-	if existingUser, err = pxc.User(ctx, request.ID); err != nil {
+	if outputs, err = user.UserOps.Get(ctx, request.ID); err != nil {
 		if utils.IsNotFound(err) {
 			response.ID = ""
+			response.State = proxmox.UserOutputs{}
 			return response, nil
 		}
-		err = fmt.Errorf("failed to get user %s: %w", request.ID, err)
 		return response, err
 	}
 
-	l.Debugf("Successfully fetched user: %+v", existingUser.UserID)
+	// Proxmox does not allow retrieving passwords; preserve the value from inputs.
+	state := *outputs
+	state.Password = request.Inputs.Password
 
-	// set state from fetched resource
-	response.State = Outputs{
-		Inputs: Inputs{
-			Name:      existingUser.UserID,
-			Comment:   existingUser.Comment,
-			Email:     existingUser.Email,
-			Enable:    bool(existingUser.Enable),
-			Expire:    existingUser.Expire,
-			Firstname: existingUser.Firstname,
-			Groups:    existingUser.Groups,
-			Keys:      utils.StringToSlice(existingUser.Keys),
-			Lastname:  existingUser.Lastname,
-			Password:  request.Inputs.Password,
-		},
-	}
+	response.Inputs = state.UserInputs
+	response.State = state
 
-	// api.User and api.NewUser inconsistency
-	if len(response.State.Keys) == 0 {
-		response.State.Keys = nil
-	}
-
-	// update inputs to match state
-	response.Inputs = response.State.Inputs
-
-	l.Debugf("Returning updated user: %+v", response.State)
+	logger.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
 }
 
 // Update is used to update a user resource
 func (user *User) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[Inputs, Outputs],
-) (response infer.UpdateResponse[Outputs], err error) {
-	response.Output = request.State
+	request infer.UpdateRequest[proxmox.UserInputs, proxmox.UserOutputs],
+) (response infer.UpdateResponse[proxmox.UserOutputs], err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Updating user resource: %v", request.ID)
 
-	l := p.GetLogger(ctx)
-	l.Debugf("Update called for User with ID: %s, Inputs: %+v, State: %+v",
-		request.State.Name,
-		request.Inputs,
-		request.State,
-	)
+	response.Output = request.State
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	// compare and update fields
-	if request.Inputs.Comment != request.State.Comment {
-		l.Infof("Updating comment from %q to %q", request.State.Comment, request.Inputs.Comment)
-		response.Output.Comment = request.Inputs.Comment
-	}
-	if request.Inputs.Email != request.State.Email {
-		l.Infof("Updating email from %q to %q", request.State.Email, request.Inputs.Email)
-		response.Output.Email = request.Inputs.Email
-	}
-	if request.Inputs.Enable != request.State.Enable {
-		l.Infof("Updating enable from %v to %v", request.State.Enable, request.Inputs.Enable)
-		response.Output.Enable = request.Inputs.Enable
-	}
-	if request.Inputs.Expire != request.State.Expire {
-		l.Infof("Updating expire from %d to %d", request.State.Expire, request.Inputs.Expire)
-		response.Output.Expire = request.Inputs.Expire
-	}
-	if request.Inputs.Firstname != request.State.Firstname {
-		l.Infof("Updating firstname from %q to %q", request.State.Firstname, request.Inputs.Firstname)
-		response.Output.Firstname = request.Inputs.Firstname
-	}
-	if utils.SliceToString(request.Inputs.Groups) != utils.SliceToString(request.State.Groups) {
-		l.Infof("Updating groups from %q to %q", request.State.Groups, request.Inputs.Groups)
-		response.Output.Groups = request.Inputs.Groups
-	}
-	if utils.SliceToString(request.Inputs.Keys) != utils.SliceToString(request.State.Keys) {
-		l.Infof("Updating keys from %q to %q", request.State.Keys, request.Inputs.Keys)
-		response.Output.Keys = request.Inputs.Keys
-	}
-	if request.Inputs.Lastname != request.State.Lastname {
-		l.Infof("Updating lastname from %q to %q", request.State.Lastname, request.Inputs.Lastname)
-		response.Output.Lastname = request.Inputs.Lastname
-	}
-
-	// prepare updated resource
-	updatedUser := &api.User{
-		UserID:    response.Output.Name,
-		Comment:   response.Output.Comment,
-		Email:     response.Output.Email,
-		Enable:    api.IntOrBool(response.Output.Enable),
-		Expire:    response.Output.Expire,
-		Firstname: response.Output.Firstname,
-		Groups:    response.Output.Groups,
-		Keys:      utils.SliceToString(response.Output.Keys),
-		Lastname:  response.Output.Lastname,
-	}
-
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	if user.UserOps == nil {
+		err = errors.New("UserOperations not configured")
 		return response, err
 	}
 
-	// perform update (avoid fmt.Sprintf for simple concatenation to satisfy perfsprint linter)
-	if err = pxc.Put(ctx, "/access/users/"+updatedUser.UserID, updatedUser, nil); err != nil {
-		return response, fmt.Errorf("failed to update user %s: %w", request.State.Name, err)
+	// Merge desired changes over the last-known state to avoid unintentionally
+	// zeroing fields and to preserve old behavior.
+	newState := request.State.UserInputs
+
+	if request.Inputs.Comment != request.State.Comment {
+		logger.Infof("Updating comment from %q to %q", request.State.Comment, request.Inputs.Comment)
+		newState.Comment = request.Inputs.Comment
+	}
+	if request.Inputs.Email != request.State.Email {
+		logger.Infof("Updating email from %q to %q", request.State.Email, request.Inputs.Email)
+		newState.Email = request.Inputs.Email
+	}
+	if request.Inputs.Enable != request.State.Enable {
+		logger.Infof("Updating enable from %v to %v", request.State.Enable, request.Inputs.Enable)
+		newState.Enable = request.Inputs.Enable
+	}
+	if request.Inputs.Expire != request.State.Expire {
+		logger.Infof("Updating expire from %d to %d", request.State.Expire, request.Inputs.Expire)
+		newState.Expire = request.Inputs.Expire
+	}
+	if request.Inputs.Firstname != request.State.Firstname {
+		logger.Infof("Updating firstname from %q to %q", request.State.Firstname, request.Inputs.Firstname)
+		newState.Firstname = request.Inputs.Firstname
+	}
+	if utils.SliceToString(request.Inputs.Groups) != utils.SliceToString(request.State.Groups) {
+		logger.Infof("Updating groups from %q to %q", request.State.Groups, request.Inputs.Groups)
+		newState.Groups = request.Inputs.Groups
+	}
+	if utils.SliceToString(request.Inputs.Keys) != utils.SliceToString(request.State.Keys) {
+		logger.Infof("Updating keys from %q to %q", request.State.Keys, request.Inputs.Keys)
+		newState.Keys = request.Inputs.Keys
+	}
+	if request.Inputs.Lastname != request.State.Lastname {
+		logger.Infof("Updating lastname from %q to %q", request.State.Lastname, request.Inputs.Lastname)
+		newState.Lastname = request.Inputs.Lastname
 	}
 
-	l.Debugf("Successfully updated user %s", request.State.Name)
+	response.Output.UserInputs = newState
+
+	err = user.UserOps.Update(ctx, request.State.Name, newState)
+
+	return response, err
+}
+
+// Delete is used to delete a user resource
+func (user *User) Delete(
+	ctx context.Context,
+	request infer.DeleteRequest[proxmox.UserOutputs],
+) (response infer.DeleteResponse, err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Deleting user resource: %v", request.State)
+
+	if user.UserOps == nil {
+		return response, errors.New("UserOperations not configured")
+	}
+
+	if err := user.UserOps.Delete(ctx, request.State.Name); err != nil {
+		return response, err
+	}
+	logger.Debugf("User resource %v deleted", request.State.Name)
+
 	return response, nil
+}
+
+// Diff is used to avoid phantom updates due to ordering changes in list-like properties
+func (user *User) Diff(
+	ctx context.Context,
+	request infer.DiffRequest[proxmox.UserInputs, proxmox.UserOutputs],
+) (response p.DiffResponse, err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Diff called for User with ID: %s", request.ID)
+
+	diff := map[string]p.PropertyDiff{}
+
+	// Replace-on-change properties
+	if request.Inputs.Name != request.State.Name {
+		diff["userid"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+	if request.Inputs.Password != request.State.Password {
+		diff["password"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+
+	// Regular update properties
+	if request.Inputs.Comment != request.State.Comment {
+		diff["comment"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if request.Inputs.Email != request.State.Email {
+		diff["email"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if request.Inputs.Enable != request.State.Enable {
+		diff["enable"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if request.Inputs.Expire != request.State.Expire {
+		diff["expire"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if request.Inputs.Firstname != request.State.Firstname {
+		diff["firstname"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if request.Inputs.Lastname != request.State.Lastname {
+		diff["lastname"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	// Treat lists as sets for diffing (order-insensitive; nil/empty-insensitive).
+	if utils.SliceToString(request.Inputs.Groups) != utils.SliceToString(request.State.Groups) {
+		diff["groups"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if utils.SliceToString(request.Inputs.Keys) != utils.SliceToString(request.State.Keys) {
+		diff["keys"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	response = p.DiffResponse{
+		HasChanges:   len(diff) > 0,
+		DetailedDiff: diff,
+	}
+	return response, nil
+}
+
+// Annotate is used to annotate the user resource
+// This is used to provide documentation for the resource in the Pulumi schema
+// and to provide default values for the resource properties.
+func (user *User) Annotate(a infer.Annotator) {
+	a.Describe(
+		user,
+		"A Proxmox user resource that represents a user in the Proxmox VE.",
+	)
 }
