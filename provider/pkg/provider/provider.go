@@ -76,6 +76,18 @@ func newACLResourceWithConfig(cfg *config.Config) *acl.ACL {
 	return &acl.ACL{ACLOps: aclAdapter}
 }
 
+// newUserResourceWithConfig creates a new User resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newUserResourceWithConfig(cfg *config.Config) *user.User {
+	// Create ProxmoxAdapter with config
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+
+	// Create UserAdapter using the ProxmoxAdapter
+	userAdapter := adapters.NewUserAdapter(proxmoxAdapter)
+
+	return &user.User{UserOps: userAdapter}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -93,7 +105,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(&group.Group{}),
 			infer.Resource(&role.Role{}),
 			infer.Resource(newACLResourceWithConfig(cfg)),
-			infer.Resource(&user.User{}),
+			infer.Resource(newUserResourceWithConfig(cfg)),
 		},
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
