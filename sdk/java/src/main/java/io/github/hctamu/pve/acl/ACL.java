@@ -14,6 +14,10 @@ import java.lang.String;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
+/**
+ * A Proxmox ACL resource that controls access to Proxmox objects.
+ * 
+ */
 @ResourceType(type="pve:acl:ACL")
 public class ACL extends com.pulumi.resources.CustomResource {
     /**
@@ -31,14 +35,14 @@ public class ACL extends com.pulumi.resources.CustomResource {
         return this.path;
     }
     /**
-     * Whether the ACL should be propagated.
+     * Whether the ACL should propagate to child objects.
      * 
      */
     @Export(name="propagate", refs={Boolean.class}, tree="[0]")
     private Output</* @Nullable */ Boolean> propagate;
 
     /**
-     * @return Whether the ACL should be propagated.
+     * @return Whether the ACL should propagate to child objects.
      * 
      */
     public Output<Optional<Boolean>> propagate() {
@@ -59,28 +63,28 @@ public class ACL extends com.pulumi.resources.CustomResource {
         return this.roleid;
     }
     /**
-     * The type of the ACL. Must be &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
+     * The type of the ACL. Must be one of &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
      * 
      */
     @Export(name="type", refs={String.class}, tree="[0]")
     private Output<String> type;
 
     /**
-     * @return The type of the ACL. Must be &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
+     * @return The type of the ACL. Must be one of &#39;user&#39;, &#39;group&#39;, or &#39;token&#39;.
      * 
      */
     public Output<String> type() {
         return this.type;
     }
     /**
-     * The user/group/token ID of the ACL.
+     * The user, group, or token ID associated with the ACL.
      * 
      */
     @Export(name="ugid", refs={String.class}, tree="[0]")
     private Output<String> ugid;
 
     /**
-     * @return The user/group/token ID of the ACL.
+     * @return The user, group, or token ID associated with the ACL.
      * 
      */
     public Output<String> ugid() {
