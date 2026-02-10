@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
+/**
+ * A Proxmox user resource that represents a user in the Proxmox VE.
+ * 
+ */
 @ResourceType(type="pve:user:User")
 public class User extends com.pulumi.resources.CustomResource {
     /**

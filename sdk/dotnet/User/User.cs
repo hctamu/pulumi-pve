@@ -10,6 +10,9 @@ using Pulumi;
 
 namespace Hctamu.Pve.User
 {
+    /// <summary>
+    /// A Proxmox user resource that represents a user in the Proxmox VE.
+    /// </summary>
     [PveResourceType("pve:user:User")]
     public partial class User : global::Pulumi.CustomResource
     {
