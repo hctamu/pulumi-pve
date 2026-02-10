@@ -12,6 +12,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// A Proxmox user resource that represents a user in the Proxmox VE.
 type User struct {
 	pulumi.CustomResourceState
 
