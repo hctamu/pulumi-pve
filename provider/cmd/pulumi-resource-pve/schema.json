@@ -549,6 +549,7 @@
       ]
     },
     "pve:user:User": {
+      "description": "A Proxmox user resource that represents a user in the Proxmox VE.",
       "properties": {
         "comment": {
           "type": "string",
