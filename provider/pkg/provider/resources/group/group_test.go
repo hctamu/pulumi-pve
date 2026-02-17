@@ -17,359 +17,362 @@ package group_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
-	"github.com/blang/semver"
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	groupResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
-	"github.com/hctamu/pulumi-pve/provider/px"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/vitorsalgado/mocha/v3"
-	"github.com/vitorsalgado/mocha/v3/expect"
-	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
-	"github.com/pulumi/pulumi-go-provider/integration"
-	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
 
-// Implement a custom PostAction
-type toggleMocksPostAction struct {
-	toDisable []*mocha.Scoped
-	toEnable  []*mocha.Scoped
+const (
+	groupID             = "testgroup"
+	groupComment        = "comment"
+	updatedGroupComment = "updated comment"
+)
+
+type mockGroupOperations struct {
+	createFunc func(ctx context.Context, inputs proxmox.GroupInputs) error
+	getFunc    func(ctx context.Context, id string) (*proxmox.GroupOutputs, error)
+	updateFunc func(ctx context.Context, id string, inputs proxmox.GroupInputs) error
+	deleteFunc func(ctx context.Context, id string) error
 }
 
-func (a *toggleMocksPostAction) Run(args mocha.PostActionArgs) error {
-	for _, m := range a.toDisable {
-		m.Disable()
+func (m *mockGroupOperations) Create(ctx context.Context, inputs proxmox.GroupInputs) error {
+	if m.createFunc != nil {
+		return m.createFunc(ctx, inputs)
 	}
-
-	for _, m := range a.toEnable {
-		m.Enable()
-	}
-
 	return nil
 }
 
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupHealthyLifeCycle(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+func (m *mockGroupOperations) Get(ctx context.Context, id string) (*proxmox.GroupOutputs, error) {
+	if m.getFunc != nil {
+		return m.getFunc(ctx, id)
+	}
+	return &proxmox.GroupOutputs{
+		GroupInputs: proxmox.GroupInputs{
+			Name: id,
+		},
+	}, nil
+}
 
-	// fetch created resource to confirm
-	getGroup := mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).
-			Reply(reply.OK().BodyString(`{"data": {
-				"comment": "comment",
-				"members": []
-			}}`)),
-	)
+func (m *mockGroupOperations) Update(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
+	if m.updateFunc != nil {
+		return m.updateFunc(ctx, id, inputs)
+	}
+	return nil
+}
 
-	// perform create
-	createGroup := mockServer.AddMocks(
-		mocha.Post(expect.URLPath("/access/groups")).Reply(reply.Created().BodyString(`{
-            "data": {
-                "groupid": "testgroup",
-                "name": "testgroup",
-                "comment": "comment"
-            }
-        }`)).PostAction(&toggleMocksPostAction{toEnable: []*mocha.Scoped{getGroup}}),
-	)
+func (m *mockGroupOperations) Delete(ctx context.Context, id string) error {
+	if m.deleteFunc != nil {
+		return m.deleteFunc(ctx, id)
+	}
+	return nil
+}
 
-	// perform delete
-	deleteGroup := mockServer.AddMocks(
-		mocha.Delete(expect.URLPath("/access/groups/testgroup")).Reply(
-			reply.OK()))
+type notFoundError struct{ msg string }
 
-	// perform update
-	updateGroup := mockServer.AddMocks(
-		mocha.Put(expect.URLPath("/access/groups/testgroup")).Reply(reply.OK().BodyString(`{
-	            "data": {
-	                "name": "testgroup",
-	                "comment": "updated comment",
-	  }
-	    }`)))
+func (e *notFoundError) Error() string { return e.msg }
 
-	// Enable initial state
-	getGroup.Enable()
-	createGroup.Enable()
-	deleteGroup.Enable()
-	updateGroup.Enable()
+func TestGroupOperationsNotConfigured(t *testing.T) {
+	t.Parallel()
 
-	// env + client configured by helper
-
-	// Start the integration server with the mock setup
-	server, err := integration.NewServer(
-		t.Context(),
-		provider.Name,
-		semver.Version{Minor: 1},
-		integration.WithProvider(provider.NewProvider()),
-	)
-	require.NoError(t, err)
-
-	updatedResource := property.NewMap(map[string]property.Value{
-		"name":    property.New("testgroup"),
-		"comment": property.New("updated comment"),
+	t.Run("create", func(t *testing.T) {
+		t.Parallel()
+		group := &groupResource.Group{}
+		_, err := group.Create(context.Background(), infer.CreateRequest[proxmox.GroupInputs]{
+			Inputs: proxmox.GroupInputs{Name: groupID},
+		})
+		require.Error(t, err)
+		assert.EqualError(t, err, "GroupOperations not configured")
 	})
 
-	// Run the integration lifecycle tests
-	integration.LifeCycleTest{
-		Resource: "pve:group:Group",
-		Create: integration.Operation{
-			Inputs: property.NewMap(map[string]property.Value{
-				"name":    property.New("testgroup"),
-				"comment": property.New("comment"),
-			}),
-			Hook: func(inputs, output property.Map) {
-				t.Logf("Outputs after Create: %v", output)
-				assert.Equal(t, "testgroup", output.Get("name").AsString())
-				assert.Equal(t, "comment", output.Get("comment").AsString())
-			},
+	t.Run("read", func(t *testing.T) {
+		t.Parallel()
+		group := &groupResource.Group{}
+		_, err := group.Read(context.Background(), infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+			ID:     groupID,
+			Inputs: proxmox.GroupInputs{Name: groupID},
+			State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+		})
+		require.Error(t, err)
+		assert.EqualError(t, err, "GroupOperations not configured")
+	})
+
+	t.Run("update", func(t *testing.T) {
+		t.Parallel()
+		group := &groupResource.Group{}
+		_, err := group.Update(context.Background(), infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+			ID:     groupID,
+			Inputs: proxmox.GroupInputs{Name: groupID, Comment: updatedGroupComment},
+			State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+		})
+		require.Error(t, err)
+		assert.EqualError(t, err, "GroupOperations not configured")
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		t.Parallel()
+		group := &groupResource.Group{}
+		_, err := group.Delete(context.Background(), infer.DeleteRequest[proxmox.GroupOutputs]{
+			State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+		})
+		require.Error(t, err)
+		assert.EqualError(t, err, "GroupOperations not configured")
+	})
+}
+
+func TestGroupCreateSuccess(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{createFunc: func(ctx context.Context, inputs proxmox.GroupInputs) error {
+			called = true
+			assert.Equal(t, proxmox.GroupInputs{Name: groupID, Comment: groupComment}, inputs)
+			return nil
+		}},
+	}
+
+	resp, err := group.Create(context.Background(), infer.CreateRequest[proxmox.GroupInputs]{
+		Name: groupID,
+		Inputs: proxmox.GroupInputs{
+			Name:    groupID,
+			Comment: groupComment,
 		},
-		Updates: []integration.Operation{
-			{
-				Inputs: property.NewMap(map[string]property.Value{
-					"name":    property.New("testgroup"),
-					"comment": property.New("updated comment"),
-				}),
-				ExpectedOutput: &updatedResource,
-			},
-		},
-	}.Run(t, server)
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupCreateClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
-
-	group := &groupResource.Group{}
-	request := infer.CreateRequest[groupResource.Inputs]{
-		Inputs: groupResource.Inputs{Name: "testgroup", Comment: "comment"},
-	}
-	_, err := group.Create(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(t, err, "client error")
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupCreateCreationError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Post(expect.URLPath("/access/groups")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	// env + client configured by helper
-
-	group := &groupResource.Group{}
-	request := infer.CreateRequest[groupResource.Inputs]{
-		Inputs: groupResource.Inputs{Name: "testgroup", Comment: "comment"},
-	}
-	_, err := group.Create(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(t, err, "failed to create group testgroup: 500 Internal Server Error")
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupCreateFetchError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Post(expect.URLPath("/access/groups")).Reply(reply.Created().BodyString(`{
-			"data": {
-			"groupid": "testgroup",
-			"comment": "comment"}
-		}`)),
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	// env + client configured by helper
-
-	group := &groupResource.Group{}
-	request := infer.CreateRequest[groupResource.Inputs]{
-		Inputs: groupResource.Inputs{Name: "testgroup", Comment: "comment"},
-	}
-	_, err := group.Create(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(t, err, "failed to fetch group testgroup: 500 Internal Server Error")
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupDeleteClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
-
-	group := &groupResource.Group{}
-	request := infer.DeleteRequest[groupResource.Outputs]{
-		State: groupResource.Outputs{Inputs: groupResource.Inputs{Name: "testgroup"}},
-	}
-	_, err := group.Delete(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(t, err, "client error")
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupDeleteDeletionError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Delete(expect.URLPath("/access/groups/testgroup")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	// env + client configured by helper
-
-	group := &groupResource.Group{}
-	request := infer.DeleteRequest[groupResource.Outputs]{
-		State: groupResource.Outputs{Inputs: groupResource.Inputs{Name: "testgroup"}},
-	}
-	_, err := group.Delete(context.Background(), request)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete group")
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupReadSuccess(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).Reply(reply.OK().BodyString(`{
-			"data": {"comment":"comment","members":[]}
-		}`)),
-	).Enable()
-
-	// env + client configured
-
-	group := &groupResource.Group{}
-	request := infer.ReadRequest[groupResource.Inputs, groupResource.Outputs]{
-		ID:     "testgroup",
-		Inputs: groupResource.Inputs{Name: "testgroup"},
-		State:  groupResource.Outputs{Inputs: groupResource.Inputs{Name: "testgroup", Comment: "old comment"}},
-	}
-
-	response, err := group.Read(context.Background(), request)
+	})
 	require.NoError(t, err)
-	assert.Equal(t, "testgroup", response.State.Name)
-	assert.Equal(t, "comment", response.State.Comment)
+	assert.True(t, called)
+	assert.Equal(t, groupID, resp.ID)
+	assert.Equal(t, groupComment, resp.Output.Comment)
 }
 
-// Test does not set global environment variable, therefore can be parallelized!
+func TestGroupCreateDryRunDoesNotCallAdapter(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{createFunc: func(ctx context.Context, inputs proxmox.GroupInputs) error {
+			called = true
+			return nil
+		}},
+	}
+
+	resp, err := group.Create(context.Background(), infer.CreateRequest[proxmox.GroupInputs]{
+		Name:   groupID,
+		DryRun: true,
+		Inputs: proxmox.GroupInputs{Name: groupID, Comment: groupComment},
+	})
+	require.NoError(t, err)
+	assert.False(t, called)
+	assert.Equal(t, groupID, resp.ID)
+}
+
+func TestGroupCreateAdapterError(t *testing.T) {
+	t.Parallel()
+
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{createFunc: func(ctx context.Context, inputs proxmox.GroupInputs) error {
+			return assert.AnError
+		}},
+	}
+
+	_, err := group.Create(context.Background(), infer.CreateRequest[proxmox.GroupInputs]{
+		Inputs: proxmox.GroupInputs{Name: groupID},
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, assert.AnError)
+}
+
 func TestGroupReadIDNotFound(t *testing.T) {
 	t.Parallel()
-	group := &groupResource.Group{}
-	request := infer.ReadRequest[groupResource.Inputs, groupResource.Outputs]{
+
+	called := false
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{getFunc: func(ctx context.Context, name string) (*proxmox.GroupOutputs, error) {
+			called = true
+			return &proxmox.GroupOutputs{}, nil
+		}},
+	}
+
+	resp, err := group.Read(context.Background(), infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
 		ID:     "",
-		Inputs: groupResource.Inputs{Name: "testgroup"},
-	}
-	response, err := group.Read(context.Background(), request)
+		Inputs: proxmox.GroupInputs{Name: groupID},
+		State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+	})
 	require.NoError(t, err)
-	assert.Equal(t, response.ID, "")
+	assert.Equal(t, "", resp.ID)
+	assert.False(t, called)
 }
 
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupReadClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+func TestGroupReadNotFoundIsTreatedAsDeleted(t *testing.T) {
+	t.Parallel()
 
-	group := &groupResource.Group{}
-	request := infer.ReadRequest[groupResource.Inputs, groupResource.Outputs]{
-		ID:     "testgroup",
-		Inputs: groupResource.Inputs{Name: "testgroup"},
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{
+			getFunc: func(ctx context.Context, id string) (*proxmox.GroupOutputs, error) {
+				return nil, &notFoundError{msg: "group '" + groupID + "' does not exist\n"}
+			},
+		},
 	}
-	_, err := group.Read(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(t, err, "client error")
-}
 
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupReadNotFound(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).
-			Reply(reply.BadRequest().BodyString(`{
-			"data":null,
-			"message":"group 'testgroup' does not exist\n"
-		}`)),
-	).Enable()
-	// env + client configured
-
-	group := &groupResource.Group{}
-	request := infer.ReadRequest[groupResource.Inputs, groupResource.Outputs]{
-		ID: "testgroup",
-	}
-	response, err := group.Read(context.Background(), request)
+	resp, err := group.Read(context.Background(), infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+		ID:     groupID,
+		Inputs: proxmox.GroupInputs{Name: groupID},
+		State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+	})
 	require.NoError(t, err)
-	assert.Empty(t, response.ID)
-	assert.Empty(t, response.State)
+	assert.Empty(t, resp.ID)
 }
 
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupReadGetResourceError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+func TestGroupReadSuccess(t *testing.T) {
+	t.Parallel()
 
-	mockServer.AddMocks(
-		mocha.Get(expect.URLPath("/access/groups/testgroup")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	// env + client configured
-
-	group := &groupResource.Group{}
-	request := infer.ReadRequest[groupResource.Inputs, groupResource.Outputs]{
-		ID:     "testgroup",
-		Inputs: groupResource.Inputs{Name: "testgroup"},
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{getFunc: func(ctx context.Context, name string) (*proxmox.GroupOutputs, error) {
+			assert.Equal(t, groupID, name)
+			return &proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{
+				Name:    groupID,
+				Comment: updatedGroupComment,
+			}}, nil
+		}},
 	}
-	_, err := group.Read(context.Background(), request)
-	require.Error(t, err)
-	assert.EqualError(t, err, "failed to get group testgroup: 500 Internal Server Error")
+
+	resp, err := group.Read(context.Background(), infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+		ID: groupID,
+		Inputs: proxmox.GroupInputs{
+			Name: groupID,
+		},
+		State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID, Comment: groupComment}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, groupID, resp.ID)
+	assert.Equal(t, updatedGroupComment, resp.State.Comment)
 }
 
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupUpdateClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
+func TestGroupReadAdapterError(t *testing.T) {
+	t.Parallel()
 
-	group := &groupResource.Group{}
-	request := infer.UpdateRequest[groupResource.Inputs, groupResource.Outputs]{
-		State:  groupResource.Outputs{Inputs: groupResource.Inputs{Name: "testgroup", Comment: "old comment"}},
-		Inputs: groupResource.Inputs{Name: "testgroup", Comment: "new comment"},
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{getFunc: func(ctx context.Context, name string) (*proxmox.GroupOutputs, error) {
+			return nil, assert.AnError
+		}},
 	}
-	_, err := group.Update(context.Background(), request)
+
+	_, err := group.Read(context.Background(), infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+		ID:     groupID,
+		Inputs: proxmox.GroupInputs{Name: groupID},
+		State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+	})
 	require.Error(t, err)
-	assert.EqualError(t, err, "client error")
+	assert.ErrorIs(t, err, assert.AnError)
 }
 
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestGroupUpdateUpdateError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+func TestGroupUpdateSuccess(t *testing.T) {
+	t.Parallel()
 
-	mockServer.AddMocks(
-		mocha.Put(expect.URLPath("/access/groups/testgroup")).Reply(reply.InternalServerError()),
-	).Enable()
+	var updatedID string
+	var updatedInputs proxmox.GroupInputs
 
-	// env + client configured by helper
-
-	group := &groupResource.Group{}
-	request := infer.UpdateRequest[groupResource.Inputs, groupResource.Outputs]{
-		State:  groupResource.Outputs{Inputs: groupResource.Inputs{Name: "testgroup", Comment: "old comment"}},
-		Inputs: groupResource.Inputs{Name: "testgroup", Comment: "new comment"},
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{updateFunc: func(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
+			updatedID = id
+			updatedInputs = inputs
+			return nil
+		}},
 	}
 
-	_, err := group.Update(context.Background(), request)
+	state := proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{
+		Name:    groupID,
+		Comment: groupComment,
+	}}
+
+	resp, err := group.Update(context.Background(), infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+		ID: groupID,
+		Inputs: proxmox.GroupInputs{
+			Name:    groupID,
+			Comment: updatedGroupComment,
+		},
+		State: state,
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, groupID, updatedID)
+	assert.Equal(t, updatedGroupComment, updatedInputs.Comment)
+	assert.Equal(t, updatedGroupComment, resp.Output.Comment)
+}
+
+func TestGroupUpdateDryRunDoesNotCallAdapter(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{updateFunc: func(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
+			called = true
+			return nil
+		}},
+	}
+
+	_, err := group.Update(context.Background(), infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+		ID:     groupID,
+		DryRun: true,
+		Inputs: proxmox.GroupInputs{Name: groupID, Comment: updatedGroupComment},
+		State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID, Comment: groupComment}},
+	})
+	require.NoError(t, err)
+	assert.False(t, called)
+}
+
+func TestGroupUpdateAdapterError(t *testing.T) {
+	t.Parallel()
+
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{updateFunc: func(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
+			return assert.AnError
+		}},
+	}
+
+	_, err := group.Update(context.Background(), infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
+		ID:     groupID,
+		Inputs: proxmox.GroupInputs{Name: groupID, Comment: updatedGroupComment},
+		State:  proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID, Comment: groupComment}},
+	})
 	require.Error(t, err)
-	assert.EqualError(t, err, "failed to update group testgroup: 500 Internal Server Error")
+	assert.ErrorIs(t, err, assert.AnError)
+}
+
+func TestGroupDeleteSuccess(t *testing.T) {
+	t.Parallel()
+
+	var deleted string
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{deleteFunc: func(ctx context.Context, name string) error {
+			deleted = name
+			return nil
+		}},
+	}
+
+	_, err := group.Delete(context.Background(), infer.DeleteRequest[proxmox.GroupOutputs]{
+		State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, groupID, deleted)
+}
+
+func TestGroupDeleteAdapterError(t *testing.T) {
+	t.Parallel()
+
+	group := &groupResource.Group{
+		GroupOps: &mockGroupOperations{deleteFunc: func(ctx context.Context, name string) error {
+			return assert.AnError
+		}},
+	}
+
+	_, err := group.Delete(context.Background(), infer.DeleteRequest[proxmox.GroupOutputs]{
+		State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, assert.AnError)
 }
