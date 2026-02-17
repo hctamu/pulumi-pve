@@ -18,197 +18,169 @@ package group
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/px"
-	api "github.com/luthermonson/go-proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // Group represents a Proxmox group resource.
-type Group struct{}
+type Group struct {
+	GroupOps proxmox.GroupOperations
+}
 
 var (
-	_ = (infer.CustomResource[Inputs, Outputs])((*Group)(nil))
-	_ = (infer.CustomDelete[Outputs])((*Group)(nil))
-	_ = (infer.CustomRead[Inputs, Outputs])((*Group)(nil))
-	_ = (infer.CustomUpdate[Inputs, Outputs])((*Group)(nil))
+	_ = (infer.CustomResource[proxmox.GroupInputs, proxmox.GroupOutputs])((*Group)(nil))
+	_ = (infer.CustomDelete[proxmox.GroupOutputs])((*Group)(nil))
+	_ = (infer.CustomRead[proxmox.GroupInputs, proxmox.GroupOutputs])((*Group)(nil))
+	_ = (infer.CustomUpdate[proxmox.GroupInputs, proxmox.GroupOutputs])((*Group)(nil))
 )
-
-// Inputs defines the input properties for a Proxmox group resource.
-type Inputs struct {
-	Name    string `pulumi:"name"             provider:"replaceOnChanges"`
-	Comment string `pulumi:"comment,optional"`
-}
-
-// Annotate is used to annotate the input and output properties of the resource.
-func (args *Inputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The name of the Proxmox group.")
-	a.SetDefault(&args.Comment, "Default group comment")
-	a.Describe(
-		&args.Comment,
-		"An optional comment for the group. If not provided, defaults to 'Default group comment'.",
-	)
-}
-
-// Outputs defines the output properties for a Proxmox group resource.
-type Outputs struct {
-	Inputs
-}
 
 // Create is used to create a new group resource
 func (group *Group) Create(
 	ctx context.Context,
-	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
-	l := p.GetLogger(ctx)
-	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+	request infer.CreateRequest[proxmox.GroupInputs],
+) (response infer.CreateResponse[proxmox.GroupOutputs], err error) {
+	inputs := request.Inputs
+	preview := request.DryRun
 
-	// set provider ID to resource primary key
-	response.ID = request.Inputs.Name
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
 
-	// set output properties
-	response.Output = Outputs{Inputs: request.Inputs}
+	response = infer.CreateResponse[proxmox.GroupOutputs]{
+		ID:     inputs.Name,
+		Output: proxmox.GroupOutputs{GroupInputs: inputs},
+	}
 
-	if request.DryRun {
+	if preview {
 		return response, nil
 	}
 
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	if group.GroupOps == nil {
+		err = errors.New("GroupOperations not configured")
 		return response, err
 	}
 
-	// perform create
-	if err = pxc.NewGroup(ctx, request.Inputs.Name, request.Inputs.Comment); err != nil {
-		return response, fmt.Errorf("failed to create group %s: %w", request.Inputs.Name, err)
-	}
+	err = group.GroupOps.Create(ctx, inputs)
 
-	// fetch created resource to confirm
-	if _, err = pxc.Group(ctx, request.Inputs.Name); err != nil {
-		return response, fmt.Errorf("failed to fetch group %s: %v", request.Inputs.Name, err)
-	}
-
-	l.Debugf("Successfully created group %s", response.ID)
-
-	return response, nil
+	return response, err
 }
 
 // Delete is used to delete a group resource
 func (group *Group) Delete(
 	ctx context.Context,
-	request infer.DeleteRequest[Outputs],
+	request infer.DeleteRequest[proxmox.GroupOutputs],
 ) (response infer.DeleteResponse, err error) {
-	response, err = utils.DeleteResource(utils.DeletedResource{
-		Ctx:          ctx,
-		ResourceID:   request.State.Name,
-		URL:          "/access/groups/" + request.State.Name,
-		ResourceType: "group",
-	})
-	return response, err
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Deleting group resource: %v", request.State)
+
+	if group.GroupOps == nil {
+		return response, errors.New("GroupOperations not configured")
+	}
+
+	if err := group.GroupOps.Delete(ctx, request.State.Name); err != nil {
+		return response, err
+	}
+	logger.Debugf("Group resource %v deleted", request.State.Name)
+
+	return response, nil
 }
 
 // Read is used to read the state of a group resource
 func (group *Group) Read(
 	ctx context.Context,
-	request infer.ReadRequest[Inputs, Outputs],
-) (response infer.ReadResponse[Inputs, Outputs], err error) {
-	response.ID = request.ID
-	response.Inputs = request.Inputs
-
-	l := p.GetLogger(ctx)
-	l.Debugf(
+	request infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs],
+) (response infer.ReadResponse[proxmox.GroupInputs, proxmox.GroupOutputs], err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf(
 		"Read called for Group with ID: %s, Inputs: %+v, State: %+v",
 		request.ID,
 		request.Inputs,
 		request.State,
 	)
 
+	response.ID = request.ID
+	response.Inputs = request.Inputs
+	response.State = request.State
+
+	if group.GroupOps == nil {
+		err = errors.New("GroupOperations not configured")
+		return response, err
+	}
+
 	// if resource does not exist, pulumi will invoke Create
 	if request.ID == "" {
 		return response, nil
 	}
 
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
-		return response, err
-	}
+	var outputs *proxmox.GroupOutputs
 
-	// fetch existing resource from server
-	var existingGroup *api.Group
-	if existingGroup, err = pxc.Group(ctx, request.ID); err != nil {
+	if outputs, err = group.GroupOps.Get(ctx, request.ID); err != nil {
 		if utils.IsNotFound(err) {
 			response.ID = ""
+			response.State = proxmox.GroupOutputs{}
 			return response, nil
 		}
 		err = fmt.Errorf("failed to get group %s: %w", request.ID, err)
 		return response, err
 	}
+	existingGroup := outputs.GroupInputs
+	logger.Debugf("Successfully fetched group: %+v", existingGroup.Name)
 
-	l.Debugf("Successfully fetched group: %+v", existingGroup.GroupID)
+	state := *outputs
+	response.State = *outputs
+	response.Inputs = state.GroupInputs
 
-	// set state from fetched resource
-	response.State = Outputs{
-		Inputs: Inputs{
-			Name:    existingGroup.GroupID,
-			Comment: existingGroup.Comment,
-		},
-	}
-
-	// update inputs to match state
-	response.Inputs = response.State.Inputs
-
-	l.Debugf("Returning updated state: %+v", response.State)
+	logger.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
 }
 
 // Update is used to update a group resource
 func (group *Group) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[Inputs, Outputs],
-) (response infer.UpdateResponse[Outputs], err error) {
-	response.Output = request.State
-
-	l := p.GetLogger(ctx)
-	l.Debugf("Update called for Group with ID: %s, Inputs: %+v, State: %+v",
+	request infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs],
+) (response infer.UpdateResponse[proxmox.GroupOutputs], err error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Update called for Group with ID: %s, Inputs: %+v, State: %+v",
 		request.State.Name,
 		request.Inputs,
 		request.State,
 	)
 
+	response.Output = request.State
+
 	if request.DryRun {
 		return response, nil
 	}
 
-	// compare and update fields
-	if request.Inputs.Comment != request.State.Comment {
-		l.Infof("Updating comment from %q to %q", request.State.Comment, request.Inputs.Comment)
-		response.Output.Comment = request.Inputs.Comment
-	}
-
-	// prepare updated resource
-	updatedGroup := &api.Group{
-		GroupID: response.Output.Name,
-		Comment: response.Output.Comment,
-	}
-
-	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	if group.GroupOps == nil {
+		err = errors.New("GroupOperations not configured")
 		return response, err
 	}
 
-	// perform update
-	if err = pxc.Put(ctx, "/access/groups/"+updatedGroup.GroupID, updatedGroup, nil); err != nil {
-		return response, fmt.Errorf("failed to update group %s: %w", request.State.Name, err)
+	newState := request.State.GroupInputs
+
+	// compare and update fields
+	if request.Inputs.Comment != request.State.Comment {
+		logger.Infof("Updating comment from %q to %q", request.State.Comment, request.Inputs.Comment)
+		newState.Comment = request.Inputs.Comment
 	}
 
-	l.Debugf("Successfully updated group %s", request.State.Name)
-	return response, nil
+	response.Output.GroupInputs = newState
+
+	err = group.GroupOps.Update(ctx, request.ID, newState)
+
+	logger.Debugf("Successfully updated group %s", request.State.Name)
+	return response, err
+}
+
+// Annotate is used to annotate the group resource
+// This is used to provide documentation for the resource in the Pulumi schema
+// and to provide default values for the resource properties.
+func (group *Group) Annotate(a infer.Annotator) {
+	a.Describe(group, "A Proxmox group resource that represents a group in the Proxmox VE.")
 }
