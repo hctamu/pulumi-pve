@@ -37,7 +37,7 @@ func NewGroupAdapter(proxmoxAdapter *ProxmoxAdapter) *GroupAdapter {
 }
 
 // Create creates a new Group resource.
-func (group *GroupAdapter) Create(ctx context.Context, inputs proxmox.GroupInputs) (err error) {
+func (group *GroupAdapter) Create(ctx context.Context, inputs proxmox.GroupInputs) error {
 	if err := group.proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}

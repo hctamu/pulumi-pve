@@ -23,7 +23,6 @@ import (
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
@@ -67,33 +66,31 @@ type Outputs struct {
 func (role *Role) Create(
 	ctx context.Context,
 	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
+) (infer.CreateResponse[Outputs], error) {
 	l := p.GetLogger(ctx)
+	response := infer.CreateResponse[Outputs]{
+		ID:     request.Inputs.Name,
+		Output: Outputs{Inputs: request.Inputs},
+	}
 	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
-
-	// set provider id to resource primary key
-	response.ID = request.Inputs.Name
-
-	// set output properties
-	response.Output = Outputs{Inputs: request.Inputs}
 
 	if request.DryRun {
 		return response, nil
 	}
 
 	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	pxc, err := client.GetProxmoxClientFn(ctx)
+	if err != nil {
 		return response, err
 	}
 
 	// perform create
-	if err = pxc.NewRole(ctx, request.Inputs.Name, utils.SliceToString(request.Inputs.Privileges)); err != nil {
+	if err := pxc.NewRole(ctx, request.Inputs.Name, utils.SliceToString(request.Inputs.Privileges)); err != nil {
 		return response, fmt.Errorf("failed to create role %s: %w", request.Inputs.Name, err)
 	}
 
 	// fetch created resource to confirm
-	if _, err = pxc.Role(ctx, request.Inputs.Name); err != nil {
+	if _, err := pxc.Role(ctx, request.Inputs.Name); err != nil {
 		return response, fmt.Errorf("failed to fetch role %s: %w", request.Inputs.Name, err)
 	}
 
@@ -106,8 +103,8 @@ func (role *Role) Create(
 func (role *Role) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
-) (response infer.DeleteResponse, err error) {
-	response, err = utils.DeleteResource(utils.DeletedResource{
+) (infer.DeleteResponse, error) {
+	response, err := utils.DeleteResource(utils.DeletedResource{
 		Ctx:          ctx,
 		ResourceID:   request.State.Name,
 		URL:          "/access/roles/" + request.State.Name,
@@ -120,9 +117,11 @@ func (role *Role) Delete(
 func (role *Role) Read(
 	ctx context.Context,
 	request infer.ReadRequest[Inputs, Outputs],
-) (response infer.ReadResponse[Inputs, Outputs], err error) {
-	response.ID = request.ID
-	response.Inputs = request.Inputs
+) (infer.ReadResponse[Inputs, Outputs], error) {
+	response := infer.ReadResponse[Inputs, Outputs]{
+		ID:     request.ID,
+		Inputs: request.Inputs,
+	}
 
 	l := p.GetLogger(ctx)
 	l.Debugf(
@@ -138,14 +137,14 @@ func (role *Role) Read(
 	}
 
 	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	pxc, err := client.GetProxmoxClientFn(ctx)
+	if err != nil {
 		return response, err
 	}
 
 	// fetch existing resource's permissions/privileges from server
-	var existingRolePrivs api.Permission
-	if existingRolePrivs, err = pxc.Role(ctx, request.ID); err != nil {
+	existingRolePrivs, err := pxc.Role(ctx, request.ID)
+	if err != nil {
 		if utils.IsNotFound(err) {
 			response.ID = ""
 			return response, nil
@@ -174,8 +173,10 @@ func (role *Role) Read(
 func (role *Role) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[Inputs, Outputs],
-) (response infer.UpdateResponse[Outputs], err error) {
-	response.Output = request.State
+) (infer.UpdateResponse[Outputs], error) {
+	response := infer.UpdateResponse[Outputs]{
+		Output: request.State,
+	}
 
 	l := p.GetLogger(ctx)
 	l.Debugf("Update called for Role with ID: %s, Inputs: %+v, State: %+v",
@@ -201,13 +202,13 @@ func (role *Role) Update(
 	}
 
 	// get client
-	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	pxc, err := client.GetProxmoxClientFn(ctx)
+	if err != nil {
 		return response, err
 	}
 
 	// perform update
-	if err = pxc.Put(ctx, "/access/roles/"+updatedRole.RoleID, updatedRole, nil); err != nil {
+	if err := pxc.Put(ctx, "/access/roles/"+updatedRole.RoleID, updatedRole, nil); err != nil {
 		return response, fmt.Errorf("failed to update role %s: %w", request.State.Name, err)
 	}
 

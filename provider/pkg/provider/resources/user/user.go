@@ -46,14 +46,14 @@ type User struct {
 func (user *User) Create(
 	ctx context.Context,
 	request infer.CreateRequest[proxmox.UserInputs],
-) (response infer.CreateResponse[proxmox.UserOutputs], err error) {
+) (infer.CreateResponse[proxmox.UserOutputs], error) {
 	inputs := request.Inputs
 	preview := request.DryRun
 
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Creating user resource: %v", inputs)
 
-	response = infer.CreateResponse[proxmox.UserOutputs]{
+	response := infer.CreateResponse[proxmox.UserOutputs]{
 		ID:     inputs.Name,
 		Output: proxmox.UserOutputs{UserInputs: inputs},
 	}
@@ -63,20 +63,21 @@ func (user *User) Create(
 	}
 
 	if user.UserOps == nil {
-		err = errors.New("UserOperations not configured")
+		return response, errors.New("UserOperations not configured")
+	}
+
+	if err := user.UserOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
 
-	err = user.UserOps.Create(ctx, inputs)
-
-	return response, err
+	return response, nil
 }
 
 // Read is used to read the state of a user resource
 func (user *User) Read(
 	ctx context.Context,
 	request infer.ReadRequest[proxmox.UserInputs, proxmox.UserOutputs],
-) (response infer.ReadResponse[proxmox.UserInputs, proxmox.UserOutputs], err error) {
+) (infer.ReadResponse[proxmox.UserInputs, proxmox.UserOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf(
 		"Read called for User with ID: %s, Inputs: %+v, State: %+v",
@@ -85,13 +86,10 @@ func (user *User) Read(
 		request.State,
 	)
 
-	response.ID = request.ID
-	response.Inputs = request.Inputs
-	response.State = request.State
+	response := infer.ReadResponse[proxmox.UserInputs, proxmox.UserOutputs](request)
 
 	if user.UserOps == nil {
-		err = errors.New("UserOperations not configured")
-		return response, err
+		return response, errors.New("UserOperations not configured")
 	}
 
 	// If resource does not exist yet, Pulumi will invoke Create.
@@ -99,9 +97,8 @@ func (user *User) Read(
 		return response, nil
 	}
 
-	var outputs *proxmox.UserOutputs
-
-	if outputs, err = user.UserOps.Get(ctx, request.ID); err != nil {
+	outputs, err := user.UserOps.Get(ctx, request.ID)
+	if err != nil {
 		if utils.IsNotFound(err) {
 			response.ID = ""
 			response.State = proxmox.UserOutputs{}
@@ -125,19 +122,20 @@ func (user *User) Read(
 func (user *User) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[proxmox.UserInputs, proxmox.UserOutputs],
-) (response infer.UpdateResponse[proxmox.UserOutputs], err error) {
+) (infer.UpdateResponse[proxmox.UserOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Updating user resource: %v", request.ID)
 
-	response.Output = request.State
+	response := infer.UpdateResponse[proxmox.UserOutputs]{
+		Output: request.State,
+	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
 	if user.UserOps == nil {
-		err = errors.New("UserOperations not configured")
-		return response, err
+		return response, errors.New("UserOperations not configured")
 	}
 
 	// Merge desired changes over the last-known state to avoid unintentionally
@@ -179,7 +177,7 @@ func (user *User) Update(
 
 	response.Output.UserInputs = newState
 
-	err = user.UserOps.Update(ctx, request.State.Name, newState)
+	err := user.UserOps.Update(ctx, request.State.Name, newState)
 
 	return response, err
 }
@@ -188,9 +186,11 @@ func (user *User) Update(
 func (user *User) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[proxmox.UserOutputs],
-) (response infer.DeleteResponse, err error) {
+) (infer.DeleteResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting user resource: %v", request.State)
+
+	var response infer.DeleteResponse
 
 	if user.UserOps == nil {
 		return response, errors.New("UserOperations not configured")
@@ -208,7 +208,7 @@ func (user *User) Delete(
 func (user *User) Diff(
 	ctx context.Context,
 	request infer.DiffRequest[proxmox.UserInputs, proxmox.UserOutputs],
-) (response p.DiffResponse, err error) {
+) (p.DiffResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Diff called for User with ID: %s", request.ID)
 
@@ -250,7 +250,7 @@ func (user *User) Diff(
 		diff["keys"] = p.PropertyDiff{Kind: p.Update}
 	}
 
-	response = p.DiffResponse{
+	response := p.DiffResponse{
 		HasChanges:   len(diff) > 0,
 		DetailedDiff: diff,
 	}
