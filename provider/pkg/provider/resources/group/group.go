@@ -44,39 +44,41 @@ var (
 func (group *Group) Create(
 	ctx context.Context,
 	request infer.CreateRequest[proxmox.GroupInputs],
-) (response infer.CreateResponse[proxmox.GroupOutputs], err error) {
+) (infer.CreateResponse[proxmox.GroupOutputs], error) {
 	inputs := request.Inputs
 	preview := request.DryRun
 
 	logger := p.GetLogger(ctx)
-	logger.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
-
-	response = infer.CreateResponse[proxmox.GroupOutputs]{
+	response := infer.CreateResponse[proxmox.GroupOutputs]{
 		ID:     inputs.Name,
 		Output: proxmox.GroupOutputs{GroupInputs: inputs},
 	}
+	logger.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
 
 	if preview {
 		return response, nil
 	}
 
 	if group.GroupOps == nil {
-		err = errors.New("GroupOperations not configured")
+		return response, errors.New("GroupOperations not configured")
+	}
+
+	if err := group.GroupOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
 
-	err = group.GroupOps.Create(ctx, inputs)
-
-	return response, err
+	return response, nil
 }
 
 // Delete is used to delete a group resource
 func (group *Group) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[proxmox.GroupOutputs],
-) (response infer.DeleteResponse, err error) {
+) (infer.DeleteResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting group resource: %v", request.State)
+
+	var response infer.DeleteResponse
 
 	if group.GroupOps == nil {
 		return response, errors.New("GroupOperations not configured")
@@ -94,7 +96,7 @@ func (group *Group) Delete(
 func (group *Group) Read(
 	ctx context.Context,
 	request infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs],
-) (response infer.ReadResponse[proxmox.GroupInputs, proxmox.GroupOutputs], err error) {
+) (infer.ReadResponse[proxmox.GroupInputs, proxmox.GroupOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf(
 		"Read called for Group with ID: %s, Inputs: %+v, State: %+v",
@@ -103,13 +105,10 @@ func (group *Group) Read(
 		request.State,
 	)
 
-	response.ID = request.ID
-	response.Inputs = request.Inputs
-	response.State = request.State
+	response := infer.ReadResponse[proxmox.GroupInputs, proxmox.GroupOutputs](request)
 
 	if group.GroupOps == nil {
-		err = errors.New("GroupOperations not configured")
-		return response, err
+		return response, errors.New("GroupOperations not configured")
 	}
 
 	// if resource does not exist, pulumi will invoke Create
@@ -117,16 +116,14 @@ func (group *Group) Read(
 		return response, nil
 	}
 
-	var outputs *proxmox.GroupOutputs
-
-	if outputs, err = group.GroupOps.Get(ctx, request.ID); err != nil {
+	outputs, err := group.GroupOps.Get(ctx, request.ID)
+	if err != nil {
 		if utils.IsNotFound(err) {
 			response.ID = ""
 			response.State = proxmox.GroupOutputs{}
 			return response, nil
 		}
-		err = fmt.Errorf("failed to get group %s: %w", request.ID, err)
-		return response, err
+		return response, fmt.Errorf("failed to get group %s: %w", request.ID, err)
 	}
 	existingGroup := outputs.GroupInputs
 	logger.Debugf("Successfully fetched group: %+v", existingGroup.Name)
@@ -143,7 +140,7 @@ func (group *Group) Read(
 func (group *Group) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs],
-) (response infer.UpdateResponse[proxmox.GroupOutputs], err error) {
+) (infer.UpdateResponse[proxmox.GroupOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Update called for Group with ID: %s, Inputs: %+v, State: %+v",
 		request.State.Name,
@@ -151,15 +148,16 @@ func (group *Group) Update(
 		request.State,
 	)
 
-	response.Output = request.State
+	response := infer.UpdateResponse[proxmox.GroupOutputs]{
+		Output: request.State,
+	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
 	if group.GroupOps == nil {
-		err = errors.New("GroupOperations not configured")
-		return response, err
+		return response, errors.New("GroupOperations not configured")
 	}
 
 	newState := request.State.GroupInputs
@@ -172,10 +170,12 @@ func (group *Group) Update(
 
 	response.Output.GroupInputs = newState
 
-	err = group.GroupOps.Update(ctx, request.ID, newState)
+	if err := group.GroupOps.Update(ctx, request.ID, newState); err != nil {
+		return response, err
+	}
 
 	logger.Debugf("Successfully updated group %s", request.State.Name)
-	return response, err
+	return response, nil
 }
 
 // Annotate is used to annotate the group resource
