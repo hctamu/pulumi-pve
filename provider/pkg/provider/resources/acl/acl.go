@@ -44,14 +44,14 @@ type ACL struct {
 func (acl *ACL) Create(
 	ctx context.Context,
 	request infer.CreateRequest[proxmox.ACLInputs],
-) (response infer.CreateResponse[proxmox.ACLOutputs], err error) {
+) (infer.CreateResponse[proxmox.ACLOutputs], error) {
 	inputs := request.Inputs
 	preview := request.DryRun
 
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Creating acl resource: %v", inputs)
 
-	response = infer.CreateResponse[proxmox.ACLOutputs]{
+	response := infer.CreateResponse[proxmox.ACLOutputs]{
 		ID:     composeACLID(inputs),
 		Output: proxmox.ACLOutputs{ACLInputs: inputs},
 	}
@@ -61,20 +61,21 @@ func (acl *ACL) Create(
 	}
 
 	if acl.ACLOps == nil {
-		err = errors.New("ACLOperations not configured")
+		return response, errors.New("ACLOperations not configured")
+	}
+
+	if err := acl.ACLOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
 
-	err = acl.ACLOps.Create(ctx, inputs)
-
-	return response, err
+	return response, nil
 }
 
 // Read is used to read an existing ACL resource
 func (acl *ACL) Read(
 	ctx context.Context,
 	request infer.ReadRequest[proxmox.ACLInputs, proxmox.ACLOutputs],
-) (response infer.ReadResponse[proxmox.ACLInputs, proxmox.ACLOutputs], err error) {
+) (infer.ReadResponse[proxmox.ACLInputs, proxmox.ACLOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf(
 		"Read called for ACL with ID: %s, Inputs: %+v, State: %+v",
@@ -83,24 +84,19 @@ func (acl *ACL) Read(
 		request.State,
 	)
 
-	response.ID = request.ID
-	response.Inputs = request.Inputs
-	response.State = request.State
+	response := infer.ReadResponse[proxmox.ACLInputs, proxmox.ACLOutputs](request)
 
 	if acl.ACLOps == nil {
-		err = errors.New("ACLOperations not configured")
-		return response, err
+		return response, errors.New("ACLOperations not configured")
 	}
 
 	if request.ID == "" {
 		logger.Warningf("Missing ACL ID")
-		err = errors.New("missing acl ID")
-		return response, err
+		return response, errors.New("missing acl ID")
 	}
 
-	var outputs *proxmox.ACLOutputs
-
-	if outputs, err = acl.ACLOps.Get(ctx, request.ID); err != nil {
+	outputs, err := acl.ACLOps.Get(ctx, request.ID)
+	if err != nil {
 		return response, err
 	}
 
@@ -115,9 +111,11 @@ func (acl *ACL) Read(
 func (acl *ACL) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[proxmox.ACLOutputs],
-) (response infer.DeleteResponse, err error) {
+) (infer.DeleteResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting acl resource: %v", request.State)
+
+	var response infer.DeleteResponse
 
 	if acl.ACLOps == nil {
 		return response, errors.New("ACLOperations not configured")

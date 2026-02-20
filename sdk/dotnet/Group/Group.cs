@@ -10,6 +10,9 @@ using Pulumi;
 
 namespace Hctamu.Pve.Group
 {
+    /// <summary>
+    /// A Proxmox group resource that represents a group in the Proxmox VE.
+    /// </summary>
     [PveResourceType("pve:group:Group")]
     public partial class Group : global::Pulumi.CustomResource
     {

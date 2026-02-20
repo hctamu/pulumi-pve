@@ -38,7 +38,7 @@ func NewUserAdapter(proxmoxAdapter *ProxmoxAdapter) *UserAdapter {
 }
 
 // Create creates a new User resource.
-func (user *UserAdapter) Create(ctx context.Context, inputs proxmox.UserInputs) (err error) {
+func (user *UserAdapter) Create(ctx context.Context, inputs proxmox.UserInputs) error {
 	if err := user.proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (user *UserAdapter) Create(ctx context.Context, inputs proxmox.UserInputs) 
 		newUser.Keys = nil
 	}
 
-	if err = user.proxmoxAdapter.client.NewUser(ctx, &newUser); err != nil {
+	if err := user.proxmoxAdapter.client.NewUser(ctx, &newUser); err != nil {
 		return fmt.Errorf("failed to create user %s: %v", inputs.Name, err)
 	}
 	return nil
