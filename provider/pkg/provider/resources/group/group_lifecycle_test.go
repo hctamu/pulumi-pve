@@ -16,88 +16,390 @@ limitations under the License.
 package group_test
 
 import (
-	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
 
-	groupResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/blang/semver"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi-go-provider/integration"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
+
+// requestCapture captures API request details for verification
+type requestCapture struct {
+	mu       sync.Mutex
+	requests []capturedRequest
+}
+type capturedRequest struct {
+	method string
+	path   string
+	body   map[string]interface{}
+}
+
+func (rc *requestCapture) add(method, path string, body map[string]interface{}) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
+	rc.requests = append(rc.requests, capturedRequest{
+		method: method,
+		path:   path,
+		body:   body,
+	})
+}
+
+func (rc *requestCapture) get() []capturedRequest {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
+	return append([]capturedRequest(nil), rc.requests...)
+}
 
 func TestGroupHealthyLifeCycle(t *testing.T) {
 	t.Parallel()
+	var getCount int
+	var capture requestCapture
 
-	var (
-		created proxmox.GroupInputs
-		updated proxmox.GroupInputs
-		deleted string
-	)
+	// Create mock HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 
-	ops := &mockGroupOperations{
-		createFunc: func(ctx context.Context, inputs proxmox.GroupInputs) error {
-			created = inputs
-			return nil
-		},
-		getFunc: func(ctx context.Context, id string) (*proxmox.GroupOutputs, error) {
-			require.Equal(t, groupID, id)
-			return &proxmox.GroupOutputs{GroupInputs: updated}, nil
-		},
-		updateFunc: func(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
-			require.Equal(t, groupID, id)
-			updated = inputs
-			return nil
-		},
-		deleteFunc: func(ctx context.Context, id string) error {
-			deleted = id
-			return nil
-		},
+		// Read and parse body if present
+		var bodyData map[string]interface{}
+		if r.Body != nil {
+			bodyBytes, _ := io.ReadAll(r.Body)
+			if len(bodyBytes) > 0 {
+				_ = json.Unmarshal(bodyBytes, &bodyData)
+			}
+		}
+
+		capture.add(r.Method, r.URL.Path, bodyData)
+
+		switch r.Method {
+		case http.MethodPost:
+			// Create Group resource
+			assert.Equal(t, "/access/groups", r.URL.Path)
+			assert.Equal(t, groupID, bodyData["groupid"])
+			assert.Equal(t, groupComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"groupid": groupID,
+					"comment": groupComment,
+				},
+			})
+
+		case http.MethodGet:
+			// Read Group resource - return different comment after first call
+			switch r.URL.Path {
+			case "/access/groups/" + groupID:
+				getCount++
+				comment := groupComment
+				if getCount >= 2 { // After update, return new comment
+					comment = updatedGroupComment
+				}
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"groupid": groupID,
+						"comment": comment,
+					},
+				})
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+
+		case http.MethodPut:
+			// Update Group resource
+			assert.Equal(t, "/access/groups/"+groupID, r.URL.Path)
+			assert.Equal(t, updatedGroupComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"groupid": groupID,
+					"comment": updatedGroupComment,
+				},
+			})
+
+		case http.MethodDelete:
+			// Delete Group resource
+			assert.Equal(t, "/access/groups/"+groupID, r.URL.Path)
+
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": nil,
+			})
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	// Create provider with test config
+	testConfig := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
 	}
 
-	group := &groupResource.Group{GroupOps: ops}
-
-	createResp, err := group.Create(context.Background(), infer.CreateRequest[proxmox.GroupInputs]{
-		Name: groupID,
-		Inputs: proxmox.GroupInputs{
-			Name:    groupID,
-			Comment: groupComment,
-		},
-	})
+	pulumiServer, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
+	)
 	require.NoError(t, err)
-	assert.Equal(t, groupID, createResp.ID)
-	assert.Equal(t, proxmox.GroupInputs{Name: groupID, Comment: groupComment}, created)
 
-	updateResp, err := group.Update(context.Background(), infer.UpdateRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
-		ID: groupID,
-		Inputs: proxmox.GroupInputs{
-			Name:    groupID,
-			Comment: updatedGroupComment,
+	// Expected output after update
+	expected := property.NewMap(map[string]property.Value{
+		"name":    property.New(groupID),
+		"comment": property.New(updatedGroupComment),
+	})
+
+	// Run lifecycle test
+	integration.LifeCycleTest{
+		Resource: "pve:group:Group",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    property.New(groupID),
+				"comment": property.New(groupComment),
+			}),
+			Hook: func(in, out property.Map) {
+				assert.Equal(t, groupID, out.Get("name").AsString())
+				assert.Equal(t, groupComment, out.Get("comment").AsString())
+			},
 		},
-		State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{
-			Name:    groupID,
-			Comment: groupComment,
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    property.New(groupID),
+				"comment": property.New(updatedGroupComment),
+			}),
+			ExpectedOutput: &expected,
 		}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, updatedGroupComment, updateResp.Output.Comment)
-	assert.Equal(t, proxmox.GroupInputs{Name: groupID, Comment: updatedGroupComment}, updated)
+	}.Run(t, pulumiServer)
 
-	readResp, err := group.Read(context.Background(), infer.ReadRequest[proxmox.GroupInputs, proxmox.GroupOutputs]{
-		ID: groupID,
-		Inputs: proxmox.GroupInputs{
-			Name: groupID,
+	// Verify API calls
+	requests := capture.get()
+	require.Greater(t, len(requests), 0, "Should have captured API requests")
+
+	// Verify we have the expected API calls: POST (create), PUT (update), DELETE (cleanup)
+	var hasPOST, hasPUT, hasDELETE bool
+	for _, req := range requests {
+		switch req.method {
+		case http.MethodPost:
+			hasPOST = true
+			assert.Equal(t, groupID, req.body["groupid"])
+			assert.Equal(t, groupComment, req.body["comment"])
+		case http.MethodPut:
+			hasPUT = true
+			assert.Equal(t, updatedGroupComment, req.body["comment"])
+		case http.MethodDelete:
+			hasDELETE = true
+		}
+	}
+
+	assert.True(t, hasPOST, "Should have made POST request (create)")
+	assert.True(t, hasPUT, "Should have made PUT request (update)")
+	assert.True(t, hasDELETE, "Should have made DELETE request (cleanup)")
+}
+
+func TestGroupCreateLifecycleError(t *testing.T) {
+	t.Parallel()
+	var capture requestCapture
+
+	// Create mock HTTP server that simulates an error on create
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Read and parse body if present
+		var bodyData map[string]interface{}
+		if r.Body != nil {
+			bodyBytes, _ := io.ReadAll(r.Body)
+			if len(bodyBytes) > 0 {
+				_ = json.Unmarshal(bodyBytes, &bodyData)
+			}
+		}
+
+		capture.add(r.Method, r.URL.Path, bodyData)
+
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Simulated API error on create",
+			})
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	// Create provider with test config
+	testConfig := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}
+
+	pulumiServer, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
+	)
+	require.NoError(t, err)
+
+	integration.LifeCycleTest{
+		Resource: "pve:group:Group",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    property.New(groupID),
+				"comment": property.New(groupComment),
+			}),
+			ExpectFailure: true,
 		},
-		State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, groupID, readResp.State.Name)
-	assert.Equal(t, updatedGroupComment, readResp.State.Comment)
+	}.Run(t, pulumiServer)
 
-	_, err = group.Delete(context.Background(), infer.DeleteRequest[proxmox.GroupOutputs]{
-		State: proxmox.GroupOutputs{GroupInputs: proxmox.GroupInputs{Name: groupID}},
-	})
+	// Verify API calls
+	requests := capture.get()
+	require.Greater(t, len(requests), 0)
+
+	var postCount int
+	for _, req := range requests {
+		if req.method == http.MethodPost {
+			postCount++
+			assert.Equal(t, "/access/groups", req.path)
+			assert.Equal(t, groupID, req.body["groupid"])
+			assert.Equal(t, groupComment, req.body["comment"])
+		}
+	}
+
+	assert.Equal(t, 1, postCount, "Should have made exactly one POST request (create)")
+}
+
+func TestGroupUpdateLifecycleError(t *testing.T) {
+	t.Parallel()
+	var capture requestCapture
+	var getCount int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		var bodyData map[string]interface{}
+		if r.Body != nil {
+			bodyBytes, _ := io.ReadAll(r.Body)
+			if len(bodyBytes) > 0 {
+				_ = json.Unmarshal(bodyBytes, &bodyData)
+			}
+		}
+		capture.add(r.Method, r.URL.Path, bodyData)
+
+		switch r.Method {
+		case http.MethodPost:
+			assert.Equal(t, "/access/groups", r.URL.Path)
+			assert.Equal(t, groupID, bodyData["groupid"])
+			assert.Equal(t, groupComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"groupid": groupID,
+					"comment": groupComment,
+				},
+			})
+
+		case http.MethodGet:
+			switch r.URL.Path {
+			case "/access/groups/" + groupID:
+				getCount++
+				comment := groupComment
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"groupid": groupID,
+						"comment": comment,
+					},
+				})
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+
+		case http.MethodPut:
+			assert.Equal(t, "/access/groups/"+groupID, r.URL.Path)
+			assert.Equal(t, updatedGroupComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data":  nil,
+				"error": "update failed",
+			})
+
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": nil,
+			})
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}
+
+	pulumiServer, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
+	)
 	require.NoError(t, err)
-	assert.Equal(t, groupID, deleted)
+
+	integration.LifeCycleTest{
+		Resource: "pve:group:Group",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    property.New(groupID),
+				"comment": property.New(groupComment),
+			}),
+		},
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    property.New(groupID),
+				"comment": property.New(updatedGroupComment),
+			}),
+			ExpectFailure: true,
+		}},
+	}.Run(t, pulumiServer)
+
+	requests := capture.get()
+	require.GreaterOrEqual(t, len(requests), 2)
+
+	var hasPOST, hasPUT bool
+	for _, req := range requests {
+		switch req.method {
+		case http.MethodPost:
+			hasPOST = true
+			assert.Equal(t, groupID, req.body["groupid"])
+			assert.Equal(t, groupComment, req.body["comment"])
+		case http.MethodPut:
+			hasPUT = true
+			assert.Equal(t, updatedGroupComment, req.body["comment"])
+		}
+	}
+	assert.True(t, hasPOST, "Update lifecycle error test should perform a POST (create)")
+	assert.True(t, hasPUT, "Update lifecycle error test should perform a PUT (update)")
 }
