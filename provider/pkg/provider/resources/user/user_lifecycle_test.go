@@ -16,98 +16,398 @@ limitations under the License.
 package user_test
 
 import (
-	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
 
-	userResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/blang/semver"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi-go-provider/integration"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 )
+
+// requestCapture captures API request details for verification
+type requestCapture struct {
+	mu       sync.Mutex
+	requests []capturedRequest
+}
+
+type capturedRequest struct {
+	method string
+	path   string
+	body   map[string]interface{}
+}
+
+func (rc *requestCapture) add(method, path string, body map[string]interface{}) {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
+	rc.requests = append(rc.requests, capturedRequest{
+		method: method,
+		path:   path,
+		body:   body,
+	})
+}
+
+func (rc *requestCapture) get() []capturedRequest {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
+	return append([]capturedRequest(nil), rc.requests...)
+}
 
 func TestUserHealthyLifeCycle(t *testing.T) {
 	t.Parallel()
+	var getCount int
+	var capture requestCapture
 
-	var (
-		created proxmox.UserInputs
-		updated proxmox.UserInputs
-		deleted string
-	)
+	// Create mock HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Logf("HTTP %s %s", r.Method, r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
 
-	ops := &mockUserOperations{
-		createFunc: func(ctx context.Context, inputs proxmox.UserInputs) error {
-			created = inputs
-			return nil
-		},
-		getFunc: func(ctx context.Context, id string) (*proxmox.UserOutputs, error) {
-			return &proxmox.UserOutputs{UserInputs: updated}, nil
-		},
-		updateFunc: func(ctx context.Context, id string, inputs proxmox.UserInputs) error {
-			assert.Equal(t, userID, id)
-			updated = inputs
-			return nil
-		},
-		deleteFunc: func(ctx context.Context, id string) error {
-			deleted = id
-			return nil
-		},
+		// Read and parse body if present
+		var bodyData map[string]interface{}
+		if r.Body != nil {
+			bodyBytes, _ := io.ReadAll(r.Body)
+			if len(bodyBytes) > 0 {
+				_ = json.Unmarshal(bodyBytes, &bodyData)
+			}
+		}
+
+		capture.add(r.Method, r.URL.Path, bodyData)
+
+		switch r.Method {
+		case http.MethodPost:
+			// Create User resource
+			assert.Equal(t, "/access/users", r.URL.Path)
+			assert.Equal(t, userID, bodyData["userid"])
+			assert.Equal(t, userComment, bodyData["comment"])
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"userid":  userID,
+					"comment": userComment,
+				},
+			})
+
+		case http.MethodGet:
+			// Read User resource - return different comment after first call
+			switch r.URL.Path {
+			case "/access/users/" + userID:
+				getCount++
+				comment := userComment
+				if getCount >= 2 { // After update, return new comment
+					comment = userUpdatedComment
+				}
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"userid":  userID,
+						"comment": comment,
+					},
+				})
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+
+		case http.MethodPut:
+			// Update User resource
+			assert.Equal(t, "/access/users/"+userID, r.URL.Path)
+			assert.Equal(t, userUpdatedComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"userid":  userID,
+					"comment": userUpdatedComment,
+				},
+			})
+
+		case http.MethodDelete:
+			// Delete User resource
+			assert.Equal(t, "/access/users/"+userID, r.URL.Path)
+
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": nil,
+			})
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	// Create provider with test config
+	testConfig := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
 	}
 
-	user := &userResource.User{UserOps: ops}
+	pulumiServer, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
+	)
+	require.NoError(t, err)
 
-	createResp, err := user.Create(context.Background(), infer.CreateRequest[proxmox.UserInputs]{
-		Name: userID,
-		Inputs: proxmox.UserInputs{
-			Name: userID,
+	// Expected output after update
+	expected := property.NewMap(map[string]property.Value{
+		"userid":    property.New(userID),
+		"password":  property.New(userPassword).WithSecret(true),
+		"comment":   property.New(userUpdatedComment),
+		"email":     property.New(""),
+		"enable":    property.New(false),
+		"expire":    property.New(0.0),
+		"firstname": property.New(""),
+		"lastname":  property.New(""),
+	})
+	// Run lifecycle test
+	integration.LifeCycleTest{
+		Resource: "pve:user:User",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"userid":   property.New(userID),
+				"password": property.New(userPassword).WithSecret(true),
+				"comment":  property.New(userComment),
+			}),
+			Hook: func(in, out property.Map) {
+				assert.Equal(t, userID, out.Get("userid").AsString())
+				assert.Equal(t, userComment, out.Get("comment").AsString())
+			},
 		},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, userID, createResp.ID)
-	assert.Equal(t, proxmox.UserInputs{Name: userID}, created)
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"userid":   property.New(userID),
+				"password": property.New(userPassword).WithSecret(true),
+				"comment":  property.New(userUpdatedComment),
+			}),
+			ExpectedOutput: &expected,
+		}},
+	}.Run(t, pulumiServer)
 
-	updateResp, err := user.Update(context.Background(), infer.UpdateRequest[proxmox.UserInputs, proxmox.UserOutputs]{
-		ID: userID,
-		Inputs: proxmox.UserInputs{
-			Name:      userID,
-			Comment:   userComment,
-			Enable:    true,
-			Expire:    42,
-			Firstname: userFirstname,
-			Lastname:  userLastname,
-			Email:     userEmail,
-			Groups:    []string{"g2", "g1"},
-			Keys:      []string{"ssh-rsa", "ssh-ed25519"},
+	// Verify API calls
+	requests := capture.get()
+	require.Greater(t, len(requests), 0, "Should have captured API requests")
+
+	// Verify we have the expected API calls: POST (create), PUT (update), DELETE (cleanup)
+	var hasPOST, hasPUT, hasDELETE bool
+	for _, req := range requests {
+		switch req.method {
+		case http.MethodPost:
+			hasPOST = true
+			assert.Equal(t, userID, req.body["userid"])
+			assert.Equal(t, userComment, req.body["comment"])
+		case http.MethodPut:
+			hasPUT = true
+			assert.Equal(t, userUpdatedComment, req.body["comment"])
+		case http.MethodDelete:
+			hasDELETE = true
+		}
+	}
+
+	assert.True(t, hasPOST, "Should have made POST request (create)")
+	assert.True(t, hasPUT, "Should have made PUT request (update)")
+	assert.True(t, hasDELETE, "Should have made DELETE request (cleanup)")
+}
+
+func TestUserCreateLifecycleError(t *testing.T) {
+	t.Parallel()
+	var capture requestCapture
+
+	// Create mock HTTP server that simulates an error on create
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Read and parse body if present
+		var bodyData map[string]interface{}
+		if r.Body != nil {
+			bodyBytes, _ := io.ReadAll(r.Body)
+			if len(bodyBytes) > 0 {
+				_ = json.Unmarshal(bodyBytes, &bodyData)
+			}
+		}
+
+		capture.add(r.Method, r.URL.Path, bodyData)
+
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Simulated API error on create",
+			})
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	// Create provider with test config
+	testConfig := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}
+
+	pulumiServer, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
+	)
+	require.NoError(t, err)
+
+	integration.LifeCycleTest{
+		Resource: "pve:user:User",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"userid":  property.New(userID),
+				"comment": property.New(userComment),
+			}),
+			ExpectFailure: true,
 		},
-		State: proxmox.UserOutputs{UserInputs: proxmox.UserInputs{Name: userID}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, userComment, updateResp.Output.Comment)
-	assert.Equal(t, true, updateResp.Output.Enable)
-	assert.Equal(t, 42, updateResp.Output.Expire)
-	assert.Equal(t, userFirstname, updateResp.Output.Firstname)
-	assert.Equal(t, userLastname, updateResp.Output.Lastname)
-	assert.Equal(t, userEmail, updateResp.Output.Email)
-	assert.Equal(t, utils.SliceToString([]string{"g1", "g2"}), utils.SliceToString(updateResp.Output.Groups))
-	assert.Equal(t, utils.SliceToString([]string{"ssh-ed25519", "ssh-rsa"}), utils.SliceToString(updateResp.Output.Keys))
+	}.Run(t, pulumiServer)
 
-	readResp, err := user.Read(context.Background(), infer.ReadRequest[proxmox.UserInputs, proxmox.UserOutputs]{
-		ID: userID,
-		Inputs: proxmox.UserInputs{
-			Name:     userID,
-			Password: userPassword,
+	// Verify API calls
+	requests := capture.get()
+	require.Greater(t, len(requests), 0)
+
+	var postCount int
+	for _, req := range requests {
+		if req.method == http.MethodPost {
+			postCount++
+			assert.Equal(t, "/access/users", req.path)
+			assert.Equal(t, userID, req.body["userid"])
+			assert.Equal(t, userComment, req.body["comment"])
+		}
+	}
+
+	assert.Equal(t, 1, postCount, "Should have made exactly one POST request (create)")
+}
+
+func TestUserUpdateLifecycleError(t *testing.T) {
+	t.Parallel()
+	var capture requestCapture
+	var getCount int
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		var bodyData map[string]interface{}
+		if r.Body != nil {
+			bodyBytes, _ := io.ReadAll(r.Body)
+			if len(bodyBytes) > 0 {
+				_ = json.Unmarshal(bodyBytes, &bodyData)
+			}
+		}
+		capture.add(r.Method, r.URL.Path, bodyData)
+
+		switch r.Method {
+		case http.MethodPost:
+			assert.Equal(t, "/access/users", r.URL.Path)
+			assert.Equal(t, userID, bodyData["userid"])
+			assert.Equal(t, userComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": map[string]interface{}{
+					"userid":  userID,
+					"comment": userComment,
+				},
+			})
+
+		case http.MethodGet:
+			switch r.URL.Path {
+			case "/access/users/" + userID:
+				getCount++
+				comment := userComment
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": map[string]interface{}{
+						"userid":  userID,
+						"comment": comment,
+					},
+				})
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+
+		case http.MethodPut:
+			assert.Equal(t, "/access/users/"+userID, r.URL.Path)
+			assert.Equal(t, userUpdatedComment, bodyData["comment"])
+
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data":  nil,
+				"error": "update failed",
+			})
+
+		case http.MethodDelete:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": nil,
+			})
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	testConfig := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}
+
+	pulumiServer, err := integration.NewServer(
+		t.Context(),
+		provider.Name,
+		semver.Version{Minor: 1},
+		integration.WithProvider(provider.NewProviderWithConfig(testConfig)),
+	)
+	require.NoError(t, err)
+
+	integration.LifeCycleTest{
+		Resource: "pve:user:User",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"userid":  property.New(userID),
+				"comment": property.New(userComment),
+			}),
 		},
-		State: proxmox.UserOutputs{UserInputs: proxmox.UserInputs{Name: userID}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, userID, readResp.State.Name)
-	assert.Equal(t, userPassword, readResp.State.Password)
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"userid":  property.New(userID),
+				"comment": property.New(userUpdatedComment),
+			}),
+			ExpectFailure: true,
+		}},
+	}.Run(t, pulumiServer)
 
-	_, err = user.Delete(context.Background(), infer.DeleteRequest[proxmox.UserOutputs]{
-		State: proxmox.UserOutputs{UserInputs: proxmox.UserInputs{Name: userID}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, userID, deleted)
+	requests := capture.get()
+	require.GreaterOrEqual(t, len(requests), 2)
+
+	var hasPOST, hasPUT bool
+	for _, req := range requests {
+		switch req.method {
+		case http.MethodPost:
+			hasPOST = true
+			assert.Equal(t, userID, req.body["userid"])
+			assert.Equal(t, userComment, req.body["comment"])
+		case http.MethodPut:
+			hasPUT = true
+			assert.Equal(t, userUpdatedComment, req.body["comment"])
+		}
+	}
+	assert.True(t, hasPOST, "Update lifecycle error test should perform a POST (create)")
+	assert.True(t, hasPUT, "Update lifecycle error test should perform a PUT (update)")
 }
