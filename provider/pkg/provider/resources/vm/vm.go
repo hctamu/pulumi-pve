@@ -53,12 +53,14 @@ type Outputs struct {
 func (vm *VM) Create(
 	ctx context.Context,
 	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
+) (infer.CreateResponse[Outputs], error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Create VM: %v", request.Inputs.VMID)
 
-	response.Output = Outputs{request.Inputs}
-	response.ID = request.Name
+	response := infer.CreateResponse[Outputs]{
+		ID:     request.Name,
+		Output: Outputs{request.Inputs},
+	}
 
 	if request.DryRun {
 		return response, nil
@@ -139,11 +141,12 @@ func createVMTask(
 	inputs Inputs,
 	vmID int,
 	options []api.VirtualMachineOption,
-) (
-	createTask *api.Task,
-	timeout time.Duration,
-	err error,
-) {
+) (*api.Task, time.Duration, error) {
+	var (
+		createTask *api.Task
+		timeout    time.Duration
+		err        error
+	)
 	if inputs.Clone != nil {
 		createTask, err = handleClone(ctx, inputs, vmID)
 		timeout = time.Duration(inputs.Clone.Timeout) * time.Second
@@ -162,15 +165,14 @@ func finalizeClone(
 	inputs Inputs,
 	vmID int,
 	options []api.VirtualMachineOption,
-) (err error) {
-	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, vmID, inputs.Node)
+) error {
+	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, vmID, inputs.Node)
 	if err != nil {
 		return fmt.Errorf("failed to find cloned VM: %v", err)
 	}
 
 	// Update disks after clone based on the inputs
-	if err = updateDisksAfterClone(ctx, options, virtualMachine); err != nil {
+	if err := updateDisksAfterClone(ctx, options, virtualMachine); err != nil {
 		return fmt.Errorf("failed to update disks after clone: %w", err)
 	}
 
@@ -194,7 +196,7 @@ func readCurrentOutput(
 	vm *VM,
 	request *infer.CreateRequest[Inputs],
 	vmID int,
-) (currentOutput Outputs, err error) {
+) (Outputs, error) {
 	state := Outputs{Inputs: request.Inputs}
 	state.VMID = &vmID
 	readRequest := infer.ReadRequest[Inputs, Outputs]{
@@ -203,13 +205,12 @@ func readCurrentOutput(
 		State:  state,
 	}
 
-	var readResponse infer.ReadResponse[Inputs, Outputs]
-
-	if readResponse, err = vm.Read(ctx, readRequest); err != nil {
+	readResponse, err := vm.Read(ctx, readRequest)
+	if err != nil {
 		return Outputs{}, fmt.Errorf("failed to read VM after creation: %v", err)
 	}
 
-	currentOutput = readResponse.State
+	currentOutput := readResponse.State
 	// Preserve clone configuration (not returned by Read) if user supplied it.
 	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
 		currentOutput.Clone = request.Inputs.Clone
@@ -230,14 +231,14 @@ func getNodeName(inputs Inputs, cluster *api.Cluster) (string, error) {
 }
 
 // handleClone handles the cloning of a virtual machine.
-func handleClone(ctx context.Context, inputs Inputs, vmID int) (createTask *api.Task, err error) {
+func handleClone(ctx context.Context, inputs Inputs, vmID int) (*api.Task, error) {
 	pxc, err := client.GetProxmoxClientFn(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var sourceVM *api.VirtualMachine
-	if sourceVM, _, _, err = pxc.FindVirtualMachine(ctx, inputs.Clone.VMID, nil); err != nil {
+	sourceVM, _, _, err := pxc.FindVirtualMachine(ctx, inputs.Clone.VMID, nil)
+	if err != nil {
 		return nil, fmt.Errorf("error during finding source VM for clone: %v", err)
 	}
 
@@ -266,18 +267,19 @@ func handleNewVM(
 	inputs Inputs,
 	vmID int,
 	options []api.VirtualMachineOption,
-) (createTask *api.Task, err error) {
+) (*api.Task, error) {
 	pxc, err := client.GetProxmoxClientFn(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var node *api.Node
-	if node, err = pxc.Node(ctx, *inputs.Node); err != nil {
+	node, err := pxc.Node(ctx, *inputs.Node)
+	if err != nil {
 		return nil, err
 	}
 
-	if createTask, err = node.NewVirtualMachine(ctx, vmID, options...); err != nil {
+	createTask, err := node.NewVirtualMachine(ctx, vmID, options...)
+	if err != nil {
 		return nil, err
 	}
 
@@ -289,7 +291,7 @@ func handleNewVM(
 func (vm *VM) Read(
 	ctx context.Context,
 	request infer.ReadRequest[Inputs, Outputs],
-) (response infer.ReadResponse[Inputs, Outputs], err error) {
+) (infer.ReadResponse[Inputs, Outputs], error) {
 	l := p.GetLogger(ctx)
 
 	// Determine which VMID to use: inputs.vmid if not nil, otherwise state.vmid
@@ -302,38 +304,42 @@ func (vm *VM) Read(
 		vmID = request.State.VMID
 		l.Debugf("Read VM with ID from state: %v", *vmID)
 	default:
-		err = errors.New("VMID is required for reading VM state but is nil in both inputs and state")
+		err := errors.New("VMID is required for reading VM state but is nil in both inputs and state")
 		l.Errorf("VMID is nil in both inputs and state during read operation")
-		return response, err
+		return infer.ReadResponse[Inputs, Outputs]{}, err
 	}
 
-	var pxClient *px.Client
-	if pxClient, err = client.GetProxmoxClientFn(ctx); err != nil {
-		err = fmt.Errorf("failed to get Proxmox client: %v", err)
-		l.Errorf("Error during getting Proxmox client: %v", err)
-		return response, err
+	pxClient, err := client.GetProxmoxClientFn(ctx)
+	if err != nil {
+		wrapped := fmt.Errorf("failed to get Proxmox client: %v", err)
+		l.Errorf("Error during getting Proxmox client: %v", wrapped)
+		return infer.ReadResponse[Inputs, Outputs]{}, wrapped
 	}
 
-	var virtualMachine *api.VirtualMachine
-	virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
+	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, *vmID, request.Inputs.Node)
 	if err != nil {
 		l.Errorf("Error during finding VM %v: %v", *vmID, err)
-		return response, err
+		return infer.ReadResponse[Inputs, Outputs]{}, err
 
 	}
 
-	if response.State.Inputs, response.Inputs, err = ConvertVMConfigToInputs(virtualMachine, request.Inputs); err != nil {
-		err = fmt.Errorf("failed to convert VM to inputs %v", err)
-		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, err)
-		return response, err
+	stateInputs, preservedInputs, err := ConvertVMConfigToInputs(virtualMachine, request.Inputs)
+	if err != nil {
+		wrapped := fmt.Errorf("failed to convert VM to inputs %v", err)
+		l.Errorf("Error during converting VM to inputs for %v: %v", virtualMachine.VMID, wrapped)
+		return infer.ReadResponse[Inputs, Outputs]{}, wrapped
+	}
+
+	response := infer.ReadResponse[Inputs, Outputs]{
+		ID:     request.ID,
+		Inputs: preservedInputs,
+		State:  Outputs{Inputs: stateInputs},
 	}
 
 	// Preserve clone info from prior state (not derivable from VM config).
 	if request.State.Clone != nil && response.State.Clone == nil {
 		response.State.Clone = request.State.Clone
 	}
-
-	response.ID = request.ID
 
 	l.Debugf("VM: %v", virtualMachine)
 	return response, nil
@@ -400,7 +406,7 @@ func buildOutputWithComputedFromState(newInputs, oldState Inputs) Outputs {
 func (vm *VM) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[Inputs, Outputs],
-) (response infer.UpdateResponse[Outputs], err error) {
+) (infer.UpdateResponse[Outputs], error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Update VM with ID: %v", request.ID)
 
@@ -418,19 +424,21 @@ func (vm *VM) Update(
 	copyMissingDiskFileIDs(&request.Inputs, request.State.Inputs)
 
 	// Build outputs by copying computed fields from prior state where inputs omit them
-	response.Output = buildOutputWithComputedFromState(request.Inputs, request.State.Inputs)
+	response := infer.UpdateResponse[Outputs]{
+		Output: buildOutputWithComputedFromState(request.Inputs, request.State.Inputs),
+	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	var pxClient *px.Client
-	if pxClient, err = client.GetProxmoxClientFn(ctx); err != nil {
+	pxClient, err := client.GetProxmoxClientFn(ctx)
+	if err != nil {
 		return response, err
 	}
 
-	var virtualMachine *api.VirtualMachine
-	if virtualMachine, _, _, err = pxClient.FindVirtualMachine(ctx, *vmID, request.State.Node); err != nil {
+	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, *vmID, request.State.Node)
+	if err != nil {
 		return response, err
 	}
 
@@ -446,23 +454,24 @@ func (vm *VM) Update(
 	// Only call Config if there are options to apply; Proxmox returns 500 otherwise.
 	var task *api.Task
 	if len(options) > 0 {
-		if task, err = virtualMachine.Config(ctx, options...); err != nil {
-			err = fmt.Errorf("failed to update VM %d: %v", *vmID, err)
-			return response, err
+		var errCfg error
+		if task, errCfg = virtualMachine.Config(ctx, options...); errCfg != nil {
+			wrapped := fmt.Errorf("failed to update VM %d: %v", *vmID, errCfg)
+			return response, wrapped
 		}
 
 		// Wait for the task to complete
 		interval := 5 * time.Second
 		timeout := time.Duration(60) * time.Second
-		if err = task.Wait(ctx, interval, timeout); err != nil {
-			err = fmt.Errorf("failed to wait for VM %d update: %v", *vmID, err)
-			return response, err
+		if errWait := task.Wait(ctx, interval, timeout); errWait != nil {
+			wrapped := fmt.Errorf("failed to wait for VM %d update: %v", *vmID, errWait)
+			return response, wrapped
 		}
 
 		// Check task status and handle failure
 		if task.IsFailed {
-			err = fmt.Errorf("update task for VM %d failed: %v", *vmID, task.ExitStatus)
-			return response, err
+			wrapped := fmt.Errorf("update task for VM %d failed: %v", *vmID, task.ExitStatus)
+			return response, wrapped
 		}
 
 		l.Debugf("Update VM Task: %v", task)
@@ -477,22 +486,24 @@ func (vm *VM) Update(
 func (vm *VM) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
-) (response infer.DeleteResponse, err error) {
+) (infer.DeleteResponse, error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Deleting VM: %v", request.ID)
 
 	var pxc *px.Client
-	if pxc, err = client.GetProxmoxClientFn(ctx); err != nil {
+	var response infer.DeleteResponse
+	pxc, err := client.GetProxmoxClientFn(ctx)
+	if err != nil {
 		return response, fmt.Errorf("failed to get Proxmox client: %v", err)
 	}
 
-	var virtualMachine *api.VirtualMachine
-	if virtualMachine, _, _, err = pxc.FindVirtualMachine(ctx, *request.State.VMID, request.State.Node); err != nil {
+	virtualMachine, _, _, err := pxc.FindVirtualMachine(ctx, *request.State.VMID, request.State.Node)
+	if err != nil {
 		return response, err
 	}
 
-	var task *api.Task
-	if task, err = virtualMachine.Delete(ctx); err != nil {
+	task, err := virtualMachine.Delete(ctx)
+	if err != nil {
 		return response, fmt.Errorf("failed to delete VM %d: %v", *request.State.VMID, err)
 	}
 
@@ -617,7 +628,7 @@ func handleEfiDiskDiff(inField, stateField reflect.Value) (map[string]p.Property
 func (vm *VM) Diff(
 	ctx context.Context,
 	request infer.DiffRequest[Inputs, Outputs],
-) (response infer.DiffResponse, err error) {
+) (infer.DiffResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Diff VM: id=%s", request.ID)
 
@@ -650,8 +661,9 @@ func (vm *VM) Diff(
 		switch {
 		case name == efiDiskInputName:
 			var efiDiff map[string]p.PropertyDiff
-			if efiDiff, err = handleEfiDiskDiff(inField, stateField); err != nil {
-				return p.DiffResponse{}, err
+			efiDiff, diffErr := handleEfiDiskDiff(inField, stateField)
+			if diffErr != nil {
+				return p.DiffResponse{}, diffErr
 			}
 			// Handle EfiDisk with granular diff support
 			maps.Copy(diff, efiDiff)
@@ -668,7 +680,7 @@ func (vm *VM) Diff(
 		}
 	}
 
-	response = p.DiffResponse{
+	response := p.DiffResponse{
 		DeleteBeforeReplace: true,
 		HasChanges:          len(diff) > 0,
 		DetailedDiff:        diff,
@@ -766,7 +778,7 @@ func updateDisksAfterClone(
 	ctx context.Context,
 	options []api.VirtualMachineOption,
 	virtualMachine *api.VirtualMachine,
-) (err error) {
+) error {
 	disks := virtualMachine.VirtualMachineConfig.MergeDisks()
 
 	// Update disks based on the new configuration
@@ -774,12 +786,12 @@ func updateDisksAfterClone(
 		diskOption := getDiskOption(options, diskInterface)
 		if diskOption != nil {
 			disk := Disk{Interface: diskInterface}
-			if err = disk.ParseDiskConfig(diskOption.Value.(string)); err != nil {
+			if err := disk.ParseDiskConfig(diskOption.Value.(string)); err != nil {
 				return fmt.Errorf("failed to parse disk config: %v", err)
 			}
 
 			currentDisk := Disk{Interface: diskInterface}
-			if err = currentDisk.ParseDiskConfig(currentDiskStr); err != nil {
+			if err := currentDisk.ParseDiskConfig(currentDiskStr); err != nil {
 				return fmt.Errorf("failed to parse current disk config: %v", err)
 			}
 
@@ -789,13 +801,13 @@ func updateDisksAfterClone(
 
 			// Resize disk if necessary
 			if disk.Size != currentDisk.Size {
-				if _, err = virtualMachine.ResizeDisk(ctx, diskInterface, strconv.Itoa(disk.Size)+"G"); err != nil {
+				if _, err := virtualMachine.ResizeDisk(ctx, diskInterface, strconv.Itoa(disk.Size)+"G"); err != nil {
 					return fmt.Errorf("failed to resize disk %v: %v", diskInterface, err)
 				}
 			}
 		} else {
 			// Remove not needed disk
-			if _, err = virtualMachine.UnlinkDisk(ctx, diskInterface, true); err != nil {
+			if _, err := virtualMachine.UnlinkDisk(ctx, diskInterface, true); err != nil {
 				return fmt.Errorf("failed to unlink disk %v: %v", diskInterface, err)
 			}
 		}

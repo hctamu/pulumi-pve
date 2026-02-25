@@ -44,13 +44,13 @@ type HA struct {
 func (ha *HA) Create(
 	ctx context.Context,
 	request infer.CreateRequest[proxmox.HAInputs],
-) (response infer.CreateResponse[proxmox.HAOutputs], err error) {
+) (infer.CreateResponse[proxmox.HAOutputs], error) {
 	inputs := request.Inputs
 	preview := request.DryRun
 
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Creating ha resource: %v", inputs)
-	response = infer.CreateResponse[proxmox.HAOutputs]{
+	response := infer.CreateResponse[proxmox.HAOutputs]{
 		ID:     request.Name,
 		Output: proxmox.HAOutputs{HAInputs: inputs},
 	}
@@ -60,22 +60,25 @@ func (ha *HA) Create(
 	}
 
 	if ha.HAOps == nil {
-		err = errors.New("HAOperations not configured")
+		return response, errors.New("HAOperations not configured")
+	}
+
+	if err := ha.HAOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
 
-	err = ha.HAOps.Create(ctx, inputs)
-
-	return response, err
+	return response, nil
 }
 
 // Delete deletes an existing HA resource
 func (ha *HA) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[proxmox.HAOutputs],
-) (response infer.DeleteResponse, err error) {
+) (infer.DeleteResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting ha resource: %v", request.State)
+
+	var response infer.DeleteResponse
 
 	if ha.HAOps == nil {
 		return response, errors.New("HAOperations not configured")
@@ -94,23 +97,24 @@ func (ha *HA) Delete(
 func (ha *HA) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[proxmox.HAInputs, proxmox.HAOutputs],
-) (response infer.UpdateResponse[proxmox.HAOutputs], err error) {
+) (infer.UpdateResponse[proxmox.HAOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Updating ha resource: %v", request.ID)
-	response.Output = request.State
+	response := infer.UpdateResponse[proxmox.HAOutputs]{
+		Output: request.State,
+	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
 	if ha.HAOps == nil {
-		err = errors.New("HAOperations not configured")
-		return response, err
+		return response, errors.New("HAOperations not configured")
 	}
 
 	response.Output.HAInputs = request.Inputs
 
-	err = ha.HAOps.Update(ctx, request.State.ResourceID, request.Inputs, request.State)
+	err := ha.HAOps.Update(ctx, request.State.ResourceID, request.Inputs, request.State)
 
 	return response, err
 }
@@ -119,21 +123,17 @@ func (ha *HA) Update(
 func (ha *HA) Read(
 	ctx context.Context,
 	request infer.ReadRequest[proxmox.HAInputs, proxmox.HAOutputs],
-) (response infer.ReadResponse[proxmox.HAInputs, proxmox.HAOutputs], err error) {
+) (infer.ReadResponse[proxmox.HAInputs, proxmox.HAOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Reading ha resource: %v", request.ID)
-	response.Inputs = request.Inputs
-	response.State = request.State
-	response.ID = request.ID
+	response := infer.ReadResponse[proxmox.HAInputs, proxmox.HAOutputs](request)
 
 	if ha.HAOps == nil {
-		err = errors.New("HAOperations not configured")
-		return response, err
+		return response, errors.New("HAOperations not configured")
 	}
 
-	var outputs *proxmox.HAOutputs
-
-	if outputs, err = ha.HAOps.Get(ctx, request.Inputs.ResourceID); err != nil {
+	outputs, err := ha.HAOps.Get(ctx, request.Inputs.ResourceID)
+	if err != nil {
 		return response, err
 	}
 

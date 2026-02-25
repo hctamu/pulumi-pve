@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package user_test
+package group_test
 
 import (
 	"encoding/json"
@@ -38,7 +38,6 @@ type requestCapture struct {
 	mu       sync.Mutex
 	requests []capturedRequest
 }
-
 type capturedRequest struct {
 	method string
 	path   string
@@ -61,14 +60,13 @@ func (rc *requestCapture) get() []capturedRequest {
 	return append([]capturedRequest(nil), rc.requests...)
 }
 
-func TestUserHealthyLifeCycle(t *testing.T) {
+func TestGroupHealthyLifeCycle(t *testing.T) {
 	t.Parallel()
 	var getCount int
 	var capture requestCapture
 
 	// Create mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Logf("HTTP %s %s", r.Method, r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 
 		// Read and parse body if present
@@ -84,31 +82,32 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 
 		switch r.Method {
 		case http.MethodPost:
-			// Create User resource
-			assert.Equal(t, "/access/users", r.URL.Path)
-			assert.Equal(t, userID, bodyData["userid"])
-			assert.Equal(t, userComment, bodyData["comment"])
+			// Create Group resource
+			assert.Equal(t, "/access/groups", r.URL.Path)
+			assert.Equal(t, groupID, bodyData["groupid"])
+			assert.Equal(t, groupComment, bodyData["comment"])
+
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": map[string]interface{}{
-					"userid":  userID,
-					"comment": userComment,
+					"groupid": groupID,
+					"comment": groupComment,
 				},
 			})
 
 		case http.MethodGet:
-			// Read User resource - return different comment after first call
+			// Read Group resource - return different comment after first call
 			switch r.URL.Path {
-			case "/access/users/" + userID:
+			case "/access/groups/" + groupID:
 				getCount++
-				comment := userComment
+				comment := groupComment
 				if getCount >= 2 { // After update, return new comment
-					comment = userUpdatedComment
+					comment = updatedGroupComment
 				}
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"data": map[string]interface{}{
-						"userid":  userID,
+						"groupid": groupID,
 						"comment": comment,
 					},
 				})
@@ -117,21 +116,21 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 			}
 
 		case http.MethodPut:
-			// Update User resource
-			assert.Equal(t, "/access/users/"+userID, r.URL.Path)
-			assert.Equal(t, userUpdatedComment, bodyData["comment"])
+			// Update Group resource
+			assert.Equal(t, "/access/groups/"+groupID, r.URL.Path)
+			assert.Equal(t, updatedGroupComment, bodyData["comment"])
 
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": map[string]interface{}{
-					"userid":  userID,
-					"comment": userUpdatedComment,
+					"groupid": groupID,
+					"comment": updatedGroupComment,
 				},
 			})
 
 		case http.MethodDelete:
-			// Delete User resource
-			assert.Equal(t, "/access/users/"+userID, r.URL.Path)
+			// Delete Group resource
+			assert.Equal(t, "/access/groups/"+groupID, r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -161,34 +160,27 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 
 	// Expected output after update
 	expected := property.NewMap(map[string]property.Value{
-		"userid":    property.New(userID),
-		"password":  property.New(userPassword).WithSecret(true),
-		"comment":   property.New(userUpdatedComment),
-		"email":     property.New(""),
-		"enable":    property.New(false),
-		"expire":    property.New(0.0),
-		"firstname": property.New(""),
-		"lastname":  property.New(""),
+		"name":    property.New(groupID),
+		"comment": property.New(updatedGroupComment),
 	})
+
 	// Run lifecycle test
 	integration.LifeCycleTest{
-		Resource: "pve:user:User",
+		Resource: "pve:group:Group",
 		Create: integration.Operation{
 			Inputs: property.NewMap(map[string]property.Value{
-				"userid":   property.New(userID),
-				"password": property.New(userPassword).WithSecret(true),
-				"comment":  property.New(userComment),
+				"name":    property.New(groupID),
+				"comment": property.New(groupComment),
 			}),
 			Hook: func(in, out property.Map) {
-				assert.Equal(t, userID, out.Get("userid").AsString())
-				assert.Equal(t, userComment, out.Get("comment").AsString())
+				assert.Equal(t, groupID, out.Get("name").AsString())
+				assert.Equal(t, groupComment, out.Get("comment").AsString())
 			},
 		},
 		Updates: []integration.Operation{{
 			Inputs: property.NewMap(map[string]property.Value{
-				"userid":   property.New(userID),
-				"password": property.New(userPassword).WithSecret(true),
-				"comment":  property.New(userUpdatedComment),
+				"name":    property.New(groupID),
+				"comment": property.New(updatedGroupComment),
 			}),
 			ExpectedOutput: &expected,
 		}},
@@ -204,11 +196,11 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 		switch req.method {
 		case http.MethodPost:
 			hasPOST = true
-			assert.Equal(t, userID, req.body["userid"])
-			assert.Equal(t, userComment, req.body["comment"])
+			assert.Equal(t, groupID, req.body["groupid"])
+			assert.Equal(t, groupComment, req.body["comment"])
 		case http.MethodPut:
 			hasPUT = true
-			assert.Equal(t, userUpdatedComment, req.body["comment"])
+			assert.Equal(t, updatedGroupComment, req.body["comment"])
 		case http.MethodDelete:
 			hasDELETE = true
 		}
@@ -219,7 +211,7 @@ func TestUserHealthyLifeCycle(t *testing.T) {
 	assert.True(t, hasDELETE, "Should have made DELETE request (cleanup)")
 }
 
-func TestUserCreateLifecycleError(t *testing.T) {
+func TestGroupCreateLifecycleError(t *testing.T) {
 	t.Parallel()
 	var capture requestCapture
 
@@ -266,11 +258,11 @@ func TestUserCreateLifecycleError(t *testing.T) {
 	require.NoError(t, err)
 
 	integration.LifeCycleTest{
-		Resource: "pve:user:User",
+		Resource: "pve:group:Group",
 		Create: integration.Operation{
 			Inputs: property.NewMap(map[string]property.Value{
-				"userid":  property.New(userID),
-				"comment": property.New(userComment),
+				"name":    property.New(groupID),
+				"comment": property.New(groupComment),
 			}),
 			ExpectFailure: true,
 		},
@@ -284,16 +276,16 @@ func TestUserCreateLifecycleError(t *testing.T) {
 	for _, req := range requests {
 		if req.method == http.MethodPost {
 			postCount++
-			assert.Equal(t, "/access/users", req.path)
-			assert.Equal(t, userID, req.body["userid"])
-			assert.Equal(t, userComment, req.body["comment"])
+			assert.Equal(t, "/access/groups", req.path)
+			assert.Equal(t, groupID, req.body["groupid"])
+			assert.Equal(t, groupComment, req.body["comment"])
 		}
 	}
 
 	assert.Equal(t, 1, postCount, "Should have made exactly one POST request (create)")
 }
 
-func TestUserUpdateLifecycleError(t *testing.T) {
+func TestGroupUpdateLifecycleError(t *testing.T) {
 	t.Parallel()
 	var capture requestCapture
 	var getCount int
@@ -312,27 +304,27 @@ func TestUserUpdateLifecycleError(t *testing.T) {
 
 		switch r.Method {
 		case http.MethodPost:
-			assert.Equal(t, "/access/users", r.URL.Path)
-			assert.Equal(t, userID, bodyData["userid"])
-			assert.Equal(t, userComment, bodyData["comment"])
+			assert.Equal(t, "/access/groups", r.URL.Path)
+			assert.Equal(t, groupID, bodyData["groupid"])
+			assert.Equal(t, groupComment, bodyData["comment"])
 
 			w.WriteHeader(http.StatusCreated)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"data": map[string]interface{}{
-					"userid":  userID,
-					"comment": userComment,
+					"groupid": groupID,
+					"comment": groupComment,
 				},
 			})
 
 		case http.MethodGet:
 			switch r.URL.Path {
-			case "/access/users/" + userID:
+			case "/access/groups/" + groupID:
 				getCount++
-				comment := userComment
+				comment := groupComment
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"data": map[string]interface{}{
-						"userid":  userID,
+						"groupid": groupID,
 						"comment": comment,
 					},
 				})
@@ -341,8 +333,8 @@ func TestUserUpdateLifecycleError(t *testing.T) {
 			}
 
 		case http.MethodPut:
-			assert.Equal(t, "/access/users/"+userID, r.URL.Path)
-			assert.Equal(t, userUpdatedComment, bodyData["comment"])
+			assert.Equal(t, "/access/groups/"+groupID, r.URL.Path)
+			assert.Equal(t, updatedGroupComment, bodyData["comment"])
 
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -377,17 +369,17 @@ func TestUserUpdateLifecycleError(t *testing.T) {
 	require.NoError(t, err)
 
 	integration.LifeCycleTest{
-		Resource: "pve:user:User",
+		Resource: "pve:group:Group",
 		Create: integration.Operation{
 			Inputs: property.NewMap(map[string]property.Value{
-				"userid":  property.New(userID),
-				"comment": property.New(userComment),
+				"name":    property.New(groupID),
+				"comment": property.New(groupComment),
 			}),
 		},
 		Updates: []integration.Operation{{
 			Inputs: property.NewMap(map[string]property.Value{
-				"userid":  property.New(userID),
-				"comment": property.New(userUpdatedComment),
+				"name":    property.New(groupID),
+				"comment": property.New(updatedGroupComment),
 			}),
 			ExpectFailure: true,
 		}},
@@ -401,11 +393,11 @@ func TestUserUpdateLifecycleError(t *testing.T) {
 		switch req.method {
 		case http.MethodPost:
 			hasPOST = true
-			assert.Equal(t, userID, req.body["userid"])
-			assert.Equal(t, userComment, req.body["comment"])
+			assert.Equal(t, groupID, req.body["groupid"])
+			assert.Equal(t, groupComment, req.body["comment"])
 		case http.MethodPut:
 			hasPUT = true
-			assert.Equal(t, userUpdatedComment, req.body["comment"])
+			assert.Equal(t, updatedGroupComment, req.body["comment"])
 		}
 	}
 	assert.True(t, hasPOST, "Update lifecycle error test should perform a POST (create)")

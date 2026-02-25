@@ -25,17 +25,24 @@ import (
 )
 
 // FindVirtualMachine finds a virtual machine by its ID and returns the VM, node, and cluster information.
-func (client *Client) FindVirtualMachine(ctx context.Context, vmID int, lastKnowNode *string) (
-	vm *api.VirtualMachine, node *api.Node, cluster *api.Cluster, err error,
-) {
+func (client *Client) FindVirtualMachine(
+	ctx context.Context,
+	vmID int,
+	lastKnowNode *string,
+) (*api.VirtualMachine, *api.Node, *api.Cluster, error) {
 	logger := p.GetLogger(ctx)
 
-	if cluster, err = client.Cluster(ctx); err != nil {
+	cluster, err := client.Cluster(ctx)
+	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	var vm *api.VirtualMachine
+	var node *api.Node
+
 	if lastKnowNode != nil {
-		if vm, node, err = client.FindVirtualMachineOnNode(ctx, vmID, *lastKnowNode); err == nil {
+		vm, node, err = client.FindVirtualMachineOnNode(ctx, vmID, *lastKnowNode)
+		if err == nil {
 			return vm, node, cluster, nil
 		}
 
@@ -43,30 +50,33 @@ func (client *Client) FindVirtualMachine(ctx context.Context, vmID int, lastKnow
 	}
 
 	for _, nodeStatus := range cluster.Nodes {
-		if vm, node, err = client.FindVirtualMachineOnNode(ctx, vmID, nodeStatus.Name); vm != nil {
-			break
+		vm, node, err = client.FindVirtualMachineOnNode(ctx, vmID, nodeStatus.Name)
+		if vm != nil {
+			return vm, node, cluster, err
 		}
 	}
 
 	if vm == nil {
-		err = fmt.Errorf("VM with ID %d not found on any nodes", vmID)
+		return nil, node, cluster, fmt.Errorf("VM with ID %d not found on any nodes", vmID)
 	}
 
 	return vm, node, cluster, err
 }
 
 // FindVirtualMachineOnNode finds a virtual machine by its ID on a specific node.
-func (client *Client) FindVirtualMachineOnNode(ctx context.Context, vmID int, nodeName string) (
-	vm *api.VirtualMachine, node *api.Node, err error,
-) {
-	if node, err = client.Node(ctx, nodeName); err != nil {
+func (client *Client) FindVirtualMachineOnNode(
+	ctx context.Context,
+	vmID int,
+	nodeName string,
+) (*api.VirtualMachine, *api.Node, error) {
+	node, err := client.Node(ctx, nodeName)
+	if err != nil {
 		return nil, nil, err
 	}
 
-	vm, err = node.VirtualMachine(ctx, vmID)
-
+	vm, err := node.VirtualMachine(ctx, vmID)
 	if vm == nil {
-		err = fmt.Errorf("VM with ID %d not found on '%v' nodes", vmID, nodeName)
+		return nil, node, fmt.Errorf("VM with ID %d not found on '%v' nodes", vmID, nodeName)
 	}
 
 	return vm, node, err

@@ -80,12 +80,12 @@ func (n *NumaNode) ToProxmoxNumaString() string {
 }
 
 // ParseNumaNode parses a Proxmox NUMA node config string.
-func ParseNumaNode(value string) (node *NumaNode, err error) {
+func ParseNumaNode(value string) (*NumaNode, error) {
 	if value == "" {
 		return nil, nil
 	}
 
-	node = &NumaNode{}
+	node := &NumaNode{}
 	segments := strings.Split(value, ",")
 
 	for _, seg := range segments {
@@ -176,12 +176,12 @@ func (c *CPU) ToProxmoxString() string {
 }
 
 // ParseCPU parses a Proxmox CPU config string into CPU.
-func ParseCPU(value string) (cfg *CPU, err error) {
+func ParseCPU(value string) (*CPU, error) {
 	if value == "" {
 		return nil, nil
 	}
 
-	cfg = &CPU{}
+	cfg := &CPU{}
 	segments := strings.Split(value, ",")
 
 	for i, seg := range segments {
@@ -693,7 +693,8 @@ func ConvertVMConfigToInputs(
 func (inputs *Inputs) BuildOptionsDiff(
 	vmID int,
 	currentInputs *Inputs,
-) (options []api.VirtualMachineOption) {
+) []api.VirtualMachineOption {
+	options := []api.VirtualMachineOption{}
 	// Memory already stored in MB; no conversion required.
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
@@ -721,8 +722,9 @@ func (inputs *Inputs) BuildOptionsDiff(
 }
 
 // BuildOptions builds a list of VirtualMachineOption from the Inputs.
-func (inputs *Inputs) BuildOptions(vmID int) (options []api.VirtualMachineOption) {
+func (inputs *Inputs) BuildOptions(vmID int) []api.VirtualMachineOption {
 	// Memory already stored in MB; no conversion required.
+	options := []api.VirtualMachineOption{}
 
 	addOption("name", &options, inputs.Name)
 	addOption("memory", &options, inputs.Memory)
@@ -906,11 +908,10 @@ func NumaNodesEqual(inputA, inputB []NumaNode) bool {
 func getDiskOption(
 	options []api.VirtualMachineOption,
 	diskInterface string,
-) (diskOption *api.VirtualMachineOption) {
+) *api.VirtualMachineOption {
 	for index := range options {
 		if options[index].Name == diskInterface {
-			diskOption = &options[index]
-			return diskOption
+			return &options[index]
 		}
 	}
 	return nil
@@ -973,10 +974,10 @@ func (efi *EfiDisk) ParseEfiDiskConfig(diskConfig string) error {
 }
 
 // parseDiskSize parses the disk size string and returns the size in gigabytes.
-func parseDiskSize(value string) (size int, err error) {
+func parseDiskSize(value string) (int, error) {
 	if utils.EndsWithLetter(value) {
 		unit := value[len(value)-1]
-		size, err = strconv.Atoi(value[:len(value)-1])
+		size, err := strconv.Atoi(value[:len(value)-1])
 		if err != nil {
 			return 0, fmt.Errorf("failed to parse disk size: %v", value)
 		}

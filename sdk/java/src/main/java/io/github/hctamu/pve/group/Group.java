@@ -13,6 +13,10 @@ import java.lang.String;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
+/**
+ * A Proxmox group resource that represents a group in the Proxmox VE.
+ * 
+ */
 @ResourceType(type="pve:group:Group")
 public class Group extends com.pulumi.resources.CustomResource {
     /**
