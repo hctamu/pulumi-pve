@@ -41,7 +41,7 @@ func NewACLAdapter(proxmoxAdapter *ProxmoxAdapter) *ACLAdapter {
 }
 
 // Create creates a new ACL resource.
-func (acl *ACLAdapter) Create(ctx context.Context, inputs proxmox.ACLInputs) (err error) {
+func (acl *ACLAdapter) Create(ctx context.Context, inputs proxmox.ACLInputs) error {
 	if err := acl.proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}
@@ -54,12 +54,12 @@ func (acl *ACLAdapter) Create(ctx context.Context, inputs proxmox.ACLInputs) (er
 	}
 	switch inputs.Type {
 	case proxmox.ACLTypeGroup:
-		if _, err = acl.proxmoxAdapter.client.Group(ctx, inputs.UGID); err != nil {
+		if _, err := acl.proxmoxAdapter.client.Group(ctx, inputs.UGID); err != nil {
 			return fmt.Errorf("failed to find group %s for ACL: %w", inputs.UGID, err)
 		}
 		newACL.Groups = inputs.UGID
 	case proxmox.ACLTypeUser:
-		if _, err = acl.proxmoxAdapter.client.User(ctx, inputs.UGID); err != nil {
+		if _, err := acl.proxmoxAdapter.client.User(ctx, inputs.UGID); err != nil {
 			return fmt.Errorf("failed to find user %s for ACL: %w", inputs.UGID, err)
 		}
 		newACL.Users = inputs.UGID
@@ -140,12 +140,12 @@ func (acl *ACLAdapter) Delete(ctx context.Context, outputs proxmox.ACLOutputs) e
 }
 
 // decomposeACLID splits a composite ID into its components.
-func decomposeACLID(id string) (acl proxmox.ACLInputs, err error) {
+func decomposeACLID(id string) (proxmox.ACLInputs, error) {
 	parts := strings.Split(id, "|")
 	if len(parts) != 4 {
 		return proxmox.ACLInputs{}, fmt.Errorf("invalid ACL ID: %s", id)
 	}
-	acl = proxmox.ACLInputs{
+	acl := proxmox.ACLInputs{
 		Path:      parts[0],
 		RoleID:    parts[1],
 		Type:      parts[2],
@@ -160,7 +160,7 @@ func GetACL(
 	ctx context.Context,
 	aclparams proxmox.ACLInputs,
 	aclAdapter *ACLAdapter,
-) (acl *api.ACL, err error) {
+) (*api.ACL, error) {
 	l := p.GetLogger(ctx)
 	l.Debugf(
 		"GetACL called for ACL with keys: %s, %s, %s, %s",
@@ -172,9 +172,9 @@ func GetACL(
 
 	allACLs, err := aclAdapter.proxmoxAdapter.client.ACL(ctx)
 	if err != nil {
-		err = fmt.Errorf("failed to get ACLs: %v", err)
-		l.Error(err.Error())
-		return nil, err
+		wrapped := fmt.Errorf("failed to get ACLs: %v", err)
+		l.Error(wrapped.Error())
+		return nil, wrapped
 	}
 
 	for _, r := range allACLs {

@@ -74,7 +74,7 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 }
 
 // newClient creates a new Proxmox client
-func newClient(pveURL, pveUser, pveToken string) (client *api.Client, err error) {
+func newClient(pveURL, pveUser, pveToken string) (*api.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport)
 	//nolint:gosec // Required for Proxmox API self-signed certificates
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -87,7 +87,7 @@ func newClient(pveURL, pveUser, pveToken string) (client *api.Client, err error)
 		api.WithHTTPClient(httpClient),
 	)
 
-	client = apiClient
+	client := apiClient
 
 	return client, nil
 }

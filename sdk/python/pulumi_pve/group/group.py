@@ -67,7 +67,8 @@ class Group(pulumi.CustomResource):
                  name: Optional[pulumi.Input[_builtins.str]] = None,
                  __props__=None):
         """
-        Create a Group resource with the given unique name, props, and options.
+        A Proxmox group resource that represents a group in the Proxmox VE.
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] comment: An optional comment for the group. If not provided, defaults to 'Default group comment'.
@@ -80,7 +81,8 @@ class Group(pulumi.CustomResource):
                  args: GroupArgs,
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
-        Create a Group resource with the given unique name, props, and options.
+        A Proxmox group resource that represents a group in the Proxmox VE.
+
         :param str resource_name: The name of the resource.
         :param GroupArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.

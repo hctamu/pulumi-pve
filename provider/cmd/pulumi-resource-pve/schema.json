@@ -360,6 +360,7 @@
       ]
     },
     "pve:group:Group": {
+      "description": "A Proxmox group resource that represents a group in the Proxmox VE.",
       "properties": {
         "comment": {
           "type": "string",

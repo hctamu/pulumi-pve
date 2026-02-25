@@ -75,8 +75,8 @@ func (args *FileSourceRaw) Annotate(a infer.Annotator) {
 func (file *File) Create(
 	ctx context.Context,
 	request infer.CreateRequest[Inputs],
-) (response infer.CreateResponse[Outputs], err error) {
-	response = infer.CreateResponse[Outputs]{
+) (infer.CreateResponse[Outputs], error) {
+	response := infer.CreateResponse[Outputs]{
 		ID: request.Name,
 		Output: Outputs{
 			Inputs: request.Inputs,
@@ -118,7 +118,8 @@ func (file *File) Create(
 func (file *File) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[Outputs],
-) (response infer.DeleteResponse, err error) {
+) (infer.DeleteResponse, error) {
+	var response infer.DeleteResponse
 	state := request.State
 
 	sshClient, err := client.GetSSHClient(ctx)
@@ -141,13 +142,13 @@ func (file *File) Delete(
 
 // Read reads a file resource
 func (file *File) Read(ctx context.Context, request infer.ReadRequest[Inputs, Outputs]) (
-	response infer.ReadResponse[Inputs, Outputs],
-	err error,
+	infer.ReadResponse[Inputs, Outputs],
+	error,
 ) {
 	inputs := request.Inputs
 	state := request.State
 
-	response = infer.ReadResponse[Inputs, Outputs]{
+	response := infer.ReadResponse[Inputs, Outputs]{
 		ID:     request.ID,
 		Inputs: inputs,
 		State:  state,
@@ -184,13 +185,13 @@ func (file *File) Read(ctx context.Context, request infer.ReadRequest[Inputs, Ou
 
 // Update updates a file resource
 func (file *File) Update(ctx context.Context, request infer.UpdateRequest[Inputs, Outputs]) (
-	response infer.UpdateResponse[Outputs],
-	err error,
+	infer.UpdateResponse[Outputs],
+	error,
 ) {
 	state := request.State
 	inputs := request.Inputs
 
-	response = infer.UpdateResponse[Outputs]{
+	response := infer.UpdateResponse[Outputs]{
 		Output: request.State,
 	}
 

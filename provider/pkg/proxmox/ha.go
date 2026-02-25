@@ -60,12 +60,12 @@ const (
 )
 
 // ValidateState validates the HA state
-func (state HAState) ValidateState(ctx context.Context) (err error) {
+func (state HAState) ValidateState(ctx context.Context) error {
 	switch state {
 	case HAStateIgnored, HAStateStarted, HAStateStopped:
 		return nil
 	default:
-		err = fmt.Errorf("invalid state: %s", state)
+		err := fmt.Errorf("invalid state: %s", state)
 		p.GetLogger(ctx).Error(err.Error())
 		return err
 	}

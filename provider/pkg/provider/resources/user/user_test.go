@@ -29,12 +29,13 @@ import (
 )
 
 const (
-	userID        = "testuser"
-	userComment   = "updated comment"
-	userPassword  = "super-secret"
-	userEmail     = "testuser@example.com"
-	userFirstname = "Test"
-	userLastname  = "User"
+	userID             = "testuser"
+	userComment        = "comment"
+	userUpdatedComment = "updated comment"
+	userPassword       = "super-secret"
+	userEmail          = "testuser@example.com"
+	userFirstname      = "Test"
+	userLastname       = "User"
 
 	userGroup1 = "g1"
 	userGroup2 = "g2"

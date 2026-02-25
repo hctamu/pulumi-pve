@@ -62,18 +62,18 @@ func (sc SSHClient) Write() SSHCommand {
 }
 
 // Run executes a command on the remote host and returns its output.
-func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (output string, err error) {
+func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (string, error) {
 	// Dial a new SSH connection
-	sc.Client, err = ssh.Dial("tcp", sc.TargetIP+":22", sc.Config)
+	client, err := ssh.Dial("tcp", sc.TargetIP+":22", sc.Config)
 	if err != nil {
-		return output, fmt.Errorf("error creating ssh client: %v", err)
+		return "", fmt.Errorf("error creating ssh client: %v", err)
 	}
+	sc.Client = client
 
 	// Create a new session for this operation.
-	var session *ssh.Session
-	session, err = sc.Client.NewSession()
+	session, err := sc.Client.NewSession()
 	if err != nil {
-		return output, fmt.Errorf("error creating new ssh session: %v", err)
+		return "", fmt.Errorf("error creating new ssh session: %v", err)
 	}
 	defer func() {
 		if cerr := session.Close(); cerr != nil {
@@ -86,7 +86,7 @@ func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (o
 		// Execute the command and capture its combined output.
 		out, err = session.CombinedOutput(fmt.Sprintf("%s %s", command.string, filePath))
 		if err != nil {
-			return output, fmt.Errorf("error executing command: %v, output: %s", err, string(out))
+			return "", fmt.Errorf("error executing command: %v, output: %s", err, string(out))
 		}
 	} else {
 		// If there is data
@@ -94,37 +94,34 @@ func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (o
 		// Obtain the stdin pipe to send data.
 		stdin, err := session.StdinPipe()
 		if err != nil {
-			return output, fmt.Errorf("error obtaining the stdin pipe: %v", err)
+			return "", fmt.Errorf("error obtaining the stdin pipe: %v", err)
 		}
 		// Start the command on the remote host.
 		if err := session.Start(fmt.Sprintf("%s %s", command.string, filePath)); err != nil {
-			return output, fmt.Errorf("error starting session: %v", err)
+			return "", fmt.Errorf("error starting session: %v", err)
 		}
 
 		// Write data to the remote process.
-		_, err = fmt.Fprintf(stdin, "%s\n", data[0])
-		if err != nil {
-			return output, fmt.Errorf("error writing string: %v", err)
+		if _, err := fmt.Fprintf(stdin, "%s\n", data[0]); err != nil {
+			return "", fmt.Errorf("error writing string: %v", err)
 		}
 
 		// Closing stdin signals EOF to the remote command.
 		if closeErr := stdin.Close(); closeErr != nil {
-			return output, fmt.Errorf("error closing stdin: %v", closeErr)
+			return "", fmt.Errorf("error closing stdin: %v", closeErr)
 		}
 
-		err = session.Wait()
-		if err != nil {
-			return output, err
+		if err := session.Wait(); err != nil {
+			return "", err
 		}
 
 	}
 
-	output = string(out)
-	return output, err
+	return string(out), nil
 }
 
 // newSSHClient creates a new SSH client with the provided username and password.
-func newSSHClient(ctx context.Context, sshUser, sshPass string) (client *SSHClient, err error) {
+func newSSHClient(ctx context.Context, sshUser, sshPass string) (*SSHClient, error) {
 	//nolint:gosec // Ignoring host key for internal infrastructure
 	sshConfig := &ssh.ClientConfig{
 		User: sshUser,
@@ -139,7 +136,7 @@ func newSSHClient(ctx context.Context, sshUser, sshPass string) (client *SSHClie
 		return nil, fmt.Errorf("error getting random host: %v", err)
 	}
 
-	client = &SSHClient{
+	client := &SSHClient{
 		Config:   sshConfig,
 		TargetIP: sshIP,
 	}
@@ -161,7 +158,8 @@ func GetSSHClient(ctx context.Context) (*SSHClient, error) {
 }
 
 // generateSSHHost generates a random SSH host from the Proxmox nodes.
-func generateSSHHost(ctx context.Context) (host string, err error) {
+
+func generateSSHHost(ctx context.Context) (string, error) {
 	proxmoxClient, err := GetProxmoxClient(ctx)
 	if err != nil {
 		return "", fmt.Errorf("error getting proxmox client: %v", err)
@@ -190,9 +188,8 @@ func generateSSHHost(ctx context.Context) (host string, err error) {
 
 	for _, nic := range nodeNetworks {
 		if nic.Iface == "vmbr1.606" {
-			host = nic.Address
-			break
+			return nic.Address, nil
 		}
 	}
-	return host, nil
+	return "", nil
 }

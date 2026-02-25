@@ -19,6 +19,7 @@ package client
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net/http"
 	"os"
 	"sync"
@@ -41,7 +42,7 @@ var (
 var GetProxmoxClientFn = GetProxmoxClient
 
 // newClient creates a new Proxmox client
-func newClient(pveURL, pveUser, pveToken string) (client *px.Client, err error) {
+func newClient(pveURL, pveUser, pveToken string) (*px.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport)
 	//nolint:gosec // Required for Proxmox API self-signed certificates
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -54,13 +55,13 @@ func newClient(pveURL, pveUser, pveToken string) (client *px.Client, err error) 
 		api.WithHTTPClient(httpClient),
 	)
 
-	client = &px.Client{Client: apiClient}
+	client := &px.Client{Client: apiClient}
 
 	return client, nil
 }
 
 // GetProxmoxClient returns a Proxmox client dik
-func GetProxmoxClient(ctx context.Context) (ret *px.Client, err error) {
+func GetProxmoxClient(ctx context.Context) (*px.Client, error) {
 	once.Do(func() {
 		p.GetLogger(ctx).Debugf("Client is not initialized, initializing now")
 		pveConfig := infer.GetConfig[config.Config](ctx)
@@ -68,12 +69,15 @@ func GetProxmoxClient(ctx context.Context) (ret *px.Client, err error) {
 		if pveURL != "" {
 			pveConfig.PveURL = pveURL
 		}
+		var err error
 		client, err = newClient(pveConfig.PveURL, pveConfig.PveUser, pveConfig.PveToken)
+		if err != nil {
+			p.GetLogger(ctx).Errorf("Error creating Proxmox client: %v", err)
+		}
 	})
 
-	if err != nil {
-		p.GetLogger(ctx).Errorf("Error creating Proxmox client: %v", err)
-		return nil, err
+	if client == nil {
+		return nil, errors.New("failed to initialize Proxmox client")
 	}
 
 	return client, nil

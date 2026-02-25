@@ -12,6 +12,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// A Proxmox group resource that represents a group in the Proxmox VE.
 type Group struct {
 	pulumi.CustomResourceState
 
