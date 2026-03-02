@@ -468,6 +468,7 @@
       ]
     },
     "pve:role:Role": {
+      "description": "A Proxmox role resource that represents a role in the Proxmox VE.",
       "properties": {
         "name": {
           "type": "string",

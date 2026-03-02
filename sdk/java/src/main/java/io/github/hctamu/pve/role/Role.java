@@ -14,6 +14,10 @@ import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
+/**
+ * A Proxmox role resource that represents a role in the Proxmox VE.
+ * 
+ */
 @ResourceType(type="pve:role:Role")
 public class Role extends com.pulumi.resources.CustomResource {
     /**
