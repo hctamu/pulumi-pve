@@ -65,7 +65,8 @@ class Role(pulumi.CustomResource):
                  privileges: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  __props__=None):
         """
-        Create a Role resource with the given unique name, props, and options.
+        A Proxmox role resource that represents a role in the Proxmox VE.
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] name: The name of the Proxmox role.
@@ -78,7 +79,8 @@ class Role(pulumi.CustomResource):
                  args: RoleArgs,
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
-        Create a Role resource with the given unique name, props, and options.
+        A Proxmox role resource that represents a role in the Proxmox VE.
+
         :param str resource_name: The name of the resource.
         :param RoleArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
