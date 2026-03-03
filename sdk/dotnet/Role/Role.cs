@@ -10,6 +10,9 @@ using Pulumi;
 
 namespace Hctamu.Pve.Role
 {
+    /// <summary>
+    /// A Proxmox role resource that represents a role in the Proxmox VE.
+    /// </summary>
     [PveResourceType("pve:role:Role")]
     public partial class Role : global::Pulumi.CustomResource
     {

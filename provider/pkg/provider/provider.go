@@ -100,6 +100,18 @@ func newGroupResourceWithConfig(cfg *config.Config) *group.Group {
 	return &group.Group{GroupOps: groupAdapter}
 }
 
+// newRoleResourceWithConfig creates a new Role resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newRoleResourceWithConfig(cfg *config.Config) *role.Role {
+	// Create ProxmoxAdapter with config
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+
+	// Create RoleAdapter using the ProxmoxAdapter
+	roleAdapter := adapters.NewRoleAdapter(proxmoxAdapter)
+
+	return &role.Role{RoleOps: roleAdapter}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -115,7 +127,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newHAResourceWithConfig(cfg)),
 			infer.Resource(&vm.VM{}),
 			infer.Resource(newGroupResourceWithConfig(cfg)),
-			infer.Resource(&role.Role{}),
+			infer.Resource(newRoleResourceWithConfig(cfg)),
 			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(newUserResourceWithConfig(cfg)),
 		},
