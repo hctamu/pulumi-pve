@@ -12,6 +12,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// A Proxmox role resource that represents a role in the Proxmox VE.
 type Role struct {
 	pulumi.CustomResourceState
 

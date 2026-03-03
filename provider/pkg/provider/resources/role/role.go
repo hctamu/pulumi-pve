@@ -19,199 +19,191 @@ package role
 import (
 	"context"
 	"errors"
-	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	api "github.com/luthermonson/go-proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// Role represents a Proxmox role resource.
-type Role struct{}
-
+// Ensure Role implements the required interfaces
 var (
-	_ = (infer.CustomResource[Inputs, Outputs])((*Role)(nil))
-	_ = (infer.CustomDelete[Outputs])((*Role)(nil))
-	_ = (infer.CustomRead[Inputs, Outputs])((*Role)(nil))
-	_ = (infer.CustomUpdate[Inputs, Outputs])((*Role)(nil))
+	_ = (infer.CustomResource[proxmox.RoleInputs, proxmox.RoleOutputs])((*Role)(nil))
+	_ = (infer.CustomDelete[proxmox.RoleOutputs])((*Role)(nil))
+	_ = (infer.CustomUpdate[proxmox.RoleInputs, proxmox.RoleOutputs])((*Role)(nil))
+	_ = (infer.CustomRead[proxmox.RoleInputs, proxmox.RoleOutputs])((*Role)(nil))
+	_ = (infer.CustomDiff[proxmox.RoleInputs, proxmox.RoleOutputs])((*Role)(nil))
+	_ = infer.Annotated((*Role)(nil))
 )
 
-// ErrRoleNotFound is returned when a role cannot be found in Proxmox.
-var ErrRoleNotFound = errors.New("role not found")
-
-// Inputs defines the input properties for a Proxmox role resource.
-type Inputs struct {
-	Name       string   `pulumi:"name"                provider:"replaceOnChanges"`
-	Privileges []string `pulumi:"privileges,optional"`
-}
-
-// Annotate is used to annotate the input and output properties of the resource.
-func (args *Inputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The name of the Proxmox role.")
-	a.Describe(
-		&args.Privileges,
-		"A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt').",
-	)
-}
-
-// Outputs defines the output properties for a Proxmox role resource.
-type Outputs struct {
-	Inputs
+// Role represents a Proxmox role resource
+type Role struct {
+	RoleOps proxmox.RoleOperations
 }
 
 // Create is used to create a new role resource
 func (role *Role) Create(
 	ctx context.Context,
-	request infer.CreateRequest[Inputs],
-) (infer.CreateResponse[Outputs], error) {
-	l := p.GetLogger(ctx)
-	response := infer.CreateResponse[Outputs]{
-		ID:     request.Inputs.Name,
-		Output: Outputs{Inputs: request.Inputs},
-	}
-	l.Debugf("Create: %v, %v, %v", request.Name, request.Inputs, response.Output)
+	request infer.CreateRequest[proxmox.RoleInputs],
+) (infer.CreateResponse[proxmox.RoleOutputs], error) {
+	inputs := request.Inputs
+	preview := request.DryRun
 
-	if request.DryRun {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Creating role resource: %v", inputs)
+
+	response := infer.CreateResponse[proxmox.RoleOutputs]{
+		ID:     inputs.Name,
+		Output: proxmox.RoleOutputs{RoleInputs: inputs},
+	}
+
+	if preview {
 		return response, nil
 	}
 
-	// get client
-	pxc, err := client.GetProxmoxClientFn(ctx)
-	if err != nil {
+	if role.RoleOps == nil {
+		return response, errors.New("RoleOperations not configured")
+	}
+
+	if err := role.RoleOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
 
-	// perform create
-	if err := pxc.NewRole(ctx, request.Inputs.Name, utils.SliceToString(request.Inputs.Privileges)); err != nil {
-		return response, fmt.Errorf("failed to create role %s: %w", request.Inputs.Name, err)
-	}
-
-	// fetch created resource to confirm
-	if _, err := pxc.Role(ctx, request.Inputs.Name); err != nil {
-		return response, fmt.Errorf("failed to fetch role %s: %w", request.Inputs.Name, err)
-	}
-
-	l.Debugf("Successfully created role %s", request.Inputs.Name)
-
 	return response, nil
-}
-
-// Delete is used to delete a role resource
-func (role *Role) Delete(
-	ctx context.Context,
-	request infer.DeleteRequest[Outputs],
-) (infer.DeleteResponse, error) {
-	response, err := utils.DeleteResource(utils.DeletedResource{
-		Ctx:          ctx,
-		ResourceID:   request.State.Name,
-		URL:          "/access/roles/" + request.State.Name,
-		ResourceType: "role",
-	})
-	return response, err
 }
 
 // Read is used to read the state of a role resource
 func (role *Role) Read(
 	ctx context.Context,
-	request infer.ReadRequest[Inputs, Outputs],
-) (infer.ReadResponse[Inputs, Outputs], error) {
-	response := infer.ReadResponse[Inputs, Outputs]{
-		ID:     request.ID,
-		Inputs: request.Inputs,
-	}
-
-	l := p.GetLogger(ctx)
-	l.Debugf(
+	request infer.ReadRequest[proxmox.RoleInputs, proxmox.RoleOutputs],
+) (infer.ReadResponse[proxmox.RoleInputs, proxmox.RoleOutputs], error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf(
 		"Read called for Role with ID: %s, Inputs: %+v, State: %+v",
 		request.ID,
 		request.Inputs,
 		request.State,
 	)
 
-	// if resource does not exist, pulumi will invoke Create
+	response := infer.ReadResponse[proxmox.RoleInputs, proxmox.RoleOutputs](request)
+
+	if role.RoleOps == nil {
+		return response, errors.New("RoleOperations not configured")
+	}
+
+	// If resource does not exist yet, Pulumi will invoke Create.
 	if request.ID == "" {
 		return response, nil
 	}
 
-	// get client
-	pxc, err := client.GetProxmoxClientFn(ctx)
-	if err != nil {
-		return response, err
-	}
-
-	// fetch existing resource's permissions/privileges from server
-	existingRolePrivs, err := pxc.Role(ctx, request.ID)
+	outputs, err := role.RoleOps.Get(ctx, request.ID)
 	if err != nil {
 		if utils.IsNotFound(err) {
 			response.ID = ""
+			response.State = proxmox.RoleOutputs{}
 			return response, nil
 		}
-		return response, fmt.Errorf("failed to get role %s: %w", request.ID, err)
+		return response, err
 	}
 
-	l.Debugf("Successfully fetched role: %+v", request.ID)
+	state := *outputs
+	response.Inputs = state.RoleInputs
+	response.State = state
 
-	// set state from fetched resource
-	response.State = Outputs{
-		Inputs: Inputs{
-			Name:       request.ID,
-			Privileges: utils.MapToStringSlice(existingRolePrivs),
-		},
-	}
-
-	// update inputs to match state
-	response.Inputs = response.State.Inputs
-
-	l.Debugf("Returning updated state: %+v", response.State)
+	logger.Debugf("Returning updated state: %+v", response.State)
 	return response, nil
 }
 
 // Update is used to update a role resource
 func (role *Role) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[Inputs, Outputs],
-) (infer.UpdateResponse[Outputs], error) {
-	response := infer.UpdateResponse[Outputs]{
+	request infer.UpdateRequest[proxmox.RoleInputs, proxmox.RoleOutputs],
+) (infer.UpdateResponse[proxmox.RoleOutputs], error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Updating role resource: %v", request.ID)
+
+	response := infer.UpdateResponse[proxmox.RoleOutputs]{
 		Output: request.State,
 	}
-
-	l := p.GetLogger(ctx)
-	l.Debugf("Update called for Role with ID: %s, Inputs: %+v, State: %+v",
-		request.State.Name,
-		request.Inputs,
-		request.State,
-	)
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	// compare and update fields
+	if role.RoleOps == nil {
+		return response, errors.New("RoleOperations not configured")
+	}
+
+	// Merge desired changes over the last-known state to avoid unintentionally
+	// zeroing fields and to preserve old behavior.
+	newState := request.State.RoleInputs
+
 	if utils.SliceToString(request.Inputs.Privileges) != utils.SliceToString(request.State.Privileges) {
-		l.Infof("Updating privileges from %q to %q", request.State.Privileges, request.Inputs.Privileges)
-		response.Output.Privileges = request.Inputs.Privileges
+		logger.Infof("Updating privileges from %q to %q", request.State.Privileges, request.Inputs.Privileges)
+		newState.Privileges = request.Inputs.Privileges
 	}
 
-	// prepare updated resource
-	updatedRole := &api.Role{
-		RoleID: response.Output.Name,
-		Privs:  utils.SliceToString(response.Output.Privileges),
+	response.Output.RoleInputs = newState
+
+	err := role.RoleOps.Update(ctx, request.State.Name, newState)
+
+	return response, err
+}
+
+// Delete is used to delete a role resource
+func (role *Role) Delete(
+	ctx context.Context,
+	request infer.DeleteRequest[proxmox.RoleOutputs],
+) (infer.DeleteResponse, error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Deleting role resource: %v", request.State)
+
+	var response infer.DeleteResponse
+
+	if role.RoleOps == nil {
+		return response, errors.New("RoleOperations not configured")
 	}
 
-	// get client
-	pxc, err := client.GetProxmoxClientFn(ctx)
-	if err != nil {
+	if err := role.RoleOps.Delete(ctx, request.State.Name); err != nil {
 		return response, err
 	}
+	logger.Debugf("Role resource %v deleted", request.State.Name)
 
-	// perform update
-	if err := pxc.Put(ctx, "/access/roles/"+updatedRole.RoleID, updatedRole, nil); err != nil {
-		return response, fmt.Errorf("failed to update role %s: %w", request.State.Name, err)
+	return response, nil
+}
+
+// Diff is used to avoid phantom updates due to ordering changes in list-like properties
+func (role *Role) Diff(
+	ctx context.Context,
+	request infer.DiffRequest[proxmox.RoleInputs, proxmox.RoleOutputs],
+) (p.DiffResponse, error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Diff called for Role with ID: %s", request.ID)
+
+	diff := map[string]p.PropertyDiff{}
+
+	// Replace-on-change properties
+	if request.Inputs.Name != request.State.Name {
+		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 
-	l.Debugf("Successfully updated role %s", request.State.Name)
+	// Regular update properties
+	if utils.SliceToString(request.Inputs.Privileges) != utils.SliceToString(request.State.Privileges) {
+		diff["privileges"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	response := p.DiffResponse{
+		HasChanges:   len(diff) > 0,
+		DetailedDiff: diff,
+	}
 	return response, nil
+}
+
+// Annotate is used to annotate the role resource
+func (role *Role) Annotate(a infer.Annotator) {
+	a.Describe(
+		role,
+		"A Proxmox role resource that represents a role in the Proxmox VE.",
+	)
 }
