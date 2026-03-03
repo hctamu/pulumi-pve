@@ -177,6 +177,9 @@ jobs:
         retention-days: 30
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: write
     needs: build_sdks
     name: publish
     steps:
