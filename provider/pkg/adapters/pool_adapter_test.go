@@ -13,10 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
+	
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -39,7 +42,7 @@ func TestPoolAdapterCreate(t *testing.T) {
 			Comment: "Test pool comment",
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Equal(t, "/pools", r.URL.Path)
@@ -64,11 +67,11 @@ func TestPoolAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Create(context.Background(), inputs)
 		require.NoError(t, err)
 
@@ -87,7 +90,7 @@ func TestPoolAdapterCreate(t *testing.T) {
 			Comment: "",
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
 			// Verify request body
 			var receivedBody map[string]interface{}
 			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
@@ -107,11 +110,11 @@ func TestPoolAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Create(context.Background(), inputs)
 		require.NoError(t, err)
 
@@ -128,7 +131,7 @@ func TestPoolAdapterCreate(t *testing.T) {
 			Comment: "Test comment",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "pool already exists"}`))
 		})
@@ -140,11 +143,11 @@ func TestPoolAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Create(context.Background(), inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to create Pool resource: 500 Internal Server Error")
@@ -162,7 +165,7 @@ func TestPoolAdapterGet(t *testing.T) {
 			"comment": "Pool comment",
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodGet, r.Method)
 			assert.Equal(t, "/pools/test-pool", r.URL.Path)
@@ -184,11 +187,11 @@ func TestPoolAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		outputs, err := poolAdapter.Get(context.Background(), "test-pool")
 		require.NoError(t, err)
 		require.NotNil(t, outputs)
@@ -210,7 +213,7 @@ func TestPoolAdapterGet(t *testing.T) {
 			"comment": "",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, "/pools/simple-pool", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
@@ -228,11 +231,11 @@ func TestPoolAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		outputs, err := poolAdapter.Get(context.Background(), "simple-pool")
 		require.NoError(t, err)
 		require.NotNil(t, outputs)
@@ -244,7 +247,7 @@ func TestPoolAdapterGet(t *testing.T) {
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
@@ -257,11 +260,11 @@ func TestPoolAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		outputs, err := poolAdapter.Get(context.Background(), "nonexistent-pool")
 		require.Error(t, err)
 		assert.Nil(t, outputs)
@@ -277,7 +280,7 @@ func TestPoolAdapterGet(t *testing.T) {
 			"comment": longComment,
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusOK)
 			responseData := map[string]interface{}{
 				"data": apiResponse,
@@ -293,11 +296,11 @@ func TestPoolAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		outputs, err := poolAdapter.Get(context.Background(), "detailed-pool")
 		require.NoError(t, err)
 		assert.Equal(t, longComment, outputs.Comment)
@@ -318,7 +321,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		// First request is GET to fetch the pool
 		// Second request is PUT to update it
 		requestCount := 0
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			requestCount++
 
 			if requestCount == 1 {
@@ -359,11 +362,11 @@ func TestPoolAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Update(context.Background(), "test-pool", inputs)
 		require.NoError(t, err)
 
@@ -382,7 +385,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		}
 
 		requestCount := 0
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			requestCount++
 
 			if requestCount == 1 {
@@ -422,11 +425,11 @@ func TestPoolAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Update(context.Background(), "test-pool", inputs)
 		require.NoError(t, err)
 
@@ -441,7 +444,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 			Comment: "New comment",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// GET fails
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -456,11 +459,11 @@ func TestPoolAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Update(context.Background(), "nonexistent-pool", inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to get Pool resource for update: 500 Internal Server Error")
@@ -475,7 +478,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		}
 
 		requestCount := 0
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			requestCount++
 
 			if requestCount == 1 {
@@ -504,11 +507,11 @@ func TestPoolAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Update(context.Background(), "test-pool", inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to update Pool resource: 500 Internal Server Error")
@@ -524,7 +527,7 @@ func TestPoolAdapterDelete(t *testing.T) {
 		// First request is GET to fetch the pool
 		// Second request is DELETE
 		requestCount := 0
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			requestCount++
 
 			if requestCount == 1 {
@@ -562,11 +565,11 @@ func TestPoolAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Delete(context.Background(), "test-pool")
 		require.NoError(t, err)
 
@@ -579,7 +582,7 @@ func TestPoolAdapterDelete(t *testing.T) {
 	t.Run("delete handles get error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// GET fails
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -594,11 +597,11 @@ func TestPoolAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Delete(context.Background(), "nonexistent-pool")
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to get Pool resource for deletion: 500 Internal Server Error")
@@ -608,7 +611,7 @@ func TestPoolAdapterDelete(t *testing.T) {
 		t.Parallel()
 
 		requestCount := 0
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			requestCount++
 
 			if requestCount == 1 {
@@ -637,11 +640,11 @@ func TestPoolAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		err = poolAdapter.Delete(context.Background(), "test-pool")
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to delete Pool resource: 500 Internal Server Error")
@@ -660,12 +663,11 @@ func TestNewPoolAdapter(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		poolAdapter := NewPoolAdapter(proxmoxAdapter)
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		require.NotNil(t, poolAdapter)
-		assert.NotNil(t, poolAdapter.proxmoxAdapter)
 	})
 }

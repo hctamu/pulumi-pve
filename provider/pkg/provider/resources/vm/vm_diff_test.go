@@ -19,6 +19,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
@@ -81,20 +82,20 @@ func TestVMDiffComputedFields(t *testing.T) {
 			t.Parallel()
 
 			vm := &vmResource.VM{}
-			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
-				Inputs: vmResource.Inputs{
+				Inputs: proxmox.VMInputs{
 					Name:  testutils.Ptr("test-vm"),
 					VMID:  tt.inputVMID,
 					Node:  tt.inputNode,
-					Disks: []*vmResource.Disk{},
+					Disks: []*proxmox.Disk{},
 				},
-				State: vmResource.Outputs{
-					Inputs: vmResource.Inputs{
+				State: proxmox.VMOutputs{
+					VMInputs: proxmox.VMInputs{
 						Name:  testutils.Ptr("test-vm"),
 						VMID:  tt.stateVMID,
 						Node:  tt.stateNode,
-						Disks: []*vmResource.Disk{},
+						Disks: []*proxmox.Disk{},
 					},
 				},
 			}
@@ -165,24 +166,24 @@ func TestVMDiffPointerFields(t *testing.T) {
 			t.Parallel()
 
 			vm := &vmResource.VM{}
-			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
-				Inputs: vmResource.Inputs{
+				Inputs: proxmox.VMInputs{
 					Name:   testutils.Ptr("test-vm"),
 					Memory: tt.inputMemory,
-					CPU: &vmResource.CPU{
+					CPU: &proxmox.CPU{
 						Cores: tt.inputCores,
 					},
-					Disks: []*vmResource.Disk{},
+					Disks: []*proxmox.Disk{},
 				},
-				State: vmResource.Outputs{
-					Inputs: vmResource.Inputs{
+				State: proxmox.VMOutputs{
+					VMInputs: proxmox.VMInputs{
 						Name:   testutils.Ptr("test-vm"),
 						Memory: tt.stateMemory,
-						CPU: &vmResource.CPU{
+						CPU: &proxmox.CPU{
 							Cores: tt.stateCores,
 						},
-						Disks: []*vmResource.Disk{},
+						Disks: []*proxmox.Disk{},
 					},
 				},
 			}
@@ -199,30 +200,30 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	t.Parallel()
 
 	vm := &vmResource.VM{}
-	req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+	req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			Name:   testutils.Ptr("new-name"),
 			Memory: testutils.Ptr(4096),
-			CPU: &vmResource.CPU{
+			CPU: &proxmox.CPU{
 				Cores: testutils.Ptr(4),
 			},
-			Disks: []*vmResource.Disk{
+			Disks: []*proxmox.Disk{
 				{Size: 50, Interface: "scsi0"},
 			},
-			EfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
+			EfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
 		},
-		State: vmResource.Outputs{
-			Inputs: vmResource.Inputs{
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
 				Name:   testutils.Ptr("old-name"),
 				Memory: testutils.Ptr(2048),
-				CPU: &vmResource.CPU{
+				CPU: &proxmox.CPU{
 					Cores: testutils.Ptr(2),
 				},
-				Disks: []*vmResource.Disk{
+				Disks: []*proxmox.Disk{
 					{Size: 40, Interface: "scsi0"},
 				},
-				EfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
+				EfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType2M},
 			},
 		},
 	}

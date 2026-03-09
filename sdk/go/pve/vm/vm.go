@@ -9,52 +9,53 @@ import (
 
 	"errors"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/hctamu/pulumi-pve/sdk/go/pve/proxmox"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type VM struct {
 	pulumi.CustomResourceState
 
-	Acpi         pulumi.IntPtrOutput    `pulumi:"acpi"`
-	Audio0       pulumi.StringPtrOutput `pulumi:"audio0"`
-	Autostart    pulumi.IntPtrOutput    `pulumi:"autostart"`
-	Balloon      pulumi.IntPtrOutput    `pulumi:"balloon"`
-	Bios         pulumi.StringPtrOutput `pulumi:"bios"`
-	Cicustom     pulumi.StringPtrOutput `pulumi:"cicustom"`
-	Cipassword   pulumi.StringPtrOutput `pulumi:"cipassword"`
-	Citype       pulumi.StringPtrOutput `pulumi:"citype"`
-	Ciupgrade    pulumi.IntPtrOutput    `pulumi:"ciupgrade"`
-	Ciuser       pulumi.StringPtrOutput `pulumi:"ciuser"`
-	Clone        ClonePtrOutput         `pulumi:"clone"`
-	Cpu          CPUPtrOutput           `pulumi:"cpu"`
-	Description  pulumi.StringPtrOutput `pulumi:"description"`
-	Disks        DiskArrayOutput        `pulumi:"disks"`
-	Efidisk      EfiDiskPtrOutput       `pulumi:"efidisk"`
-	Hookscript   pulumi.StringPtrOutput `pulumi:"hookscript"`
-	Hostpci0     pulumi.StringPtrOutput `pulumi:"hostpci0"`
-	Hotplug      pulumi.StringPtrOutput `pulumi:"hotplug"`
-	Hugepages    pulumi.StringPtrOutput `pulumi:"hugepages"`
-	Ipconfig0    pulumi.StringPtrOutput `pulumi:"ipconfig0"`
-	Kvm          pulumi.IntPtrOutput    `pulumi:"kvm"`
-	Lock         pulumi.StringPtrOutput `pulumi:"lock"`
-	Machine      pulumi.StringPtrOutput `pulumi:"machine"`
-	Memory       pulumi.IntPtrOutput    `pulumi:"memory"`
-	Name         pulumi.StringOutput    `pulumi:"name"`
-	Nameserver   pulumi.StringPtrOutput `pulumi:"nameserver"`
-	Node         pulumi.StringPtrOutput `pulumi:"node"`
-	Ostype       pulumi.StringPtrOutput `pulumi:"ostype"`
-	Parallel0    pulumi.StringPtrOutput `pulumi:"parallel0"`
-	Protection   pulumi.IntPtrOutput    `pulumi:"protection"`
-	Rng0         pulumi.StringPtrOutput `pulumi:"rng0"`
-	Searchdomain pulumi.StringPtrOutput `pulumi:"searchdomain"`
-	Serial0      pulumi.StringPtrOutput `pulumi:"serial0"`
-	Sshkeys      pulumi.StringPtrOutput `pulumi:"sshkeys"`
-	Tablet       pulumi.IntPtrOutput    `pulumi:"tablet"`
-	Template     pulumi.IntPtrOutput    `pulumi:"template"`
-	Tpmstate0    pulumi.StringPtrOutput `pulumi:"tpmstate0"`
-	Usb0         pulumi.StringPtrOutput `pulumi:"usb0"`
-	Vga          pulumi.StringPtrOutput `pulumi:"vga"`
-	VmId         pulumi.IntPtrOutput    `pulumi:"vmId"`
+	Acpi         pulumi.IntPtrOutput      `pulumi:"acpi"`
+	Audio0       pulumi.StringPtrOutput   `pulumi:"audio0"`
+	Autostart    pulumi.IntPtrOutput      `pulumi:"autostart"`
+	Balloon      pulumi.IntPtrOutput      `pulumi:"balloon"`
+	Bios         pulumi.StringPtrOutput   `pulumi:"bios"`
+	Cicustom     pulumi.StringPtrOutput   `pulumi:"cicustom"`
+	Cipassword   pulumi.StringPtrOutput   `pulumi:"cipassword"`
+	Citype       pulumi.StringPtrOutput   `pulumi:"citype"`
+	Ciupgrade    pulumi.IntPtrOutput      `pulumi:"ciupgrade"`
+	Ciuser       pulumi.StringPtrOutput   `pulumi:"ciuser"`
+	Clone        proxmox.ClonePtrOutput   `pulumi:"clone"`
+	Cpu          proxmox.CPUPtrOutput     `pulumi:"cpu"`
+	Description  pulumi.StringPtrOutput   `pulumi:"description"`
+	Disks        proxmox.DiskArrayOutput  `pulumi:"disks"`
+	Efidisk      proxmox.EfiDiskPtrOutput `pulumi:"efidisk"`
+	Hookscript   pulumi.StringPtrOutput   `pulumi:"hookscript"`
+	Hostpci0     pulumi.StringPtrOutput   `pulumi:"hostpci0"`
+	Hotplug      pulumi.StringPtrOutput   `pulumi:"hotplug"`
+	Hugepages    pulumi.StringPtrOutput   `pulumi:"hugepages"`
+	Ipconfig0    pulumi.StringPtrOutput   `pulumi:"ipconfig0"`
+	Kvm          pulumi.IntPtrOutput      `pulumi:"kvm"`
+	Lock         pulumi.StringPtrOutput   `pulumi:"lock"`
+	Machine      pulumi.StringPtrOutput   `pulumi:"machine"`
+	Memory       pulumi.IntPtrOutput      `pulumi:"memory"`
+	Name         pulumi.StringOutput      `pulumi:"name"`
+	Nameserver   pulumi.StringPtrOutput   `pulumi:"nameserver"`
+	Node         pulumi.StringPtrOutput   `pulumi:"node"`
+	Ostype       pulumi.StringPtrOutput   `pulumi:"ostype"`
+	Parallel0    pulumi.StringPtrOutput   `pulumi:"parallel0"`
+	Protection   pulumi.IntPtrOutput      `pulumi:"protection"`
+	Rng0         pulumi.StringPtrOutput   `pulumi:"rng0"`
+	Searchdomain pulumi.StringPtrOutput   `pulumi:"searchdomain"`
+	Serial0      pulumi.StringPtrOutput   `pulumi:"serial0"`
+	Sshkeys      pulumi.StringPtrOutput   `pulumi:"sshkeys"`
+	Tablet       pulumi.IntPtrOutput      `pulumi:"tablet"`
+	Template     pulumi.IntPtrOutput      `pulumi:"template"`
+	Tpmstate0    pulumi.StringPtrOutput   `pulumi:"tpmstate0"`
+	Usb0         pulumi.StringPtrOutput   `pulumi:"usb0"`
+	Vga          pulumi.StringPtrOutput   `pulumi:"vga"`
+	VmId         pulumi.IntPtrOutput      `pulumi:"vmId"`
 }
 
 // NewVM registers a new resource with the given unique name, arguments, and options.
@@ -71,7 +72,7 @@ func NewVM(ctx *pulumi.Context,
 		return nil, errors.New("invalid value for required argument 'Name'")
 	}
 	if args.Cpu != nil {
-		args.Cpu = args.Cpu.ToCPUPtrOutput().ApplyT(func(v *CPU) *CPU { return v.Defaults() }).(CPUPtrOutput)
+		args.Cpu = args.Cpu.ToCPUPtrOutput().ApplyT(func(v *proxmox.CPU) *proxmox.CPU { return v.Defaults() }).(proxmox.CPUPtrOutput)
 	}
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource VM
@@ -106,46 +107,46 @@ func (VMState) ElementType() reflect.Type {
 }
 
 type vmArgs struct {
-	Acpi         *int     `pulumi:"acpi"`
-	Audio0       *string  `pulumi:"audio0"`
-	Autostart    *int     `pulumi:"autostart"`
-	Balloon      *int     `pulumi:"balloon"`
-	Bios         *string  `pulumi:"bios"`
-	Cicustom     *string  `pulumi:"cicustom"`
-	Cipassword   *string  `pulumi:"cipassword"`
-	Citype       *string  `pulumi:"citype"`
-	Ciupgrade    *int     `pulumi:"ciupgrade"`
-	Ciuser       *string  `pulumi:"ciuser"`
-	Clone        *Clone   `pulumi:"clone"`
-	Cpu          *CPU     `pulumi:"cpu"`
-	Description  *string  `pulumi:"description"`
-	Disks        []Disk   `pulumi:"disks"`
-	Efidisk      *EfiDisk `pulumi:"efidisk"`
-	Hookscript   *string  `pulumi:"hookscript"`
-	Hostpci0     *string  `pulumi:"hostpci0"`
-	Hotplug      *string  `pulumi:"hotplug"`
-	Hugepages    *string  `pulumi:"hugepages"`
-	Ipconfig0    *string  `pulumi:"ipconfig0"`
-	Kvm          *int     `pulumi:"kvm"`
-	Lock         *string  `pulumi:"lock"`
-	Machine      *string  `pulumi:"machine"`
-	Memory       *int     `pulumi:"memory"`
-	Name         string   `pulumi:"name"`
-	Nameserver   *string  `pulumi:"nameserver"`
-	Node         *string  `pulumi:"node"`
-	Ostype       *string  `pulumi:"ostype"`
-	Parallel0    *string  `pulumi:"parallel0"`
-	Protection   *int     `pulumi:"protection"`
-	Rng0         *string  `pulumi:"rng0"`
-	Searchdomain *string  `pulumi:"searchdomain"`
-	Serial0      *string  `pulumi:"serial0"`
-	Sshkeys      *string  `pulumi:"sshkeys"`
-	Tablet       *int     `pulumi:"tablet"`
-	Template     *int     `pulumi:"template"`
-	Tpmstate0    *string  `pulumi:"tpmstate0"`
-	Usb0         *string  `pulumi:"usb0"`
-	Vga          *string  `pulumi:"vga"`
-	VmId         *int     `pulumi:"vmId"`
+	Acpi         *int             `pulumi:"acpi"`
+	Audio0       *string          `pulumi:"audio0"`
+	Autostart    *int             `pulumi:"autostart"`
+	Balloon      *int             `pulumi:"balloon"`
+	Bios         *string          `pulumi:"bios"`
+	Cicustom     *string          `pulumi:"cicustom"`
+	Cipassword   *string          `pulumi:"cipassword"`
+	Citype       *string          `pulumi:"citype"`
+	Ciupgrade    *int             `pulumi:"ciupgrade"`
+	Ciuser       *string          `pulumi:"ciuser"`
+	Clone        *proxmox.Clone   `pulumi:"clone"`
+	Cpu          *proxmox.CPU     `pulumi:"cpu"`
+	Description  *string          `pulumi:"description"`
+	Disks        []proxmox.Disk   `pulumi:"disks"`
+	Efidisk      *proxmox.EfiDisk `pulumi:"efidisk"`
+	Hookscript   *string          `pulumi:"hookscript"`
+	Hostpci0     *string          `pulumi:"hostpci0"`
+	Hotplug      *string          `pulumi:"hotplug"`
+	Hugepages    *string          `pulumi:"hugepages"`
+	Ipconfig0    *string          `pulumi:"ipconfig0"`
+	Kvm          *int             `pulumi:"kvm"`
+	Lock         *string          `pulumi:"lock"`
+	Machine      *string          `pulumi:"machine"`
+	Memory       *int             `pulumi:"memory"`
+	Name         string           `pulumi:"name"`
+	Nameserver   *string          `pulumi:"nameserver"`
+	Node         *string          `pulumi:"node"`
+	Ostype       *string          `pulumi:"ostype"`
+	Parallel0    *string          `pulumi:"parallel0"`
+	Protection   *int             `pulumi:"protection"`
+	Rng0         *string          `pulumi:"rng0"`
+	Searchdomain *string          `pulumi:"searchdomain"`
+	Serial0      *string          `pulumi:"serial0"`
+	Sshkeys      *string          `pulumi:"sshkeys"`
+	Tablet       *int             `pulumi:"tablet"`
+	Template     *int             `pulumi:"template"`
+	Tpmstate0    *string          `pulumi:"tpmstate0"`
+	Usb0         *string          `pulumi:"usb0"`
+	Vga          *string          `pulumi:"vga"`
+	VmId         *int             `pulumi:"vmId"`
 }
 
 // The set of arguments for constructing a VM resource.
@@ -160,11 +161,11 @@ type VMArgs struct {
 	Citype       pulumi.StringPtrInput
 	Ciupgrade    pulumi.IntPtrInput
 	Ciuser       pulumi.StringPtrInput
-	Clone        ClonePtrInput
-	Cpu          CPUPtrInput
+	Clone        proxmox.ClonePtrInput
+	Cpu          proxmox.CPUPtrInput
 	Description  pulumi.StringPtrInput
-	Disks        DiskArrayInput
-	Efidisk      EfiDiskPtrInput
+	Disks        proxmox.DiskArrayInput
+	Efidisk      proxmox.EfiDiskPtrInput
 	Hookscript   pulumi.StringPtrInput
 	Hostpci0     pulumi.StringPtrInput
 	Hotplug      pulumi.StringPtrInput
@@ -319,24 +320,24 @@ func (o VMOutput) Ciuser() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Ciuser }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Clone() ClonePtrOutput {
-	return o.ApplyT(func(v *VM) ClonePtrOutput { return v.Clone }).(ClonePtrOutput)
+func (o VMOutput) Clone() proxmox.ClonePtrOutput {
+	return o.ApplyT(func(v *VM) proxmox.ClonePtrOutput { return v.Clone }).(proxmox.ClonePtrOutput)
 }
 
-func (o VMOutput) Cpu() CPUPtrOutput {
-	return o.ApplyT(func(v *VM) CPUPtrOutput { return v.Cpu }).(CPUPtrOutput)
+func (o VMOutput) Cpu() proxmox.CPUPtrOutput {
+	return o.ApplyT(func(v *VM) proxmox.CPUPtrOutput { return v.Cpu }).(proxmox.CPUPtrOutput)
 }
 
 func (o VMOutput) Description() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Description }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Disks() DiskArrayOutput {
-	return o.ApplyT(func(v *VM) DiskArrayOutput { return v.Disks }).(DiskArrayOutput)
+func (o VMOutput) Disks() proxmox.DiskArrayOutput {
+	return o.ApplyT(func(v *VM) proxmox.DiskArrayOutput { return v.Disks }).(proxmox.DiskArrayOutput)
 }
 
-func (o VMOutput) Efidisk() EfiDiskPtrOutput {
-	return o.ApplyT(func(v *VM) EfiDiskPtrOutput { return v.Efidisk }).(EfiDiskPtrOutput)
+func (o VMOutput) Efidisk() proxmox.EfiDiskPtrOutput {
+	return o.ApplyT(func(v *VM) proxmox.EfiDiskPtrOutput { return v.Efidisk }).(proxmox.EfiDiskPtrOutput)
 }
 
 func (o VMOutput) Hookscript() pulumi.StringPtrOutput {
