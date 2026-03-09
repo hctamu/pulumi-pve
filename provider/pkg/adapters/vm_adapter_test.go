@@ -2155,7 +2155,7 @@ func TestBuildOptionsDiskOrdering(t *testing.T) {
 
 				// Verify the disk configuration matches the input disk
 				inputDisk := tc.disks[i]
-				expectedKey, expectedValue := inputDisk.ToProxmoxDiskKeyConfig()
+				expectedKey, expectedValue := adapters.ToProxmoxDiskKeyConfig(*inputDisk)
 				assert.Equal(t, expectedInterface, expectedKey, "Disk interface should match")
 				assert.Equal(t, expectedValue, actualValue, "Disk configuration should match")
 			}
@@ -2208,7 +2208,7 @@ func TestBuildOptionsConsistentOrdering(t *testing.T) {
 	// Verify the order matches the input disk order
 	expectedInterfaces := make([]string, len(disks))
 	for i, disk := range disks {
-		expectedInterfaces[i], _ = disk.ToProxmoxDiskKeyConfig()
+		expectedInterfaces[i], _ = adapters.ToProxmoxDiskKeyConfig(*disk)
 	}
 	assert.Equal(t, expectedInterfaces, expectedOrder,
 		"Consistent order should match input disk order")
@@ -2279,7 +2279,7 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			actualKey, actualValue := tc.disk.ToProxmoxDiskKeyConfig()
+			actualKey, actualValue := adapters.ToProxmoxDiskKeyConfig(*tc.disk)
 			assert.Equal(t, tc.expectedKey, actualKey, "Disk key should match expected")
 			assert.Equal(t, tc.expectedValue, actualValue, "Disk configuration should match expected")
 		})
@@ -2611,7 +2611,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 
 			// Verify the disk configuration matches the input disk
 			inputDisk := testCase.disks[i]
-			expectedKey, expectedValue := inputDisk.ToProxmoxDiskKeyConfig()
+			expectedKey, expectedValue := adapters.ToProxmoxDiskKeyConfig(*inputDisk)
 			assert.Equal(t, expectedInterface, expectedKey,
 				"Disk %d interface should match", i)
 			assert.Equal(t, expectedValue, actualValue,
@@ -2812,7 +2812,7 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 				// Verify each disk configuration is correct
 				for i, expectedInterface := range tc.expectedDiskOrder {
 					inputDisk := tc.inputDisks[i]
-					expectedKey, expectedConfig := inputDisk.ToProxmoxDiskKeyConfig()
+					expectedKey, expectedConfig := adapters.ToProxmoxDiskKeyConfig(*inputDisk)
 
 					assert.Equal(t, expectedInterface, expectedKey,
 						"Disk %d interface should match input", i)

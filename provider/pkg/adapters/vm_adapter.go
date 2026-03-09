@@ -369,7 +369,7 @@ func vmUpdateDisksAfterClone(
 			}
 
 			disk.FileID = currentDisk.FileID
-			_, diskConfig := disk.ToProxmoxDiskKeyConfig()
+			_, diskConfig := ToProxmoxDiskKeyConfig(disk)
 			diskOption.Value = diskConfig
 
 			// Resize disk if necessary
@@ -623,7 +623,7 @@ func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 	}
 
 	for _, disk := range inputs.Disks {
-		diskKey, diskConfig := disk.ToProxmoxDiskKeyConfig()
+		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
 		options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
 	}
 
@@ -1179,4 +1179,21 @@ func ToProxmoxNumaString(n proxmox.NumaNode) string {
 		parts = append(parts, "policy="+*n.Policy)
 	}
 	return strings.Join(parts, ",")
+}
+
+// ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
+func ToProxmoxDiskKeyConfig(disk proxmox.Disk) (diskKey, diskConfig string) {
+	var fullDiskPath string
+
+	if disk.FileID == nil || *disk.FileID == "" {
+		// No file Id means we are creating the disk now, so we use the storage:size format to create the disk
+		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
+	} else {
+		// We already have a disk file, so we use the storage:file_id format
+		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, *disk.FileID)
+	}
+
+	diskKey = disk.Interface
+	diskConfig = fmt.Sprintf("file=%v,size=%v", fullDiskPath, disk.Size)
+	return
 }
