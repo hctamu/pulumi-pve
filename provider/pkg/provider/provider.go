@@ -112,6 +112,13 @@ func newRoleResourceWithConfig(cfg *config.Config) *role.Role {
 	return &role.Role{RoleOps: roleAdapter}
 }
 
+// newVMResourceWithConfig creates a new VM resource with a specific config.
+// The VMAdapter uses the Proxmox client factory (client.GetProxmoxClientFn) internally,
+// which reads configuration from the Pulumi context at runtime.
+func newVMResourceWithConfig(_ *config.Config) *vm.VM {
+	return &vm.VM{VMOps: adapters.NewVMAdapter()}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -125,7 +132,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newPoolResourceWithConfig(cfg)),
 			infer.Resource(&storage.File{}),
 			infer.Resource(newHAResourceWithConfig(cfg)),
-			infer.Resource(&vm.VM{}),
+			infer.Resource(newVMResourceWithConfig(cfg)),
 			infer.Resource(newGroupResourceWithConfig(cfg)),
 			infer.Resource(newRoleResourceWithConfig(cfg)),
 			infer.Resource(newACLResourceWithConfig(cfg)),

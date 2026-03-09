@@ -13,10 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
+	
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -45,7 +48,7 @@ func TestRoleAdapterCreate(t *testing.T) {
 			Privileges: []string{rolePrivilege1, rolePrivilege2},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/roles")
 
@@ -72,9 +75,9 @@ func TestRoleAdapterCreate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		err := role.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -94,7 +97,7 @@ func TestRoleAdapterCreate(t *testing.T) {
 			Privileges: []string{rolePrivilege1},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/roles")
 			assert.Contains(t, req.Body, roleName)
@@ -105,9 +108,9 @@ func TestRoleAdapterCreate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		err := role.Create(context.Background(), inputs)
 		require.Error(t, err)
@@ -122,7 +125,7 @@ func TestRoleAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, http.MethodGet, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/roles/")
 
@@ -138,9 +141,9 @@ func TestRoleAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		out, err := role.Get(context.Background(), roleName)
 		require.NoError(t, err)
@@ -156,7 +159,7 @@ func TestRoleAdapterGet(t *testing.T) {
 	t.Run("get returns nil privileges when empty", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -166,9 +169,9 @@ func TestRoleAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		out, err := role.Get(context.Background(), roleName)
 		require.NoError(t, err)
@@ -179,7 +182,7 @@ func TestRoleAdapterGet(t *testing.T) {
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
@@ -187,9 +190,9 @@ func TestRoleAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		out, err := role.Get(context.Background(), roleName)
 		require.Error(t, err)
@@ -208,7 +211,7 @@ func TestRoleAdapterUpdate(t *testing.T) {
 			Privileges: []string{rolePrivilege2, rolePrivilege1},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/roles/"+url.PathEscape(roleName))
 
@@ -227,9 +230,9 @@ func TestRoleAdapterUpdate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		err := role.Update(context.Background(), roleName, inputs)
 		require.NoError(t, err)
@@ -243,16 +246,16 @@ func TestRoleAdapterUpdate(t *testing.T) {
 	t.Run("update handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
 		})
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		err := role.Update(context.Background(), roleName, proxmox.RoleInputs{Privileges: []string{rolePrivilege1}})
 		require.Error(t, err)
@@ -266,7 +269,7 @@ func TestRoleAdapterDelete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/roles/")
 			assert.Empty(t, req.Body)
@@ -276,9 +279,9 @@ func TestRoleAdapterDelete(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		err := role.Delete(context.Background(), roleName)
 		require.NoError(t, err)
@@ -289,16 +292,16 @@ func TestRoleAdapterDelete(t *testing.T) {
 	t.Run("delete handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
 		})
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		role := NewRoleAdapter(pxa)
+		role := adapters.NewRoleAdapter(pxa)
 
 		err := role.Delete(context.Background(), roleName)
 		require.Error(t, err)
@@ -310,10 +313,9 @@ func TestNewRoleAdapter(t *testing.T) {
 	t.Parallel()
 
 	cfg := &config.Config{PveURL: "https://test.proxmox.com:8006", PveUser: "test@pam", PveToken: "test-token"}
-	pxa := NewProxmoxAdapter(cfg)
+	pxa := adapters.NewProxmoxAdapter(cfg)
 	require.NoError(t, pxa.Connect(context.Background()))
 
-	role := NewRoleAdapter(pxa)
+	role := adapters.NewRoleAdapter(pxa)
 	require.NotNil(t, role)
-	assert.NotNil(t, role.proxmoxAdapter)
 }

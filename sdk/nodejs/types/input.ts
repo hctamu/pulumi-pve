@@ -7,20 +7,7 @@ import * as outputs from "../types/output";
 
 import * as utilities from "../utilities";
 
-export namespace storage {
-    export interface FileSourceRawArgs {
-        /**
-         * The raw data in []byte
-         */
-        fileData: pulumi.Input<string>;
-        /**
-         * The name of the file
-         */
-        fileName: pulumi.Input<string>;
-    }
-}
-
-export namespace vm {
+export namespace proxmox {
     /**
      * CPU configuration for the virtual machine.
      */
@@ -32,7 +19,7 @@ export namespace vm {
         hvVendorId?: pulumi.Input<string>;
         limit?: pulumi.Input<number>;
         numa?: pulumi.Input<boolean>;
-        numaNodes?: pulumi.Input<pulumi.Input<inputs.vm.NumaNodeArgs>[]>;
+        numaNodes?: pulumi.Input<pulumi.Input<inputs.proxmox.NumaNodeArgs>[]>;
         physBits?: pulumi.Input<string>;
         sockets?: pulumi.Input<number>;
         type?: pulumi.Input<string>;
@@ -79,5 +66,18 @@ export namespace vm {
         hostNodes?: pulumi.Input<string>;
         memory?: pulumi.Input<number>;
         policy?: pulumi.Input<string>;
+    }
+}
+
+export namespace storage {
+    export interface FileSourceRawArgs {
+        /**
+         * The raw data in []byte
+         */
+        fileData: pulumi.Input<string>;
+        /**
+         * The name of the file
+         */
+        fileName: pulumi.Input<string>;
     }
 }

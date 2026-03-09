@@ -44,19 +44,19 @@ namespace Hctamu.Pve.Vm
         public Output<string?> Ciuser { get; private set; } = null!;
 
         [Output("clone")]
-        public Output<Outputs.Clone?> Clone { get; private set; } = null!;
+        public Output<Hctamu.Pve.Proxmox.Outputs.Clone?> Clone { get; private set; } = null!;
 
         [Output("cpu")]
-        public Output<Outputs.CPU?> Cpu { get; private set; } = null!;
+        public Output<Hctamu.Pve.Proxmox.Outputs.CPU?> Cpu { get; private set; } = null!;
 
         [Output("description")]
         public Output<string?> Description { get; private set; } = null!;
 
         [Output("disks")]
-        public Output<ImmutableArray<Outputs.Disk>> Disks { get; private set; } = null!;
+        public Output<ImmutableArray<Hctamu.Pve.Proxmox.Outputs.Disk>> Disks { get; private set; } = null!;
 
         [Output("efidisk")]
-        public Output<Outputs.EfiDisk?> Efidisk { get; private set; } = null!;
+        public Output<Hctamu.Pve.Proxmox.Outputs.EfiDisk?> Efidisk { get; private set; } = null!;
 
         [Output("hookscript")]
         public Output<string?> Hookscript { get; private set; } = null!;
@@ -209,24 +209,24 @@ namespace Hctamu.Pve.Vm
         public Input<string>? Ciuser { get; set; }
 
         [Input("clone")]
-        public Input<Inputs.CloneArgs>? Clone { get; set; }
+        public Input<Hctamu.Pve.Proxmox.Inputs.CloneArgs>? Clone { get; set; }
 
         [Input("cpu")]
-        public Input<Inputs.CPUArgs>? Cpu { get; set; }
+        public Input<Hctamu.Pve.Proxmox.Inputs.CPUArgs>? Cpu { get; set; }
 
         [Input("description")]
         public Input<string>? Description { get; set; }
 
         [Input("disks", required: true)]
-        private InputList<Inputs.DiskArgs>? _disks;
-        public InputList<Inputs.DiskArgs> Disks
+        private InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>? _disks;
+        public InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs> Disks
         {
-            get => _disks ?? (_disks = new InputList<Inputs.DiskArgs>());
+            get => _disks ?? (_disks = new InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>());
             set => _disks = value;
         }
 
         [Input("efidisk")]
-        public Input<Inputs.EfiDiskArgs>? Efidisk { get; set; }
+        public Input<Hctamu.Pve.Proxmox.Inputs.EfiDiskArgs>? Efidisk { get; set; }
 
         [Input("hookscript")]
         public Input<string>? Hookscript { get; set; }

@@ -20,6 +20,8 @@ if typing.TYPE_CHECKING:
     ha = __ha
     import pulumi_pve.pool as __pool
     pool = __pool
+    import pulumi_pve.proxmox as __proxmox
+    proxmox = __proxmox
     import pulumi_pve.role as __role
     role = __role
     import pulumi_pve.storage as __storage
@@ -34,6 +36,7 @@ else:
     group = _utilities.lazy_import('pulumi_pve.group')
     ha = _utilities.lazy_import('pulumi_pve.ha')
     pool = _utilities.lazy_import('pulumi_pve.pool')
+    proxmox = _utilities.lazy_import('pulumi_pve.proxmox')
     role = _utilities.lazy_import('pulumi_pve.role')
     storage = _utilities.lazy_import('pulumi_pve.storage')
     user = _utilities.lazy_import('pulumi_pve.user')

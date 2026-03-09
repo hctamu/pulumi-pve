@@ -13,10 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
+	
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -62,7 +65,7 @@ func TestUserAdapterCreate(t *testing.T) {
 			Password:  userPassword,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/users")
 
@@ -100,9 +103,9 @@ func TestUserAdapterCreate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -123,7 +126,7 @@ func TestUserAdapterCreate(t *testing.T) {
 			Password: userPassword,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/users")
 
@@ -138,9 +141,9 @@ func TestUserAdapterCreate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -152,7 +155,7 @@ func TestUserAdapterCreate(t *testing.T) {
 
 		inputs := proxmox.UserInputs{Name: userID, Enable: true, Password: userPassword}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/users")
 			assert.Contains(t, req.Body, userID)
@@ -163,9 +166,9 @@ func TestUserAdapterCreate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Create(context.Background(), inputs)
 		require.Error(t, err)
@@ -180,7 +183,7 @@ func TestUserAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, http.MethodGet, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/users/")
 
@@ -203,9 +206,9 @@ func TestUserAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		out, err := user.Get(context.Background(), userID)
 		require.NoError(t, err)
@@ -228,7 +231,7 @@ func TestUserAdapterGet(t *testing.T) {
 	t.Run("get returns nil keys when empty", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -242,9 +245,9 @@ func TestUserAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		out, err := user.Get(context.Background(), userID)
 		require.NoError(t, err)
@@ -255,7 +258,7 @@ func TestUserAdapterGet(t *testing.T) {
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
@@ -263,9 +266,9 @@ func TestUserAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		out, err := user.Get(context.Background(), userID)
 		require.Error(t, err)
@@ -291,7 +294,7 @@ func TestUserAdapterUpdate(t *testing.T) {
 			Keys:      []string{userKey2, userKey1},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/users/"+url.PathEscape(userID))
 
@@ -326,9 +329,9 @@ func TestUserAdapterUpdate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Update(context.Background(), userID, inputs)
 		require.NoError(t, err)
@@ -341,16 +344,16 @@ func TestUserAdapterUpdate(t *testing.T) {
 	t.Run("update handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
 		})
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Update(context.Background(), userID, proxmox.UserInputs{Enable: true})
 		require.Error(t, err)
@@ -364,7 +367,7 @@ func TestUserAdapterDelete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/users/")
 			assert.Empty(t, req.Body)
@@ -374,9 +377,9 @@ func TestUserAdapterDelete(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Delete(context.Background(), userID)
 		require.NoError(t, err)
@@ -387,16 +390,16 @@ func TestUserAdapterDelete(t *testing.T) {
 	t.Run("delete handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
 		})
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		user := NewUserAdapter(pxa)
+		user := adapters.NewUserAdapter(pxa)
 
 		err := user.Delete(context.Background(), userID)
 		require.Error(t, err)
@@ -408,10 +411,9 @@ func TestNewUserAdapter(t *testing.T) {
 	t.Parallel()
 
 	cfg := &config.Config{PveURL: "https://test.proxmox.com:8006", PveUser: "test@pam", PveToken: "test-token"}
-	pxa := NewProxmoxAdapter(cfg)
+	pxa := adapters.NewProxmoxAdapter(cfg)
 	require.NoError(t, pxa.Connect(context.Background()))
 
-	user := NewUserAdapter(pxa)
+	user := adapters.NewUserAdapter(pxa)
 	require.NotNil(t, user)
-	assert.NotNil(t, user.proxmoxAdapter)
 }

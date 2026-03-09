@@ -18,12 +18,16 @@ package testutils
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
+	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
 )
 
@@ -57,4 +61,42 @@ func NewAPIMock(
 // Ptr creates a pointer to any value.
 func Ptr[T any](v T) *T {
 	return &v
+}
+
+// CreateMockServer creates a test HTTP server that captures requests and returns mock responses
+func CreateMockServer(
+	t *testing.T,
+	handler func(w http.ResponseWriter, r *http.Request, captured *MockRequest),
+) (*httptest.Server, *MockRequest) {
+	t.Helper()
+	var captured MockRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Capture request details
+		captured.Method = r.Method
+		captured.Path = r.URL.Path
+		captured.Headers = r.Header.Clone()
+		captured.QueryParams = r.URL.Query()
+
+		// Read body
+		if r.Body != nil {
+			bodyBytes, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			captured.Body = string(bodyBytes)
+		}
+
+		// Call handler
+		handler(w, r, &captured)
+	}))
+
+	return server, &captured
+}
+
+// MockRequest captures information about HTTP requests for verification
+type MockRequest struct {
+	Method      string
+	Path        string
+	Body        string
+	Headers     http.Header
+	QueryParams map[string][]string
 }

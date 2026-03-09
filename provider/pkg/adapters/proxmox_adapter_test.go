@@ -13,59 +13,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// mockRequest captures information about HTTP requests for verification
-type mockRequest struct {
-	Method      string
-	Path        string
-	Body        string
-	Headers     http.Header
-	QueryParams map[string][]string
-}
-
-// createMockServer creates a test HTTP server that captures requests and returns mock responses
-func createMockServer(
-	t *testing.T,
-	handler func(w http.ResponseWriter, r *http.Request, captured *mockRequest),
-) (*httptest.Server, *mockRequest) {
-	t.Helper()
-	var captured mockRequest
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Capture request details
-		captured.Method = r.Method
-		captured.Path = r.URL.Path
-		captured.Headers = r.Header.Clone()
-		captured.QueryParams = r.URL.Query()
-
-		// Read body
-		if r.Body != nil {
-			bodyBytes, err := io.ReadAll(r.Body)
-			require.NoError(t, err)
-			captured.Body = string(bodyBytes)
-		}
-
-		// Call handler
-		handler(w, r, &captured)
-	}))
-
-	return server, &captured
-}
 
 func TestProxmoxAdapterConnect(t *testing.T) {
 	t.Parallel()
@@ -79,10 +41,9 @@ func TestProxmoxAdapterConnect(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
-		assert.NotNil(t, adapter.client)
 	})
 
 	t.Run("connect is idempotent", func(t *testing.T) {
@@ -94,19 +55,15 @@ func TestProxmoxAdapterConnect(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 
 		// Connect multiple times
 		err1 := adapter.Connect(context.Background())
 		require.NoError(t, err1)
-		client1 := adapter.client
 
+		// Second connect call should also succeed (idempotent)
 		err2 := adapter.Connect(context.Background())
 		require.NoError(t, err2)
-		client2 := adapter.client
-
-		// Should be the same client instance
-		assert.Same(t, client1, client2)
 	})
 
 	t.Run("connection with empty URL succeeds but requests will fail", func(t *testing.T) {
@@ -118,7 +75,7 @@ func TestProxmoxAdapterConnect(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 
 		// Connect succeeds
 		err := adapter.Connect(context.Background())
@@ -148,7 +105,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 			"data": innerData,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// Verify request method and path (go-proxmox adds /api2/json prefix)
 			assert.Equal(t, http.MethodGet, r.Method)
 			// Note: The path passed to adapter.Get() doesn't include /api2/json
@@ -172,7 +129,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -191,7 +148,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 	t.Run("GET request with query parameters", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// Verify query parameters are preserved
 			assert.Equal(t, "value1", r.URL.Query().Get("param1"))
 			assert.Equal(t, "value2", r.URL.Query().Get("param2"))
@@ -207,7 +164,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -223,7 +180,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 	t.Run("GET request handles 500 error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			// go-proxmox expects proper JSON response structure even for errors
@@ -237,7 +194,7 @@ func TestProxmoxAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -266,7 +223,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 			"data": innerData,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Contains(t, r.URL.Path, "/test/resources")
@@ -296,7 +253,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -318,7 +275,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 
 		requestBody := map[string]string{"key": "value"}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusNoContent)
 		})
 		defer server.Close()
@@ -329,7 +286,7 @@ func TestProxmoxAdapterPost(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -349,7 +306,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 			"value":  100,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Equal(t, "/test/resources/123", r.URL.Path)
@@ -377,7 +334,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -399,7 +356,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 
 		requestBody := map[string]string{"key": "value"}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "internal error"}`))
 		})
@@ -411,7 +368,7 @@ func TestProxmoxAdapterPut(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -427,7 +384,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 	t.Run("successful DELETE request", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// Verify request method
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Equal(t, "/test/resources/456", r.URL.Path)
@@ -448,7 +405,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -468,7 +425,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 	t.Run("DELETE request with nil result", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusNoContent)
 		})
 		defer server.Close()
@@ -479,7 +436,7 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -497,7 +454,7 @@ func TestProxmoxAdapterAuthenticationHeaders(t *testing.T) {
 		expectedUser := "admin@pam"
 		expectedToken := "secret-token-123"
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// Verify Authorization header format
 			authHeader := r.Header.Get("Authorization")
 			assert.Contains(t, authHeader, "PVEAPIToken")
@@ -515,7 +472,7 @@ func TestProxmoxAdapterAuthenticationHeaders(t *testing.T) {
 			PveToken: expectedToken,
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 
@@ -540,7 +497,7 @@ func TestProxmoxAdapterConnectionFailureHandling(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 
 		// Connect succeeds (doesn't validate URL)
 		err := adapter.Connect(context.Background())
@@ -561,7 +518,7 @@ func TestProxmoxAdapterConnectionFailureHandling(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 
 		// Connect succeeds
 		err := adapter.Connect(context.Background())
@@ -591,7 +548,7 @@ func TestProxmoxAdapterConfigFromContext(t *testing.T) {
 		t.Parallel()
 
 		// Create adapter without explicit config
-		adapter := NewProxmoxAdapter(nil)
+		adapter := adapters.NewProxmoxAdapter(nil)
 
 		// Attempting to connect with a plain context (no Pulumi config) should panic
 		// because infer.GetConfig will panic when called on a non-Pulumi context
@@ -609,11 +566,10 @@ func TestProxmoxAdapterConfigFromContext(t *testing.T) {
 			PveUser:  "test@pam",
 			PveToken: "test-token",
 		}
-		adapter := NewProxmoxAdapter(cfg)
+		adapter := adapters.NewProxmoxAdapter(cfg)
 
 		// Should work fine even with plain context because config is explicit
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
-		assert.NotNil(t, adapter.client)
 	})
 }
