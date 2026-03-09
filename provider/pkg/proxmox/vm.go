@@ -111,23 +111,6 @@ type Disk struct {
 	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
 }
 
-// ToProxmoxDiskKeyConfig converts the Disk struct to Proxmox disk key and config strings.
-func (disk Disk) ToProxmoxDiskKeyConfig() (diskKey, diskConfig string) {
-	var fullDiskPath string
-
-	if disk.FileID == nil || *disk.FileID == "" {
-		// No file Id means we are creating the disk now, so we use the storage:size format to create the disk
-		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, disk.Size)
-	} else {
-		// We already have a disk file, so we use the storage:file_id format
-		fullDiskPath = fmt.Sprintf("%v:%v", disk.Storage, *disk.FileID)
-	}
-
-	diskKey = disk.Interface
-	diskConfig = fmt.Sprintf("file=%v,size=%v", fullDiskPath, disk.Size)
-	return
-}
-
 // EfiType represents the EFI type for an EFI disk.
 type EfiType string
 
