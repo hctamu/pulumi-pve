@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Vm.Inputs
+namespace Hctamu.Pve.Proxmox.Inputs
 {
 
     public sealed class DiskArgs : global::Pulumi.ResourceArgs

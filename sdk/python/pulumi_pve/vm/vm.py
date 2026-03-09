@@ -13,15 +13,14 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
-from . import outputs
-from ._inputs import *
+from .. import proxmox as _proxmox
 
 __all__ = ['VMArgs', 'VM']
 
 @pulumi.input_type
 class VMArgs:
     def __init__(__self__, *,
-                 disks: pulumi.Input[Sequence[pulumi.Input['DiskArgs']]],
+                 disks: pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]],
                  name: pulumi.Input[_builtins.str],
                  acpi: Optional[pulumi.Input[_builtins.int]] = None,
                  audio0: Optional[pulumi.Input[_builtins.str]] = None,
@@ -33,10 +32,10 @@ class VMArgs:
                  citype: Optional[pulumi.Input[_builtins.str]] = None,
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
-                 clone: Optional[pulumi.Input['CloneArgs']] = None,
-                 cpu: Optional[pulumi.Input['CPUArgs']] = None,
+                 clone: Optional[pulumi.Input['_proxmox.CloneArgs']] = None,
+                 cpu: Optional[pulumi.Input['_proxmox.CPUArgs']] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 efidisk: Optional[pulumi.Input['EfiDiskArgs']] = None,
+                 efidisk: Optional[pulumi.Input['_proxmox.EfiDiskArgs']] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
@@ -145,11 +144,11 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def disks(self) -> pulumi.Input[Sequence[pulumi.Input['DiskArgs']]]:
+    def disks(self) -> pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]]:
         return pulumi.get(self, "disks")
 
     @disks.setter
-    def disks(self, value: pulumi.Input[Sequence[pulumi.Input['DiskArgs']]]):
+    def disks(self, value: pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]]):
         pulumi.set(self, "disks", value)
 
     @_builtins.property
@@ -253,20 +252,20 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def clone(self) -> Optional[pulumi.Input['CloneArgs']]:
+    def clone(self) -> Optional[pulumi.Input['_proxmox.CloneArgs']]:
         return pulumi.get(self, "clone")
 
     @clone.setter
-    def clone(self, value: Optional[pulumi.Input['CloneArgs']]):
+    def clone(self, value: Optional[pulumi.Input['_proxmox.CloneArgs']]):
         pulumi.set(self, "clone", value)
 
     @_builtins.property
     @pulumi.getter
-    def cpu(self) -> Optional[pulumi.Input['CPUArgs']]:
+    def cpu(self) -> Optional[pulumi.Input['_proxmox.CPUArgs']]:
         return pulumi.get(self, "cpu")
 
     @cpu.setter
-    def cpu(self, value: Optional[pulumi.Input['CPUArgs']]):
+    def cpu(self, value: Optional[pulumi.Input['_proxmox.CPUArgs']]):
         pulumi.set(self, "cpu", value)
 
     @_builtins.property
@@ -280,11 +279,11 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def efidisk(self) -> Optional[pulumi.Input['EfiDiskArgs']]:
+    def efidisk(self) -> Optional[pulumi.Input['_proxmox.EfiDiskArgs']]:
         return pulumi.get(self, "efidisk")
 
     @efidisk.setter
-    def efidisk(self, value: Optional[pulumi.Input['EfiDiskArgs']]):
+    def efidisk(self, value: Optional[pulumi.Input['_proxmox.EfiDiskArgs']]):
         pulumi.set(self, "efidisk", value)
 
     @_builtins.property
@@ -520,11 +519,11 @@ class VM(pulumi.CustomResource):
                  citype: Optional[pulumi.Input[_builtins.str]] = None,
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
-                 clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
-                 cpu: Optional[pulumi.Input[Union['CPUArgs', 'CPUArgsDict']]] = None,
+                 clone: Optional[pulumi.Input[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']]] = None,
+                 cpu: Optional[pulumi.Input[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
-                 efidisk: Optional[pulumi.Input[Union['EfiDiskArgs', 'EfiDiskArgsDict']]] = None,
+                 disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
+                 efidisk: Optional[pulumi.Input[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
@@ -589,11 +588,11 @@ class VM(pulumi.CustomResource):
                  citype: Optional[pulumi.Input[_builtins.str]] = None,
                  ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
                  ciuser: Optional[pulumi.Input[_builtins.str]] = None,
-                 clone: Optional[pulumi.Input[Union['CloneArgs', 'CloneArgsDict']]] = None,
-                 cpu: Optional[pulumi.Input[Union['CPUArgs', 'CPUArgsDict']]] = None,
+                 clone: Optional[pulumi.Input[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']]] = None,
+                 cpu: Optional[pulumi.Input[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
-                 disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['DiskArgs', 'DiskArgsDict']]]]] = None,
-                 efidisk: Optional[pulumi.Input[Union['EfiDiskArgs', 'EfiDiskArgsDict']]] = None,
+                 disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
+                 efidisk: Optional[pulumi.Input[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']]] = None,
                  hookscript: Optional[pulumi.Input[_builtins.str]] = None,
                  hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
@@ -788,12 +787,12 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def clone(self) -> pulumi.Output[Optional['outputs.Clone']]:
+    def clone(self) -> pulumi.Output[Optional['_proxmox.outputs.Clone']]:
         return pulumi.get(self, "clone")
 
     @_builtins.property
     @pulumi.getter
-    def cpu(self) -> pulumi.Output[Optional['outputs.CPU']]:
+    def cpu(self) -> pulumi.Output[Optional['_proxmox.outputs.CPU']]:
         return pulumi.get(self, "cpu")
 
     @_builtins.property
@@ -803,12 +802,12 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def disks(self) -> pulumi.Output[Sequence['outputs.Disk']]:
+    def disks(self) -> pulumi.Output[Sequence['_proxmox.outputs.Disk']]:
         return pulumi.get(self, "disks")
 
     @_builtins.property
     @pulumi.getter
-    def efidisk(self) -> pulumi.Output[Optional['outputs.EfiDisk']]:
+    def efidisk(self) -> pulumi.Output[Optional['_proxmox.outputs.EfiDisk']]:
         return pulumi.get(self, "efidisk")
 
     @_builtins.property

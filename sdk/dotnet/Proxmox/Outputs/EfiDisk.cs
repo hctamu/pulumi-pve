@@ -8,30 +8,33 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Vm.Outputs
+namespace Hctamu.Pve.Proxmox.Outputs
 {
 
+    /// <summary>
+    /// EFI disk configuration for the virtual machine.
+    /// </summary>
     [OutputType]
-    public sealed class Disk
+    public sealed class EfiDisk
     {
+        public readonly string Efitype;
         public readonly string? Filename;
-        public readonly string Interface;
-        public readonly int Size;
+        public readonly bool? PreEnrolledKeys;
         public readonly string Storage;
 
         [OutputConstructor]
-        private Disk(
+        private EfiDisk(
+            string efitype,
+
             string? filename,
 
-            string @interface,
-
-            int size,
+            bool? preEnrolledKeys,
 
             string storage)
         {
+            Efitype = efitype;
             Filename = filename;
-            Interface = @interface;
-            Size = size;
+            PreEnrolledKeys = preEnrolledKeys;
             Storage = storage;
         }
     }

@@ -124,7 +124,7 @@
         "numaNodes": {
           "type": "array",
           "items": {
-            "$ref": "#/types/pve:vm:NumaNode"
+            "$ref": "#/types/pve:proxmox:NumaNode"
           }
         },
         "physBits": {
@@ -145,7 +145,7 @@
       },
       "type": "object"
     },
-    "pve:vm:Clone": {
+    "pve:proxmox:Clone": {
       "properties": {
         "dataStoreId": {
           "type": "string"
@@ -168,7 +168,7 @@
         "vmId"
       ]
     },
-    "pve:vm:Disk": {
+    "pve:proxmox:Disk": {
       "properties": {
         "filename": {
           "type": "string"
@@ -190,7 +190,7 @@
         "storage"
       ]
     },
-    "pve:vm:EfiDisk": {
+    "pve:proxmox:EfiDisk": {
       "description": "EFI disk configuration for the virtual machine.",
       "properties": {
         "efitype": {
@@ -212,7 +212,7 @@
         "storage"
       ]
     },
-    "pve:vm:NumaNode": {
+    "pve:proxmox:NumaNode": {
       "properties": {
         "cpus": {
           "type": "string"
@@ -230,6 +230,25 @@
       "type": "object",
       "required": [
         "cpus"
+      ]
+    },
+    "pve:storage:FileSourceRaw": {
+      "properties": {
+        "fileData": {
+          "type": "string",
+          "description": "The raw data in []byte",
+          "replaceOnChanges": true
+        },
+        "fileName": {
+          "type": "string",
+          "description": "The name of the file",
+          "replaceOnChanges": true
+        }
+      },
+      "type": "object",
+      "required": [
+        "fileData",
+        "fileName"
       ]
     }
   },
@@ -698,10 +717,10 @@
           "type": "string"
         },
         "clone": {
-          "$ref": "#/types/pve:vm:Clone"
+          "$ref": "#/types/pve:proxmox:Clone"
         },
         "cpu": {
-          "$ref": "#/types/pve:vm:CPU"
+          "$ref": "#/types/pve:proxmox:CPU"
         },
         "description": {
           "type": "string"
@@ -709,11 +728,11 @@
         "disks": {
           "type": "array",
           "items": {
-            "$ref": "#/types/pve:vm:Disk"
+            "$ref": "#/types/pve:proxmox:Disk"
           }
         },
         "efidisk": {
-          "$ref": "#/types/pve:vm:EfiDisk"
+          "$ref": "#/types/pve:proxmox:EfiDisk"
         },
         "hookscript": {
           "type": "string"
@@ -828,10 +847,10 @@
           "type": "string"
         },
         "clone": {
-          "$ref": "#/types/pve:vm:Clone"
+          "$ref": "#/types/pve:proxmox:Clone"
         },
         "cpu": {
-          "$ref": "#/types/pve:vm:CPU"
+          "$ref": "#/types/pve:proxmox:CPU"
         },
         "description": {
           "type": "string"
@@ -839,11 +858,11 @@
         "disks": {
           "type": "array",
           "items": {
-            "$ref": "#/types/pve:vm:Disk"
+            "$ref": "#/types/pve:proxmox:Disk"
           }
         },
         "efidisk": {
-          "$ref": "#/types/pve:vm:EfiDisk"
+          "$ref": "#/types/pve:proxmox:EfiDisk"
         },
         "hookscript": {
           "type": "string"

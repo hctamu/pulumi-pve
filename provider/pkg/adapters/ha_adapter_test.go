@@ -13,10 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
+	
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -40,7 +43,7 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 100,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPost, r.Method)
 			assert.Equal(t, "/cluster/ha/resources/", r.URL.Path)
@@ -66,11 +69,11 @@ func TestHAAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Create(context.Background(), inputs)
 		require.NoError(t, err)
 
@@ -91,7 +94,7 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 101,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
 			// Verify request body
 			var receivedBody proxmox.HaResource
 			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
@@ -112,11 +115,11 @@ func TestHAAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Create(context.Background(), inputs)
 		require.NoError(t, err)
 
@@ -135,7 +138,7 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 102,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
 			var receivedBody proxmox.HaResource
 			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
@@ -152,11 +155,11 @@ func TestHAAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Create(context.Background(), inputs)
 		require.NoError(t, err)
 
@@ -172,7 +175,7 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 100,
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "resource already exists"}`))
 		})
@@ -184,11 +187,11 @@ func TestHAAdapterCreate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Create(context.Background(), inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to create HA resource: 500 Internal Server Error", "error message should match")
@@ -207,7 +210,7 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "100",
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodGet, r.Method)
 			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
@@ -229,11 +232,11 @@ func TestHAAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		outputs, err := haAdapter.Get(context.Background(), 100)
 		require.NoError(t, err)
 		require.NotNil(t, outputs)
@@ -257,7 +260,7 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "101",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, "/cluster/ha/resources/101", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
@@ -275,11 +278,11 @@ func TestHAAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		outputs, err := haAdapter.Get(context.Background(), 101)
 		require.NoError(t, err)
 		require.NotNil(t, outputs)
@@ -292,7 +295,7 @@ func TestHAAdapterGet(t *testing.T) {
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			// go-proxmox expects proper JSON response structure even for errors
@@ -306,11 +309,11 @@ func TestHAAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		outputs, err := haAdapter.Get(context.Background(), 999)
 		require.Error(t, err)
 		assert.Nil(t, outputs)
@@ -326,7 +329,7 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "102",
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusOK)
 			responseData := map[string]interface{}{
 				"data": apiResponse,
@@ -342,11 +345,11 @@ func TestHAAdapterGet(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		outputs, err := haAdapter.Get(context.Background(), 102)
 		require.NoError(t, err)
 		assert.Equal(t, proxmox.HAStateIgnored, outputs.State)
@@ -373,7 +376,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
@@ -398,11 +401,11 @@ func TestHAAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.NoError(t, err)
 
@@ -430,7 +433,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			// Verify request body contains delete field
 			var receivedBody proxmox.HaResource
 			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
@@ -450,11 +453,11 @@ func TestHAAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.NoError(t, err)
 
@@ -480,7 +483,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			var receivedBody proxmox.HaResource
 			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
@@ -499,11 +502,11 @@ func TestHAAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.NoError(t, err)
 
@@ -528,7 +531,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			var receivedBody proxmox.HaResource
 			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
 			require.NoError(t, err)
@@ -547,11 +550,11 @@ func TestHAAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.NoError(t, err)
 
@@ -577,7 +580,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"errors": "update failed"}`))
 		})
@@ -589,11 +592,11 @@ func TestHAAdapterUpdate(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to update HA resource: 500 Internal Server Error", "error message should match")
@@ -606,7 +609,7 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("successful delete", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
 			// Verify request method and path
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
@@ -626,11 +629,11 @@ func TestHAAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Delete(context.Background(), 100)
 		require.NoError(t, err)
 
@@ -643,7 +646,7 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("delete different resource ID", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, "/cluster/ha/resources/999", r.URL.Path)
 
 			w.WriteHeader(http.StatusOK)
@@ -657,11 +660,11 @@ func TestHAAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Delete(context.Background(), 999)
 		require.NoError(t, err)
 
@@ -671,7 +674,7 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("delete handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			// go-proxmox expects proper JSON response structure even for errors
@@ -685,11 +688,11 @@ func TestHAAdapterDelete(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Delete(context.Background(), 100)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to delete HA resource: 500 Internal Server Error", "error message should match")
@@ -708,12 +711,11 @@ func TestNewHAAdapter(t *testing.T) {
 			PveToken: "test-token",
 		}
 
-		proxmoxAdapter := NewProxmoxAdapter(cfg)
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		haAdapter := NewHAAdapter(proxmoxAdapter)
+		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		require.NotNil(t, haAdapter)
-		assert.NotNil(t, haAdapter.client)
 	})
 }
