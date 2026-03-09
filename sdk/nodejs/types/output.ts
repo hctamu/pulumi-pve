@@ -33,7 +33,7 @@ export namespace vm {
         hvVendorId?: string;
         limit?: number;
         numa?: boolean;
-        numaNodes?: outputs.vm.NumaNode[];
+        numaNodes?: outputs.proxmox.NumaNode[];
         physBits?: string;
         sockets?: number;
         type?: string;
@@ -80,6 +80,20 @@ export namespace vm {
         hostNodes?: string;
         memory?: number;
         policy?: string;
+    }
+
+}
+
+export namespace storage {
+    export interface FileSourceRaw {
+        /**
+         * The raw data in []byte
+         */
+        fileData: string;
+        /**
+         * The name of the file
+         */
+        fileName: string;
     }
 
 }
