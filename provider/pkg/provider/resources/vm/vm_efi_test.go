@@ -23,8 +23,6 @@ import (
 	"strings"
 	"testing"
 
-	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -33,6 +31,11 @@ import (
 	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestVMDiffEfiDiskChange(t *testing.T) {
@@ -44,8 +47,8 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		inputEfiDisk   *vmResource.EfiDisk
-		stateEfiDisk   *vmResource.EfiDisk
+		inputEfiDisk   *proxmox.EfiDisk
+		stateEfiDisk   *proxmox.EfiDisk
 		expectChange   bool
 		expectDiffKeys []string // Changed to support multiple granular keys
 		expectDiffKey  string   // Keep for backward compatibility (added/removed)
@@ -53,8 +56,8 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 	}{
 		{
 			name: "efi disk added",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
 			stateEfiDisk:  nil,
 			expectChange:  true,
@@ -64,23 +67,23 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		{
 			name:          "efi disk removed",
 			inputEfiDisk:  nil,
-			stateEfiDisk:  &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
+			stateEfiDisk:  &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
 			expectChange:  true,
 			expectDiffKey: "efidisk",
 			description:   "Removing EFI disk should trigger diff",
 		},
 		{
 			name:           "efi disk type changed",
-			inputEfiDisk:   &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
-			stateEfiDisk:   &vmResource.EfiDisk{EfiType: vmResource.EfiType2M},
+			inputEfiDisk:   &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
+			stateEfiDisk:   &proxmox.EfiDisk{EfiType: proxmox.EfiType2M},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.efitype"},
 			description:    "Changing EFI type should trigger diff on efitype only",
 		},
 		{
 			name:         "efi disk unchanged",
-			inputEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
-			stateEfiDisk: &vmResource.EfiDisk{EfiType: vmResource.EfiType4M},
+			inputEfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
+			stateEfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
 			expectChange: false,
 			description:  "Identical EFI disk should not trigger diff",
 		},
@@ -93,22 +96,22 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		},
 		{
 			name: "FileID nil in input, present in state - no change",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
 			expectChange: false,
 			description:  "FileID computed by provider should not trigger diff",
 		},
 		{
 			name: "FileID explicitly set in input, different from state - change",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.fileId"},
@@ -116,23 +119,23 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		},
 		{
 			name: "FileID same in both - no change",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
 			expectChange: false,
 			description:  "Same FileID should not trigger diff",
 		},
 		{
 			name: "PreEnrolledKeys changed from true to false",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(false),
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			expectChange:   true,
@@ -141,12 +144,12 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		},
 		{
 			name: "PreEnrolledKeys added",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true),
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
 			expectChange:   true,
 			expectDiffKeys: []string{"efidisk.preEnrolledKeys"},
@@ -154,11 +157,11 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		},
 		{
 			name: "PreEnrolledKeys removed",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			expectChange:   true,
@@ -167,12 +170,12 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		},
 		{
 			name: "PreEnrolledKeys unchanged",
-			inputEfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			inputEfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true),
 			},
-			stateEfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			stateEfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true),
 			},
 			expectChange: false,
@@ -203,19 +206,22 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			vm := &vmResource.VM{}
-			req := infer.DiffRequest[vmResource.Inputs, vmResource.Outputs]{
+			vm := &vmResource.VM{
+				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+				VMOps:  adapters.NewVMAdapter(),
+			}
+			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
-				Inputs: vmResource.Inputs{
+				Inputs: proxmox.VMInputs{
 					Name:    testutils.Ptr("test-vm"),
 					EfiDisk: tt.inputEfiDisk,
-					Disks:   []*vmResource.Disk{}, // Empty disks to focus on EFI
+					Disks:   []*proxmox.Disk{}, // Empty disks to focus on EFI
 				},
-				State: vmResource.Outputs{
-					Inputs: vmResource.Inputs{
+				State: proxmox.VMOutputs{
+					VMInputs: proxmox.VMInputs{
 						Name:    testutils.Ptr("test-vm"),
 						EfiDisk: tt.stateEfiDisk,
-						Disks:   []*vmResource.Disk{},
+						Disks:   []*proxmox.Disk{},
 					},
 				},
 			}
@@ -301,23 +307,26 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
 			Name: testutils.Ptr("test-vm"),
-			EfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M, // Changed from 2m
+			EfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M, // Changed from 2m
 			},
 		},
-		State: vmResource.Outputs{
-			Inputs: vmResource.Inputs{
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
 				Name: testutils.Ptr("test-vm"),
 				Node: &nodeName,
-				EfiDisk: &vmResource.EfiDisk{
-					EfiType: vmResource.EfiType2M,
+				EfiDisk: &proxmox.EfiDisk{
+					EfiType: proxmox.EfiType2M,
 				},
 			},
 		},
@@ -330,7 +339,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 
 	resp, err := vm.Update(context.Background(), req)
 	require.NoError(t, err)
-	assert.Equal(t, vmResource.EfiType4M, resp.Output.EfiDisk.EfiType)
+	assert.Equal(t, proxmox.EfiType4M, resp.Output.EfiDisk.EfiType)
 	// FileID should have been copied from state
 	assert.Equal(t, "vm-100-disk-0", *resp.Output.EfiDisk.FileID)
 	mock.AssertCalled(t)
@@ -391,24 +400,27 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.UpdateRequest[vmResource.Inputs, vmResource.Outputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
 			Name: testutils.Ptr("test-vm"),
-			EfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			EfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true), // Changed from nil
 			},
 		},
-		State: vmResource.Outputs{
-			Inputs: vmResource.Inputs{
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
 				Name: testutils.Ptr("test-vm"),
 				Node: &nodeName,
-				EfiDisk: &vmResource.EfiDisk{
-					EfiType: vmResource.EfiType4M,
+				EfiDisk: &proxmox.EfiDisk{
+					EfiType: proxmox.EfiType4M,
 				},
 			},
 		},
@@ -465,10 +477,13 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 			Reply(reply.OK().BodyString(vmConfigJSON)),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
 			Node: &nodeName,
 		},
@@ -478,7 +493,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "100", resp.ID)
 	assert.NotNil(t, resp.State.EfiDisk)
-	assert.Equal(t, vmResource.EfiType4M, resp.State.EfiDisk.EfiType)
+	assert.Equal(t, proxmox.EfiType4M, resp.State.EfiDisk.EfiType)
 	assert.NotNil(t, resp.State.EfiDisk.PreEnrolledKeys)
 	assert.True(t, *resp.State.EfiDisk.PreEnrolledKeys)
 	assert.Equal(t, "local-lvm", resp.State.EfiDisk.Storage)
@@ -525,10 +540,13 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 			Reply(reply.OK().BodyString(vmConfigJSON)),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.ReadRequest[vmResource.Inputs, vmResource.Outputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
 			Node: &nodeName,
 		},
@@ -558,12 +576,6 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
 				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
 			}),
-	).Enable()
-
-	// Mock GET /cluster/nextid
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			Reply(reply.OK().BodyString(`{"data":"100"}`)),
 	).Enable()
 
 	// Mock GET /nodes/{node}/status
@@ -685,13 +697,16 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.CreateRequest[vmResource.Inputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			Name: testutils.Ptr("cloned-vm"),
 			Node: &nodeName,
-			Clone: &vmResource.Clone{
+			Clone: &proxmox.Clone{
 				VMID:    sourceVMID,
 				Timeout: 300,
 			},
@@ -722,15 +737,6 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 		mocha.Get(expect.URLPath("/cluster/status")).
 			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
 				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock next VMID
-	nextIDJSON := `{"data":"100"}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nextIDJSON)}, nil
 			}),
 	).Enable()
 
@@ -830,19 +836,22 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.CreateRequest[vmResource.Inputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm-with-efi",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			Name: testutils.Ptr("cloned-vm"),
 			Node: &nodeName,
-			Clone: &vmResource.Clone{
+			Clone: &proxmox.Clone{
 				VMID:    sourceVMID,
 				Timeout: 300,
 			},
 			// Add EFI disk even though source doesn't have one
-			EfiDisk: &vmResource.EfiDisk{
-				EfiType: vmResource.EfiType4M,
+			EfiDisk: &proxmox.EfiDisk{
+				EfiType: proxmox.EfiType4M,
 			},
 		},
 	}
@@ -853,7 +862,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 	assert.Equal(t, newVMID, *resp.Output.VMID)
 	// Verify EFI disk was added
 	assert.NotNil(t, resp.Output.EfiDisk)
-	assert.Equal(t, vmResource.EfiType4M, resp.Output.EfiDisk.EfiType)
+	assert.Equal(t, proxmox.EfiType4M, resp.Output.EfiDisk.EfiType)
 	mock.AssertCalled(t)
 }
 
@@ -872,15 +881,6 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
 			}).
 			Repeat(10),
-	).Enable()
-
-	// Mock next VMID
-	nextIDJSON := `{"data":"100"}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nextIDJSON)}, nil
-			}),
 	).Enable()
 
 	// Mock node status
@@ -937,19 +937,22 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{}
-	req := infer.CreateRequest[vmResource.Inputs]{
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
+	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm-with-efi",
-		Inputs: vmResource.Inputs{
+		Inputs: proxmox.VMInputs{
 			Name: testutils.Ptr("test-vm-with-efi"),
 			Node: &nodeName,
-			CPU: &vmResource.CPU{
+			CPU: &proxmox.CPU{
 				Cores: testutils.Ptr(2),
 			},
 			Memory: testutils.Ptr(2048),
 			// No Clone settings - creating a new VM from scratch
-			EfiDisk: &vmResource.EfiDisk{
-				EfiType:         vmResource.EfiType4M,
+			EfiDisk: &proxmox.EfiDisk{
+				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(false),
 			},
 		},
@@ -961,7 +964,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	assert.Equal(t, newVMID, *resp.Output.VMID)
 	// Verify EFI disk was created with correct settings
 	assert.NotNil(t, resp.Output.EfiDisk)
-	assert.Equal(t, vmResource.EfiType4M, resp.Output.EfiDisk.EfiType)
+	assert.Equal(t, proxmox.EfiType4M, resp.Output.EfiDisk.EfiType)
 	assert.NotNil(t, resp.Output.EfiDisk.PreEnrolledKeys)
 	assert.False(t, *resp.Output.EfiDisk.PreEnrolledKeys)
 	mock.AssertCalled(t)

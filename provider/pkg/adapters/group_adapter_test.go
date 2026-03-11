@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
@@ -22,10 +22,13 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 const (
@@ -42,31 +45,34 @@ func TestGroupAdapterCreate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups")
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, groupID, body["groupid"])
-				assert.Equal(t, groupDescription, body["comment"])
-			} else {
-				formValues, parseErr := url.ParseQuery(req.Body)
-				require.NoError(t, parseErr, "body is not valid JSON or form data")
-				assert.Equal(t, groupID, formValues.Get("groupid"))
-				assert.Equal(t, groupDescription, formValues.Get("description"))
-			}
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, groupID, body["groupid"])
+					assert.Equal(t, groupDescription, body["comment"])
+				} else {
+					formValues, parseErr := url.ParseQuery(req.Body)
+					require.NoError(t, parseErr, "body is not valid JSON or form data")
+					assert.Equal(t, groupID, formValues.Get("groupid"))
+					assert.Equal(t, groupDescription, formValues.Get("description"))
+				}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		err := group.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -83,20 +89,23 @@ func TestGroupAdapterCreate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups")
-			assert.Contains(t, req.Body, groupID)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups")
+				assert.Contains(t, req.Body, groupID)
 
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		err := group.Create(context.Background(), inputs)
 		require.Error(t, err)
@@ -110,25 +119,28 @@ func TestGroupAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups/")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups/")
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": map[string]any{
-					"groupid": groupID,
-					"comment": groupDescription,
-				},
-			})
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"data": map[string]any{
+						"groupid": groupID,
+						"comment": groupDescription,
+					},
+				})
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		outputs, err := group.Get(context.Background(), groupID)
 		require.NoError(t, err)
@@ -144,7 +156,7 @@ func TestGroupAdapterGet(t *testing.T) {
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"data": null}`))
@@ -152,9 +164,9 @@ func TestGroupAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		outputs, err := group.Get(context.Background(), groupID)
 		require.Error(t, err)
@@ -173,31 +185,34 @@ func TestGroupAdapterUpdate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, req *mockRequest) {
-			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPut, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, groupID, body["groupid"])
-				assert.Equal(t, groupDescription, body["comment"])
-			} else {
-				formValues, parseErr := url.ParseQuery(req.Body)
-				require.NoError(t, parseErr, "body is not valid JSON or form data")
-				assert.Equal(t, groupDescription, formValues.Get("description"))
-				assert.Equal(t, groupID, formValues.Get("groupid"))
-			}
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, groupID, body["groupid"])
+					assert.Equal(t, groupDescription, body["comment"])
+				} else {
+					formValues, parseErr := url.ParseQuery(req.Body)
+					require.NoError(t, parseErr, "body is not valid JSON or form data")
+					assert.Equal(t, groupDescription, formValues.Get("description"))
+					assert.Equal(t, groupID, formValues.Get("groupid"))
+				}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		err := group.Update(context.Background(), groupID, inputs)
 		require.NoError(t, err)
@@ -214,7 +229,7 @@ func TestGroupAdapterUpdate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, http.MethodPut, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
 
@@ -224,9 +239,9 @@ func TestGroupAdapterUpdate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		err := group.Update(context.Background(), groupID, inputs)
 		require.Error(t, err)
@@ -239,20 +254,23 @@ func TestGroupAdapterDelete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, http.MethodDelete, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		err := group.Delete(context.Background(), groupID)
 		require.NoError(t, err)
@@ -264,7 +282,7 @@ func TestGroupAdapterDelete(t *testing.T) {
 	t.Run("delete handles API error", func(t *testing.T) {
 		t.Parallel()
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			assert.Equal(t, http.MethodDelete, r.Method)
 			assert.Contains(t, r.URL.Path, "/access/groups/")
 
@@ -274,9 +292,9 @@ func TestGroupAdapterDelete(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		group := NewGroupAdapter(pxa)
+		group := adapters.NewGroupAdapter(pxa)
 
 		err := group.Delete(context.Background(), groupID)
 		require.Error(t, err)
@@ -287,10 +305,10 @@ func TestNewGroupAdapter(t *testing.T) {
 	t.Parallel()
 
 	cfg := &config.Config{PveURL: "http://example.com", PveUser: "test@pam", PveToken: "token"}
-	pxa := NewProxmoxAdapter(cfg)
+	pxa := adapters.NewProxmoxAdapter(cfg)
 	require.NoError(t, pxa.Connect(context.Background()))
 
-	groupAdapter := NewGroupAdapter(pxa)
+	groupAdapter := adapters.NewGroupAdapter(pxa)
 	require.NotNil(t, groupAdapter)
 	assert.NotNil(t, groupAdapter)
 }

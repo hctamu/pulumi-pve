@@ -17,6 +17,11 @@ limitations under the License.
 package provider
 
 import (
+	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi-go-provider/middleware/schema"
+	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
+
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
@@ -27,11 +32,6 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/storage"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-
-	p "github.com/pulumi/pulumi-go-provider"
-	"github.com/pulumi/pulumi-go-provider/infer"
-	"github.com/pulumi/pulumi-go-provider/middleware/schema"
-	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 )
 
 // Version is initialized by the Go linker to contain the semver of this build.
@@ -112,6 +112,17 @@ func newRoleResourceWithConfig(cfg *config.Config) *role.Role {
 	return &role.Role{RoleOps: roleAdapter}
 }
 
+// newVMResourceWithConfig creates a new VM resource with a specific config.
+// The VMAdapter uses the Proxmox client factory (client.GetProxmoxClientFn) internally,
+// which reads configuration from the Pulumi context at runtime.
+func newVMResourceWithConfig(cfg *config.Config) *vm.VM {
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+	return &vm.VM{
+		Client: proxmoxAdapter,
+		VMOps:  adapters.NewVMAdapter(),
+	}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -125,7 +136,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newPoolResourceWithConfig(cfg)),
 			infer.Resource(&storage.File{}),
 			infer.Resource(newHAResourceWithConfig(cfg)),
-			infer.Resource(&vm.VM{}),
+			infer.Resource(newVMResourceWithConfig(cfg)),
 			infer.Resource(newGroupResourceWithConfig(cfg)),
 			infer.Resource(newRoleResourceWithConfig(cfg)),
 			infer.Resource(newACLResourceWithConfig(cfg)),

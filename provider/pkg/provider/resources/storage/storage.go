@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 )
 
 // Unimplemented fields are marked in the comments in the commit (hash): 2a127e9aaab17b21bebd027d3edf13e27b570cf9

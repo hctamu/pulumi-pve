@@ -20,16 +20,17 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
-	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
 	"github.com/vitorsalgado/mocha/v3/expect"
 	"github.com/vitorsalgado/mocha/v3/reply"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
+	"github.com/hctamu/pulumi-pve/provider/px"
 )
 
 // TestGetSortedMapKeys tests that the utility function correctly sorts map keys.

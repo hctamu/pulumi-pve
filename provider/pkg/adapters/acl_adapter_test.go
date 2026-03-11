@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package adapters
+package adapters_test
 
 import (
 	"context"
@@ -23,10 +23,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 const (
@@ -53,26 +56,29 @@ func TestACLAdapterCreate(t *testing.T) {
 
 		inputs := proxmox.ACLInputs{Path: pathRoot, RoleID: roleAdmin, Type: typeUser, UGID: ugidUser1, Propagate: true}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/access/users/"):
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data":{"userid":"testuser"}}`))
-			case r.Method == http.MethodPut && r.URL.Path == "/access/acl":
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data":null}`))
-			default:
-				w.WriteHeader(http.StatusNotFound)
-			}
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				switch {
+				case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/access/users/"):
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data":{"userid":"testuser"}}`))
+				case r.Method == http.MethodPut && r.URL.Path == "/access/acl":
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data":null}`))
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		err := acl.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -110,25 +116,28 @@ func TestACLAdapterCreate(t *testing.T) {
 
 		inputs := proxmox.ACLInputs{Path: pathRoot, RoleID: roleAdmin, Type: typeGroup, UGID: ugidGroup1, Propagate: false}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			switch {
-			case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/access/groups/"):
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data":{"groupid":"testgroup"}}`))
-			case r.Method == http.MethodPut && r.URL.Path == "/access/acl":
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data":null}`))
-			default:
-				w.WriteHeader(http.StatusNotFound)
-			}
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				switch {
+				case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/access/groups/"):
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data":{"groupid":"testgroup"}}`))
+				case r.Method == http.MethodPut && r.URL.Path == "/access/acl":
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data":null}`))
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		err := acl.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -172,20 +181,23 @@ func TestACLAdapterCreate(t *testing.T) {
 			Propagate: true,
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			if r.Method == http.MethodPut && r.URL.Path == "/access/acl" {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data":null}`))
-				return
-			}
-			w.WriteHeader(http.StatusNotFound)
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				if r.Method == http.MethodPut && r.URL.Path == "/access/acl" {
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data":null}`))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		err := acl.Create(context.Background(), inputs)
 		require.NoError(t, err)
@@ -222,8 +234,8 @@ func TestACLAdapterCreate(t *testing.T) {
 		t.Parallel()
 		inputs := proxmox.ACLInputs{Path: pathRoot, RoleID: roleAdmin, Type: "invalid", UGID: "x"}
 		cfg := &config.Config{PveURL: "http://example", PveUser: "u", PveToken: "t"}
-		pxa := NewProxmoxAdapter(cfg)
-		acl := NewACLAdapter(pxa)
+		pxa := adapters.NewProxmoxAdapter(cfg)
+		acl := adapters.NewACLAdapter(pxa)
 		err := acl.Create(context.Background(), inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, proxmox.ErrInvalidACLType.Error())
@@ -234,7 +246,7 @@ func TestACLAdapterCreate(t *testing.T) {
 
 		inputs := proxmox.ACLInputs{Path: pathRoot, RoleID: roleAdmin, Type: typeUser, UGID: ugidUser1}
 
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			switch {
 			case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/access/users/"):
 				w.Header().Set("Content-Type", "application/json")
@@ -251,9 +263,9 @@ func TestACLAdapterCreate(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		err := acl.Create(context.Background(), inputs)
 		require.Error(t, err)
@@ -269,32 +281,35 @@ func TestACLAdapterGet(t *testing.T) {
 
 		aclID := pathRoot + "|" + roleAdmin + "|" + typeGroup + "|" + ugidGroup1
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			if r.Method == http.MethodGet && r.URL.Path == "/access/acl" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				payload := map[string]interface{}{
-					"data": []map[string]interface{}{
-						{
-							"path":      pathRoot,
-							"roleid":    roleAdmin,
-							"type":      typeGroup,
-							"ugid":      ugidGroup1,
-							"propagate": 0,
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				if r.Method == http.MethodGet && r.URL.Path == "/access/acl" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					payload := map[string]interface{}{
+						"data": []map[string]interface{}{
+							{
+								"path":      pathRoot,
+								"roleid":    roleAdmin,
+								"type":      typeGroup,
+								"ugid":      ugidGroup1,
+								"propagate": 0,
+							},
 						},
-					},
+					}
+					_ = json.NewEncoder(w).Encode(payload)
+					return
 				}
-				_ = json.NewEncoder(w).Encode(payload)
-				return
-			}
-			w.WriteHeader(http.StatusNotFound)
-		})
+				w.WriteHeader(http.StatusNotFound)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		out, err := acl.Get(context.Background(), aclID)
 		require.NoError(t, err)
@@ -311,7 +326,7 @@ func TestACLAdapterGet(t *testing.T) {
 
 	t.Run("get not found", func(t *testing.T) {
 		t.Parallel()
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			if r.Method == http.MethodGet && r.URL.Path == "/access/acl" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
@@ -325,9 +340,9 @@ func TestACLAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		_, err := acl.Get(context.Background(), pathRoot+"|"+roleAdmin+"|"+typeUser+"|"+"nouser")
 		require.Error(t, err)
@@ -336,7 +351,7 @@ func TestACLAdapterGet(t *testing.T) {
 
 	t.Run("get handles API error", func(t *testing.T) {
 		t.Parallel()
-		server, _ := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			if r.Method == http.MethodGet && r.URL.Path == "/access/acl" {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
@@ -348,9 +363,9 @@ func TestACLAdapterGet(t *testing.T) {
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		_, err := acl.Get(context.Background(), pathRoot+"|"+roleAdmin+"|"+typeGroup+"|"+ugidGroup1)
 		require.Error(t, err)
@@ -361,8 +376,8 @@ func TestACLAdapterGet(t *testing.T) {
 func TestACLAdapterUpdate(t *testing.T) {
 	t.Parallel()
 	cfg := &config.Config{PveURL: "http://example", PveUser: "u", PveToken: "t"}
-	pxa := NewProxmoxAdapter(cfg)
-	acl := NewACLAdapter(pxa)
+	pxa := adapters.NewProxmoxAdapter(cfg)
+	acl := adapters.NewACLAdapter(pxa)
 	err := acl.Update(context.Background(), pathRoot+"|"+roleAdmin+"|"+typeGroup+"|"+ugidGroup1, proxmox.ACLInputs{})
 	require.Error(t, err)
 	assert.EqualError(
@@ -387,21 +402,24 @@ func TestACLAdapterDelete(t *testing.T) {
 			},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			if r.Method == http.MethodPut && r.URL.Path == "/access/acl" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data":null}`))
-				return
-			}
-			w.WriteHeader(http.StatusNotFound)
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				if r.Method == http.MethodPut && r.URL.Path == "/access/acl" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data":null}`))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		err := acl.Delete(context.Background(), outputs)
 		require.NoError(t, err)
@@ -452,8 +470,8 @@ func TestACLAdapterDelete(t *testing.T) {
 			ACLInputs: proxmox.ACLInputs{Path: pathRoot, RoleID: roleAdmin, Type: "invalid", UGID: "x"},
 		}
 		cfg := &config.Config{PveURL: "http://example", PveUser: "u", PveToken: "t"}
-		pxa := NewProxmoxAdapter(cfg)
-		acl := NewACLAdapter(pxa)
+		pxa := adapters.NewProxmoxAdapter(cfg)
+		acl := adapters.NewACLAdapter(pxa)
 		err := acl.Delete(context.Background(), outputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, proxmox.ErrInvalidACLType.Error())
@@ -465,21 +483,23 @@ func TestACLAdapterDelete(t *testing.T) {
 			ACLInputs: proxmox.ACLInputs{Path: pathRoot, RoleID: roleAdmin, Type: typeUser, UGID: ugidUser1},
 		}
 
-		server, captured := createMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *mockRequest) {
-			if r.Method == http.MethodPut && r.URL.Path == "/access/acl" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte(`{"data":null}`))
-				return
-			}
-			w.WriteHeader(http.StatusNotFound)
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				if r.Method == http.MethodPut && r.URL.Path == "/access/acl" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					_, _ = w.Write([]byte(`{"data":null}`))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+			})
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
-		pxa := NewProxmoxAdapter(cfg)
+		pxa := adapters.NewProxmoxAdapter(cfg)
 		require.NoError(t, pxa.Connect(context.Background()))
-		acl := NewACLAdapter(pxa)
+		acl := adapters.NewACLAdapter(pxa)
 
 		err := acl.Delete(context.Background(), outputs)
 		require.Error(t, err)

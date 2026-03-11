@@ -25,8 +25,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 func TestHAStateValidation(t *testing.T) {
