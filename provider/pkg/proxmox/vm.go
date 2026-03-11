@@ -25,6 +25,7 @@ import (
 // VMOperations defines the interface for interacting with Proxmox VM resources.
 type VMOperations interface {
 	// Create creates a new virtual machine and returns its assigned VM ID and node name.
+	// inputs.Node and inputs.VMID must already be set by the caller.
 	Create(ctx context.Context, inputs VMInputs) (vmID int, node string, err error)
 
 	// Get retrieves the current state of a virtual machine.
