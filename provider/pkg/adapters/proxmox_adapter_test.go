@@ -105,22 +105,25 @@ func TestProxmoxAdapterGet(t *testing.T) {
 			"data": innerData,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			// Verify request method and path (go-proxmox adds /api2/json prefix)
-			assert.Equal(t, http.MethodGet, r.Method)
-			// Note: The path passed to adapter.Get() doesn't include /api2/json
-			// but the actual HTTP request will have it (added by go-proxmox library)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				// Verify request method and path (go-proxmox adds /api2/json prefix)
+				assert.Equal(t, http.MethodGet, r.Method)
+				// Note: The path passed to adapter.Get() doesn't include /api2/json
+				// but the actual HTTP request will have it (added by go-proxmox library)
 
-			// Verify headers
-			assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
-			assert.Equal(t, "application/json", r.Header.Get("Accept"))
+				// Verify headers
+				assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
+				assert.Equal(t, "application/json", r.Header.Get("Accept"))
 
-			// Send response (go-proxmox expects data wrapped in "data" field)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			err := json.NewEncoder(w).Encode(apiResponse)
-			require.NoError(t, err)
-		})
+				// Send response (go-proxmox expects data wrapped in "data" field)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				err := json.NewEncoder(w).Encode(apiResponse)
+				require.NoError(t, err)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -148,14 +151,17 @@ func TestProxmoxAdapterGet(t *testing.T) {
 	t.Run("GET request with query parameters", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			// Verify query parameters are preserved
-			assert.Equal(t, "value1", r.URL.Query().Get("param1"))
-			assert.Equal(t, "value2", r.URL.Query().Get("param2"))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				// Verify query parameters are preserved
+				assert.Equal(t, "value1", r.URL.Query().Get("param1"))
+				assert.Equal(t, "value2", r.URL.Query().Get("param2"))
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": {}}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": {}}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -223,28 +229,31 @@ func TestProxmoxAdapterPost(t *testing.T) {
 			"data": innerData,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			// Verify request method
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/test/resources")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				// Verify request method
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/test/resources")
 
-			// Verify headers
-			assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
+				// Verify headers
+				assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
 
-			// Verify request body
-			var receivedBody map[string]interface{}
-			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "test-resource", receivedBody["name"])
-			assert.Equal(t, "active", receivedBody["status"])
-			assert.Equal(t, float64(42), receivedBody["count"]) // JSON numbers are float64
+				// Verify request body
+				var receivedBody map[string]interface{}
+				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "test-resource", receivedBody["name"])
+				assert.Equal(t, "active", receivedBody["status"])
+				assert.Equal(t, float64(42), receivedBody["count"]) // JSON numbers are float64
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			err = json.NewEncoder(w).Encode(apiResponse)
-			require.NoError(t, err)
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				err = json.NewEncoder(w).Encode(apiResponse)
+				require.NoError(t, err)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -306,26 +315,29 @@ func TestProxmoxAdapterPut(t *testing.T) {
 			"value":  100,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			// Verify request method
-			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Equal(t, "/test/resources/123", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				// Verify request method
+				assert.Equal(t, http.MethodPut, r.Method)
+				assert.Equal(t, "/test/resources/123", r.URL.Path)
 
-			// Verify headers
-			assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
+				// Verify headers
+				assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
 
-			// Verify request body
-			var receivedBody map[string]interface{}
-			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "updated", receivedBody["status"])
-			assert.Equal(t, float64(100), receivedBody["value"])
+				// Verify request body
+				var receivedBody map[string]interface{}
+				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "updated", receivedBody["status"])
+				assert.Equal(t, float64(100), receivedBody["value"])
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": "updated"}`))
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": "updated"}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -384,19 +396,22 @@ func TestProxmoxAdapterDelete(t *testing.T) {
 	t.Run("successful DELETE request", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			// Verify request method
-			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Equal(t, "/test/resources/456", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				// Verify request method
+				assert.Equal(t, http.MethodDelete, r.Method)
+				assert.Equal(t, "/test/resources/456", r.URL.Path)
 
-			// Verify headers
-			assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
+				// Verify headers
+				assert.Contains(t, r.Header.Get("Authorization"), "PVEAPIToken")
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": "deleted"}`))
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": "deleted"}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -454,16 +469,19 @@ func TestProxmoxAdapterAuthenticationHeaders(t *testing.T) {
 		expectedUser := "admin@pam"
 		expectedToken := "secret-token-123"
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			// Verify Authorization header format
-			authHeader := r.Header.Get("Authorization")
-			assert.Contains(t, authHeader, "PVEAPIToken")
-			assert.Contains(t, authHeader, expectedUser)
-			assert.Contains(t, authHeader, expectedToken)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				// Verify Authorization header format
+				authHeader := r.Header.Get("Authorization")
+				assert.Contains(t, authHeader, "PVEAPIToken")
+				assert.Contains(t, authHeader, expectedUser)
+				assert.Contains(t, authHeader, expectedToken)
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": {}}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": {}}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -572,4 +590,167 @@ func TestProxmoxAdapterConfigFromContext(t *testing.T) {
 		err := adapter.Connect(context.Background())
 		require.NoError(t, err)
 	})
+}
+
+func TestProxmoxAdapterResolveNode(t *testing.T) {
+	t.Parallel()
+
+	const (
+		clusterOK = `{"data":[{"type":"cluster","quorate":1,"nodes":1},{"type":"node","name":"pve-node","online":1}]}`
+	)
+
+	tests := []struct {
+		name           string
+		inputNode      *string // nil means "let cluster decide"
+		serverResponse string  // empty means no server needed
+		serverStatus   int
+		wantNode       string
+		wantErr        bool
+		wantErrContain string
+	}{
+		{
+			name:      "returns provided node name unchanged",
+			inputNode: func() *string { s := "my-node"; return &s }(),
+			wantNode:  "my-node",
+		},
+		{
+			name:           "fetches first cluster node when node is nil",
+			inputNode:      nil,
+			serverResponse: clusterOK,
+			serverStatus:   http.StatusOK,
+			wantNode:       "pve-node",
+		},
+		{
+			name:         "returns error when cluster status request fails",
+			inputNode:    nil,
+			serverStatus: http.StatusInternalServerError,
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var pveURL string
+			if tt.inputNode != nil {
+				// No HTTP server needed — ResolveNode returns early when node is non-nil.
+				pveURL = "https://test.proxmox.com:8006"
+			} else {
+				server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(tt.serverStatus)
+					if tt.serverResponse != "" {
+						_, _ = w.Write([]byte(tt.serverResponse))
+					}
+				})
+				defer server.Close()
+				pveURL = server.URL
+			}
+
+			adapter := adapters.NewProxmoxAdapter(&config.Config{
+				PveURL:   pveURL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			})
+
+			result, err := adapter.ResolveNode(context.Background(), tt.inputNode)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.wantErrContain != "" {
+					assert.Contains(t, err.Error(), tt.wantErrContain)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.wantNode, result)
+			}
+		})
+	}
+}
+
+func TestProxmoxAdapterNextVMID(t *testing.T) {
+	t.Parallel()
+
+	const (
+		clusterOK = `{"data":[{"type":"cluster","quorate":1,"nodes":1},{"type":"node","name":"pve-node","online":1}]}`
+		nextIDOK  = `{"data":"100"}`
+	)
+
+	tests := []struct {
+		name            string
+		clusterResponse string
+		clusterStatus   int
+		nextIDResponse  string
+		nextIDStatus    int
+		wantVMID        int
+		wantErr         bool
+		wantErrContain  string
+	}{
+		{
+			name:            "returns next VM ID from cluster",
+			clusterResponse: clusterOK,
+			clusterStatus:   http.StatusOK,
+			nextIDResponse:  nextIDOK,
+			nextIDStatus:    http.StatusOK,
+			wantVMID:        100,
+		},
+		{
+			name:          "returns error when cluster status request fails",
+			clusterStatus: http.StatusInternalServerError,
+			nextIDStatus:  http.StatusOK,
+			wantErr:       true,
+		},
+		{
+			name:            "returns error when next VM ID request fails",
+			clusterResponse: clusterOK,
+			clusterStatus:   http.StatusOK,
+			nextIDStatus:    http.StatusInternalServerError,
+			wantErr:         true,
+			wantErrContain:  "next VM ID",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					w.Header().Set("Content-Type", "application/json")
+					if strings.Contains(r.URL.Path, "/cluster/nextid") {
+						w.WriteHeader(tt.nextIDStatus)
+						if tt.nextIDResponse != "" {
+							_, _ = w.Write([]byte(tt.nextIDResponse))
+						}
+					} else {
+						w.WriteHeader(tt.clusterStatus)
+						if tt.clusterResponse != "" {
+							_, _ = w.Write([]byte(tt.clusterResponse))
+						}
+					}
+				},
+			)
+			defer server.Close()
+
+			adapter := adapters.NewProxmoxAdapter(&config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			})
+
+			vmID, err := adapter.NextVMID(context.Background())
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.wantErrContain != "" {
+					assert.Contains(t, err.Error(), tt.wantErrContain)
+				}
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.wantVMID, vmID)
+			}
+		})
+	}
 }
