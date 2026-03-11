@@ -21,7 +21,7 @@ import (
 )
 
 // Client is the general interface for interacting with Proxmox VE.
-// It provides low-level HTTP operations for communicating with the Proxmox API.
+// It provides low-level HTTP operations and cluster-level helpers.
 type Client interface {
 	// Get performs a GET request to the Proxmox API.
 	Get(ctx context.Context, path string, result any) error
@@ -34,4 +34,11 @@ type Client interface {
 
 	// Delete performs a DELETE request to the Proxmox API.
 	Delete(ctx context.Context, path string, result any) error
+
+	// ResolveNode returns node if non-nil, otherwise selects the first available
+	// node in the cluster.
+	ResolveNode(ctx context.Context, node *string) (string, error)
+
+	// NextVMID returns the next available VM ID from the cluster.
+	NextVMID(ctx context.Context) (int, error)
 }
