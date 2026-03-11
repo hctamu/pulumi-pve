@@ -20,10 +20,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 // Ensure Pool implements the required interfaces

@@ -23,10 +23,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -35,6 +31,11 @@ import (
 	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestVMDiffEfiDiskChange(t *testing.T) {

@@ -20,26 +20,32 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 // mockVMOps is a test double for VMOperations that captures calls and returns
 // configurable responses.
 type mockVMOps struct {
 	createFunc func(ctx context.Context, inputs proxmox.VMInputs) (int, string, error)
-	getFunc    func(ctx context.Context, vmID int, node *string, existingInputs proxmox.VMInputs) (proxmox.VMInputs, proxmox.VMInputs, error)
-	updateFunc func(ctx context.Context, vmID int, node *string, inputs proxmox.VMInputs, stateInputs proxmox.VMInputs) error
+	getFunc    func(
+		ctx context.Context, vmID int, node *string, existingInputs proxmox.VMInputs,
+	) (proxmox.VMInputs, proxmox.VMInputs, error)
+	updateFunc func(
+		ctx context.Context, vmID int, node *string,
+		inputs proxmox.VMInputs, stateInputs proxmox.VMInputs,
+	) error
 	deleteFunc func(ctx context.Context, vmID int, node *string) error
 }
 
-func (m *mockVMOps) Create(ctx context.Context, inputs proxmox.VMInputs) (int, string, error) {
+func (m *mockVMOps) Create(ctx context.Context, inputs proxmox.VMInputs) (vmID int, node string, err error) {
 	if m.createFunc != nil {
 		return m.createFunc(ctx, inputs)
 	}
@@ -51,7 +57,7 @@ func (m *mockVMOps) Get(
 	vmID int,
 	node *string,
 	existingInputs proxmox.VMInputs,
-) (proxmox.VMInputs, proxmox.VMInputs, error) {
+) (computed, preserved proxmox.VMInputs, err error) {
 	if m.getFunc != nil {
 		return m.getFunc(ctx, vmID, node, existingInputs)
 	}
@@ -378,7 +384,9 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 	efiFileID := "vm-200-efidisk"
 
 	ops := &mockVMOps{
-		getFunc: func(_ context.Context, id int, node *string, existing proxmox.VMInputs) (proxmox.VMInputs, proxmox.VMInputs, error) {
+		getFunc: func(
+			_ context.Context, id int, node *string, existing proxmox.VMInputs,
+		) (proxmox.VMInputs, proxmox.VMInputs, error) {
 			computed := proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
@@ -454,7 +462,9 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 	efiFileID := "vm-300-efidisk"
 
 	ops := &mockVMOps{
-		getFunc: func(_ context.Context, id int, node *string, existing proxmox.VMInputs) (proxmox.VMInputs, proxmox.VMInputs, error) {
+		getFunc: func(
+			_ context.Context, id int, node *string, existing proxmox.VMInputs,
+		) (proxmox.VMInputs, proxmox.VMInputs, error) {
 			computed := proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
@@ -539,7 +549,9 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 		createFunc: func(_ context.Context, inputs proxmox.VMInputs) (int, string, error) {
 			return nextID, nodeName, nil
 		},
-		getFunc: func(_ context.Context, id int, node *string, existing proxmox.VMInputs) (proxmox.VMInputs, proxmox.VMInputs, error) {
+		getFunc: func(
+			_ context.Context, id int, node *string, existing proxmox.VMInputs,
+		) (proxmox.VMInputs, proxmox.VMInputs, error) {
 			computed := proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
@@ -631,7 +643,7 @@ func TestVMCreateConfigurationErrors(t *testing.T) {
 			client:         nil,
 			vmOps:          &mockVMOps{},
 			inputs:         proxmox.VMInputs{},
-			wantErrContain: "Client not configured",
+			wantErrContain: "client not configured",
 		},
 		{
 			name:    "ResolveNode failure is propagated",

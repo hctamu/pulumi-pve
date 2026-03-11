@@ -19,8 +19,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	api "github.com/luthermonson/go-proxmox"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 // Ensure GroupAdapter implements the GroupOperations interface

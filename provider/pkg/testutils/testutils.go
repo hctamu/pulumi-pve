@@ -24,12 +24,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/px"
 )
 
 // NewAPIMock starts a mocha mock server, sets PVE_API_URL, and overrides the global
@@ -112,11 +113,19 @@ type MockProxmoxClient struct {
 
 var _ proxmox.Client = (*MockProxmoxClient)(nil)
 
-func (m *MockProxmoxClient) Get(_ context.Context, _ string, _ any) error     { return nil }
-func (m *MockProxmoxClient) Post(_ context.Context, _ string, _, _ any) error { return nil }
-func (m *MockProxmoxClient) Put(_ context.Context, _ string, _, _ any) error  { return nil }
-func (m *MockProxmoxClient) Delete(_ context.Context, _ string, _ any) error  { return nil }
+// Get implements proxmox.Client.
+func (m *MockProxmoxClient) Get(_ context.Context, _ string, _ any) error { return nil }
 
+// Post implements proxmox.Client.
+func (m *MockProxmoxClient) Post(_ context.Context, _ string, _, _ any) error { return nil }
+
+// Put implements proxmox.Client.
+func (m *MockProxmoxClient) Put(_ context.Context, _ string, _, _ any) error { return nil }
+
+// Delete implements proxmox.Client.
+func (m *MockProxmoxClient) Delete(_ context.Context, _ string, _ any) error { return nil }
+
+// ResolveNode implements proxmox.Client.
 func (m *MockProxmoxClient) ResolveNode(_ context.Context, node *string) (string, error) {
 	if node != nil {
 		return *node, nil
@@ -124,6 +133,7 @@ func (m *MockProxmoxClient) ResolveNode(_ context.Context, node *string) (string
 	return m.DefaultNode, nil
 }
 
+// NextVMID implements proxmox.Client.
 func (m *MockProxmoxClient) NextVMID(_ context.Context) (int, error) {
 	return m.DefaultVMID, nil
 }

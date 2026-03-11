@@ -137,12 +137,12 @@ func (efiDisk *EfiDisk) Annotate(a infer.Annotator) {
 }
 
 // ValidateEfiType checks if the EfiType is valid.
-func (efi EfiDisk) ValidateEfiType() error {
-	switch efi.EfiType {
+func (efiDisk EfiDisk) ValidateEfiType() error {
+	switch efiDisk.EfiType {
 	case EfiType2M, EfiType4M:
 		return nil
 	default:
-		return fmt.Errorf("invalid EFI type: %v", efi.EfiType)
+		return fmt.Errorf("invalid EFI type: %v", efiDisk.EfiType)
 	}
 }
 

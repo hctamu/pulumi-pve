@@ -23,12 +23,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (

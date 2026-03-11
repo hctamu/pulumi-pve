@@ -17,18 +17,18 @@ package adapters_test
 
 import (
 	"context"
-	
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestHAAdapterCreate(t *testing.T) {
@@ -43,24 +43,27 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 100,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-			// Verify request method and path
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/cluster/ha/resources/", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
+				// Verify request method and path
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, "/cluster/ha/resources/", r.URL.Path)
 
-			// Verify request body
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "test-group", receivedBody.Group)
-			assert.Equal(t, "started", receivedBody.State)
-			assert.Equal(t, "100", receivedBody.Sid)
+				// Verify request body
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "test-group", receivedBody.Group)
+				assert.Equal(t, "started", receivedBody.State)
+				assert.Equal(t, "100", receivedBody.Sid)
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -94,19 +97,22 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 101,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-			// Verify request body
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Empty(t, receivedBody.Group)
-			assert.Equal(t, "stopped", receivedBody.State)
-			assert.Equal(t, "101", receivedBody.Sid)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
+				// Verify request body
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Empty(t, receivedBody.Group)
+				assert.Equal(t, "stopped", receivedBody.State)
+				assert.Equal(t, "101", receivedBody.Sid)
 
-			// Send response
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				// Send response
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -138,15 +144,18 @@ func TestHAAdapterCreate(t *testing.T) {
 			ResourceID: 102,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "ignored", receivedBody.State)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "ignored", receivedBody.State)
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -210,20 +219,23 @@ func TestHAAdapterGet(t *testing.T) {
 			Sid:   "100",
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			// Verify request method and path
-			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				// Verify request method and path
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			responseData := map[string]interface{}{
-				"data": apiResponse,
-			}
-			err := json.NewEncoder(w).Encode(responseData)
-			require.NoError(t, err)
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				responseData := map[string]interface{}{
+					"data": apiResponse,
+				}
+				err := json.NewEncoder(w).Encode(responseData)
+				require.NoError(t, err)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -376,23 +388,26 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			// Verify request method and path
-			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				// Verify request method and path
+				assert.Equal(t, http.MethodPut, r.Method)
+				assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
 
-			// Verify request body
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "stopped", receivedBody.State)
-			assert.Equal(t, "test-group", receivedBody.Group)
-			assert.Empty(t, receivedBody.Delete)
+				// Verify request body
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "stopped", receivedBody.State)
+				assert.Equal(t, "test-group", receivedBody.Group)
+				assert.Empty(t, receivedBody.Delete)
 
-			// Send response
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				// Send response
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -433,18 +448,21 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			// Verify request body contains delete field
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "started", receivedBody.State)
-			assert.Equal(t, []string{"group"}, receivedBody.Delete)
-			assert.Empty(t, receivedBody.Group)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				// Verify request body contains delete field
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "started", receivedBody.State)
+				assert.Equal(t, []string{"group"}, receivedBody.Delete)
+				assert.Empty(t, receivedBody.Group)
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -483,17 +501,20 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "new-group", receivedBody.Group)
-			assert.Equal(t, "started", receivedBody.State)
-			assert.Empty(t, receivedBody.Delete)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "new-group", receivedBody.Group)
+				assert.Equal(t, "started", receivedBody.State)
+				assert.Empty(t, receivedBody.Delete)
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -531,17 +552,20 @@ func TestHAAdapterUpdate(t *testing.T) {
 			},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			var receivedBody proxmox.HaResource
-			err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "new-group", receivedBody.Group)
-			assert.Equal(t, "ignored", receivedBody.State)
-			assert.Empty(t, receivedBody.Delete)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				var receivedBody proxmox.HaResource
+				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "new-group", receivedBody.Group)
+				assert.Equal(t, "ignored", receivedBody.State)
+				assert.Empty(t, receivedBody.Delete)
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -609,18 +633,21 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("successful delete", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			// Verify request method and path
-			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				// Verify request method and path
+				assert.Equal(t, http.MethodDelete, r.Method)
+				assert.Equal(t, "/cluster/ha/resources/100", r.URL.Path)
 
-			// Verify no body
-			assert.Empty(t, req.Body)
+				// Verify no body
+				assert.Empty(t, req.Body)
 
-			// Send response
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				// Send response
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -646,12 +673,15 @@ func TestHAAdapterDelete(t *testing.T) {
 	t.Run("delete different resource ID", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			assert.Equal(t, "/cluster/ha/resources/999", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, "/cluster/ha/resources/999", r.URL.Path)
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{

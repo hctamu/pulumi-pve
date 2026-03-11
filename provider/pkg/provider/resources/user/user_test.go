@@ -19,13 +19,14 @@ import (
 	"context"
 	"testing"
 
-	userResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	userResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 const (
