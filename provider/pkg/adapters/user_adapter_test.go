@@ -17,19 +17,19 @@ package adapters_test
 
 import (
 	"context"
-	
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 const (
@@ -65,41 +65,44 @@ func TestUserAdapterCreate(t *testing.T) {
 			Password:  userPassword,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/users")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/users")
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, userID, body["userid"])
-				assert.Equal(t, "hello", body["comment"])
-				assert.Equal(t, userEmail, body["email"])
-				assert.Equal(t, userFirstname, body["firstname"])
-				assert.Equal(t, userLastname, body["lastname"])
-				assert.Equal(t, userPassword, body["password"])
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, userID, body["userid"])
+					assert.Equal(t, "hello", body["comment"])
+					assert.Equal(t, userEmail, body["email"])
+					assert.Equal(t, userFirstname, body["firstname"])
+					assert.Equal(t, userLastname, body["lastname"])
+					assert.Equal(t, userPassword, body["password"])
 
-				groups, ok := body["groups"].([]any)
-				require.True(t, ok, "expected groups to be an array")
-				assert.ElementsMatch(t, []any{userGroup1, userGroup2}, groups)
+					groups, ok := body["groups"].([]any)
+					require.True(t, ok, "expected groups to be an array")
+					assert.ElementsMatch(t, []any{userGroup1, userGroup2}, groups)
 
-				keys, ok := body["keys"].([]any)
-				require.True(t, ok, "expected keys to be an array")
-				assert.ElementsMatch(t, []any{userKey1, userKey2}, keys)
-			} else {
-				vals, err2 := url.ParseQuery(req.Body)
-				require.NoError(t, err2)
-				assert.Equal(t, userID, vals.Get("userid"))
-				assert.Equal(t, "hello", vals.Get("comment"))
-				assert.Equal(t, userEmail, vals.Get("email"))
-				assert.Equal(t, userFirstname, vals.Get("firstname"))
-				assert.Equal(t, userLastname, vals.Get("lastname"))
-				assert.Equal(t, userPassword, vals.Get("password"))
-			}
+					keys, ok := body["keys"].([]any)
+					require.True(t, ok, "expected keys to be an array")
+					assert.ElementsMatch(t, []any{userKey1, userKey2}, keys)
+				} else {
+					vals, err2 := url.ParseQuery(req.Body)
+					require.NoError(t, err2)
+					assert.Equal(t, userID, vals.Get("userid"))
+					assert.Equal(t, "hello", vals.Get("comment"))
+					assert.Equal(t, userEmail, vals.Get("email"))
+					assert.Equal(t, userFirstname, vals.Get("firstname"))
+					assert.Equal(t, userLastname, vals.Get("lastname"))
+					assert.Equal(t, userPassword, vals.Get("password"))
+				}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -126,18 +129,21 @@ func TestUserAdapterCreate(t *testing.T) {
 			Password: userPassword,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/users")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/users")
 
-			// With keys == nil, json omitempty should omit the field.
-			if strings.Contains(req.Body, "\"keys\"") {
-				t.Fatalf("expected request body to omit keys, got: %s", req.Body)
-			}
+				// With keys == nil, json omitempty should omit the field.
+				if strings.Contains(req.Body, "\"keys\"") {
+					t.Fatalf("expected request body to omit keys, got: %s", req.Body)
+				}
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -155,14 +161,17 @@ func TestUserAdapterCreate(t *testing.T) {
 
 		inputs := proxmox.UserInputs{Name: userID, Enable: true, Password: userPassword}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/users")
-			assert.Contains(t, req.Body, userID)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/users")
+				assert.Contains(t, req.Body, userID)
 
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -183,26 +192,29 @@ func TestUserAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/users/")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/users/")
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": map[string]any{
-					"userid":    userID,
-					"comment":   "hello",
-					"email":     userEmail,
-					"enable":    1,
-					"expire":    0,
-					"firstname": userFirstname,
-					"lastname":  userLastname,
-					"groups":    []string{userGroup1, userGroup2},
-					"keys":      userKey2 + "," + userKey1,
-				},
-			})
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"data": map[string]any{
+						"userid":    userID,
+						"comment":   "hello",
+						"email":     userEmail,
+						"enable":    1,
+						"expire":    0,
+						"firstname": userFirstname,
+						"lastname":  userLastname,
+						"groups":    []string{userGroup1, userGroup2},
+						"keys":      userKey2 + "," + userKey1,
+					},
+				})
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -294,38 +306,41 @@ func TestUserAdapterUpdate(t *testing.T) {
 			Keys:      []string{userKey2, userKey1},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/users/"+url.PathEscape(userID))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPut, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/users/"+url.PathEscape(userID))
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, userID, body["userid"])
-				assert.Equal(t, "updated", body["comment"])
-				assert.Equal(t, userEmail, body["email"])
-				assert.Equal(t, float64(123), body["expire"])
-				assert.Equal(t, userFirstname, body["firstname"])
-				assert.Equal(t, userLastname, body["lastname"])
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, userID, body["userid"])
+					assert.Equal(t, "updated", body["comment"])
+					assert.Equal(t, userEmail, body["email"])
+					assert.Equal(t, float64(123), body["expire"])
+					assert.Equal(t, userFirstname, body["firstname"])
+					assert.Equal(t, userLastname, body["lastname"])
 
-				// keys is a string (comma-separated) in api.User
-				if keys, ok := body["keys"].(string); ok {
-					assert.Equal(t, userKey1+","+userKey2, keys)
+					// keys is a string (comma-separated) in api.User
+					if keys, ok := body["keys"].(string); ok {
+						assert.Equal(t, userKey1+","+userKey2, keys)
+					}
+
+					// enable could encode as bool or number depending on IntOrBool
+					switch v := body["enable"].(type) {
+					case bool:
+						assert.False(t, v)
+					case float64:
+						assert.Equal(t, float64(0), v)
+					case string:
+						assert.Equal(t, "0", v)
+					}
 				}
 
-				// enable could encode as bool or number depending on IntOrBool
-				switch v := body["enable"].(type) {
-				case bool:
-					assert.False(t, v)
-				case float64:
-					assert.Equal(t, float64(0), v)
-				case string:
-					assert.Equal(t, "0", v)
-				}
-			}
-
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -367,13 +382,16 @@ func TestUserAdapterDelete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/users/")
-			assert.Empty(t, req.Body)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodDelete, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/users/")
+				assert.Empty(t, req.Body)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}

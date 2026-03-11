@@ -20,16 +20,16 @@ namespace Hctamu.Pve.Storage
         public Output<string> ContentType { get; private set; } = null!;
 
         /// <summary>
-        /// The datastore to upload the file to.  (e.g:ceph-ha)
+        /// The datastore to upload the file to. (e.g: ceph-ha)
         /// </summary>
         [Output("datastoreId")]
         public Output<string> DatastoreId { get; private set; } = null!;
 
         /// <summary>
-        /// The raw source data
+        /// The raw source data.
         /// </summary>
         [Output("sourceRaw")]
-        public Output<Outputs.FileSourceRaw> SourceRaw { get; private set; } = null!;
+        public Output<Hctamu.Pve.Proxmox.Outputs.StorageFileSourceRaw> SourceRaw { get; private set; } = null!;
 
 
         /// <summary>
@@ -90,16 +90,16 @@ namespace Hctamu.Pve.Storage
         public Input<string> ContentType { get; set; } = null!;
 
         /// <summary>
-        /// The datastore to upload the file to.  (e.g:ceph-ha)
+        /// The datastore to upload the file to. (e.g: ceph-ha)
         /// </summary>
         [Input("datastoreId", required: true)]
         public Input<string> DatastoreId { get; set; } = null!;
 
         /// <summary>
-        /// The raw source data
+        /// The raw source data.
         /// </summary>
         [Input("sourceRaw", required: true)]
-        public Input<Inputs.FileSourceRawArgs> SourceRaw { get; set; } = null!;
+        public Input<Hctamu.Pve.Proxmox.Inputs.StorageFileSourceRawArgs> SourceRaw { get; set; } = null!;
 
         public FileArgs()
         {

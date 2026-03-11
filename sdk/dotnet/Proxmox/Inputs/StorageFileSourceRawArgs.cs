@@ -8,26 +8,26 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Storage.Inputs
+namespace Hctamu.Pve.Proxmox.Inputs
 {
 
-    public sealed class FileSourceRawArgs : global::Pulumi.ResourceArgs
+    public sealed class StorageFileSourceRawArgs : global::Pulumi.ResourceArgs
     {
         /// <summary>
-        /// The raw data in []byte
+        /// The raw data content of the file.
         /// </summary>
         [Input("fileData", required: true)]
         public Input<string> FileData { get; set; } = null!;
 
         /// <summary>
-        /// The name of the file
+        /// The name of the file.
         /// </summary>
         [Input("fileName", required: true)]
         public Input<string> FileName { get; set; } = null!;
 
-        public FileSourceRawArgs()
+        public StorageFileSourceRawArgs()
         {
         }
-        public static new FileSourceRawArgs Empty => new FileSourceRawArgs();
+        public static new StorageFileSourceRawArgs Empty => new StorageFileSourceRawArgs();
     }
 }

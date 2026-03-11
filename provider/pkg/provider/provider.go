@@ -17,6 +17,11 @@ limitations under the License.
 package provider
 
 import (
+	p "github.com/pulumi/pulumi-go-provider"
+	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi-go-provider/middleware/schema"
+	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
+
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
@@ -27,11 +32,6 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/storage"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-
-	p "github.com/pulumi/pulumi-go-provider"
-	"github.com/pulumi/pulumi-go-provider/infer"
-	"github.com/pulumi/pulumi-go-provider/middleware/schema"
-	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 )
 
 // Version is initialized by the Go linker to contain the semver of this build.

@@ -22,11 +22,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"golang.org/x/crypto/ssh"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 )
 
 var (

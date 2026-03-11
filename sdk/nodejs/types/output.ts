@@ -68,16 +68,13 @@ export namespace proxmox {
         policy?: string;
     }
 
-}
-
-export namespace storage {
-    export interface FileSourceRaw {
+    export interface StorageFileSourceRaw {
         /**
-         * The raw data in []byte
+         * The raw data content of the file.
          */
         fileData: string;
         /**
-         * The name of the file
+         * The name of the file.
          */
         fileName: string;
     }

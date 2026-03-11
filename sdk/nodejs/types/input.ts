@@ -67,16 +67,14 @@ export namespace proxmox {
         memory?: pulumi.Input<number>;
         policy?: pulumi.Input<string>;
     }
-}
 
-export namespace storage {
-    export interface FileSourceRawArgs {
+    export interface StorageFileSourceRawArgs {
         /**
-         * The raw data in []byte
+         * The raw data content of the file.
          */
         fileData: pulumi.Input<string>;
         /**
-         * The name of the file
+         * The name of the file.
          */
         fileName: pulumi.Input<string>;
     }

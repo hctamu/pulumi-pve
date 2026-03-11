@@ -213,16 +213,16 @@
         "cpus"
       ]
     },
-    "pve:storage:FileSourceRaw": {
+    "pve:proxmox:StorageFileSourceRaw": {
       "properties": {
         "fileData": {
           "type": "string",
-          "description": "The raw data in []byte",
+          "description": "The raw data content of the file.",
           "replaceOnChanges": true
         },
         "fileName": {
           "type": "string",
-          "description": "The name of the file",
+          "description": "The name of the file.",
           "replaceOnChanges": true
         }
       },
@@ -514,12 +514,12 @@
         },
         "datastoreId": {
           "type": "string",
-          "description": "The datastore to upload the file to.  (e.g:ceph-ha)",
+          "description": "The datastore to upload the file to. (e.g: ceph-ha)",
           "replaceOnChanges": true
         },
         "sourceRaw": {
-          "$ref": "#/types/pve:storage:FileSourceRaw",
-          "description": "The raw source data"
+          "$ref": "#/types/pve:proxmox:StorageFileSourceRaw",
+          "description": "The raw source data."
         }
       },
       "type": "object",
@@ -536,12 +536,12 @@
         },
         "datastoreId": {
           "type": "string",
-          "description": "The datastore to upload the file to.  (e.g:ceph-ha)",
+          "description": "The datastore to upload the file to. (e.g: ceph-ha)",
           "replaceOnChanges": true
         },
         "sourceRaw": {
-          "$ref": "#/types/pve:storage:FileSourceRaw",
-          "description": "The raw source data"
+          "$ref": "#/types/pve:proxmox:StorageFileSourceRaw",
+          "description": "The raw source data."
         }
       },
       "requiredInputs": [

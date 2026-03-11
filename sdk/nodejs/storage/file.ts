@@ -38,13 +38,13 @@ export class File extends pulumi.CustomResource {
      */
     declare public readonly contentType: pulumi.Output<string>;
     /**
-     * The datastore to upload the file to.  (e.g:ceph-ha)
+     * The datastore to upload the file to. (e.g: ceph-ha)
      */
     declare public readonly datastoreId: pulumi.Output<string>;
     /**
-     * The raw source data
+     * The raw source data.
      */
-    declare public readonly sourceRaw: pulumi.Output<outputs.storage.FileSourceRaw>;
+    declare public readonly sourceRaw: pulumi.Output<outputs.proxmox.StorageFileSourceRaw>;
 
     /**
      * Create a File resource with the given unique name, arguments, and options.
@@ -90,11 +90,11 @@ export interface FileArgs {
      */
     contentType: pulumi.Input<string>;
     /**
-     * The datastore to upload the file to.  (e.g:ceph-ha)
+     * The datastore to upload the file to. (e.g: ceph-ha)
      */
     datastoreId: pulumi.Input<string>;
     /**
-     * The raw source data
+     * The raw source data.
      */
-    sourceRaw: pulumi.Input<inputs.storage.FileSourceRawArgs>;
+    sourceRaw: pulumi.Input<inputs.proxmox.StorageFileSourceRawArgs>;
 }

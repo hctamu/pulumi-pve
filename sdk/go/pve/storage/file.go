@@ -9,6 +9,7 @@ import (
 
 	"errors"
 	"github.com/hctamu/pulumi-pve/sdk/go/pve/internal"
+	"github.com/hctamu/pulumi-pve/sdk/go/pve/proxmox"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -17,10 +18,10 @@ type File struct {
 
 	// The type of the file (e.g: snippets)
 	ContentType pulumi.StringOutput `pulumi:"contentType"`
-	// The datastore to upload the file to.  (e.g:ceph-ha)
+	// The datastore to upload the file to. (e.g: ceph-ha)
 	DatastoreId pulumi.StringOutput `pulumi:"datastoreId"`
-	// The raw source data
-	SourceRaw FileSourceRawOutput `pulumi:"sourceRaw"`
+	// The raw source data.
+	SourceRaw proxmox.StorageFileSourceRawOutput `pulumi:"sourceRaw"`
 }
 
 // NewFile registers a new resource with the given unique name, arguments, and options.
@@ -81,20 +82,20 @@ func (FileState) ElementType() reflect.Type {
 type fileArgs struct {
 	// The type of the file (e.g: snippets)
 	ContentType string `pulumi:"contentType"`
-	// The datastore to upload the file to.  (e.g:ceph-ha)
+	// The datastore to upload the file to. (e.g: ceph-ha)
 	DatastoreId string `pulumi:"datastoreId"`
-	// The raw source data
-	SourceRaw FileSourceRaw `pulumi:"sourceRaw"`
+	// The raw source data.
+	SourceRaw proxmox.StorageFileSourceRaw `pulumi:"sourceRaw"`
 }
 
 // The set of arguments for constructing a File resource.
 type FileArgs struct {
 	// The type of the file (e.g: snippets)
 	ContentType pulumi.StringInput
-	// The datastore to upload the file to.  (e.g:ceph-ha)
+	// The datastore to upload the file to. (e.g: ceph-ha)
 	DatastoreId pulumi.StringInput
-	// The raw source data
-	SourceRaw FileSourceRawInput
+	// The raw source data.
+	SourceRaw proxmox.StorageFileSourceRawInput
 }
 
 func (FileArgs) ElementType() reflect.Type {
@@ -189,14 +190,14 @@ func (o FileOutput) ContentType() pulumi.StringOutput {
 	return o.ApplyT(func(v *File) pulumi.StringOutput { return v.ContentType }).(pulumi.StringOutput)
 }
 
-// The datastore to upload the file to.  (e.g:ceph-ha)
+// The datastore to upload the file to. (e.g: ceph-ha)
 func (o FileOutput) DatastoreId() pulumi.StringOutput {
 	return o.ApplyT(func(v *File) pulumi.StringOutput { return v.DatastoreId }).(pulumi.StringOutput)
 }
 
-// The raw source data
-func (o FileOutput) SourceRaw() FileSourceRawOutput {
-	return o.ApplyT(func(v *File) FileSourceRawOutput { return v.SourceRaw }).(FileSourceRawOutput)
+// The raw source data.
+func (o FileOutput) SourceRaw() proxmox.StorageFileSourceRawOutput {
+	return o.ApplyT(func(v *File) proxmox.StorageFileSourceRawOutput { return v.SourceRaw }).(proxmox.StorageFileSourceRawOutput)
 }
 
 type FileArrayOutput struct{ *pulumi.OutputState }

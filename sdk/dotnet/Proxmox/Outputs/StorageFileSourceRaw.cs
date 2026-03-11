@@ -8,23 +8,23 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Storage.Outputs
+namespace Hctamu.Pve.Proxmox.Outputs
 {
 
     [OutputType]
-    public sealed class FileSourceRaw
+    public sealed class StorageFileSourceRaw
     {
         /// <summary>
-        /// The raw data in []byte
+        /// The raw data content of the file.
         /// </summary>
         public readonly string FileData;
         /// <summary>
-        /// The name of the file
+        /// The name of the file.
         /// </summary>
         public readonly string FileName;
 
         [OutputConstructor]
-        private FileSourceRaw(
+        private StorageFileSourceRaw(
             string fileData,
 
             string fileName)

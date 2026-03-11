@@ -19,9 +19,9 @@ package main
 import (
 	"context"
 
-	pve "github.com/hctamu/pulumi-pve/provider/pkg/provider"
-
 	p "github.com/pulumi/pulumi-go-provider"
+
+	pve "github.com/hctamu/pulumi-pve/provider/pkg/provider"
 )
 
 // Serve the provider against Pulumi's Provider protocol.a

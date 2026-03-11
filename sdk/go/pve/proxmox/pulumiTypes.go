@@ -955,6 +955,67 @@ func (o NumaNodeArrayOutput) Index(i pulumi.IntInput) NumaNodeOutput {
 	}).(NumaNodeOutput)
 }
 
+type StorageFileSourceRaw struct {
+	// The raw data content of the file.
+	FileData string `pulumi:"fileData"`
+	// The name of the file.
+	FileName string `pulumi:"fileName"`
+}
+
+// StorageFileSourceRawInput is an input type that accepts StorageFileSourceRawArgs and StorageFileSourceRawOutput values.
+// You can construct a concrete instance of `StorageFileSourceRawInput` via:
+//
+//	StorageFileSourceRawArgs{...}
+type StorageFileSourceRawInput interface {
+	pulumi.Input
+
+	ToStorageFileSourceRawOutput() StorageFileSourceRawOutput
+	ToStorageFileSourceRawOutputWithContext(context.Context) StorageFileSourceRawOutput
+}
+
+type StorageFileSourceRawArgs struct {
+	// The raw data content of the file.
+	FileData pulumi.StringInput `pulumi:"fileData"`
+	// The name of the file.
+	FileName pulumi.StringInput `pulumi:"fileName"`
+}
+
+func (StorageFileSourceRawArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*StorageFileSourceRaw)(nil)).Elem()
+}
+
+func (i StorageFileSourceRawArgs) ToStorageFileSourceRawOutput() StorageFileSourceRawOutput {
+	return i.ToStorageFileSourceRawOutputWithContext(context.Background())
+}
+
+func (i StorageFileSourceRawArgs) ToStorageFileSourceRawOutputWithContext(ctx context.Context) StorageFileSourceRawOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(StorageFileSourceRawOutput)
+}
+
+type StorageFileSourceRawOutput struct{ *pulumi.OutputState }
+
+func (StorageFileSourceRawOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*StorageFileSourceRaw)(nil)).Elem()
+}
+
+func (o StorageFileSourceRawOutput) ToStorageFileSourceRawOutput() StorageFileSourceRawOutput {
+	return o
+}
+
+func (o StorageFileSourceRawOutput) ToStorageFileSourceRawOutputWithContext(ctx context.Context) StorageFileSourceRawOutput {
+	return o
+}
+
+// The raw data content of the file.
+func (o StorageFileSourceRawOutput) FileData() pulumi.StringOutput {
+	return o.ApplyT(func(v StorageFileSourceRaw) string { return v.FileData }).(pulumi.StringOutput)
+}
+
+// The name of the file.
+func (o StorageFileSourceRawOutput) FileName() pulumi.StringOutput {
+	return o.ApplyT(func(v StorageFileSourceRaw) string { return v.FileName }).(pulumi.StringOutput)
+}
+
 func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*CPUInput)(nil)).Elem(), CPUArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*CPUPtrInput)(nil)).Elem(), CPUArgs{})
@@ -966,6 +1027,7 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskPtrInput)(nil)).Elem(), EfiDiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NumaNodeInput)(nil)).Elem(), NumaNodeArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*NumaNodeArrayInput)(nil)).Elem(), NumaNodeArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*StorageFileSourceRawInput)(nil)).Elem(), StorageFileSourceRawArgs{})
 	pulumi.RegisterOutputType(CPUOutput{})
 	pulumi.RegisterOutputType(CPUPtrOutput{})
 	pulumi.RegisterOutputType(CloneOutput{})
@@ -976,4 +1038,5 @@ func init() {
 	pulumi.RegisterOutputType(EfiDiskPtrOutput{})
 	pulumi.RegisterOutputType(NumaNodeOutput{})
 	pulumi.RegisterOutputType(NumaNodeArrayOutput{})
+	pulumi.RegisterOutputType(StorageFileSourceRawOutput{})
 }

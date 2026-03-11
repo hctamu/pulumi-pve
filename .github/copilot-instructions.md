@@ -51,46 +51,94 @@ provider/
   cmd/pulumi-resource-pve/   # Entry point (main.go) + schema.json
   pkg/
     config/                  # Provider config struct (URL, user, token, SSH)
-    proxmox/                 # Domain layer: interfaces + models
-    adapters/                # Adapter layer: HTTP implementations + unit tests
+    proxmox/                 # Domain layer: interfaces + models (one file per resource)
+    adapters/                # Adapter layer: HTTP/SSH implementations + unit tests
     provider/
       provider.go            # Resource registration & wiring
       resources/             # Pulumi resource implementations (vm, ha, pool…)
-    testutils/               # Shared mock helpers (MockProxmoxClient)
+    testutils/               # Shared mock helpers (MockProxmoxClient, CreateMockServer)
 sdk/                         # GENERATED — do not edit
 examples/                    # YAML/Go Pulumi programs for manual testing
 .golangci.yml                # Lint rules (repo root)
+.github/prompts/             # Reusable task-specific Copilot prompt files
 ```
 
 ---
 
 ## Architecture — Three Layers
 
-1. **Domain** (`provider/pkg/proxmox/`) — interfaces (`Client`, `VMOperations`, `HAOperations`, …) and domain models. No HTTP details.
-2. **Adapters** (`provider/pkg/adapters/`) — implement domain interfaces against the real Proxmox HTTP API. Each adapter has its own `_test.go` with a mock HTTP server.
-3. **Resources** (`provider/pkg/provider/resources/`) — implement `infer.CustomResource` interfaces. Depend only on domain interfaces, never on adapters directly. Wired together in `provider.go`.
+1. **Domain** (`provider/pkg/proxmox/`) — interfaces and domain models. No HTTP details. Each resource has its own file (e.g. `ha.go`, `vm.go`).
+2. **Adapters** (`provider/pkg/adapters/`) — implement domain interfaces against the real Proxmox HTTP/SSH API. Each adapter has a matching `_test.go`.
+3. **Resources** (`provider/pkg/provider/resources/`) — implement `infer.CustomResource` interfaces. Depend **only** on domain interfaces, never on adapters directly. Wired together in `provider.go`.
+
+### Do / Don't
+
+| ✅ Do | ❌ Don't |
+|---|---|
+| Add `var _ proxmox.XOps = (*XAdapter)(nil)` compile-time checks | Import adapter packages from resource packages |
+| Add `var _ = (infer.CustomResource[...])((*X)(nil))` in resource files | Edit anything under `sdk/` |
+| Nil-check the operations field before every use in resources | Use `github.com/golang/protobuf` (use `google.golang.org/protobuf`) |
+| Use `fmt.Errorf("...: %w", err)` for error wrapping | Share a mock server across parallel subtests |
+| Call `t.Parallel()` in every test function and subtest | Use `NewAPIMock` for new tests (use `CreateMockServer` instead) |
 
 ---
 
 ## Code Style
 
-- **Copyright header** required on every `.go` file (Apache 2.0, year 2025 — see `.golangci.yml` `goheader` template).
-- **Imports**: ordered with `gci` — standard → blank → default → `github.com/pulumi/` → local.
-- **Format**: `gofumpt` (stricter than `gofmt`).
-- **No `github.com/golang/protobuf`** — use `google.golang.org/protobuf`.
-- Run `make lint` to catch all of the above automatically.
+### Copyright header — required on **every** `.go` file
+
+```go
+/* Copyright 2025, Pulumi Corporation.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+```
+
+### Import ordering (gci — five groups, blank line between each)
+
+```go
+import (
+    "context"              // 1. stdlib
+    "fmt"
+
+    _ "embed"              // 2. blank imports
+
+    "github.com/stretchr/testify/require"  // 3. third-party
+
+    p "github.com/pulumi/pulumi-go-provider"  // 4. pulumi packages
+    "github.com/pulumi/pulumi-go-provider/infer"
+
+    "github.com/hctamu/pulumi-pve/provider/pkg/proxmox"  // 5. local (this module)
+)
+```
+
+- **Format**: `gofumpt` (stricter than `gofmt`). Run `make lint` to auto-check.
 
 ---
 
 ## Testing Rules
 
-- **All tests must be table-driven.** Define a `tests` slice of structs with `name`, inputs, and expected outputs; range over it with `t.Run`.
-- Adapter tests use a real `httptest.Server` to mock Proxmox responses.
-- Resource tests inject domain interface mocks (see `testutils.MockProxmoxClient`).
+- **All tests must be table-driven.** Define a `tests` slice of structs; range with `t.Run`.
+- **Always call `t.Parallel()`** in every test function and every subtest.
+- **Two test patterns — use the right one:**
+  - **Adapter tests** (`*_adapter_test.go`): use `testutils.CreateMockServer` to start a real `httptest.Server`, then wire `NewProxmoxAdapter` → `.Connect()` → `NewXAdapter`. Assert on both the captured HTTP request and the returned domain value.
+  - **Resource tests** (`resources/<name>/<name>_test.go`): define a local `mockXOperations` struct with `func` fields; inject it directly into the resource struct. No HTTP server needed.
+- Lifecycle/integration tests live in `<name>_lifecycle_test.go` and use `integration.LifeCycleTest`.
 - The `-short` flag skips integration tests; unit tests must not require a live Proxmox instance.
 
 ```go
 func TestExample(t *testing.T) {
+    t.Parallel()
     tests := []struct {
         name     string
         input    string
@@ -101,11 +149,27 @@ func TestExample(t *testing.T) {
     }
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
             require.Equal(t, tt.expected, transform(tt.input))
         })
     }
 }
 ```
+
+---
+
+## Adding a New Resource — Checklist
+
+When adding a new resource, create **all** of the following (in order):
+
+1. `provider/pkg/proxmox/<name>.go` — `<Name>Operations` interface + domain models + API struct
+2. `provider/pkg/adapters/<name>_adapter.go` — adapter implementing the interface
+3. `provider/pkg/adapters/<name>_adapter_test.go` — httptest-based adapter tests
+4. `provider/pkg/provider/resources/<name>/<name>.go` — Pulumi resource (uses interface, not adapter)
+5. `provider/pkg/provider/resources/<name>/<name>_test.go` — resource unit tests with mock interface
+6. `provider/pkg/provider/provider.go` — add `new<Name>ResourceWithConfig` wiring + register in `Resources` slice
+
+See `.github/prompts/new-resource.prompt.md` for the full step-by-step scaffold guide.
 
 ---
 
@@ -117,3 +181,4 @@ func TestExample(t *testing.T) {
 | Lint | `make lint` (golangci-lint with `.golangci.yml`) |
 | Build | `make provider` |
 | Schema diff (PR only) | schema-tools compares generated schema |
+

@@ -8,8 +8,8 @@ import com.pulumi.core.annotations.Export;
 import com.pulumi.core.annotations.ResourceType;
 import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
+import io.github.hctamu.pve.proxmox.outputs.StorageFileSourceRaw;
 import io.github.hctamu.pve.storage.FileArgs;
-import io.github.hctamu.pve.storage.outputs.FileSourceRaw;
 import java.lang.String;
 import javax.annotation.Nullable;
 
@@ -30,31 +30,31 @@ public class File extends com.pulumi.resources.CustomResource {
         return this.contentType;
     }
     /**
-     * The datastore to upload the file to.  (e.g:ceph-ha)
+     * The datastore to upload the file to. (e.g: ceph-ha)
      * 
      */
     @Export(name="datastoreId", refs={String.class}, tree="[0]")
     private Output<String> datastoreId;
 
     /**
-     * @return The datastore to upload the file to.  (e.g:ceph-ha)
+     * @return The datastore to upload the file to. (e.g: ceph-ha)
      * 
      */
     public Output<String> datastoreId() {
         return this.datastoreId;
     }
     /**
-     * The raw source data
+     * The raw source data.
      * 
      */
-    @Export(name="sourceRaw", refs={FileSourceRaw.class}, tree="[0]")
-    private Output<FileSourceRaw> sourceRaw;
+    @Export(name="sourceRaw", refs={StorageFileSourceRaw.class}, tree="[0]")
+    private Output<StorageFileSourceRaw> sourceRaw;
 
     /**
-     * @return The raw source data
+     * @return The raw source data.
      * 
      */
-    public Output<FileSourceRaw> sourceRaw() {
+    public Output<StorageFileSourceRaw> sourceRaw() {
         return this.sourceRaw;
     }
 

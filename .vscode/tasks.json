@@ -1,0 +1,66 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Provider",
+      "type": "shell",
+      "command": "make provider",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$go"
+    },
+    {
+      "label": "Test Provider",
+      "type": "shell",
+      "command": "make test_provider",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$go"
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "make lint",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Tidy Modules",
+      "type": "shell",
+      "command": "make tidy",
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build All (Provider + SDKs)",
+      "type": "shell",
+      "command": "make build",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": "$go"
+    }
+  ]
+}

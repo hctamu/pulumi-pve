@@ -6,7 +6,7 @@ package io.github.hctamu.pve.storage;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
-import io.github.hctamu.pve.storage.inputs.FileSourceRawArgs;
+import io.github.hctamu.pve.proxmox.inputs.StorageFileSourceRawArgs;
 import java.lang.String;
 import java.util.Objects;
 
@@ -31,14 +31,14 @@ public final class FileArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * The datastore to upload the file to.  (e.g:ceph-ha)
+     * The datastore to upload the file to. (e.g: ceph-ha)
      * 
      */
     @Import(name="datastoreId", required=true)
     private Output<String> datastoreId;
 
     /**
-     * @return The datastore to upload the file to.  (e.g:ceph-ha)
+     * @return The datastore to upload the file to. (e.g: ceph-ha)
      * 
      */
     public Output<String> datastoreId() {
@@ -46,17 +46,17 @@ public final class FileArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * The raw source data
+     * The raw source data.
      * 
      */
     @Import(name="sourceRaw", required=true)
-    private Output<FileSourceRawArgs> sourceRaw;
+    private Output<StorageFileSourceRawArgs> sourceRaw;
 
     /**
-     * @return The raw source data
+     * @return The raw source data.
      * 
      */
-    public Output<FileSourceRawArgs> sourceRaw() {
+    public Output<StorageFileSourceRawArgs> sourceRaw() {
         return this.sourceRaw;
     }
 
@@ -108,7 +108,7 @@ public final class FileArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param datastoreId The datastore to upload the file to.  (e.g:ceph-ha)
+         * @param datastoreId The datastore to upload the file to. (e.g: ceph-ha)
          * 
          * @return builder
          * 
@@ -119,7 +119,7 @@ public final class FileArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param datastoreId The datastore to upload the file to.  (e.g:ceph-ha)
+         * @param datastoreId The datastore to upload the file to. (e.g: ceph-ha)
          * 
          * @return builder
          * 
@@ -129,23 +129,23 @@ public final class FileArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param sourceRaw The raw source data
+         * @param sourceRaw The raw source data.
          * 
          * @return builder
          * 
          */
-        public Builder sourceRaw(Output<FileSourceRawArgs> sourceRaw) {
+        public Builder sourceRaw(Output<StorageFileSourceRawArgs> sourceRaw) {
             $.sourceRaw = sourceRaw;
             return this;
         }
 
         /**
-         * @param sourceRaw The raw source data
+         * @param sourceRaw The raw source data.
          * 
          * @return builder
          * 
          */
-        public Builder sourceRaw(FileSourceRawArgs sourceRaw) {
+        public Builder sourceRaw(StorageFileSourceRawArgs sourceRaw) {
             return sourceRaw(Output.of(sourceRaw));
         }
 

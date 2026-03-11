@@ -21,6 +21,7 @@ __all__ = [
     'Disk',
     'EfiDisk',
     'NumaNode',
+    'StorageFileSourceRaw',
 ]
 
 @pulumi.output_type
@@ -373,5 +374,53 @@ class NumaNode(dict):
     @pulumi.getter
     def policy(self) -> Optional[_builtins.str]:
         return pulumi.get(self, "policy")
+
+
+@pulumi.output_type
+class StorageFileSourceRaw(dict):
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "fileData":
+            suggest = "file_data"
+        elif key == "fileName":
+            suggest = "file_name"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in StorageFileSourceRaw. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        StorageFileSourceRaw.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        StorageFileSourceRaw.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 file_data: _builtins.str,
+                 file_name: _builtins.str):
+        """
+        :param _builtins.str file_data: The raw data content of the file.
+        :param _builtins.str file_name: The name of the file.
+        """
+        pulumi.set(__self__, "file_data", file_data)
+        pulumi.set(__self__, "file_name", file_name)
+
+    @_builtins.property
+    @pulumi.getter(name="fileData")
+    def file_data(self) -> _builtins.str:
+        """
+        The raw data content of the file.
+        """
+        return pulumi.get(self, "file_data")
+
+    @_builtins.property
+    @pulumi.getter(name="fileName")
+    def file_name(self) -> _builtins.str:
+        """
+        The name of the file.
+        """
+        return pulumi.get(self, "file_name")
 
 

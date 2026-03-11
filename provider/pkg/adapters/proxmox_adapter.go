@@ -24,12 +24,13 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	api "github.com/luthermonson/go-proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 // Ensure ProxmoxAdapter implements the ProxmoxClient interface

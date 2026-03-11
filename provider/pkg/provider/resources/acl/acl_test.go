@@ -20,12 +20,13 @@ import (
 	"errors"
 	"testing"
 
-	aclResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	aclResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 // Common test constants

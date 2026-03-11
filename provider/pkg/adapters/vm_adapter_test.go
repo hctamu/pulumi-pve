@@ -21,12 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 const (

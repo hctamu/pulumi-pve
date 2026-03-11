@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "golang.go",
+    "github.copilot",
+    "github.copilot-chat",
+    "pulumi.pulumi-vscode-tools",
+    "redhat.vscode-yaml",
+    "ms-azuretools.vscode-docker",
+    "github.vscode-github-actions",
+    "eamodio.gitlens",
+    "davidanson.vscode-markdownlint"
+  ]
+}

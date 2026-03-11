@@ -19,9 +19,10 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/luthermonson/go-proxmox"
+
 	utils "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	api "github.com/luthermonson/go-proxmox"
 )
 
 // Ensure UserAdapter implements the UserOperations interface

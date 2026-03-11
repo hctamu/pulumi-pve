@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package vm implements the Pulumi resource for Proxmox virtual machines.
 package vm
 
 import (
@@ -22,9 +23,10 @@ import (
 	"maps"
 	"reflect"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 // VM represents a Proxmox virtual machine resource.
@@ -64,7 +66,7 @@ func (vm *VM) Create(
 	}
 
 	if vm.Client == nil {
-		return response, errors.New("Client not configured")
+		return response, errors.New("client not configured")
 	}
 
 	nodeName, err := vm.Client.ResolveNode(ctx, request.Inputs.Node)
