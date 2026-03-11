@@ -24,13 +24,14 @@ import (
 	"testing"
 
 	"github.com/blang/semver"
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/integration"
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider"
 )
 
 // requestCapture captures API request details for verification

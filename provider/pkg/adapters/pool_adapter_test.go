@@ -17,18 +17,18 @@ package adapters_test
 
 import (
 	"context"
-	
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestPoolAdapterCreate(t *testing.T) {
@@ -42,23 +42,26 @@ func TestPoolAdapterCreate(t *testing.T) {
 			Comment: "Test pool comment",
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-			// Verify request method and path
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Equal(t, "/pools", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
+				// Verify request method and path
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Equal(t, "/pools", r.URL.Path)
 
-			// Verify request body
-			var receivedBody map[string]interface{}
-			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "test-pool", receivedBody["poolid"])
-			assert.Equal(t, "Test pool comment", receivedBody["comment"])
+				// Verify request body
+				var receivedBody map[string]interface{}
+				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "test-pool", receivedBody["poolid"])
+				assert.Equal(t, "Test pool comment", receivedBody["comment"])
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -90,18 +93,21 @@ func TestPoolAdapterCreate(t *testing.T) {
 			Comment: "",
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-			// Verify request body
-			var receivedBody map[string]interface{}
-			err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
-			require.NoError(t, err)
-			assert.Equal(t, "simple-pool", receivedBody["poolid"])
-			assert.Equal(t, "", receivedBody["comment"])
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
+				// Verify request body
+				var receivedBody map[string]interface{}
+				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&receivedBody)
+				require.NoError(t, err)
+				assert.Equal(t, "simple-pool", receivedBody["poolid"])
+				assert.Equal(t, "", receivedBody["comment"])
 
-			// Send response
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				// Send response
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -165,20 +171,23 @@ func TestPoolAdapterGet(t *testing.T) {
 			"comment": "Pool comment",
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			// Verify request method and path
-			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Equal(t, "/pools/test-pool", r.URL.Path)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				// Verify request method and path
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/pools/test-pool", r.URL.Path)
 
-			// Send response
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			responseData := map[string]interface{}{
-				"data": apiResponse,
-			}
-			err := json.NewEncoder(w).Encode(responseData)
-			require.NoError(t, err)
-		})
+				// Send response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				responseData := map[string]interface{}{
+					"data": apiResponse,
+				}
+				err := json.NewEncoder(w).Encode(responseData)
+				require.NoError(t, err)
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -321,39 +330,42 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		// First request is GET to fetch the pool
 		// Second request is PUT to update it
 		requestCount := 0
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			requestCount++
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				requestCount++
 
-			if requestCount == 1 {
-				// First request: GET pool
-				assert.Equal(t, http.MethodGet, r.Method)
-				assert.Equal(t, "/pools/test-pool", r.URL.Path)
+				if requestCount == 1 {
+					// First request: GET pool
+					assert.Equal(t, http.MethodGet, r.Method)
+					assert.Equal(t, "/pools/test-pool", r.URL.Path)
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				responseData := map[string]interface{}{
-					"data": map[string]interface{}{
-						"poolid":  "test-pool",
-						"comment": "Old comment",
-					},
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					responseData := map[string]interface{}{
+						"data": map[string]interface{}{
+							"poolid":  "test-pool",
+							"comment": "Old comment",
+						},
+					}
+					err := json.NewEncoder(w).Encode(responseData)
+					require.NoError(t, err)
+				} else {
+					// Second request: PUT update
+					assert.Equal(t, http.MethodPut, r.Method)
+					assert.Equal(t, "/pools/test-pool", r.URL.Path)
+
+					// Verify request body
+					var receivedBody map[string]interface{}
+					err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+					require.NoError(t, err)
+					assert.Equal(t, "Updated comment", receivedBody["comment"])
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data": null}`))
 				}
-				err := json.NewEncoder(w).Encode(responseData)
-				require.NoError(t, err)
-			} else {
-				// Second request: PUT update
-				assert.Equal(t, http.MethodPut, r.Method)
-				assert.Equal(t, "/pools/test-pool", r.URL.Path)
-
-				// Verify request body
-				var receivedBody map[string]interface{}
-				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-				require.NoError(t, err)
-				assert.Equal(t, "Updated comment", receivedBody["comment"])
-
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data": null}`))
-			}
-		})
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -385,38 +397,41 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		}
 
 		requestCount := 0
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			requestCount++
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				requestCount++
 
-			if requestCount == 1 {
-				// First request: GET pool
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				responseData := map[string]interface{}{
-					"data": map[string]interface{}{
-						"poolid":  "test-pool",
-						"comment": "Old comment",
-					},
-				}
-				err := json.NewEncoder(w).Encode(responseData)
-				require.NoError(t, err)
-			} else {
-				// Second request: PUT update
-				var receivedBody map[string]interface{}
-				err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
-				require.NoError(t, err)
-				// Comment field may not be present due to omitempty tag when empty
-				comment, ok := receivedBody["comment"]
-				if ok {
-					// If present, should be empty string
-					assert.Equal(t, "", comment)
-				}
-				// Field not being present is also acceptable for empty strings
+				if requestCount == 1 {
+					// First request: GET pool
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					responseData := map[string]interface{}{
+						"data": map[string]interface{}{
+							"poolid":  "test-pool",
+							"comment": "Old comment",
+						},
+					}
+					err := json.NewEncoder(w).Encode(responseData)
+					require.NoError(t, err)
+				} else {
+					// Second request: PUT update
+					var receivedBody map[string]interface{}
+					err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&receivedBody)
+					require.NoError(t, err)
+					// Comment field may not be present due to omitempty tag when empty
+					comment, ok := receivedBody["comment"]
+					if ok {
+						// If present, should be empty string
+						assert.Equal(t, "", comment)
+					}
+					// Field not being present is also acceptable for empty strings
 
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data": null}`))
-			}
-		})
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data": null}`))
+				}
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{
@@ -527,36 +542,39 @@ func TestPoolAdapterDelete(t *testing.T) {
 		// First request is GET to fetch the pool
 		// Second request is DELETE
 		requestCount := 0
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			requestCount++
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				requestCount++
 
-			if requestCount == 1 {
-				// First request: GET pool
-				assert.Equal(t, http.MethodGet, r.Method)
-				assert.Equal(t, "/pools/test-pool", r.URL.Path)
+				if requestCount == 1 {
+					// First request: GET pool
+					assert.Equal(t, http.MethodGet, r.Method)
+					assert.Equal(t, "/pools/test-pool", r.URL.Path)
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				responseData := map[string]interface{}{
-					"data": map[string]interface{}{
-						"poolid":  "test-pool",
-						"comment": "Test comment",
-					},
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					responseData := map[string]interface{}{
+						"data": map[string]interface{}{
+							"poolid":  "test-pool",
+							"comment": "Test comment",
+						},
+					}
+					err := json.NewEncoder(w).Encode(responseData)
+					require.NoError(t, err)
+				} else {
+					// Second request: DELETE
+					assert.Equal(t, http.MethodDelete, r.Method)
+					assert.Equal(t, "/pools/test-pool", r.URL.Path)
+
+					// Verify no body
+					assert.Empty(t, req.Body)
+
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{"data": null}`))
 				}
-				err := json.NewEncoder(w).Encode(responseData)
-				require.NoError(t, err)
-			} else {
-				// Second request: DELETE
-				assert.Equal(t, http.MethodDelete, r.Method)
-				assert.Equal(t, "/pools/test-pool", r.URL.Path)
-
-				// Verify no body
-				assert.Empty(t, req.Body)
-
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data": null}`))
-			}
-		})
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{

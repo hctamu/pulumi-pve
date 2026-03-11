@@ -25,14 +25,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/px"
 	api "github.com/luthermonson/go-proxmox"
 	"golang.org/x/exp/slices"
 
 	p "github.com/pulumi/pulumi-go-provider"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/px"
 )
 
 // Ensure VMAdapter implements the VMOperations interface.
@@ -52,7 +53,7 @@ func (a *VMAdapter) pxClient(ctx context.Context) (*px.Client, error) {
 
 // Create creates a new virtual machine and returns its assigned VM ID and node name.
 // inputs.Node and inputs.VMID must already be populated by the caller.
-func (a *VMAdapter) Create(ctx context.Context, inputs proxmox.VMInputs) (int, string, error) {
+func (a *VMAdapter) Create(ctx context.Context, inputs proxmox.VMInputs) (vmID int, node string, err error) {
 	l := p.GetLogger(ctx)
 
 	if inputs.Node == nil {
@@ -63,7 +64,7 @@ func (a *VMAdapter) Create(ctx context.Context, inputs proxmox.VMInputs) (int, s
 	}
 
 	nodeName := *inputs.Node
-	vmID := *inputs.VMID
+	vmID = *inputs.VMID
 
 	l.Infof("Create VM '%v(%v)' on '%v'", inputs.Name, vmID, nodeName)
 	options := BuildVMOptions(inputs, vmID)
@@ -101,7 +102,7 @@ func (a *VMAdapter) Get(
 	vmID int,
 	node *string,
 	existingInputs proxmox.VMInputs,
-) (proxmox.VMInputs, proxmox.VMInputs, error) {
+) (computed, preserved proxmox.VMInputs, err error) {
 	pxClient, err := a.pxClient(ctx)
 	if err != nil {
 		return proxmox.VMInputs{}, proxmox.VMInputs{}, fmt.Errorf("failed to get Proxmox client: %v", err)
@@ -163,7 +164,7 @@ func (a *VMAdapter) Update(
 
 	interval := 5 * time.Second
 	timeout := 60 * time.Second
-	if err = task.Wait(ctx, interval, time.Duration(timeout)); err != nil {
+	if err = task.Wait(ctx, interval, timeout); err != nil {
 		return fmt.Errorf("failed to wait for VM %d update: %v", vmID, err)
 	}
 
@@ -199,15 +200,6 @@ func (a *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
 }
 
 // --- Internal helper functions ---
-
-// vmGetNextID retrieves the next available VM ID from the cluster.
-func vmGetNextID(ctx context.Context, cluster *api.Cluster) (int, error) {
-	vmIDInt, err := cluster.NextID(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get next VM ID: %v", err)
-	}
-	return vmIDInt, nil
-}
 
 // vmCreateTask creates a task for creating a new VM or cloning an existing one.
 func vmCreateTask(
@@ -390,7 +382,7 @@ func vmRemoveEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) er
 
 	interval := 5 * time.Second
 	timeout := 60 * time.Second
-	if err = unlinkTask.Wait(ctx, interval, time.Duration(timeout)); err != nil {
+	if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
 		return fmt.Errorf("failed to wait for EFI disk removal task: %v", err)
 	}
 
