@@ -51,35 +51,19 @@ func (a *VMAdapter) pxClient(ctx context.Context) (*px.Client, error) {
 }
 
 // Create creates a new virtual machine and returns its assigned VM ID and node name.
+// inputs.Node and inputs.VMID must already be populated by the caller.
 func (a *VMAdapter) Create(ctx context.Context, inputs proxmox.VMInputs) (int, string, error) {
 	l := p.GetLogger(ctx)
 
-	pxClient, err := a.pxClient(ctx)
-	if err != nil {
-		return 0, "", err
+	if inputs.Node == nil {
+		return 0, "", errors.New("inputs.Node must be set before calling Create")
 	}
-
-	cluster, err := pxClient.Cluster(ctx)
-	if err != nil {
-		return 0, "", err
-	}
-
-	nodeName, err := vmGetNodeName(inputs, cluster)
-	if err != nil {
-		return 0, "", err
-	}
-
-	inputs.Node = &nodeName
-
-	var vmID int
 	if inputs.VMID == nil {
-		if vmID, err = vmGetNextID(ctx, cluster); err != nil {
-			l.Errorf("error getting next VM ID: %v", err)
-			return 0, "", err
-		}
-	} else {
-		vmID = *inputs.VMID
+		return 0, "", errors.New("inputs.VMID must be set before calling Create")
 	}
+
+	nodeName := *inputs.Node
+	vmID := *inputs.VMID
 
 	l.Infof("Create VM '%v(%v)' on '%v'", inputs.Name, vmID, nodeName)
 	options := BuildVMOptions(inputs, vmID)
@@ -97,7 +81,11 @@ func (a *VMAdapter) Create(ctx context.Context, inputs proxmox.VMInputs) (int, s
 	}
 
 	if inputs.Clone != nil {
-		if err = vmFinalizeClone(ctx, pxClient, inputs, vmID, options); err != nil {
+		pxc, err := a.pxClient(ctx)
+		if err != nil {
+			return 0, "", err
+		}
+		if err = vmFinalizeClone(ctx, pxc, inputs, vmID, options); err != nil {
 			l.Errorf("error finalizing clone: %v", err)
 			return 0, "", err
 		}
@@ -211,17 +199,6 @@ func (a *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
 }
 
 // --- Internal helper functions ---
-
-// vmGetNodeName returns the node name from inputs or selects the first available cluster node.
-func vmGetNodeName(inputs proxmox.VMInputs, cluster *api.Cluster) (string, error) {
-	if inputs.Node != nil {
-		return *inputs.Node, nil
-	}
-	if len(cluster.Nodes) == 0 {
-		return "", errors.New("no nodes found in the cluster")
-	}
-	return cluster.Nodes[0].Name, nil
-}
 
 // vmGetNextID retrieves the next available VM ID from the cluster.
 func vmGetNextID(ctx context.Context, cluster *api.Cluster) (int, error) {

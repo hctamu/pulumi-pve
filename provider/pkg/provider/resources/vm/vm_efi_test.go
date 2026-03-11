@@ -24,8 +24,8 @@ import (
 	"testing"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -205,7 +205,10 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+			vm := &vmResource.VM{
+				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+				VMOps:  adapters.NewVMAdapter(),
+			}
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
@@ -303,7 +306,10 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -393,7 +399,10 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -467,7 +476,10 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 			Reply(reply.OK().BodyString(vmConfigJSON)),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -527,7 +539,10 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 			Reply(reply.OK().BodyString(vmConfigJSON)),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -560,12 +575,6 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
 				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
 			}),
-	).Enable()
-
-	// Mock GET /cluster/nextid
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			Reply(reply.OK().BodyString(`{"data":"100"}`)),
 	).Enable()
 
 	// Mock GET /nodes/{node}/status
@@ -687,7 +696,10 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm",
 		Inputs: proxmox.VMInputs{
@@ -724,15 +736,6 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 		mocha.Get(expect.URLPath("/cluster/status")).
 			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
 				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock next VMID
-	nextIDJSON := `{"data":"100"}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nextIDJSON)}, nil
 			}),
 	).Enable()
 
@@ -832,7 +835,10 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm-with-efi",
 		Inputs: proxmox.VMInputs{
@@ -874,15 +880,6 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
 			}).
 			Repeat(10),
-	).Enable()
-
-	// Mock next VMID
-	nextIDJSON := `{"data":"100"}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nextIDJSON)}, nil
-			}),
 	).Enable()
 
 	// Mock node status
@@ -939,7 +936,10 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 			}),
 	).Enable()
 
-	vm := &vmResource.VM{VMOps: adapters.NewVMAdapter()}
+	vm := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm-with-efi",
 		Inputs: proxmox.VMInputs{

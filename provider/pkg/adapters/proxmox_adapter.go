@@ -19,6 +19,8 @@ package adapters
 import (
 	"context"
 	"crypto/tls"
+	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -122,4 +124,38 @@ func (proxmoxAdapter *ProxmoxAdapter) Delete(ctx context.Context, path string, r
 		return err
 	}
 	return proxmoxAdapter.client.Delete(ctx, path, result)
+}
+
+// ResolveNode returns node if non-nil, otherwise selects the first available cluster node.
+func (proxmoxAdapter *ProxmoxAdapter) ResolveNode(ctx context.Context, node *string) (string, error) {
+	if node != nil {
+		return *node, nil
+	}
+	if err := proxmoxAdapter.Connect(ctx); err != nil {
+		return "", err
+	}
+	cluster, err := proxmoxAdapter.client.Cluster(ctx)
+	if err != nil {
+		return "", err
+	}
+	if len(cluster.Nodes) == 0 {
+		return "", errors.New("no nodes found in the cluster")
+	}
+	return cluster.Nodes[0].Name, nil
+}
+
+// NextVMID returns the next available VM ID from the cluster.
+func (proxmoxAdapter *ProxmoxAdapter) NextVMID(ctx context.Context) (int, error) {
+	if err := proxmoxAdapter.Connect(ctx); err != nil {
+		return 0, err
+	}
+	cluster, err := proxmoxAdapter.client.Cluster(ctx)
+	if err != nil {
+		return 0, err
+	}
+	vmID, err := cluster.NextID(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get next VM ID: %v", err)
+	}
+	return vmID, nil
 }

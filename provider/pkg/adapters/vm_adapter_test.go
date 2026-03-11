@@ -16,6 +16,7 @@ limitations under the License.
 package adapters_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -3543,6 +3544,40 @@ func TestNumaNodeToProxmoxString(t *testing.T) {
 
 			result := adapters.ToProxmoxNumaString(*tt.input)
 			assert.Equal(t, tt.expected, result, tt.description)
+		})
+	}
+}
+
+func TestVMAdapterCreateValidation(t *testing.T) {
+	t.Parallel()
+
+	vmID := 100
+	nodeName := "pve-node"
+
+	tests := []struct {
+		name           string
+		inputs         proxmox.VMInputs
+		wantErrContain string
+	}{
+		{
+			name:           "returns error when inputs.Node is nil",
+			inputs:         proxmox.VMInputs{VMID: &vmID},
+			wantErrContain: "inputs.Node",
+		},
+		{
+			name:           "returns error when inputs.VMID is nil",
+			inputs:         proxmox.VMInputs{Node: &nodeName},
+			wantErrContain: "inputs.VMID",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, _, err := adapters.NewVMAdapter().Create(context.Background(), tt.inputs)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErrContain)
 		})
 	}
 }

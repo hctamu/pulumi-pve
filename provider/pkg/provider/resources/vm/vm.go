@@ -29,7 +29,8 @@ import (
 
 // VM represents a Proxmox virtual machine resource.
 type VM struct {
-	VMOps proxmox.VMOperations
+	Client proxmox.Client
+	VMOps  proxmox.VMOperations
 }
 
 var (
@@ -60,6 +61,26 @@ func (vm *VM) Create(
 
 	if vm.VMOps == nil {
 		return response, errors.New("VMOperations not configured")
+	}
+
+	if vm.Client == nil {
+		return response, errors.New("Client not configured")
+	}
+
+	nodeName, err := vm.Client.ResolveNode(ctx, request.Inputs.Node)
+	if err != nil {
+		l.Errorf("error resolving node: %v", err)
+		return response, err
+	}
+	request.Inputs.Node = &nodeName
+
+	if request.Inputs.VMID == nil {
+		vmID, err := vm.Client.NextVMID(ctx)
+		if err != nil {
+			l.Errorf("error getting next VM ID: %v", err)
+			return response, err
+		}
+		request.Inputs.VMID = &vmID
 	}
 
 	vmID, node, err := vm.VMOps.Create(ctx, request.Inputs)

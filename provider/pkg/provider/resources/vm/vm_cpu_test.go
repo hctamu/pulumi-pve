@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
@@ -187,11 +187,17 @@ func TestVMDiffCPU(t *testing.T) {
 			name: "numa_nodes_changed_-_different_cpus", expectChange: true,
 			inputCPU: cpuWith(
 				"host",
-				map[string]interface{}{"cores": 4, "numa-nodes": []proxmox.NumaNode{{Cpus: "0-3", Memory: testutils.Ptr(2048)}}},
+				map[string]interface{}{
+					"cores":      4,
+					"numa-nodes": []proxmox.NumaNode{{Cpus: "0-3", Memory: testutils.Ptr(2048)}},
+				},
 			),
 			stateCPU: cpuWith(
 				"host",
-				map[string]interface{}{"cores": 4, "numa-nodes": []proxmox.NumaNode{{Cpus: "0-1", Memory: testutils.Ptr(2048)}}},
+				map[string]interface{}{
+					"cores":      4,
+					"numa-nodes": []proxmox.NumaNode{{Cpus: "0-1", Memory: testutils.Ptr(2048)}},
+				},
 			),
 		},
 		{
@@ -367,7 +373,10 @@ func TestVMDiffCPU(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			vmResource := &vm.VM{VMOps: adapters.NewVMAdapter()}
+			vmResource := &vm.VM{
+				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+				VMOps:  adapters.NewVMAdapter(),
+			}
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
@@ -444,7 +453,10 @@ func TestVMReadWithCPU(t *testing.T) {
 			Reply(reply.OK().BodyString(vmConfigJSON)),
 	).Enable()
 
-	vmRes := &vm.VM{VMOps: adapters.NewVMAdapter()}
+	vmRes := &vm.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -541,7 +553,10 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 			}),
 	).Enable()
 
-	vmRes := &vm.VM{VMOps: adapters.NewVMAdapter()}
+	vmRes := &vm.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -628,7 +643,10 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 			}),
 	).Enable()
 
-	vmRes := &vm.VM{VMOps: adapters.NewVMAdapter()}
+	vmRes := &vm.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
@@ -694,15 +712,6 @@ func TestVMCreateWithCPU(t *testing.T) {
 			Repeat(10),
 	).Enable()
 
-	// Mock next VMID
-	nextIDJSON := `{"data":"100"}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/nextid")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nextIDJSON)}, nil
-			}),
-	).Enable()
-
 	// Mock node status
 	nodeStatusJSON := `{"data":{"status":"online"}}`
 	mock.AddMocks(
@@ -756,7 +765,10 @@ func TestVMCreateWithCPU(t *testing.T) {
 			}),
 	).Enable()
 
-	vmRes := &vm.VM{VMOps: adapters.NewVMAdapter()}
+	vmRes := &vm.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
+		VMOps:  adapters.NewVMAdapter(),
+	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm",
 		Inputs: proxmox.VMInputs{
