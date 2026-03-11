@@ -172,6 +172,42 @@ The Pulumi PVE Provider documentation includes the following sections to help yo
 - [Implemented Resources](#implemented-resources): Explore the resources currently supported by the provider.
 - [Examples](#examples): See examples of how to use the provider in your Pulumi projects.
 
+## Development Guidelines
+
+### Testing
+
+Tests must be written in **table-driven format**. Define a `tests` slice of structs — one entry per case — and drive a single `for _, tt := range tests` loop with a `t.Run(tt.name, ...)` sub-test inside. This keeps cases easy to scan, diff, and extend.
+
+```go
+func TestFoo(t *testing.T) {
+    t.Parallel()
+
+    tests := []struct {
+        name    string
+        input   string
+        want    string
+        wantErr bool
+    }{
+        {name: "happy path", input: "a", want: "A"},
+        {name: "empty input returns error", input: "", wantErr: true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Parallel()
+
+            got, err := Foo(tt.input)
+            if tt.wantErr {
+                require.Error(t, err)
+                return
+            }
+            require.NoError(t, err)
+            assert.Equal(t, tt.want, got)
+        })
+    }
+}
+```
+
 ## Next Steps
 
 - Explore the [examples](../examples/) directory for sample projects.
