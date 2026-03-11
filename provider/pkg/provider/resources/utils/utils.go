@@ -28,11 +28,12 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	api "github.com/luthermonson/go-proxmox"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 )
 
 // DifferPtr compares two pointers to values and returns true if they are different.

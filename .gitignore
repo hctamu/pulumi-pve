@@ -14,7 +14,9 @@ sdk/dotnet/version.txt
 .DS_Store
 /provider/cmd/pulumi-resource-command/schema-embed.json
 dist/
-.vscode
+.vscode/*
+!.vscode/tasks.json
+!.vscode/extensions.json
 .gradle
 **/.yarn
 

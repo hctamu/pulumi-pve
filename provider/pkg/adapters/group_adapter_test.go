@@ -17,18 +17,18 @@ package adapters_test
 
 import (
 	"context"
-	
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 const (
@@ -45,25 +45,28 @@ func TestGroupAdapterCreate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups")
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, groupID, body["groupid"])
-				assert.Equal(t, groupDescription, body["comment"])
-			} else {
-				formValues, parseErr := url.ParseQuery(req.Body)
-				require.NoError(t, parseErr, "body is not valid JSON or form data")
-				assert.Equal(t, groupID, formValues.Get("groupid"))
-				assert.Equal(t, groupDescription, formValues.Get("description"))
-			}
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, groupID, body["groupid"])
+					assert.Equal(t, groupDescription, body["comment"])
+				} else {
+					formValues, parseErr := url.ParseQuery(req.Body)
+					require.NoError(t, parseErr, "body is not valid JSON or form data")
+					assert.Equal(t, groupID, formValues.Get("groupid"))
+					assert.Equal(t, groupDescription, formValues.Get("description"))
+				}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -86,14 +89,17 @@ func TestGroupAdapterCreate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups")
-			assert.Contains(t, req.Body, groupID)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups")
+				assert.Contains(t, req.Body, groupID)
 
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -113,19 +119,22 @@ func TestGroupAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups/")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups/")
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": map[string]any{
-					"groupid": groupID,
-					"comment": groupDescription,
-				},
-			})
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"data": map[string]any{
+						"groupid": groupID,
+						"comment": groupDescription,
+					},
+				})
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -176,25 +185,28 @@ func TestGroupAdapterUpdate(t *testing.T) {
 			Comment: groupDescription,
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPut, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, groupID, body["groupid"])
-				assert.Equal(t, groupDescription, body["comment"])
-			} else {
-				formValues, parseErr := url.ParseQuery(req.Body)
-				require.NoError(t, parseErr, "body is not valid JSON or form data")
-				assert.Equal(t, groupDescription, formValues.Get("description"))
-				assert.Equal(t, groupID, formValues.Get("groupid"))
-			}
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, groupID, body["groupid"])
+					assert.Equal(t, groupDescription, body["comment"])
+				} else {
+					formValues, parseErr := url.ParseQuery(req.Body)
+					require.NoError(t, parseErr, "body is not valid JSON or form data")
+					assert.Equal(t, groupDescription, formValues.Get("description"))
+					assert.Equal(t, groupID, formValues.Get("groupid"))
+				}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -242,14 +254,17 @@ func TestGroupAdapterDelete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, http.MethodDelete, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/groups/"+url.PathEscape(groupID))
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}

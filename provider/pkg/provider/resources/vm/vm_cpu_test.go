@@ -22,11 +22,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
-	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitorsalgado/mocha/v3"
@@ -35,6 +30,11 @@ import (
 	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 // cpuBase creates a minimal CPU config with just a type
@@ -79,16 +79,6 @@ func cpuWith(typ string, fields map[string]interface{}) *proxmox.CPU {
 		}
 	}
 	return cpu
-}
-
-// inputsWithCPU wraps a CPU config in an Inputs struct for test convenience
-func inputsWithCPU(cpu *proxmox.CPU) proxmox.VMInputs {
-	return proxmox.VMInputs{CPU: cpu}
-}
-
-// opt creates a VirtualMachineOption concisely for expected test results
-func opt(name string, value interface{}) api.VirtualMachineOption {
-	return api.VirtualMachineOption{Name: name, Value: value}
 }
 
 // TestVMDiffCPU verifies that VM Diff detects all CPU field changes correctly (simple and complex fields)

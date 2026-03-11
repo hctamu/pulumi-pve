@@ -17,18 +17,18 @@ package adapters_test
 
 import (
 	"context"
-	
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 const (
@@ -48,30 +48,33 @@ func TestRoleAdapterCreate(t *testing.T) {
 			Privileges: []string{rolePrivilege1, rolePrivilege2},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/roles")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/roles")
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, roleName, body["roleid"])
-				privs, ok := body["privs"].(string)
-				assert.True(t, ok)
-				assert.Contains(t, privs, rolePrivilege1)
-				assert.Contains(t, privs, rolePrivilege2)
-			} else {
-				vals, err2 := url.ParseQuery(req.Body)
-				require.NoError(t, err2)
-				assert.Equal(t, roleName, vals.Get("roleid"))
-				privs := vals.Get("privs")
-				assert.Contains(t, privs, rolePrivilege1)
-				assert.Contains(t, privs, rolePrivilege2)
-			}
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, roleName, body["roleid"])
+					privs, ok := body["privs"].(string)
+					assert.True(t, ok)
+					assert.Contains(t, privs, rolePrivilege1)
+					assert.Contains(t, privs, rolePrivilege2)
+				} else {
+					vals, err2 := url.ParseQuery(req.Body)
+					require.NoError(t, err2)
+					assert.Equal(t, roleName, vals.Get("roleid"))
+					privs := vals.Get("privs")
+					assert.Contains(t, privs, rolePrivilege1)
+					assert.Contains(t, privs, rolePrivilege2)
+				}
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -97,14 +100,17 @@ func TestRoleAdapterCreate(t *testing.T) {
 			Privileges: []string{rolePrivilege1},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPost, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/roles")
-			assert.Contains(t, req.Body, roleName)
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPost, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/roles")
+				assert.Contains(t, req.Body, roleName)
 
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -125,19 +131,22 @@ func TestRoleAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			assert.Equal(t, http.MethodGet, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/roles/")
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/roles/")
 
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"data": map[string]any{
-					rolePrivilege1: true,
-					rolePrivilege2: true,
-				},
-			})
-		})
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"data": map[string]any{
+						rolePrivilege1: true,
+						rolePrivilege2: true,
+					},
+				})
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -211,22 +220,25 @@ func TestRoleAdapterUpdate(t *testing.T) {
 			Privileges: []string{rolePrivilege2, rolePrivilege1},
 		}
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodPut, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/roles/"+url.PathEscape(roleName))
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodPut, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/roles/"+url.PathEscape(roleName))
 
-			var body map[string]any
-			if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
-				assert.Equal(t, roleName, body["roleid"])
-				privs, ok := body["privs"].(string)
-				assert.True(t, ok)
-				assert.Contains(t, privs, rolePrivilege1)
-				assert.Contains(t, privs, rolePrivilege2)
-			}
+				var body map[string]any
+				if err := json.Unmarshal([]byte(req.Body), &body); err == nil {
+					assert.Equal(t, roleName, body["roleid"])
+					privs, ok := body["privs"].(string)
+					assert.True(t, ok)
+					assert.Contains(t, privs, rolePrivilege1)
+					assert.Contains(t, privs, rolePrivilege2)
+				}
 
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}
@@ -269,13 +281,16 @@ func TestRoleAdapterDelete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 
-		server, captured := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
-			assert.Equal(t, http.MethodDelete, r.Method)
-			assert.Contains(t, r.URL.Path, "/access/roles/")
-			assert.Empty(t, req.Body)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"data": null}`))
-		})
+		server, captured := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+				assert.Equal(t, http.MethodDelete, r.Method)
+				assert.Contains(t, r.URL.Path, "/access/roles/")
+				assert.Empty(t, req.Body)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
 		defer server.Close()
 
 		cfg := &config.Config{PveURL: server.URL, PveUser: "test@pam", PveToken: "token"}

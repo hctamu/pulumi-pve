@@ -19,10 +19,15 @@ type File struct {
 
 	// The type of the file (e.g: snippets)
 	ContentType pulumi.StringOutput `pulumi:"contentType"`
-	// The datastore to upload the file to.  (e.g:ceph-ha)
+	// The datastore to upload the file to. (e.g: ceph-ha)
 	DatastoreId pulumi.StringOutput `pulumi:"datastoreId"`
+<<<<<<< HEAD:sdk/go/pve/file/file.go
 	// The raw source data
 	SourceRaw proxmox.FileSourceRawOutput `pulumi:"sourceRaw"`
+=======
+	// The raw source data.
+	SourceRaw proxmox.StorageFileSourceRawOutput `pulumi:"sourceRaw"`
+>>>>>>> de4c7fd (chore: fix gci prefix, resolve import ordering, and fix lint violations):sdk/go/pve/storage/file.go
 }
 
 // NewFile registers a new resource with the given unique name, arguments, and options.
@@ -82,20 +87,30 @@ func (FileState) ElementType() reflect.Type {
 type fileArgs struct {
 	// The type of the file (e.g: snippets)
 	ContentType string `pulumi:"contentType"`
-	// The datastore to upload the file to.  (e.g:ceph-ha)
+	// The datastore to upload the file to. (e.g: ceph-ha)
 	DatastoreId string `pulumi:"datastoreId"`
+<<<<<<< HEAD:sdk/go/pve/file/file.go
 	// The raw source data
 	SourceRaw proxmox.FileSourceRaw `pulumi:"sourceRaw"`
+=======
+	// The raw source data.
+	SourceRaw proxmox.StorageFileSourceRaw `pulumi:"sourceRaw"`
+>>>>>>> de4c7fd (chore: fix gci prefix, resolve import ordering, and fix lint violations):sdk/go/pve/storage/file.go
 }
 
 // The set of arguments for constructing a File resource.
 type FileArgs struct {
 	// The type of the file (e.g: snippets)
 	ContentType pulumi.StringInput
-	// The datastore to upload the file to.  (e.g:ceph-ha)
+	// The datastore to upload the file to. (e.g: ceph-ha)
 	DatastoreId pulumi.StringInput
+<<<<<<< HEAD:sdk/go/pve/file/file.go
 	// The raw source data
 	SourceRaw proxmox.FileSourceRawInput
+=======
+	// The raw source data.
+	SourceRaw proxmox.StorageFileSourceRawInput
+>>>>>>> de4c7fd (chore: fix gci prefix, resolve import ordering, and fix lint violations):sdk/go/pve/storage/file.go
 }
 
 func (FileArgs) ElementType() reflect.Type {
@@ -190,14 +205,20 @@ func (o FileOutput) ContentType() pulumi.StringOutput {
 	return o.ApplyT(func(v *File) pulumi.StringOutput { return v.ContentType }).(pulumi.StringOutput)
 }
 
-// The datastore to upload the file to.  (e.g:ceph-ha)
+// The datastore to upload the file to. (e.g: ceph-ha)
 func (o FileOutput) DatastoreId() pulumi.StringOutput {
 	return o.ApplyT(func(v *File) pulumi.StringOutput { return v.DatastoreId }).(pulumi.StringOutput)
 }
 
+<<<<<<< HEAD:sdk/go/pve/file/file.go
 // The raw source data
 func (o FileOutput) SourceRaw() proxmox.FileSourceRawOutput {
 	return o.ApplyT(func(v *File) proxmox.FileSourceRawOutput { return v.SourceRaw }).(proxmox.FileSourceRawOutput)
+=======
+// The raw source data.
+func (o FileOutput) SourceRaw() proxmox.StorageFileSourceRawOutput {
+	return o.ApplyT(func(v *File) proxmox.StorageFileSourceRawOutput { return v.SourceRaw }).(proxmox.StorageFileSourceRawOutput)
+>>>>>>> de4c7fd (chore: fix gci prefix, resolve import ordering, and fix lint violations):sdk/go/pve/storage/file.go
 }
 
 type FileArrayOutput struct{ *pulumi.OutputState }
