@@ -34,11 +34,6 @@ var (
 	sshOnce   sync.Once
 )
 
-// SSHCommand represents a command that can be executed over SSH.
-type SSHCommand struct {
-	string
-}
-
 // SSHClient represents an SSH client connection and its configuration.
 type SSHClient struct {
 	Client   *ssh.Client
@@ -46,23 +41,8 @@ type SSHClient struct {
 	TargetIP string
 }
 
-// Delete returns an SSHCommand for removing files.
-func (sc SSHClient) Delete() SSHCommand {
-	return SSHCommand{"rm"}
-}
-
-// Read returns an SSHCommand for reading files.
-func (sc SSHClient) Read() SSHCommand {
-	return SSHCommand{"cat"}
-}
-
-// Write returns an SSHCommand for writing to files.
-func (sc SSHClient) Write() SSHCommand {
-	return SSHCommand{"cat >"}
-}
-
 // Run executes a command on the remote host and returns its output.
-func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (string, error) {
+func (sc *SSHClient) Run(command SSHOperation, filePath string, data ...string) (string, error) {
 	// Dial a new SSH connection
 	client, err := ssh.Dial("tcp", sc.TargetIP+":22", sc.Config)
 	if err != nil {
@@ -84,7 +64,7 @@ func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (s
 	var out []byte
 	if len(data) < 1 {
 		// Execute the command and capture its combined output.
-		out, err = session.CombinedOutput(fmt.Sprintf("%s %s", command.string, filePath))
+		out, err = session.CombinedOutput(fmt.Sprintf("%s %s", command, filePath))
 		if err != nil {
 			return "", fmt.Errorf("error executing command: %v, output: %s", err, string(out))
 		}
@@ -97,7 +77,7 @@ func (sc *SSHClient) Run(command SSHCommand, filePath string, data ...string) (s
 			return "", fmt.Errorf("error obtaining the stdin pipe: %v", err)
 		}
 		// Start the command on the remote host.
-		if err := session.Start(fmt.Sprintf("%s %s", command.string, filePath)); err != nil {
+		if err := session.Start(fmt.Sprintf("%s %s", command, filePath)); err != nil {
 			return "", fmt.Errorf("error starting session: %v", err)
 		}
 
@@ -146,7 +126,7 @@ func newSSHClient(ctx context.Context, sshUser, sshPass string) (*SSHClient, err
 
 // GetSSHClient returns a singleton instance of the SSHClient.
 // It initializes the SSH client if it hasn't been created yet.
-func GetSSHClient(ctx context.Context) (*SSHClient, error) {
+func GetSSHClient(ctx context.Context) (SSHClientInterface, error) {
 	var err error
 	sshOnce.Do(func() {
 		p.GetLogger(ctx).Debugf("SSH Client is not initialized, initializing it now")
