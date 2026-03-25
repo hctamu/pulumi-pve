@@ -36,7 +36,7 @@ type FileOperations interface {
 	Delete(ctx context.Context, FileOutputs FileOutputs) error
 }
 
-// Inputs represents the input properties required to manage a file resource.
+// FileInputs represents the input properties required to manage a file resource.
 type FileInputs struct {
 	DataStoreID string        `pulumi:"datastoreId" provider:"replaceOnChanges"`
 	ContentType string        `pulumi:"contentType" provider:"replaceOnChanges"`
@@ -64,7 +64,7 @@ func (args *FileSourceRaw) Annotate(a infer.Annotator) {
 	a.Describe(&args.FileName, "The name of the file")
 }
 
-// Outputs represents the output properties of a File resource.
+// FileOutputs represents the output properties of a File resource.
 type FileOutputs struct {
 	FileInputs
 }
