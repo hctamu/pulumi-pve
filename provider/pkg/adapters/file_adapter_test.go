@@ -17,6 +17,7 @@ package adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -104,7 +105,7 @@ func TestFileAdapterCreate(t *testing.T) {
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
 			func(ctx context.Context) (client.SSHClientInterface, error) {
-				return nil, fmt.Errorf("ssh connection error")
+				return nil, errors.New("ssh connection error")
 			},
 		)
 
@@ -118,7 +119,7 @@ func TestFileAdapterCreate(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
 			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				return "", fmt.Errorf("ssh write error")
+				return "", errors.New("ssh write error")
 			},
 		}
 		adapter := newTestFileAdapter(t, sshClient)
@@ -165,7 +166,7 @@ func TestFileAdapterGet(t *testing.T) {
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
 			func(ctx context.Context) (client.SSHClientInterface, error) {
-				return nil, fmt.Errorf("ssh connection error")
+				return nil, errors.New("ssh connection error")
 			},
 		)
 
@@ -179,7 +180,7 @@ func TestFileAdapterGet(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
 			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				return "", fmt.Errorf("ssh read error")
+				return "", errors.New("ssh read error")
 			},
 		}
 		adapter := newTestFileAdapter(t, sshClient)
@@ -229,7 +230,7 @@ func TestFileAdapterUpdate(t *testing.T) {
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
 			func(ctx context.Context) (client.SSHClientInterface, error) {
-				return nil, fmt.Errorf("ssh connection error")
+				return nil, errors.New("ssh connection error")
 			},
 		)
 
@@ -243,7 +244,7 @@ func TestFileAdapterUpdate(t *testing.T) {
 		sshClient := &mockSSHClient{
 			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
 				if operation == client.SSHOperationDelete {
-					return "", fmt.Errorf("ssh delete error")
+					return "", errors.New("ssh delete error")
 				}
 				return "", nil
 			},
@@ -260,7 +261,7 @@ func TestFileAdapterUpdate(t *testing.T) {
 		sshClient := &mockSSHClient{
 			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
 				if operation == client.SSHOperationWrite {
-					return "", fmt.Errorf("ssh write error")
+					return "", errors.New("ssh write error")
 				}
 				return "", nil
 			},
@@ -306,7 +307,7 @@ func TestFileAdapter_Delete(t *testing.T) {
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
 			func(ctx context.Context) (client.SSHClientInterface, error) {
-				return nil, fmt.Errorf("ssh connection error")
+				return nil, errors.New("ssh connection error")
 			},
 		)
 
@@ -319,7 +320,7 @@ func TestFileAdapter_Delete(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
 			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				return "", fmt.Errorf("ssh delete error")
+				return "", errors.New("ssh delete error")
 			},
 		}
 		adapter := newTestFileAdapter(t, sshClient)

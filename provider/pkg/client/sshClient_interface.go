@@ -21,8 +21,11 @@ import "context"
 type SSHOperation string
 
 const (
-	SSHOperationWrite  SSHOperation = "cat >"
-	SSHOperationRead   SSHOperation = "cat"
+	// SSHOperationWrite is used for writing data to a file on the remote host.
+	SSHOperationWrite SSHOperation = "cat >"
+	// SSHOperationRead is used for reading data from a file on the remote host.
+	SSHOperationRead SSHOperation = "cat"
+	// SSHOperationDelete is used for deleting a file on the remote host.
 	SSHOperationDelete SSHOperation = "rm"
 )
 
