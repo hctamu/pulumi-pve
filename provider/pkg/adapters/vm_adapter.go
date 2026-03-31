@@ -86,9 +86,7 @@ func (a *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error
 
 	l.Debugf("Create VM Task: %v", createTask)
 
-	interval := 5 * time.Second
-	timeout := 60 * time.Second
-	if err = createTask.Wait(ctx, interval, timeout); err != nil {
+	if err = a.client.WaitForTask(ctx, createTask, 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM creation task: %w", err)
 	}
 
@@ -135,9 +133,8 @@ func (a *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error 
 
 	l.Debugf("Clone VM Task: %v", cloneTask)
 
-	interval := 5 * time.Second
-	timeout := time.Duration(inputs.Clone.Timeout) * time.Second
-	if err = cloneTask.Wait(ctx, interval, timeout); err != nil {
+	cloneTimeout := time.Duration(inputs.Clone.Timeout) * time.Second
+	if err = a.client.WaitForTask(ctx, cloneTask, cloneTimeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM clone task: %w", err)
 	}
 
@@ -194,14 +191,8 @@ func (a *VMAdapter) UpdateConfig(
 		return fmt.Errorf("failed to update VM %d: %w", vmID, err)
 	}
 
-	interval := 5 * time.Second
-	timeout := 60 * time.Second
-	if err = task.Wait(ctx, interval, timeout); err != nil {
+	if err = a.client.WaitForTask(ctx, task, 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM %d update: %w", vmID, err)
-	}
-
-	if task.IsFailed {
-		return fmt.Errorf("update task for VM %d failed: %v", vmID, task.ExitStatus)
 	}
 
 	l.Debugf("Update VM Task: %v", task)
@@ -252,13 +243,8 @@ func (a *VMAdapter) ApplyConfig(
 		return fmt.Errorf("failed to apply config to VM %d: %w", vmID, err)
 	}
 
-	interval := 5 * time.Second
-	if err = task.Wait(ctx, interval, timeout); err != nil {
+	if err = a.client.WaitForTask(ctx, task, timeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM %d config task: %w", vmID, err)
-	}
-
-	if task.IsFailed {
-		return fmt.Errorf("config task for VM %d failed: %v", vmID, task.ExitStatus)
 	}
 
 	return nil
@@ -349,19 +335,8 @@ func (a *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) e
 		return fmt.Errorf("failed to unlink EFI disk on VM %d: %w", vmID, err)
 	}
 
-	// Some Proxmox operations may not return a task (nil) if no-op or immediate.
-	if unlinkTask == nil {
-		return nil
-	}
-
-	interval := 5 * time.Second
-	timeout := 60 * time.Second
-	if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
+	if err = a.client.WaitForTask(ctx, unlinkTask, 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for EFI disk removal task on VM %d: %w", vmID, err)
-	}
-
-	if unlinkTask.IsFailed {
-		return fmt.Errorf("EFI disk removal task on VM %d failed: %v", vmID, unlinkTask.ExitStatus)
 	}
 
 	return nil
