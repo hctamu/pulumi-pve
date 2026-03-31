@@ -365,7 +365,7 @@ func TestVMDiffCPU(t *testing.T) {
 
 			vmResource := &vm.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-				VMOps:  adapters.NewVMAdapter(),
+				VMOps:  adapters.NewVMAdapter(adapters.NewProxmoxAdapter(nil)),
 			}
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
@@ -445,7 +445,7 @@ func TestVMReadWithCPU(t *testing.T) {
 
 	vmRes := &vm.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -545,7 +545,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 
 	vmRes := &vm.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -635,7 +635,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 
 	vmRes := &vm.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -757,7 +757,7 @@ func TestVMCreateWithCPU(t *testing.T) {
 
 	vmRes := &vm.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm",

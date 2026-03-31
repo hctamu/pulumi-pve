@@ -18,28 +18,52 @@ package proxmox
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // VMOperations defines the interface for interacting with Proxmox VM resources.
+// Methods are granular API primitives; orchestration logic belongs in the resource layer.
 type VMOperations interface {
-	// Create creates a new virtual machine and returns its assigned VM ID and node name.
+	// CreateVM creates a new (non-clone) virtual machine.
 	// inputs.Node and inputs.VMID must already be set by the caller.
-	Create(ctx context.Context, inputs VMInputs) (vmID int, node string, err error)
+	CreateVM(ctx context.Context, inputs VMInputs) error
 
-	// Get retrieves the current state of a virtual machine.
-	// It returns both computed inputs (full API state) and preserved inputs
-	// (user-visible values with computed fields cleared when not provided by the user).
+	// CloneVM clones a source VM to create a new virtual machine.
+	// inputs.Clone, inputs.Node, and inputs.VMID must already be set by the caller.
+	CloneVM(ctx context.Context, inputs VMInputs) error
+
+	// ApplyConfig applies full configuration to an existing VM.
+	ApplyConfig(ctx context.Context, vmID int, node *string, inputs VMInputs, timeout time.Duration) error
+
+	// GetCurrentDisks retrieves the current disk configuration from a live VM.
+	// Returns regular disks keyed by interface name and the EFI disk (nil if none).
+	GetCurrentDisks(ctx context.Context, vmID int, node *string) (disks map[string]Disk, efiDisk *EfiDisk, err error)
+
+	// ResizeDisk resizes a specific disk on a VM.
+	ResizeDisk(ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int) error
+
+	// RemoveDisk unlinks/removes a specific disk from a VM.
+	RemoveDisk(ctx context.Context, vmID int, node *string, diskInterface string) error
+
+	// RemoveEfiDisk removes the EFI disk from a VM.
+	RemoveEfiDisk(ctx context.Context, vmID int, node *string) error
+
+	// Get retrieves the current state of a virtual machine from the API.
+	// userDisks is used as an ordering hint so that the returned disk slice
+	// follows the same order as the user's prior inputs.
+	// Input preservation (clearing computed fields the user did not supply) is
+	// the responsibility of the caller (resource layer).
 	Get(
 		ctx context.Context,
 		vmID int,
 		node *string,
-		existingInputs VMInputs,
-	) (computed VMInputs, preserved VMInputs, err error)
+		userDisks []*Disk,
+	) (VMInputs, error)
 
-	// Update applies configuration changes to an existing virtual machine.
-	Update(ctx context.Context, vmID int, node *string, inputs VMInputs, stateInputs VMInputs) error
+	// UpdateConfig applies configuration changes to an existing virtual machine.
+	UpdateConfig(ctx context.Context, vmID int, node *string, inputs VMInputs, stateInputs VMInputs) error
 
 	// Delete deletes an existing virtual machine.
 	Delete(ctx context.Context, vmID int, node *string) error
