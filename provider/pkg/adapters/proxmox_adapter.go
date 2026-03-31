@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	api "github.com/luthermonson/go-proxmox"
 
@@ -167,6 +168,31 @@ func (proxmoxAdapter *ProxmoxAdapter) Node(ctx context.Context, name string) (*a
 		return nil, err
 	}
 	return proxmoxAdapter.client.Node(ctx, name)
+}
+
+// WaitForTask waits for a Proxmox task to complete, polling every interval up to timeout.
+// interval=0 uses the default production poll interval of 5 seconds.
+// It returns an error if the task times out, encounters an error, or reports a failure.
+// A nil task is treated as a no-op and returns nil immediately.
+func (proxmoxAdapter *ProxmoxAdapter) WaitForTask(
+	ctx context.Context,
+	task *api.Task,
+	timeout, interval time.Duration,
+) error {
+	if task == nil {
+		return nil
+	}
+	const defaultInterval = 5 * time.Second
+	if interval == 0 {
+		interval = defaultInterval
+	}
+	if err := task.Wait(ctx, interval, timeout); err != nil {
+		return err
+	}
+	if task.IsFailed {
+		return fmt.Errorf("task failed: %s", task.ExitStatus)
+	}
+	return nil
 }
 
 // FindVirtualMachine finds a virtual machine by its ID and returns the VM, node, and cluster.
