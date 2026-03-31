@@ -232,16 +232,16 @@
         "cpus"
       ]
     },
-    "pve:proxmox:StorageFileSourceRaw": {
+    "pve:storage:FileSourceRaw": {
       "properties": {
         "fileData": {
           "type": "string",
-          "description": "The raw data content of the file.",
+          "description": "The raw data in []byte",
           "replaceOnChanges": true
         },
         "fileName": {
           "type": "string",
-          "description": "The name of the file.",
+          "description": "The name of the file",
           "replaceOnChanges": true
         }
       },

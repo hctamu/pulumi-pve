@@ -2007,7 +2007,7 @@ func TestParseCPUFromVMConfig(t *testing.T) {
 			}
 
 			// ConvertVMConfigToInputs calls parseCPUFromVMConfig internally
-			inputs, _, err := adapters.ConvertVMConfigToInputs(testVM, proxmox.VMInputs{})
+			inputs, err := adapters.ConvertVMConfigToInputs(testVM, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -3143,7 +3143,7 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 			}
 
 			// Call ConvertVMConfigToInputs with current input to preserve order
-			result, _, err := adapters.ConvertVMConfigToInputs(mockVM, currentInput)
+			result, err := adapters.ConvertVMConfigToInputs(mockVM, currentInput.Disks)
 			require.NoError(t, err)
 
 			t.Logf("Test case: %s", tc.description)
@@ -3576,7 +3576,7 @@ func TestVMAdapterCreateValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, _, err := adapters.NewVMAdapter().Create(context.Background(), tt.inputs)
+			err := adapters.NewVMAdapter(adapters.NewProxmoxAdapter(nil)).CreateVM(context.Background(), tt.inputs)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.wantErrContain)
 		})

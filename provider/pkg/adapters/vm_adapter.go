@@ -30,99 +30,142 @@ import (
 
 	p "github.com/pulumi/pulumi-go-provider"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/px"
 )
 
 // Ensure VMAdapter implements the VMOperations interface.
 var _ proxmox.VMOperations = (*VMAdapter)(nil)
 
 // VMAdapter implements proxmox.VMOperations using the Proxmox API client.
-type VMAdapter struct{}
-
-// NewVMAdapter creates a new VMAdapter.
-func NewVMAdapter() *VMAdapter {
-	return &VMAdapter{}
+type VMAdapter struct {
+	client *ProxmoxAdapter
 }
 
-func (a *VMAdapter) pxClient(ctx context.Context) (*px.Client, error) {
-	return client.GetProxmoxClientFn(ctx)
+// NewVMAdapter creates a new VMAdapter backed by the given ProxmoxAdapter.
+func NewVMAdapter(client *ProxmoxAdapter) *VMAdapter {
+	return &VMAdapter{client: client}
 }
 
-// Create creates a new virtual machine and returns its assigned VM ID and node name.
+// findVM locates a virtual machine by ID and optional node.
+func (a *VMAdapter) findVM(ctx context.Context, vmID int, node *string) (*api.VirtualMachine, error) {
+	vm, _, _, err := a.client.FindVirtualMachine(ctx, vmID, node)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find VM %d: %w", vmID, err)
+	}
+	return vm, nil
+}
+
+// CreateVM creates a new (non-clone) virtual machine.
 // inputs.Node and inputs.VMID must already be populated by the caller.
-func (a *VMAdapter) Create(ctx context.Context, inputs proxmox.VMInputs) (vmID int, node string, err error) {
+func (a *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
 	l := p.GetLogger(ctx)
 
 	if inputs.Node == nil {
-		return 0, "", errors.New("inputs.Node must be set before calling Create")
+		return errors.New("inputs.Node must be set before calling CreateVM")
 	}
 	if inputs.VMID == nil {
-		return 0, "", errors.New("inputs.VMID must be set before calling Create")
+		return errors.New("inputs.VMID must be set before calling CreateVM")
 	}
 
 	nodeName := *inputs.Node
-	vmID = *inputs.VMID
+	vmID := *inputs.VMID
 
 	l.Infof("Create VM '%v(%v)' on '%v'", inputs.Name, vmID, nodeName)
 	options := BuildVMOptions(inputs, vmID)
 
-	createTask, timeout, err := vmCreateTask(ctx, inputs, vmID, options)
+	node, err := a.client.Node(ctx, nodeName)
 	if err != nil {
-		l.Errorf("error creating VM task: %v", err)
-		return 0, "", err
+		return fmt.Errorf("failed to get node %s: %w", nodeName, err)
 	}
+
+	createTask, err := node.NewVirtualMachine(ctx, vmID, options...)
+	if err != nil {
+		return fmt.Errorf("failed to create VM %d: %w", vmID, err)
+	}
+
+	l.Debugf("Create VM Task: %v", createTask)
 
 	interval := 5 * time.Second
+	timeout := 60 * time.Second
 	if err = createTask.Wait(ctx, interval, timeout); err != nil {
-		l.Errorf("error waiting for VM creation task: %v", err)
-		return 0, "", err
+		return fmt.Errorf("failed to wait for VM creation task: %w", err)
 	}
 
-	if inputs.Clone != nil {
-		pxc, err := a.pxClient(ctx)
-		if err != nil {
-			return 0, "", err
-		}
-		if err = vmFinalizeClone(ctx, pxc, inputs, vmID, options); err != nil {
-			l.Errorf("error finalizing clone: %v", err)
-			return 0, "", err
-		}
+	return nil
+}
+
+// CloneVM clones a source VM to create a new virtual machine.
+// inputs.Clone, inputs.Node, and inputs.VMID must already be populated by the caller.
+func (a *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	l := p.GetLogger(ctx)
+
+	if inputs.Clone == nil {
+		return errors.New("inputs.Clone must be set before calling CloneVM")
+	}
+	if inputs.Node == nil {
+		return errors.New("inputs.Node must be set before calling CloneVM")
+	}
+	if inputs.VMID == nil {
+		return errors.New("inputs.VMID must be set before calling CloneVM")
 	}
 
-	return vmID, nodeName, nil
+	vmID := *inputs.VMID
+
+	sourceVM, _, _, err := a.client.FindVirtualMachine(ctx, inputs.Clone.VMID, nil)
+	if err != nil {
+		return fmt.Errorf("error finding source VM %d for clone: %w", inputs.Clone.VMID, err)
+	}
+
+	fullClone := uint8(0)
+	if inputs.Clone.FullClone != nil && *inputs.Clone.FullClone {
+		fullClone = uint8(1)
+	}
+
+	cloneOptions := api.VirtualMachineCloneOptions{
+		Full:   fullClone,
+		Target: *inputs.Node,
+		NewID:  vmID,
+	}
+
+	_, cloneTask, err := sourceVM.Clone(ctx, &cloneOptions)
+	if err != nil {
+		return fmt.Errorf("error cloning VM %d: %w", inputs.Clone.VMID, err)
+	}
+
+	l.Debugf("Clone VM Task: %v", cloneTask)
+
+	interval := 5 * time.Second
+	timeout := time.Duration(inputs.Clone.Timeout) * time.Second
+	if err = cloneTask.Wait(ctx, interval, timeout); err != nil {
+		return fmt.Errorf("failed to wait for VM clone task: %w", err)
+	}
+
+	return nil
 }
 
 // Get retrieves the current state of a virtual machine.
-// Returns computed inputs (full API state) and preserved inputs (user-visible state).
 func (a *VMAdapter) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
-	existingInputs proxmox.VMInputs,
-) (computed, preserved proxmox.VMInputs, err error) {
-	pxClient, err := a.pxClient(ctx)
+	userDisks []*proxmox.Disk,
+) (proxmox.VMInputs, error) {
+	virtualMachine, _, _, err := a.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
-		return proxmox.VMInputs{}, proxmox.VMInputs{}, fmt.Errorf("failed to get Proxmox client: %v", err)
+		return proxmox.VMInputs{}, fmt.Errorf("failed to find VM %v: %v", vmID, err)
 	}
 
-	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, vmID, node)
+	stateInputs, err := ConvertVMConfigToInputs(virtualMachine, userDisks)
 	if err != nil {
-		return proxmox.VMInputs{}, proxmox.VMInputs{}, fmt.Errorf("failed to find VM %v: %v", vmID, err)
+		return proxmox.VMInputs{}, fmt.Errorf("failed to convert VM config to inputs: %v", err)
 	}
 
-	stateInputs, preservedInputs, err := ConvertVMConfigToInputs(virtualMachine, existingInputs)
-	if err != nil {
-		return proxmox.VMInputs{}, proxmox.VMInputs{}, fmt.Errorf("failed to convert VM config to inputs: %v", err)
-	}
-
-	return stateInputs, preservedInputs, nil
+	return stateInputs, nil
 }
 
-// Update applies configuration changes to an existing virtual machine.
-func (a *VMAdapter) Update(
+// UpdateConfig applies configuration differences to an existing virtual machine.
+func (a *VMAdapter) UpdateConfig(
 	ctx context.Context,
 	vmID int,
 	node *string,
@@ -131,20 +174,9 @@ func (a *VMAdapter) Update(
 ) error {
 	l := p.GetLogger(ctx)
 
-	pxClient, err := a.pxClient(ctx)
+	virtualMachine, err := a.findVM(ctx, vmID, node)
 	if err != nil {
 		return err
-	}
-
-	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, vmID, node)
-	if err != nil {
-		return err
-	}
-
-	if inputs.EfiDisk == nil {
-		if err := vmRemoveEfiDisk(ctx, virtualMachine); err != nil {
-			return err
-		}
 	}
 
 	l.Debugf("VM: %v", virtualMachine)
@@ -159,13 +191,13 @@ func (a *VMAdapter) Update(
 
 	task, err := virtualMachine.Config(ctx, options...)
 	if err != nil {
-		return fmt.Errorf("failed to update VM %d: %v", vmID, err)
+		return fmt.Errorf("failed to update VM %d: %w", vmID, err)
 	}
 
 	interval := 5 * time.Second
 	timeout := 60 * time.Second
 	if err = task.Wait(ctx, interval, timeout); err != nil {
-		return fmt.Errorf("failed to wait for VM %d update: %v", vmID, err)
+		return fmt.Errorf("failed to wait for VM %d update: %w", vmID, err)
 	}
 
 	if task.IsFailed {
@@ -180,12 +212,7 @@ func (a *VMAdapter) Update(
 func (a *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
 	l := p.GetLogger(ctx)
 
-	pxClient, err := a.pxClient(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get Proxmox client: %v", err)
-	}
-
-	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, vmID, node)
+	virtualMachine, _, _, err := a.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -199,180 +226,127 @@ func (a *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
 	return nil
 }
 
-// --- Internal helper functions ---
-
-// vmCreateTask creates a task for creating a new VM or cloning an existing one.
-func vmCreateTask(
+// ApplyConfig applies full configuration to an existing VM.
+func (a *VMAdapter) ApplyConfig(
 	ctx context.Context,
-	inputs proxmox.VMInputs,
 	vmID int,
-	options []api.VirtualMachineOption,
-) (*api.Task, time.Duration, error) {
-	var (
-		createTask *api.Task
-		timeout    time.Duration
-		err        error
-	)
-	if inputs.Clone != nil {
-		createTask, err = vmHandleClone(ctx, inputs, vmID)
-		timeout = time.Duration(inputs.Clone.Timeout) * time.Second
-	} else {
-		createTask, err = vmHandleNewVM(ctx, inputs, vmID, options)
-		timeout = 60 * time.Second
-	}
-
-	return createTask, timeout, err
-}
-
-// vmFinalizeClone finalizes the cloning process by updating the disks and configuration.
-func vmFinalizeClone(
-	ctx context.Context,
-	pxClient *px.Client,
+	node *string,
 	inputs proxmox.VMInputs,
-	vmID int,
-	options []api.VirtualMachineOption,
+	timeout time.Duration,
 ) error {
-	virtualMachine, _, _, err := pxClient.FindVirtualMachine(ctx, vmID, inputs.Node)
+	l := p.GetLogger(ctx)
+
+	virtualMachine, err := a.findVM(ctx, vmID, node)
 	if err != nil {
-		return fmt.Errorf("failed to find cloned VM: %v", err)
+		return err
 	}
 
-	// Update disks after clone based on the inputs
-	if err := vmUpdateDisksAfterClone(ctx, options, virtualMachine); err != nil {
-		return fmt.Errorf("failed to update disks after clone: %w", err)
+	options := BuildVMOptions(inputs, vmID)
+	if len(options) == 0 {
+		l.Debugf("No VM config options to apply; skipping Config call")
+		return nil
 	}
 
 	task, err := virtualMachine.Config(ctx, options...)
 	if err != nil {
-		return fmt.Errorf("failed to update cloned VM: %v", err)
+		return fmt.Errorf("failed to apply config to VM %d: %w", vmID, err)
 	}
 
 	interval := 5 * time.Second
-	timeout := time.Duration(inputs.Clone.Timeout) * time.Second
 	if err = task.Wait(ctx, interval, timeout); err != nil {
-		return fmt.Errorf("failed to wait for cloned VM update: %v", err)
+		return fmt.Errorf("failed to wait for VM %d config task: %w", vmID, err)
+	}
+
+	if task.IsFailed {
+		return fmt.Errorf("config task for VM %d failed: %v", vmID, task.ExitStatus)
 	}
 
 	return nil
 }
 
-// vmHandleClone handles the cloning of a virtual machine.
-func vmHandleClone(ctx context.Context, inputs proxmox.VMInputs, vmID int) (*api.Task, error) {
-	pxc, err := client.GetProxmoxClientFn(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	sourceVM, _, _, err := pxc.FindVirtualMachine(ctx, inputs.Clone.VMID, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error during finding source VM for clone: %v", err)
-	}
-
-	fullClone := uint8(0)
-	if inputs.Clone.FullClone != nil && *inputs.Clone.FullClone {
-		fullClone = uint8(1)
-	}
-
-	cloneOptions := api.VirtualMachineCloneOptions{
-		Full:   fullClone,
-		Target: *inputs.Node,
-		NewID:  vmID,
-	}
-
-	var cloneTask *api.Task
-	if _, cloneTask, err = sourceVM.Clone(ctx, &cloneOptions); err != nil {
-		return nil, fmt.Errorf("error during cloning VM %v: %v", inputs.Clone.VMID, err)
-	}
-
-	return cloneTask, nil
-}
-
-// vmHandleNewVM handles the creation of a new virtual machine.
-func vmHandleNewVM(
+// GetCurrentDisks retrieves the current disk configuration from a live VM.
+// Returns regular disks keyed by interface name and the EFI disk (nil if none).
+func (a *VMAdapter) GetCurrentDisks(
 	ctx context.Context,
-	inputs proxmox.VMInputs,
 	vmID int,
-	options []api.VirtualMachineOption,
-) (*api.Task, error) {
-	pxc, err := client.GetProxmoxClientFn(ctx)
+	node *string,
+) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+	virtualMachine, err := a.findVM(ctx, vmID, node)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	node, err := pxc.Node(ctx, *inputs.Node)
-	if err != nil {
-		return nil, err
+	diskMap := virtualMachine.VirtualMachineConfig.MergeDisks()
+	result := make(map[string]proxmox.Disk, len(diskMap))
+	for iface, config := range diskMap {
+		disk := proxmox.Disk{Interface: iface}
+		if err := ParseDiskConfig(&disk, config); err != nil {
+			return nil, nil, fmt.Errorf("failed to parse disk %s: %w", iface, err)
+		}
+		result[iface] = disk
 	}
 
-	createTask, err := node.NewVirtualMachine(ctx, vmID, options...)
-	if err != nil {
-		return nil, err
+	var efiDisk *proxmox.EfiDisk
+	if virtualMachine.VirtualMachineConfig.EFIDisk0 != "" {
+		efiDisk = &proxmox.EfiDisk{}
+		if err := ParseEfiDiskConfig(efiDisk, virtualMachine.VirtualMachineConfig.EFIDisk0); err != nil {
+			return nil, nil, fmt.Errorf("failed to parse EFI disk: %w", err)
+		}
 	}
 
-	p.GetLogger(ctx).Debugf("Create VM Task: %v", createTask)
-	return createTask, nil
+	return result, efiDisk, nil
 }
 
-// vmUpdateDisksAfterClone updates the disks of the virtual machine after a clone operation.
-// It updates the file and size of the disks and resizes them if necessary.
-// It also removes disks that are not present in the new configuration.
-func vmUpdateDisksAfterClone(
+// ResizeDisk resizes a specific disk on a VM.
+func (a *VMAdapter) ResizeDisk(
 	ctx context.Context,
-	options []api.VirtualMachineOption,
-	virtualMachine *api.VirtualMachine,
+	vmID int,
+	node *string,
+	diskInterface string,
+	sizeGB int,
 ) error {
-	disks := virtualMachine.VirtualMachineConfig.MergeDisks()
-
-	// Update disks based on the new configuration
-	for diskInterface, currentDiskStr := range disks {
-		diskOption := getDiskOption(options, diskInterface)
-		if diskOption != nil {
-			disk := proxmox.Disk{Interface: diskInterface}
-			if err := ParseDiskConfig(&disk, diskOption.Value.(string)); err != nil {
-				return fmt.Errorf("failed to parse disk config: %v", err)
-			}
-
-			currentDisk := proxmox.Disk{Interface: diskInterface}
-			if err := ParseDiskConfig(&currentDisk, currentDiskStr); err != nil {
-				return fmt.Errorf("failed to parse current disk config: %v", err)
-			}
-
-			disk.FileID = currentDisk.FileID
-			_, diskConfig := ToProxmoxDiskKeyConfig(disk)
-			diskOption.Value = diskConfig
-
-			// Resize disk if necessary
-			if disk.Size != currentDisk.Size {
-				sizeStr := fmt.Sprintf("%dG", disk.Size)
-				if _, err := virtualMachine.ResizeDisk(ctx, diskInterface, sizeStr); err != nil {
-					return fmt.Errorf("failed to resize disk %v: %v", diskInterface, err)
-				}
-			}
-		} else {
-			// Remove not needed disk
-			if _, err := virtualMachine.UnlinkDisk(ctx, diskInterface, true); err != nil {
-				return fmt.Errorf("failed to unlink disk %v: %v", diskInterface, err)
-			}
-		}
+	virtualMachine, err := a.findVM(ctx, vmID, node)
+	if err != nil {
+		return err
 	}
 
-	efiDiskOption := getDiskOption(options, proxmox.EfiDiskID)
-	if efiDiskOption == nil && virtualMachine.VirtualMachineConfig.EFIDisk0 != "" {
-		// Remove not needed EFI disk
-		if err := vmRemoveEfiDisk(ctx, virtualMachine); err != nil {
-			return err
-		}
+	sizeStr := fmt.Sprintf("%dG", sizeGB)
+	if _, err := virtualMachine.ResizeDisk(ctx, diskInterface, sizeStr); err != nil {
+		return fmt.Errorf("failed to resize disk %s on VM %d: %w", diskInterface, vmID, err)
 	}
 
 	return nil
 }
 
-// vmRemoveEfiDisk removes the EFI disk from a virtual machine.
-func vmRemoveEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) error {
-	var unlinkTask *api.Task
-	var err error
-	if unlinkTask, err = virtualMachine.UnlinkDisk(ctx, proxmox.EfiDiskID, true); err != nil {
-		return fmt.Errorf("failed to unlink EFI disk: %v", err)
+// RemoveDisk unlinks/removes a specific disk from a VM.
+func (a *VMAdapter) RemoveDisk(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	diskInterface string,
+) error {
+	virtualMachine, err := a.findVM(ctx, vmID, node)
+	if err != nil {
+		return err
+	}
+
+	if _, err := virtualMachine.UnlinkDisk(ctx, diskInterface, true); err != nil {
+		return fmt.Errorf("failed to unlink disk %s on VM %d: %w", diskInterface, vmID, err)
+	}
+
+	return nil
+}
+
+// RemoveEfiDisk removes the EFI disk from a VM.
+func (a *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
+	virtualMachine, err := a.findVM(ctx, vmID, node)
+	if err != nil {
+		return err
+	}
+
+	unlinkTask, err := virtualMachine.UnlinkDisk(ctx, proxmox.EfiDiskID, true)
+	if err != nil {
+		return fmt.Errorf("failed to unlink EFI disk on VM %d: %w", vmID, err)
 	}
 
 	// Some Proxmox operations may not return a task (nil) if no-op or immediate.
@@ -383,93 +357,75 @@ func vmRemoveEfiDisk(ctx context.Context, virtualMachine *api.VirtualMachine) er
 	interval := 5 * time.Second
 	timeout := 60 * time.Second
 	if err = unlinkTask.Wait(ctx, interval, timeout); err != nil {
-		return fmt.Errorf("failed to wait for EFI disk removal task: %v", err)
+		return fmt.Errorf("failed to wait for EFI disk removal task on VM %d: %w", vmID, err)
 	}
 
 	if unlinkTask.IsFailed {
-		return fmt.Errorf("EFI disk removal task failed: %v", unlinkTask.ExitStatus)
+		return fmt.Errorf("EFI disk removal task on VM %d failed: %v", vmID, unlinkTask.ExitStatus)
 	}
 
 	return nil
 }
 
-// --- Functions moved from proxmox/vm.go: these depend on the go-proxmox API types ---
-
-// ConvertVMConfigToInputs converts a VirtualMachine configuration to VMInputs.
-// It returns two VMInputs:
-//   - stateInputs: fully computed values from API (for Outputs/State)
-//   - preservedInputs: values adjusted to preserve user-omitted computed fields (for Inputs)
+// ConvertVMConfigToInputs converts a VirtualMachine API response to VMInputs (state).
+// userDisks is used solely as an ordering hint: disks present in userDisks are listed
+// first (in user-specified order), followed by any additional disks found in the API.
+// Input preservation (clearing computed fields the user did not supply) is the
+// responsibility of the caller.
 func ConvertVMConfigToInputs(
 	vm *api.VirtualMachine,
-	currentInput proxmox.VMInputs,
-) (stateInputs, preservedInputs proxmox.VMInputs, err error) {
+	userDisks []*proxmox.Disk,
+) (stateInputs proxmox.VMInputs, err error) {
 	vmConfig := vm.VirtualMachineConfig
 	diskMap := vmConfig.MergeDisks()
 
 	parsedCPU, err := parseCPUFromVMConfig(vmConfig)
 	if err != nil {
-		return stateInputs, preservedInputs, err
+		return stateInputs, err
 	}
 
 	stateDisks := []*proxmox.Disk{}
-	preservedDisks := []*proxmox.Disk{}
-	checkedDisks := make([]string, 0, len(currentInput.Disks))
+	checkedDisks := make([]string, 0, len(userDisks))
 
-	prevByInterface := make(map[string]*proxmox.Disk, len(currentInput.Disks))
-	for _, d := range currentInput.Disks {
-		if d != nil && d.Interface != "" {
-			prevByInterface[d.Interface] = d
-		}
-	}
-
-	for _, currentDisk := range currentInput.Disks {
-		if _, exists := diskMap[currentDisk.Interface]; !exists {
+	// First: process disks in user-specified order
+	for _, userDisk := range userDisks {
+		if userDisk == nil || userDisk.Interface == "" {
 			continue
 		}
-		disk := &proxmox.Disk{Interface: currentDisk.Interface}
-		checkedDisks = append(checkedDisks, currentDisk.Interface)
-		if err := ParseDiskConfig(disk, diskMap[currentDisk.Interface]); err != nil {
-			return stateInputs, preservedInputs, err
+		if _, exists := diskMap[userDisk.Interface]; !exists {
+			continue // disk no longer present in API
+		}
+		disk := &proxmox.Disk{Interface: userDisk.Interface}
+		checkedDisks = append(checkedDisks, userDisk.Interface)
+		if err := ParseDiskConfig(disk, diskMap[userDisk.Interface]); err != nil {
+			return stateInputs, err
 		}
 		stateDisks = append(stateDisks, disk)
-		preservedDisk := *disk
-		if prev, ok := prevByInterface[disk.Interface]; ok {
-			if prev.FileID == nil {
-				preservedDisk.FileID = nil
-			}
-		}
-		preservedDisks = append(preservedDisks, &preservedDisk)
 	}
 
+	// Then: append any disks from API not covered by user's input
 	for diskInterface, diskParams := range diskMap {
 		if slices.Contains(checkedDisks, diskInterface) {
 			continue
 		}
 		disk := proxmox.Disk{Interface: diskInterface}
 		if err := ParseDiskConfig(&disk, diskParams); err != nil {
-			return stateInputs, preservedInputs, err
+			return stateInputs, err
 		}
 		stateDisks = append(stateDisks, &disk)
-		preservedDisks = append(preservedDisks, &disk)
 	}
 
 	var efiDisk *proxmox.EfiDisk
-	var preservedEfi *proxmox.EfiDisk
 	if vmConfig.EFIDisk0 != "" {
 		efiDisk = &proxmox.EfiDisk{}
 		if err := ParseEfiDiskConfig(efiDisk, vmConfig.EFIDisk0); err != nil {
-			return stateInputs, preservedInputs, err
+			return stateInputs, err
 		}
-		preservedEfiDisk := *efiDisk
-		if currentInput.EfiDisk != nil && currentInput.EfiDisk.FileID == nil {
-			preservedEfiDisk.FileID = nil
-		}
-		preservedEfi = &preservedEfiDisk
 	}
 
 	var vmID int
 	if vm.VMID > math.MaxInt {
-		return stateInputs, preservedInputs, fmt.Errorf("VMID %d overflows int", vm.VMID)
+		return stateInputs, fmt.Errorf("VMID %d overflows int", vm.VMID)
 	}
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
@@ -524,17 +480,7 @@ func ConvertVMConfigToInputs(
 		Node:      strOrNil(vm.Node),
 	}
 
-	preservedInputs = stateInputs
-	if currentInput.VMID == nil {
-		preservedInputs.VMID = nil
-	}
-	if currentInput.Node == nil {
-		preservedInputs.Node = nil
-	}
-	preservedInputs.Disks = preservedDisks
-	preservedInputs.EfiDisk = preservedEfi
-
-	return stateInputs, preservedInputs, nil
+	return stateInputs, nil
 }
 
 // BuildVMOptions builds a list of VirtualMachineOption from the VMInputs.
@@ -779,16 +725,6 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *p
 	}
 }
 
-// getDiskOption returns the VirtualMachineOption matching the given disk interface name.
-func getDiskOption(options []api.VirtualMachineOption, diskInterface string) *api.VirtualMachineOption {
-	for index := range options {
-		if options[index].Name == diskInterface {
-			return &options[index]
-		}
-	}
-	return nil
-}
-
 // strOrNil returns a pointer to s if non-empty, else nil.
 func strOrNil(s string) *string {
 	if s == "" {
@@ -832,8 +768,6 @@ func addOptionPtr[T comparable](name string, options *[]api.VirtualMachineOption
 		*options = append(*options, api.VirtualMachineOption{Name: name, Value: value})
 	}
 }
-
-// --- Disk config parsing (Proxmox wire-format strings → domain types) ---
 
 // parsedDiskBase holds the common result of parsing a Proxmox disk config string.
 type parsedDiskBase struct {

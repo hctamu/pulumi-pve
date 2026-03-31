@@ -208,7 +208,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 
 			vm := &vmResource.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-				VMOps:  adapters.NewVMAdapter(),
+				VMOps:  adapters.NewVMAdapter(adapters.NewProxmoxAdapter(nil)),
 			}
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
@@ -309,7 +309,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -402,7 +402,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -479,7 +479,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -542,7 +542,7 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -699,7 +699,7 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm",
@@ -838,7 +838,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm-with-efi",
@@ -939,7 +939,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 
 	vm := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm-with-efi",
