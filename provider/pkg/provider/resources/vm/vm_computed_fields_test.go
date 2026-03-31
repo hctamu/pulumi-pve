@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
@@ -34,45 +35,106 @@ import (
 // mockVMOps is a test double for VMOperations that captures calls and returns
 // configurable responses.
 type mockVMOps struct {
-	createFunc func(ctx context.Context, inputs proxmox.VMInputs) (int, string, error)
-	getFunc    func(
-		ctx context.Context, vmID int, node *string, existingInputs proxmox.VMInputs,
-	) (proxmox.VMInputs, proxmox.VMInputs, error)
-	updateFunc func(
+	createVMFunc    func(ctx context.Context, inputs proxmox.VMInputs) error
+	cloneVMFunc     func(ctx context.Context, inputs proxmox.VMInputs) error
+	applyConfigFunc func(
+		ctx context.Context, vmID int, node *string,
+		inputs proxmox.VMInputs, timeout time.Duration,
+	) error
+	getCurrentDisksFunc func(
+		ctx context.Context, vmID int, node *string,
+	) (map[string]proxmox.Disk, *proxmox.EfiDisk, error)
+	resizeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int) error
+	removeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string) error
+	removeEfiDiskFunc func(ctx context.Context, vmID int, node *string) error
+	getFunc           func(
+		ctx context.Context, vmID int, node *string, userDisks []*proxmox.Disk,
+	) (proxmox.VMInputs, error)
+	updateConfigFunc func(
 		ctx context.Context, vmID int, node *string,
 		inputs proxmox.VMInputs, stateInputs proxmox.VMInputs,
 	) error
 	deleteFunc func(ctx context.Context, vmID int, node *string) error
 }
 
-func (m *mockVMOps) Create(ctx context.Context, inputs proxmox.VMInputs) (vmID int, node string, err error) {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (m *mockVMOps) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	if m.createVMFunc != nil {
+		return m.createVMFunc(ctx, inputs)
 	}
-	return 100, "pve-node", nil
+	return nil
+}
+
+func (m *mockVMOps) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	if m.cloneVMFunc != nil {
+		return m.cloneVMFunc(ctx, inputs)
+	}
+	return nil
+}
+
+func (m *mockVMOps) ApplyConfig(
+	ctx context.Context, vmID int, node *string, inputs proxmox.VMInputs, timeout time.Duration,
+) error {
+	if m.applyConfigFunc != nil {
+		return m.applyConfigFunc(ctx, vmID, node, inputs, timeout)
+	}
+	return nil
+}
+
+func (m *mockVMOps) GetCurrentDisks(
+	ctx context.Context, vmID int, node *string,
+) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+	if m.getCurrentDisksFunc != nil {
+		return m.getCurrentDisksFunc(ctx, vmID, node)
+	}
+	return nil, nil, nil
+}
+
+func (m *mockVMOps) ResizeDisk(
+	ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int,
+) error {
+	if m.resizeDiskFunc != nil {
+		return m.resizeDiskFunc(ctx, vmID, node, diskInterface, sizeGB)
+	}
+	return nil
+}
+
+func (m *mockVMOps) RemoveDisk(
+	ctx context.Context, vmID int, node *string, diskInterface string,
+) error {
+	if m.removeDiskFunc != nil {
+		return m.removeDiskFunc(ctx, vmID, node, diskInterface)
+	}
+	return nil
+}
+
+func (m *mockVMOps) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
+	if m.removeEfiDiskFunc != nil {
+		return m.removeEfiDiskFunc(ctx, vmID, node)
+	}
+	return nil
 }
 
 func (m *mockVMOps) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
-	existingInputs proxmox.VMInputs,
-) (computed, preserved proxmox.VMInputs, err error) {
+	userDisks []*proxmox.Disk,
+) (proxmox.VMInputs, error) {
 	if m.getFunc != nil {
-		return m.getFunc(ctx, vmID, node, existingInputs)
+		return m.getFunc(ctx, vmID, node, userDisks)
 	}
-	return proxmox.VMInputs{VMID: &vmID}, proxmox.VMInputs{VMID: &vmID}, nil
+	return proxmox.VMInputs{VMID: &vmID}, nil
 }
 
-func (m *mockVMOps) Update(
+func (m *mockVMOps) UpdateConfig(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	inputs proxmox.VMInputs,
 	stateInputs proxmox.VMInputs,
 ) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, vmID, node, inputs, stateInputs)
+	if m.updateConfigFunc != nil {
+		return m.updateConfigFunc(ctx, vmID, node, inputs, stateInputs)
 	}
 	return nil
 }
@@ -141,8 +203,10 @@ func TestConvertAndPreserve_NoVMIDOrNodeInPrev(t *testing.T) {
 		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=0",
 	)
 
-	computed, preserved, err := adapters.ConvertVMConfigToInputs(vm, prev)
+	computed, err := adapters.ConvertVMConfigToInputs(vm, prev.Disks)
 	require.NoError(t, err)
+
+	preserved := preserveInputs(computed, prev)
 
 	// Computed should carry values from API
 	require.NotNil(t, computed.VMID)
@@ -199,8 +263,10 @@ func TestConvertAndPreserve_WithVMIDAndNodeInPrev(t *testing.T) {
 		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=1",
 	)
 
-	_, preserved, err := adapters.ConvertVMConfigToInputs(vm, prev)
+	computed, err := adapters.ConvertVMConfigToInputs(vm, prev.Disks)
 	require.NoError(t, err)
+
+	preserved := preserveInputs(computed, prev)
 
 	// VMID and Node should remain set
 	require.NotNil(t, preserved.VMID)
@@ -385,9 +451,9 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 
 	ops := &mockVMOps{
 		getFunc: func(
-			_ context.Context, id int, node *string, existing proxmox.VMInputs,
-		) (proxmox.VMInputs, proxmox.VMInputs, error) {
-			computed := proxmox.VMInputs{
+			_ context.Context, id int, node *string, _ []*proxmox.Disk,
+		) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
 				Disks: []*proxmox.Disk{{
@@ -399,21 +465,7 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
 				},
-			}
-			// Preserve: VMID nil (user omitted), disk FileID nil (omitted), EFI FileID included (newly discovered)
-			preserved := proxmox.VMInputs{
-				Node: testutils.Ptr(nodeName),
-				Disks: []*proxmox.Disk{{
-					Interface: "scsi0",
-					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-					Size:      32,
-				}},
-				EfiDisk: &proxmox.EfiDisk{
-					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
-					EfiType:  proxmox.EfiType4M,
-				},
-			}
-			return computed, preserved, nil
+			}, nil
 		},
 	}
 
@@ -463,9 +515,9 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 
 	ops := &mockVMOps{
 		getFunc: func(
-			_ context.Context, id int, node *string, existing proxmox.VMInputs,
-		) (proxmox.VMInputs, proxmox.VMInputs, error) {
-			computed := proxmox.VMInputs{
+			_ context.Context, id int, node *string, _ []*proxmox.Disk,
+		) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
 				Disks: []*proxmox.Disk{{
@@ -477,22 +529,7 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
 				},
-			}
-			// VMID and Node preserved since user provided them; disk/efi FileID nil (omitted)
-			preserved := proxmox.VMInputs{
-				VMID: &id,
-				Node: testutils.Ptr(nodeName),
-				Disks: []*proxmox.Disk{{
-					Interface: "scsi0",
-					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-					Size:      32,
-				}},
-				EfiDisk: &proxmox.EfiDisk{
-					DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
-					EfiType:  proxmox.EfiType4M,
-				},
-			}
-			return computed, preserved, nil
+			}, nil
 		},
 	}
 
@@ -546,13 +583,13 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 	efiFileID := "vm-500-efidisk"
 
 	ops := &mockVMOps{
-		createFunc: func(_ context.Context, inputs proxmox.VMInputs) (int, string, error) {
-			return nextID, nodeName, nil
+		createVMFunc: func(_ context.Context, inputs proxmox.VMInputs) error {
+			return nil
 		},
 		getFunc: func(
-			_ context.Context, id int, node *string, existing proxmox.VMInputs,
-		) (proxmox.VMInputs, proxmox.VMInputs, error) {
-			computed := proxmox.VMInputs{
+			_ context.Context, id int, node *string, _ []*proxmox.Disk,
+		) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
 				Disks: []*proxmox.Disk{{
@@ -564,8 +601,7 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
 				},
-			}
-			return computed, computed, nil
+			}, nil
 		},
 	}
 

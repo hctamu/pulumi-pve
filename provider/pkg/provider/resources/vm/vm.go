@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"time"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
@@ -85,14 +86,32 @@ func (vm *VM) Create(
 		request.Inputs.VMID = &vmID
 	}
 
-	vmID, node, err := vm.VMOps.Create(ctx, request.Inputs)
-	if err != nil {
-		l.Errorf("error creating VM: %v", err)
-		return response, err
-	}
+	vmID := *request.Inputs.VMID
 
-	request.Inputs.VMID = &vmID
-	request.Inputs.Node = &node
+	if request.Inputs.Clone != nil {
+		// Clone flow: clone source VM, reconcile disks, then apply config.
+		if err := vm.VMOps.CloneVM(ctx, request.Inputs); err != nil {
+			l.Errorf("error cloning VM: %v", err)
+			return response, err
+		}
+
+		if err := vm.reconcileDisksAfterClone(ctx, &request.Inputs); err != nil {
+			l.Errorf("error reconciling disks after clone: %v", err)
+			return response, err
+		}
+
+		timeout := time.Duration(request.Inputs.Clone.Timeout) * time.Second
+		if err := vm.VMOps.ApplyConfig(ctx, vmID, request.Inputs.Node, request.Inputs, timeout); err != nil {
+			l.Errorf("error applying config to cloned VM: %v", err)
+			return response, err
+		}
+	} else {
+		// New VM flow: create directly.
+		if err := vm.VMOps.CreateVM(ctx, request.Inputs); err != nil {
+			l.Errorf("error creating VM: %v", err)
+			return response, err
+		}
+	}
 
 	if response.Output, err = readCurrentOutput(ctx, vm, &request, vmID); err != nil {
 		l.Errorf("error reading VM after creation: %v", err)
@@ -100,6 +119,65 @@ func (vm *VM) Create(
 	}
 
 	return response, nil
+}
+
+// reconcileDisksAfterClone adjusts the cloned VM's disks to match the desired inputs.
+// It resizes disks whose size differs, removes unwanted disks, and copies existing
+// file IDs into the inputs so that ApplyConfig uses the cloned disks rather than
+// creating new ones.
+func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMInputs) error {
+	vmID := *inputs.VMID
+	node := inputs.Node
+
+	currentDisks, currentEfi, err := vm.VMOps.GetCurrentDisks(ctx, vmID, node)
+	if err != nil {
+		return fmt.Errorf("failed to get current disks after clone: %w", err)
+	}
+
+	// Build set of desired disk interfaces.
+	desiredInterfaces := make(map[string]struct{}, len(inputs.Disks))
+	for _, disk := range inputs.Disks {
+		if disk != nil {
+			desiredInterfaces[disk.Interface] = struct{}{}
+		}
+	}
+
+	// Reconcile each current disk.
+	for iface, currentDisk := range currentDisks {
+		if _, wanted := desiredInterfaces[iface]; wanted {
+			// Find the matching desired disk and reconcile.
+			for _, desired := range inputs.Disks {
+				if desired == nil || desired.Interface != iface {
+					continue
+				}
+				if desired.Size != currentDisk.Size {
+					if err := vm.VMOps.ResizeDisk(ctx, vmID, node, iface, desired.Size); err != nil {
+						return fmt.Errorf("failed to resize disk %s: %w", iface, err)
+					}
+				}
+				// Copy file ID so ApplyConfig uses the existing cloned disk.
+				desired.FileID = currentDisk.FileID
+				break
+			}
+		} else {
+			// Remove disk not present in desired inputs.
+			if err := vm.VMOps.RemoveDisk(ctx, vmID, node, iface); err != nil {
+				return fmt.Errorf("failed to remove unwanted disk %s: %w", iface, err)
+			}
+		}
+	}
+
+	// Handle EFI disk reconciliation.
+	if inputs.EfiDisk == nil && currentEfi != nil {
+		if err := vm.VMOps.RemoveEfiDisk(ctx, vmID, node); err != nil {
+			return fmt.Errorf("failed to remove unwanted EFI disk: %w", err)
+		}
+	} else if inputs.EfiDisk != nil && currentEfi != nil {
+		// Copy file ID so ApplyConfig uses the existing cloned EFI disk.
+		inputs.EfiDisk.FileID = currentEfi.FileID
+	}
+
+	return nil
 }
 
 // readCurrentOutput reads the current state of the VM after creation.
@@ -157,11 +235,13 @@ func (vm *VM) Read(
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, errors.New("VMOperations not configured")
 	}
 
-	stateInputs, preservedInputs, err := vm.VMOps.Get(ctx, *vmID, request.Inputs.Node, request.Inputs)
+	stateInputs, err := vm.VMOps.Get(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks)
 	if err != nil {
 		l.Errorf("Error reading VM %v: %v", *vmID, err)
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, err
 	}
+
+	preservedInputs := preserveInputs(stateInputs, request.Inputs)
 
 	response := infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID:     request.ID,
@@ -176,6 +256,51 @@ func (vm *VM) Read(
 
 	l.Debugf("VM read complete: %v", stateInputs.VMID)
 	return response, nil
+}
+
+// preserveInputs computes user-visible inputs from API state by clearing computed
+// fields that the user did not explicitly supply.
+//
+//   - VMID and Node are cleared when the user omitted them (they are computed by Proxmox).
+//   - Disk FileIDs are cleared for disks the user already had without a FileID.
+//   - EFI disk FileID is cleared when the user supplied an EFI disk without a FileID.
+//   - Newly discovered disks/EFI (not present in userInputs) retain their FileIDs.
+func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+	preserved := state
+
+	if userInputs.VMID == nil {
+		preserved.VMID = nil
+	}
+	if userInputs.Node == nil {
+		preserved.Node = nil
+	}
+
+	userByInterface := make(map[string]*proxmox.Disk, len(userInputs.Disks))
+	for _, d := range userInputs.Disks {
+		if d != nil && d.Interface != "" {
+			userByInterface[d.Interface] = d
+		}
+	}
+	preservedDisks := make([]*proxmox.Disk, 0, len(state.Disks))
+	for _, disk := range state.Disks {
+		if disk == nil {
+			continue
+		}
+		preservedDisk := *disk
+		if userDisk, ok := userByInterface[disk.Interface]; ok && userDisk.FileID == nil {
+			preservedDisk.FileID = nil
+		}
+		preservedDisks = append(preservedDisks, &preservedDisk)
+	}
+	preserved.Disks = preservedDisks
+
+	if preserved.EfiDisk != nil && userInputs.EfiDisk != nil && userInputs.EfiDisk.FileID == nil {
+		efi := *preserved.EfiDisk
+		efi.FileID = nil
+		preserved.EfiDisk = &efi
+	}
+
+	return preserved
 }
 
 // copyMissingDiskFileIDs propagates FileID values from the current state into the
@@ -269,7 +394,14 @@ func (vm *VM) Update(
 		return response, errors.New("VMOperations not configured")
 	}
 
-	err := vm.VMOps.Update(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs)
+	// Remove EFI disk if the user removed it from inputs but it exists in state.
+	if request.Inputs.EfiDisk == nil && request.State.EfiDisk != nil {
+		if err := vm.VMOps.RemoveEfiDisk(ctx, *vmID, request.Inputs.Node); err != nil {
+			return response, fmt.Errorf("failed to remove EFI disk: %w", err)
+		}
+	}
+
+	err := vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs)
 	return response, err
 }
 

@@ -126,13 +126,11 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 }
 
 // newVMResourceWithConfig creates a new VM resource with a specific config.
-// The VMAdapter uses the Proxmox client factory (client.GetProxmoxClientFn) internally,
-// which reads configuration from the Pulumi context at runtime.
 func newVMResourceWithConfig(cfg *config.Config) *vm.VM {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 	return &vm.VM{
 		Client: proxmoxAdapter,
-		VMOps:  adapters.NewVMAdapter(),
+		VMOps:  adapters.NewVMAdapter(proxmoxAdapter),
 	}
 }
 
