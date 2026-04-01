@@ -95,13 +95,15 @@ func (vm *VM) Create(
 			return response, err
 		}
 
-		if err := vm.reconcileDisksAfterClone(ctx, &request.Inputs); err != nil {
+		reconciledInputs := request.Inputs
+
+		if err := vm.reconcileDisksAfterClone(ctx, &reconciledInputs); err != nil {
 			l.Errorf("error reconciling disks after clone: %v", err)
 			return response, err
 		}
 
 		timeout := time.Duration(request.Inputs.Clone.Timeout) * time.Second
-		if err := vm.VMOps.ApplyConfig(ctx, vmID, request.Inputs.Node, request.Inputs, timeout); err != nil {
+		if err := vm.VMOps.ApplyConfig(ctx, vmID, request.Inputs.Node, reconciledInputs, timeout); err != nil {
 			l.Errorf("error applying config to cloned VM: %v", err)
 			return response, err
 		}

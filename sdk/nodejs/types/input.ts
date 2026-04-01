@@ -8,19 +8,6 @@ import * as outputs from "../types/output";
 import * as utilities from "../utilities";
 
 export namespace proxmox {
-    export interface FileSourceRawArgs {
-        /**
-         * The raw data in []byte
-         */
-        fileData: pulumi.Input<string>;
-        /**
-         * The name of the file
-         */
-        fileName: pulumi.Input<string>;
-    }
-}
-
-export namespace vm {
     /**
      * CPU configuration for the virtual machine.
      */
@@ -74,21 +61,21 @@ export namespace vm {
         storage: pulumi.Input<string>;
     }
 
+    export interface FileSourceRawArgs {
+        /**
+         * The raw data in []byte
+         */
+        fileData: pulumi.Input<string>;
+        /**
+         * The name of the file
+         */
+        fileName: pulumi.Input<string>;
+    }
+
     export interface NumaNodeArgs {
         cpus: pulumi.Input<string>;
         hostNodes?: pulumi.Input<string>;
         memory?: pulumi.Input<number>;
         policy?: pulumi.Input<string>;
-    }
-
-    export interface StorageFileSourceRawArgs {
-        /**
-         * The raw data content of the file.
-         */
-        fileData: pulumi.Input<string>;
-        /**
-         * The name of the file.
-         */
-        fileName: pulumi.Input<string>;
     }
 }

@@ -9,28 +9,28 @@ import java.lang.String;
 import java.util.Objects;
 
 @CustomType
-public final class StorageFileSourceRaw {
+public final class FileSourceRaw {
     /**
-     * @return The raw data content of the file.
+     * @return The raw data in []byte
      * 
      */
     private String fileData;
     /**
-     * @return The name of the file.
+     * @return The name of the file
      * 
      */
     private String fileName;
 
-    private StorageFileSourceRaw() {}
+    private FileSourceRaw() {}
     /**
-     * @return The raw data content of the file.
+     * @return The raw data in []byte
      * 
      */
     public String fileData() {
         return this.fileData;
     }
     /**
-     * @return The name of the file.
+     * @return The name of the file
      * 
      */
     public String fileName() {
@@ -41,7 +41,7 @@ public final class StorageFileSourceRaw {
         return new Builder();
     }
 
-    public static Builder builder(StorageFileSourceRaw defaults) {
+    public static Builder builder(FileSourceRaw defaults) {
         return new Builder(defaults);
     }
     @CustomType.Builder
@@ -49,7 +49,7 @@ public final class StorageFileSourceRaw {
         private String fileData;
         private String fileName;
         public Builder() {}
-        public Builder(StorageFileSourceRaw defaults) {
+        public Builder(FileSourceRaw defaults) {
     	      Objects.requireNonNull(defaults);
     	      this.fileData = defaults.fileData;
     	      this.fileName = defaults.fileName;
@@ -58,7 +58,7 @@ public final class StorageFileSourceRaw {
         @CustomType.Setter
         public Builder fileData(String fileData) {
             if (fileData == null) {
-              throw new MissingRequiredPropertyException("StorageFileSourceRaw", "fileData");
+              throw new MissingRequiredPropertyException("FileSourceRaw", "fileData");
             }
             this.fileData = fileData;
             return this;
@@ -66,13 +66,13 @@ public final class StorageFileSourceRaw {
         @CustomType.Setter
         public Builder fileName(String fileName) {
             if (fileName == null) {
-              throw new MissingRequiredPropertyException("StorageFileSourceRaw", "fileName");
+              throw new MissingRequiredPropertyException("FileSourceRaw", "fileName");
             }
             this.fileName = fileName;
             return this;
         }
-        public StorageFileSourceRaw build() {
-            final var _resultValue = new StorageFileSourceRaw();
+        public FileSourceRaw build() {
+            final var _resultValue = new FileSourceRaw();
             _resultValue.fileData = fileData;
             _resultValue.fileName = fileName;
             return _resultValue;

@@ -18,21 +18,14 @@ package vm_test
 
 import (
 	"context"
-	"io"
-	"net/http"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/vitorsalgado/mocha/v3"
-	"github.com/vitorsalgado/mocha/v3/expect"
-	"github.com/vitorsalgado/mocha/v3/params"
-	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
@@ -208,7 +201,7 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 
 			vm := &vmResource.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-				VMOps:  adapters.NewVMAdapter(adapters.NewProxmoxAdapter(nil)),
+				VMOps:  &mockVMOperations{},
 			}
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
@@ -248,68 +241,20 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMUpdateEfiDiskSuccess(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	// Mock GET /cluster/status (called by FindVirtualMachine -> Cluster())
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/status (called by Node())
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/status/current to check VM exists
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	//  Mock GET /nodes/{node}/qemu/{vmid}/config (called by node.VirtualMachine())
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"vmid":100,"name":"test-vm"}}`,
-			)),
-	).Enable()
-
-	// Mock POST /nodes/{node}/qemu/{vmid}/config for the update (go-proxmox uses POST not PUT)
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
-	).Enable()
-
-	// Mock task status endpoint - return completed task
-	// Use ReplyFunction instead of Reply when using Repeat (mocha bug workaround)
-	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
-		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(taskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	var updateConfigCalled bool
+	vmRes := &vmResource.VM{
+		VMOps: &mockVMOperations{
+			updateConfigFunc: func(_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ proxmox.VMInputs) error {
+				updateConfigCalled = true
+				return nil
+			},
+		},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -317,7 +262,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 			VMID: testutils.Ptr(vmID),
 			Name: testutils.Ptr("test-vm"),
 			EfiDisk: &proxmox.EfiDisk{
-				EfiType: proxmox.EfiType4M, // Changed from 2m
+				EfiType: proxmox.EfiType4M,
 			},
 		},
 		State: proxmox.VMOutputs{
@@ -332,77 +277,26 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 		},
 	}
 
-	// Set storage and FileID on diskBase (embedded struct)
 	req.Inputs.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.FileID = testutils.Ptr("vm-100-disk-0")
 
-	resp, err := vm.Update(context.Background(), req)
+	resp, err := vmRes.Update(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, proxmox.EfiType4M, resp.Output.EfiDisk.EfiType)
 	// FileID should have been copied from state
 	assert.Equal(t, "vm-100-disk-0", *resp.Output.EfiDisk.FileID)
-	mock.AssertCalled(t)
+	assert.True(t, updateConfigCalled)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"vmid":100,"name":"test-vm"}}`,
-			)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
-	).Enable()
-
-	// Mock task status endpoint - return completed task
-	// Must include all Task fields to prevent copier.Copy from clearing them during unmarshal
-	// Use ReplyFunction instead of Reply when using Repeat (mocha bug workaround)
-	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
-		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(taskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	vmRes := &vmResource.VM{
+		VMOps: &mockVMOperations{},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -411,7 +305,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 			Name: testutils.Ptr("test-vm"),
 			EfiDisk: &proxmox.EfiDisk{
 				EfiType:         proxmox.EfiType4M,
-				PreEnrolledKeys: testutils.Ptr(true), // Changed from nil
+				PreEnrolledKeys: testutils.Ptr(true),
 			},
 		},
 		State: proxmox.VMOutputs{
@@ -426,60 +320,38 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 		},
 	}
 
-	// Set storage and FileID on diskBase
 	req.Inputs.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.Storage = "local-lvm"
 	req.State.EfiDisk.FileID = testutils.Ptr("vm-100-disk-0")
 
-	resp, err := vm.Update(context.Background(), req)
+	resp, err := vmRes.Update(context.Background(), req)
 	require.NoError(t, err)
 	assert.True(t, *resp.Output.EfiDisk.PreEnrolledKeys)
-	mock.AssertCalled(t)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMReadWithEfiDisk(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	// Mock GET /cluster/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/config - VM with EFI disk
-	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":2,"memory":2048,` +
-		`"efidisk0":"local-lvm:vm-100-disk-0,efitype=4m,pre-enrolled-keys=1"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(vmConfigJSON)),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	fileID := "vm-100-disk-0"
+	preEnrolled := true
+	vmRes := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID},
+		VMOps: &mockVMOperations{
+			getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				return proxmox.VMInputs{
+					VMID: testutils.Ptr(vmID),
+					Name: testutils.Ptr("test-vm"),
+					EfiDisk: &proxmox.EfiDisk{
+						DiskBase:        proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
+						EfiType:         proxmox.EfiType4M,
+						PreEnrolledKeys: &preEnrolled,
+					},
+				}, nil
+			},
+		},
 	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -489,7 +361,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 		},
 	}
 
-	resp, err := vm.Read(context.Background(), req)
+	resp, err := vmRes.Read(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, "100", resp.ID)
 	assert.NotNil(t, resp.State.EfiDisk)
@@ -501,48 +373,22 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 	assert.Equal(t, "vm-100-disk-0", *resp.State.EfiDisk.FileID)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMReadWithoutEfiDisk(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	// Mock GET /cluster/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/config - VM without EFI disk
-	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":2,"memory":2048}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(vmConfigJSON)),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	vmRes := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID},
+		VMOps: &mockVMOperations{
+			getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				return proxmox.VMInputs{
+					VMID: testutils.Ptr(vmID),
+					Name: testutils.Ptr("test-vm"),
+				}, nil
+			},
+		},
 	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -552,154 +398,44 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 		},
 	}
 
-	resp, err := vm.Read(context.Background(), req)
+	resp, err := vmRes.Read(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, "100", resp.ID)
 	assert.Nil(t, resp.State.EfiDisk)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	nodeName := "pve-node"
 	sourceVMID := 999
 	newVMID := 100
 
-	// Mock GET /cluster/status (for getting next ID and finding VMs)
-	// Format: array with type="cluster" and type="node" elements
-	clusterStatusJSON := `{"data":[{"type":"cluster","id":"cluster","name":"testcluster","version":4,"quorate":1},` +
-		`{"type":"node","name":"` + nodeName + `","online":1,"id":"node/` + nodeName + `"}]}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
-			}),
-	).Enable()
+	efiFileID := "vm-100-disk-0"
+	var removeEfiDiskCalled bool
+	mockOps := &mockVMOperations{
+		cloneVMFunc: func(_ context.Context, _ proxmox.VMInputs) error { return nil },
+		getCurrentDisksFunc: func(_ context.Context, _ int, _ *string) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+			return map[string]proxmox.Disk{}, &proxmox.EfiDisk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+				EfiType:  proxmox.EfiType4M,
+			}, nil
+		},
+		removeEfiDiskFunc: func(_ context.Context, _ int, _ *string) error {
+			removeEfiDiskCalled = true
+			return nil
+		},
+		applyConfigFunc: func(_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ time.Duration) error {
+			return nil
+		},
+		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{VMID: testutils.Ptr(newVMID)}, nil
+		},
+	}
 
-	// Mock GET /nodes/{node}/status
-	nodeStatusJSON := `{"data":{"node":"` + nodeName + `","status":"online"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nodeStatusJSON)}, nil
-			}).
-			Repeat(10),
-	).Enable()
-
-	// Mock GET source VM status
-	sourceVMStatusJSON := `{"data":{"status":"running","vmid":999}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/999/status/current")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(sourceVMStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock GET source VM config (has EFI disk)
-	sourceVMConfigJSON := `{"data":{"vmid":999,"name":"source-vm","cores":2,"memory":2048,` +
-		`"efidisk0":"local-lvm:vm-999-disk-0,efitype=4m"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/999/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(sourceVMConfigJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock POST /nodes/{node}/qemu/{vmid}/clone
-	cloneResponseJSON := `{"data":"UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/999/clone")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(cloneResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock clone task status (running then stopped)
-	cloneTaskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(cloneTaskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:",` +
-					`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmclone",` +
-					`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock GET new VM status (after clone)
-	newVMStatusJSON := `{"data":{"status":"stopped","vmid":100}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock GET new VM config (after clone)
-	// First call returns with EFI disk, subsequent calls (after unlink) return without
-	var configCallCount int
-	clonedVMConfigWithEfi := `{"data":{"vmid":100,"name":"cloned-vm","cores":2,"memory":2048,` +
-		`"efidisk0":"local-lvm:vm-100-disk-0,efitype=4m"}}`
-	clonedVMConfigWithoutEfi := `{"data":{"vmid":100,"name":"cloned-vm","cores":2,"memory":2048}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				defer func() { configCallCount++ }()
-				// First call: return WITH EFI, later calls: return WITHOUT EFI
-				if configCallCount == 0 {
-					return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clonedVMConfigWithEfi)}, nil
-				}
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clonedVMConfigWithoutEfi)}, nil
-			}),
-	).Enable()
-
-	// Mock PUT /nodes/{node}/qemu/{vmid}/unlink - for removing EFI disk
-	unlinkResponseJSON := `{"data":"UPID:pve-node:00005678:00000000:00000000:qmunlink:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Put(expect.URLPath("/nodes/" + nodeName + "/qemu/100/unlink")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(unlinkResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock unlink task status
-	unlinkTaskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00005678:00000000:00000000:qmunlink:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(unlinkTaskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00005678:00000000:00000000:qmunlink:100:root@pam:",` +
-					`"node":"pve-node","pid":5678,"pstart":0,"starttime":1699999999,"type":"qmunlink",` +
-					`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock POST /nodes/{node}/qemu/{vmid}/config (finalizing clone without EFI disk)
-	configResponseJSON := `{"data":"UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(configResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock config task status
-	configTaskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(configTaskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:",` +
-					`"node":"pve-node","pid":9999,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
-					`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	vmRes := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: newVMID},
+		VMOps:  mockOps,
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm",
@@ -710,135 +446,49 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 				VMID:    sourceVMID,
 				Timeout: 300,
 			},
-			// Note: No EfiDisk specified - should be removed from cloned VM
 		},
 	}
 
-	resp, err := vm.Create(context.Background(), req)
+	resp, err := vmRes.Create(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, req.Name, resp.ID)
 	assert.Equal(t, newVMID, *resp.Output.VMID)
-	// Verify EFI disk was removed
 	assert.Nil(t, resp.Output.EfiDisk)
-	mock.AssertCalled(t)
+	assert.True(t, removeEfiDiskCalled)
 }
 
-//nolint:paralleltest // Uses shared API mock server
 func TestVMCloneAddsEfiDisk(t *testing.T) {
+	t.Parallel()
+
 	nodeName := "pve-node"
 	sourceVMID := 999
 	newVMID := 100
 
-	mock, _ := testutils.NewAPIMock(t)
+	efiFileID := "vm-100-disk-0"
+	var applyConfigInputs proxmox.VMInputs
+	mockOps := &mockVMOperations{
+		cloneVMFunc: func(_ context.Context, _ proxmox.VMInputs) error { return nil },
+		getCurrentDisksFunc: func(_ context.Context, _ int, _ *string) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+			return map[string]proxmox.Disk{}, nil, nil
+		},
+		applyConfigFunc: func(_ context.Context, _ int, _ *string, inputs proxmox.VMInputs, _ time.Duration) error {
+			applyConfigInputs = inputs
+			return nil
+		},
+		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
+				VMID: testutils.Ptr(newVMID),
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+					EfiType:  proxmox.EfiType4M,
+				},
+			}, nil
+		},
+	}
 
-	// Mock cluster status
-	clusterStatusJSON := `{"data":[{"type":"cluster","quorate":1,"nodes":1},{"type":"node","name":"pve-node","online":1}]}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock node status
-	nodeStatusJSON := `{"data":{"status":"online"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nodeStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock source VM status
-	sourceVMStatusJSON := `{"data":{"status":"running","vmid":999}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/999/status/current")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(sourceVMStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock source VM config - WITHOUT EFI disk
-	sourceVMConfigJSON := `{"data":{"vmid":999,"name":"source-vm","cores":2,"memory":2048}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/999/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(sourceVMConfigJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock clone operation
-	cloneResponseJSON := `{"data":"UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/999/clone")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(cloneResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock clone task status
-	cloneTaskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:",` +
-		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmclone",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	cloneTaskURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmclone:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(cloneTaskURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(cloneTaskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock new VM status
-	newVMStatusJSON := `{"data":{"status":"stopped","vmid":100}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock new VM config - first call returns WITHOUT EFI (after clone),
-	// subsequent calls return WITH EFI (after config update)
-	var configCallCount int
-	clonedVMConfigWithoutEfi := `{"data":{"vmid":100,"name":"cloned-vm","cores":2,"memory":2048}}`
-	clonedVMConfigWithEfi := `{"data":{"vmid":100,"name":"cloned-vm","cores":2,"memory":2048,` +
-		`"efidisk0":"local-lvm:vm-100-disk-0,efitype=4m"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				defer func() { configCallCount++ }()
-				// First call: return WITHOUT EFI, later calls: return WITH EFI
-				if configCallCount == 0 {
-					return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clonedVMConfigWithoutEfi)}, nil
-				}
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clonedVMConfigWithEfi)}, nil
-			}),
-	).Enable()
-
-	// Mock POST config to add EFI disk
-	configResponseJSON := `{"data":"UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(configResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock config task status
-	configTaskStatusJSON := `{"data":{"upid":"UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:",` +
-		`"node":"pve-node","pid":9999,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	configTaskURL := "/nodes/pve-node/tasks/UPID:pve-node:00009999:00000000:00000000:qmconfig:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(configTaskURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(configTaskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	vmRes := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: newVMID},
+		VMOps:  mockOps,
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm-with-efi",
@@ -849,108 +499,61 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 				VMID:    sourceVMID,
 				Timeout: 300,
 			},
-			// Add EFI disk even though source doesn't have one
 			EfiDisk: &proxmox.EfiDisk{
 				EfiType: proxmox.EfiType4M,
 			},
 		},
 	}
 
-	resp, err := vm.Create(context.Background(), req)
+	resp, err := vmRes.Create(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, req.Name, resp.ID)
 	assert.Equal(t, newVMID, *resp.Output.VMID)
-	// Verify EFI disk was added
 	assert.NotNil(t, resp.Output.EfiDisk)
 	assert.Equal(t, proxmox.EfiType4M, resp.Output.EfiDisk.EfiType)
-	mock.AssertCalled(t)
+	// Verify ApplyConfig was called with EFI disk in inputs
+	assert.NotNil(t, applyConfigInputs.EfiDisk)
+	assert.Equal(t, proxmox.EfiType4M, applyConfigInputs.EfiDisk.EfiType)
 }
 
-//nolint:paralleltest // Uses shared API mock server
 func TestVMCreateWithEfiDisk(t *testing.T) {
+	t.Parallel()
+
 	nodeName := "pve-node"
 	newVMID := 100
 
-	mock, _ := testutils.NewAPIMock(t)
+	efiFileID := "vm-100-disk-0"
+	preEnrolled := false
+	var capturedInputs proxmox.VMInputs
+	mockOps := &mockVMOperations{
+		createVMFunc: func(_ context.Context, inputs proxmox.VMInputs) error {
+			capturedInputs = inputs
+			return nil
+		},
+		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
+				VMID: testutils.Ptr(newVMID),
+				Name: testutils.Ptr("test-vm-with-efi"),
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase:        proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+					EfiType:         proxmox.EfiType4M,
+					PreEnrolledKeys: &preEnrolled,
+				},
+			}, nil
+		},
+	}
 
-	// Mock cluster status
-	clusterStatusJSON := `{"data":[{"type":"cluster","quorate":1,"nodes":1},{"type":"node","name":"pve-node","online":1}]}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
-			}).
-			Repeat(10),
-	).Enable()
-
-	// Mock node status
-	nodeStatusJSON := `{"data":{"status":"online"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nodeStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock VM creation POST - verify it includes EFI disk settings
-	createResponseJSON := `{"data":"UPID:pve-node:00001111:00000000:00000000:qmcreate:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				// Verify the request body contains EFI disk settings
-				body, _ := io.ReadAll(r.Body)
-				bodyStr := string(body)
-				assert.Contains(t, bodyStr, "efidisk0")
-				assert.Contains(t, bodyStr, "efitype=4m")
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(createResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock create task status
-	createTaskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001111:00000000:00000000:qmcreate:100:root@pam:",` +
-		`"node":"pve-node","pid":1111,"pstart":0,"starttime":1699999999,"type":"qmcreate",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	createTaskURL := "/nodes/pve-node/tasks/UPID:pve-node:00001111:00000000:00000000:qmcreate:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(createTaskURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(createTaskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock new VM status
-	newVMStatusJSON := `{"data":{"status":"stopped","vmid":100}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock new VM config - return with EFI disk
-	newVMConfigJSON := `{"data":{"vmid":100,"name":"test-vm-with-efi","cores":2,"memory":2048,` +
-		`"efidisk0":"local-lvm:vm-100-disk-0,efitype=4m,pre-enrolled-keys=0"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMConfigJSON)}, nil
-			}),
-	).Enable()
-
-	vm := &vmResource.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+	vmRes := &vmResource.VM{
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: newVMID},
+		VMOps:  mockOps,
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm-with-efi",
 		Inputs: proxmox.VMInputs{
-			Name: testutils.Ptr("test-vm-with-efi"),
-			Node: &nodeName,
-			CPU: &proxmox.CPU{
-				Cores: testutils.Ptr(2),
-			},
+			Name:   testutils.Ptr("test-vm-with-efi"),
+			Node:   &nodeName,
+			CPU:    &proxmox.CPU{Cores: testutils.Ptr(2)},
 			Memory: testutils.Ptr(2048),
-			// No Clone settings - creating a new VM from scratch
 			EfiDisk: &proxmox.EfiDisk{
 				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(false),
@@ -958,14 +561,15 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 		},
 	}
 
-	resp, err := vm.Create(context.Background(), req)
+	resp, err := vmRes.Create(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, req.Name, resp.ID)
 	assert.Equal(t, newVMID, *resp.Output.VMID)
-	// Verify EFI disk was created with correct settings
 	assert.NotNil(t, resp.Output.EfiDisk)
 	assert.Equal(t, proxmox.EfiType4M, resp.Output.EfiDisk.EfiType)
 	assert.NotNil(t, resp.Output.EfiDisk.PreEnrolledKeys)
 	assert.False(t, *resp.Output.EfiDisk.PreEnrolledKeys)
-	mock.AssertCalled(t)
+	// Verify CreateVM was called with EFI disk in inputs
+	require.NotNil(t, capturedInputs.EfiDisk)
+	assert.Equal(t, proxmox.EfiType4M, capturedInputs.EfiDisk.EfiType)
 }
