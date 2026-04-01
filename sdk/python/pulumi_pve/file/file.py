@@ -49,7 +49,7 @@ class FileArgs:
     @pulumi.getter(name="datastoreId")
     def datastore_id(self) -> pulumi.Input[_builtins.str]:
         """
-        The datastore to upload the file to. (e.g: ceph-ha)
+        The datastore to upload the file to.  (e.g:ceph-ha)
         """
         return pulumi.get(self, "datastore_id")
 
@@ -61,7 +61,7 @@ class FileArgs:
     @pulumi.getter(name="sourceRaw")
     def source_raw(self) -> pulumi.Input['_proxmox.FileSourceRawArgs']:
         """
-        The raw source data.
+        The raw source data
         """
         return pulumi.get(self, "source_raw")
 
@@ -175,7 +175,7 @@ class File(pulumi.CustomResource):
     @pulumi.getter(name="datastoreId")
     def datastore_id(self) -> pulumi.Output[_builtins.str]:
         """
-        The datastore to upload the file to. (e.g: ceph-ha)
+        The datastore to upload the file to.  (e.g:ceph-ha)
         """
         return pulumi.get(self, "datastore_id")
 
@@ -183,7 +183,7 @@ class File(pulumi.CustomResource):
     @pulumi.getter(name="sourceRaw")
     def source_raw(self) -> pulumi.Output['_proxmox.outputs.FileSourceRaw']:
         """
-        The raw source data.
+        The raw source data
         """
         return pulumi.get(self, "source_raw")
 

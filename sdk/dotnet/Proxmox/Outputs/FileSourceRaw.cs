@@ -12,19 +12,19 @@ namespace Hctamu.Pve.Proxmox.Outputs
 {
 
     [OutputType]
-    public sealed class StorageFileSourceRaw
+    public sealed class FileSourceRaw
     {
         /// <summary>
-        /// The raw data content of the file.
+        /// The raw data in []byte
         /// </summary>
         public readonly string FileData;
         /// <summary>
-        /// The name of the file.
+        /// The name of the file
         /// </summary>
         public readonly string FileName;
 
         [OutputConstructor]
-        private StorageFileSourceRaw(
+        private FileSourceRaw(
             string fileData,
 
             string fileName)

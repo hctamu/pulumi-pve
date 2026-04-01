@@ -21,19 +21,12 @@ package utils
 import (
 	"cmp"
 	"context"
-	"fmt"
-	"net/http"
 	"slices"
 	"sort"
 	"strings"
 	"unicode"
 
 	api "github.com/luthermonson/go-proxmox"
-
-	p "github.com/pulumi/pulumi-go-provider"
-	"github.com/pulumi/pulumi-go-provider/infer"
-
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 )
 
 // DifferPtr compares two pointers to values and returns true if they are different.
@@ -108,28 +101,6 @@ type DeletedResource struct {
 	ResourceID   string
 	URL          string
 	ResourceType string
-}
-
-// DeleteResource is used to delete a resource
-func DeleteResource(r DeletedResource) (infer.DeleteResponse, error) {
-	// this function can be used only if resource has DELETE method implemented in proxmox client
-	// check: https://pve.proxmox.com/pve-docs/api-viewer/
-	l := p.GetLogger(r.Ctx)
-	l.Debugf("Deleting %s %s", r.ResourceType, r.ResourceID)
-
-	// get client
-	pxc, err := client.GetProxmoxClientFn(r.Ctx)
-	if err != nil {
-		return infer.DeleteResponse{}, err
-	}
-
-	// perform delete
-	if err := pxc.Req(r.Ctx, http.MethodDelete, r.URL, nil, nil); err != nil {
-		return infer.DeleteResponse{}, fmt.Errorf("failed to delete %s %s: %w", r.ResourceType, r.ResourceID, err)
-	}
-
-	l.Debugf("Successfully deleted %s %s", r.ResourceType, r.ResourceID)
-	return infer.DeleteResponse{}, nil
 }
 
 // GetSortedMapKeys returns the keys of a map as a slice in no particular order.

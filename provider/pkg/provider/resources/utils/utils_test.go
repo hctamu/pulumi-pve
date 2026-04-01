@@ -16,21 +16,13 @@ limitations under the License.
 package utils_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/vitorsalgado/mocha/v3"
-	"github.com/vitorsalgado/mocha/v3/expect"
-	"github.com/vitorsalgado/mocha/v3/reply"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
-	"github.com/hctamu/pulumi-pve/provider/px"
 )
 
 // TestGetSortedMapKeys tests that the utility function correctly sorts map keys.
@@ -205,48 +197,4 @@ func TestIsNotFound(t *testing.T) {
 	t.Parallel()
 	assert.True(t, utils.IsNotFound(errors.New("resource 'x' does not exist")))
 	assert.False(t, utils.IsNotFound(errors.New("some other error")))
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestDeleteResourceSuccess(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.OK()),
-	).Enable()
-
-	_, err := utils.DeleteResource(utils.DeletedResource{
-		Ctx: context.Background(), ResourceID: "testuser", URL: "/access/users/testuser", ResourceType: "user",
-	})
-	require.NoError(t, err)
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestDeleteResourceClientError(t *testing.T) {
-	original := client.GetProxmoxClientFn
-	defer func() { client.GetProxmoxClientFn = original }()
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) { return nil, errors.New("client error") }
-
-	_, err := utils.DeleteResource(utils.DeletedResource{
-		Ctx: context.Background(), ResourceID: "x", URL: "/access/users/x", ResourceType: "user",
-	})
-	require.Error(t, err)
-	assert.EqualError(t, err, "client error")
-}
-
-//nolint:paralleltest // Test sets global environment variable, therefore do not parallelize!
-func TestDeleteResourceDeleteError(t *testing.T) {
-	mockServer, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
-
-	mockServer.AddMocks(
-		mocha.Delete(expect.URLPath("/access/users/testuser")).Reply(reply.InternalServerError()),
-	).Enable()
-
-	_, err := utils.DeleteResource(utils.DeletedResource{
-		Ctx: context.Background(), ResourceID: "testuser", URL: "/access/users/testuser", ResourceType: "user",
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to delete user testuser")
 }

@@ -21,46 +21,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/require"
-	"github.com/vitorsalgado/mocha/v3"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/px"
 )
-
-// NewAPIMock starts a mocha mock server, sets PVE_API_URL, and overrides the global
-// Proxmox client factory. It returns the mock instance and a cleanup function.
-// Not safe for parallel tests due to global/env mutation.
-func NewAPIMock(
-	t *testing.T,
-) (mock *mocha.Mocha, cleanup func()) {
-	// helper defined outside *_test.go for cross-package reuse; needs t.Helper for clearer failures
-	t.Helper()
-	mock = mocha.New(t)
-	mock.Start()
-
-	_ = os.Setenv("PVE_API_URL", mock.URL())
-
-	orig := client.GetProxmoxClientFn
-	client.GetProxmoxClientFn = func(ctx context.Context) (*px.Client, error) {
-		c := api.NewClient(os.Getenv("PVE_API_URL"), api.WithAPIToken("user@pve!token", "TOKEN"))
-		return &px.Client{Client: c}, nil
-	}
-
-	cleanup = func() {
-		client.GetProxmoxClientFn = orig
-		_ = os.Unsetenv("PVE_API_URL")
-		_ = mock.Close()
-	}
-	return
-}
 
 // Ptr creates a pointer to any value.
 func Ptr[T any](v T) *T {
