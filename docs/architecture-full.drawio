@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2">
+  <diagram id="JvnBnQ18p4pQ2hQGmLbW" name="Page-2">
+    <mxGraphModel dx="1428" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-1" value="pulumi-pve — Full Architecture Overview" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="15" width="920" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;strokeWidth=2;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="1540" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-3" value="Pulumi SDKs &amp;amp; CLI  (sdk/ — GENERATED, do not edit)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="73" width="400" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-4" value="Go SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="100" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-5" value="Python SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="215" y="100" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-6" value="Node.js SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="330" y="100" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-7" value=".NET SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="445" y="100" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-8" value="Java SDK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-9" value="YAML" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="675" y="100" width="100" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-10" value="gRPC plugin protocol" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=9;fontColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-6" target="1NyMWR7ioHvUUSVP0l4w-13">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-11" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f9a825;strokeWidth=2;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="190" width="1540" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-12" value="provider/cmd/pulumi-resource-pve/ + pkg/config/" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="193" width="400" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-13" value="main.go" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe082;strokeColor=#f9a825;fontSize=11;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="300" y="218" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-14" value="schema.json&#xa;(generated)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe082;strokeColor=#f9a825;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="218" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-15" value="config.Config&#xa;PveURL · PveUser&#xa;PveToken · SSH*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe082;strokeColor=#f9a825;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="600" y="218" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-13" target="1NyMWR7ioHvUUSVP0l4w-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-17" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#43a047;strokeWidth=2;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="300" width="1540" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-18" value="provider/pkg/provider/provider.go — Registration &amp;amp; Wiring" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="303" width="480" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-19" value="NewProviderWithConfig(cfg)&#xa;infer.Provider(infer.Options{Resources: [...]})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#43a047;fontSize=10;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="326" width="480" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-20" value="newPoolResourceWithConfig · newHAResourceWithConfig · newVMResourceWithConfig&#xa;newGroupResourceWithConfig · newRoleResourceWithConfig · newACLResourceWithConfig · newUserResourceWithConfig" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="326" width="620" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-21" value="creates &amp; injects" style="edgeStyle=orthogonalEdgeStyle;rounded=0;fontSize=9;fontColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-19" target="1NyMWR7ioHvUUSVP0l4w-22">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-22" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;strokeWidth=2;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="410" width="1540" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-23" value="provider/pkg/provider/resources/ — Pulumi Resource Implementations (infer.CustomResource)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="413" width="700" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-24" value="pool.Pool&#xa;─────────&#xa;Create · Read&#xa;Update · Delete&#xa;Annotate&#xa;─────────&#xa;PoolOps: PoolOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-25" value="storage.File&#xa;─────────&#xa;Create · Read&#xa;Update · Delete&#xa;─────────&#xa;(SSH via context)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="243" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-26" value="ha.HA&#xa;─────────&#xa;Create · Read&#xa;Update · Delete&#xa;Annotate&#xa;─────────&#xa;HAOps: HAOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="406" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-27" value="vm.VM&#xa;─────────&#xa;Create · Read&#xa;Update · Delete · Diff&#xa;preserveInputs&#xa;reconcileDisksAfterClone&#xa;─────────&#xa;Client: proxmox.Client&#xa;VMOps: VMOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90caf9;strokeColor=#1565c0;fontSize=9;align=center;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="569" y="438" width="180" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-28" value="group.Group&#xa;─────────&#xa;Create · Read&#xa;Update · Delete&#xa;Annotate&#xa;─────────&#xa;GroupOps: GroupOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="762" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-29" value="role.Role&#xa;─────────&#xa;Create · Read&#xa;Update · Delete&#xa;Diff · Annotate&#xa;─────────&#xa;RoleOps: RoleOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="925" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-30" value="acl.ACL&#xa;─────────&#xa;Create · Read&#xa;Delete&#xa;Annotate&#xa;─────────&#xa;ACLOps: ACLOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1088" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-31" value="user.User&#xa;─────────&#xa;Create · Read&#xa;Update · Delete&#xa;Diff · Annotate&#xa;─────────&#xa;UserOps: UserOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;fontSize=9;align=center;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1251" y="438" width="150" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-32" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3e0;strokeColor=#e65100;strokeWidth=2;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="640" width="1540" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-33" value="provider/pkg/proxmox/ — Domain Layer: Interfaces + Models (no HTTP, no go-proxmox)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="643" width="620" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-34" value="client.go&#xa;Client interface&#xa;Get·Post·Put·Delete&#xa;ResolveNode·NextVMID" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="668" width="150" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-35" value="pool.go&#xa;PoolOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="243" y="668" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-36" value="ha.go&#xa;HAOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="406" y="668" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-37" value="vm.go&#xa;VMOperations&#xa;(10 methods)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcc80;strokeColor=#e65100;fontSize=9;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="569" y="668" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-38" value="group.go&#xa;GroupOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="762" y="668" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-39" value="role.go&#xa;RoleOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="925" y="668" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-40" value="acl.go&#xa;ACLOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1088" y="668" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-41" value="user.go&#xa;UserOperations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1251" y="668" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontSize=9;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-24" target="1NyMWR7ioHvUUSVP0l4w-35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-26" target="1NyMWR7ioHvUUSVP0l4w-36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-27" target="1NyMWR7ioHvUUSVP0l4w-37">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-27" target="1NyMWR7ioHvUUSVP0l4w-34">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="659" y="610" />
+              <mxPoint x="155" y="610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-28" target="1NyMWR7ioHvUUSVP0l4w-38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-29" target="1NyMWR7ioHvUUSVP0l4w-39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-30" target="1NyMWR7ioHvUUSVP0l4w-40">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;endArrow=open;endFill=0;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-31" target="1NyMWR7ioHvUUSVP0l4w-41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-50" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#7b1fa2;strokeWidth=2;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="810" width="1540" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-51" value="provider/pkg/adapters/ — Adapter Layer: implements domain interfaces via HTTP (go-proxmox)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="813" width="700" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-52" value="ProxmoxAdapter&#xa;──────────────&#xa;Connect (lazy, sync.Once)&#xa;Get·Post·Put·Delete&#xa;ResolveNode·NextVMID&#xa;Node·FindVirtualMachine&#xa;WaitForTask" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#7b1fa2;fontSize=9;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="80" y="840" width="185" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-53" value="PoolAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="280" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-54" value="HAAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="415" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-55" value="VMAdapter&#xa;+ ConvertVMConfigToInputs&#xa;+ BuildVMOptions/Diff&#xa;+ ParseDiskConfig" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ce93d8;strokeColor=#7b1fa2;fontSize=9;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="550" y="840" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-56" value="GroupAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="765" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-57" value="RoleAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="900" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-58" value="ACLAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1035" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-59" value="UserAdapter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#7b1fa2;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="860" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-60" value="implements" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontSize=8;fontColor=#FFFFFF;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-34" target="1NyMWR7ioHvUUSVP0l4w-52">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-35" target="1NyMWR7ioHvUUSVP0l4w-53">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-36" target="1NyMWR7ioHvUUSVP0l4w-54">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-37" target="1NyMWR7ioHvUUSVP0l4w-55">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-64" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-38" target="1NyMWR7ioHvUUSVP0l4w-56">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-65" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-39" target="1NyMWR7ioHvUUSVP0l4w-57">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-66" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-40" target="1NyMWR7ioHvUUSVP0l4w-58">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=0;strokeColor=#7b1fa2;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-41" target="1NyMWR7ioHvUUSVP0l4w-59">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-68" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;strokeColor=#7b1fa2;endArrow=diamond;endFill=1;fontSize=8;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-52" target="1NyMWR7ioHvUUSVP0l4w-53">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-69" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;dashed=1;strokeColor=#7b1fa2;endArrow=diamond;endFill=1;fontColor=#000000;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-52" target="1NyMWR7ioHvUUSVP0l4w-55">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-70" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;strokeWidth=2;dashed=1;arcSize=4;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1020" width="1540" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-71" value="Proxmox VE Cluster (External)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=3;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1023" width="300" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-72" value="REST API :8006" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="250" y="1046" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-73" value="Cluster Nodes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1046" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-74" value="go-proxmox library" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=11;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="650" y="1046" width="180" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-75" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c62828;endArrow=open;endFill=0;fontSize=9;fontColor=#FFFFFF;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-52" target="1NyMWR7ioHvUUSVP0l4w-72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-76" value="via go-proxmox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#c62828;endArrow=open;endFill=0;fontSize=9;fontColor=#FFFFFF;" edge="1" parent="1" source="1NyMWR7ioHvUUSVP0l4w-55" target="1NyMWR7ioHvUUSVP0l4w-74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-77" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff;strokeColor=#bbb;arcSize=6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="1020" width="290" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-78" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=11;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="1022" width="80" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-79" value="─ ─ ▷  depends on (interface)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="1042" width="200" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-80" value="──── △  implements" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="1058" width="200" height="16" as="geometry" />
+        </mxCell>
+        <mxCell id="1NyMWR7ioHvUUSVP0l4w-81" value="─ ─ ◆  injected / composed" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="1074" width="200" height="16" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
