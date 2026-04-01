@@ -48,8 +48,8 @@ func NewVMAdapter(client *ProxmoxAdapter) *VMAdapter {
 }
 
 // findVM locates a virtual machine by ID and optional node.
-func (a *VMAdapter) findVM(ctx context.Context, vmID int, node *string) (*api.VirtualMachine, error) {
-	vm, _, _, err := a.client.FindVirtualMachine(ctx, vmID, node)
+func (adapter *VMAdapter) findVM(ctx context.Context, vmID int, node *string) (*api.VirtualMachine, error) {
+	vm, _, _, err := adapter.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find VM %d: %w", vmID, err)
 	}
@@ -58,7 +58,7 @@ func (a *VMAdapter) findVM(ctx context.Context, vmID int, node *string) (*api.Vi
 
 // CreateVM creates a new (non-clone) virtual machine.
 // inputs.Node and inputs.VMID must already be populated by the caller.
-func (a *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
+func (adapter *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
 	l := p.GetLogger(ctx)
 
 	if inputs.Node == nil {
@@ -74,7 +74,7 @@ func (a *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error
 	l.Infof("Create VM '%v(%v)' on '%v'", inputs.Name, vmID, nodeName)
 	options := BuildVMOptions(inputs, vmID)
 
-	node, err := a.client.Node(ctx, nodeName)
+	node, err := adapter.client.Node(ctx, nodeName)
 	if err != nil {
 		return fmt.Errorf("failed to get node %s: %w", nodeName, err)
 	}
@@ -86,7 +86,7 @@ func (a *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error
 
 	l.Debugf("Create VM Task: %v", createTask)
 
-	if err = a.client.WaitForTask(ctx, createTask, 60*time.Second, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, createTask, 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM creation task: %w", err)
 	}
 
@@ -95,7 +95,7 @@ func (a *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error
 
 // CloneVM clones a source VM to create a new virtual machine.
 // inputs.Clone, inputs.Node, and inputs.VMID must already be populated by the caller.
-func (a *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
+func (adapter *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
 	l := p.GetLogger(ctx)
 
 	if inputs.Clone == nil {
@@ -110,7 +110,7 @@ func (a *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error 
 
 	vmID := *inputs.VMID
 
-	sourceVM, _, _, err := a.client.FindVirtualMachine(ctx, inputs.Clone.VMID, nil)
+	sourceVM, _, _, err := adapter.client.FindVirtualMachine(ctx, inputs.Clone.VMID, nil)
 	if err != nil {
 		return fmt.Errorf("error finding source VM %d for clone: %w", inputs.Clone.VMID, err)
 	}
@@ -134,7 +134,7 @@ func (a *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error 
 	l.Debugf("Clone VM Task: %v", cloneTask)
 
 	cloneTimeout := time.Duration(inputs.Clone.Timeout) * time.Second
-	if err = a.client.WaitForTask(ctx, cloneTask, cloneTimeout, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, cloneTask, cloneTimeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM clone task: %w", err)
 	}
 
@@ -142,13 +142,13 @@ func (a *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error 
 }
 
 // Get retrieves the current state of a virtual machine.
-func (a *VMAdapter) Get(
+func (adapter *VMAdapter) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	userDisks []*proxmox.Disk,
 ) (proxmox.VMInputs, error) {
-	virtualMachine, _, _, err := a.client.FindVirtualMachine(ctx, vmID, node)
+	virtualMachine, _, _, err := adapter.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
 		return proxmox.VMInputs{}, fmt.Errorf("failed to find VM %v: %v", vmID, err)
 	}
@@ -162,7 +162,7 @@ func (a *VMAdapter) Get(
 }
 
 // UpdateConfig applies configuration differences to an existing virtual machine.
-func (a *VMAdapter) UpdateConfig(
+func (adapter *VMAdapter) UpdateConfig(
 	ctx context.Context,
 	vmID int,
 	node *string,
@@ -171,7 +171,7 @@ func (a *VMAdapter) UpdateConfig(
 ) error {
 	l := p.GetLogger(ctx)
 
-	virtualMachine, err := a.findVM(ctx, vmID, node)
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (a *VMAdapter) UpdateConfig(
 		return fmt.Errorf("failed to update VM %d: %w", vmID, err)
 	}
 
-	if err = a.client.WaitForTask(ctx, task, 60*time.Second, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, task, 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM %d update: %w", vmID, err)
 	}
 
@@ -200,10 +200,10 @@ func (a *VMAdapter) UpdateConfig(
 }
 
 // Delete deletes an existing virtual machine.
-func (a *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
+func (adapter *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
 	l := p.GetLogger(ctx)
 
-	virtualMachine, _, _, err := a.client.FindVirtualMachine(ctx, vmID, node)
+	virtualMachine, _, _, err := adapter.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func (a *VMAdapter) Delete(ctx context.Context, vmID int, node *string) error {
 }
 
 // ApplyConfig applies full configuration to an existing VM.
-func (a *VMAdapter) ApplyConfig(
+func (adapter *VMAdapter) ApplyConfig(
 	ctx context.Context,
 	vmID int,
 	node *string,
@@ -227,7 +227,7 @@ func (a *VMAdapter) ApplyConfig(
 ) error {
 	l := p.GetLogger(ctx)
 
-	virtualMachine, err := a.findVM(ctx, vmID, node)
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (a *VMAdapter) ApplyConfig(
 		return fmt.Errorf("failed to apply config to VM %d: %w", vmID, err)
 	}
 
-	if err = a.client.WaitForTask(ctx, task, timeout, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, task, timeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM %d config task: %w", vmID, err)
 	}
 
@@ -252,12 +252,12 @@ func (a *VMAdapter) ApplyConfig(
 
 // GetCurrentDisks retrieves the current disk configuration from a live VM.
 // Returns regular disks keyed by interface name and the EFI disk (nil if none).
-func (a *VMAdapter) GetCurrentDisks(
+func (adapter *VMAdapter) GetCurrentDisks(
 	ctx context.Context,
 	vmID int,
 	node *string,
 ) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
-	virtualMachine, err := a.findVM(ctx, vmID, node)
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -284,14 +284,14 @@ func (a *VMAdapter) GetCurrentDisks(
 }
 
 // ResizeDisk resizes a specific disk on a VM.
-func (a *VMAdapter) ResizeDisk(
+func (adapter *VMAdapter) ResizeDisk(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	diskInterface string,
 	sizeGB int,
 ) error {
-	virtualMachine, err := a.findVM(ctx, vmID, node)
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -305,13 +305,13 @@ func (a *VMAdapter) ResizeDisk(
 }
 
 // RemoveDisk unlinks/removes a specific disk from a VM.
-func (a *VMAdapter) RemoveDisk(
+func (adapter *VMAdapter) RemoveDisk(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	diskInterface string,
 ) error {
-	virtualMachine, err := a.findVM(ctx, vmID, node)
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -324,8 +324,8 @@ func (a *VMAdapter) RemoveDisk(
 }
 
 // RemoveEfiDisk removes the EFI disk from a VM.
-func (a *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
-	virtualMachine, err := a.findVM(ctx, vmID, node)
+func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func (a *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) e
 		return fmt.Errorf("failed to unlink EFI disk on VM %d: %w", vmID, err)
 	}
 
-	if err = a.client.WaitForTask(ctx, unlinkTask, 60*time.Second, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, unlinkTask, 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for EFI disk removal task on VM %d: %w", vmID, err)
 	}
 

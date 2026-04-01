@@ -51,17 +51,17 @@ type UserInputs struct {
 }
 
 // Annotate adds descriptions to the Input properties for documentation and schema generation.
-func (args *UserInputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').")
-	a.Describe(&args.Comment, "An optional comment for the user.")
-	a.Describe(&args.Email, "An optional email address for the user.")
-	a.Describe(&args.Enable, "Whether the user is enabled. Defaults to true.")
-	a.Describe(&args.Expire, "The expiration time for the user as a Unix timestamp.")
-	a.Describe(&args.Firstname, "The first name of the user.")
-	a.Describe(&args.Groups, "A list of groups the user belongs to.")
-	a.Describe(&args.Keys, "A list of SSH keys associated with the user.")
-	a.Describe(&args.Lastname, "The last name of the user.")
-	a.Describe(&args.Password, "The password for the user. This field is treated as a secret.")
+func (inputs *UserInputs) Annotate(a infer.Annotator) {
+	a.Describe(&inputs.Name, "The user ID of the Proxmox user, including the realm (e.g., 'user@pve').")
+	a.Describe(&inputs.Comment, "An optional comment for the user.")
+	a.Describe(&inputs.Email, "An optional email address for the user.")
+	a.Describe(&inputs.Enable, "Whether the user is enabled. Defaults to true.")
+	a.Describe(&inputs.Expire, "The expiration time for the user as a Unix timestamp.")
+	a.Describe(&inputs.Firstname, "The first name of the user.")
+	a.Describe(&inputs.Groups, "A list of groups the user belongs to.")
+	a.Describe(&inputs.Keys, "A list of SSH keys associated with the user.")
+	a.Describe(&inputs.Lastname, "The last name of the user.")
+	a.Describe(&inputs.Password, "The password for the user. This field is treated as a secret.")
 }
 
 // UserOutputs represents the output properties for the User resource
