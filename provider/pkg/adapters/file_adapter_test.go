@@ -23,7 +23,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
@@ -42,18 +41,18 @@ const (
 
 // mockSSHClient is a mock implementation of the SSHClient interface.
 type mockSSHClient struct {
-	RunFunc func(operation client.SSHOperation, path string, data ...string) (string, error)
+	RunFunc func(operation proxmox.SSHOperation, path string, data ...string) (string, error)
 }
 
 // Run executes the mock SSH command.
-func (m *mockSSHClient) Run(operation client.SSHOperation, path string, data ...string) (string, error) {
+func (m *mockSSHClient) Run(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
 	if m.RunFunc != nil {
 		return m.RunFunc(operation, path, data...)
 	}
 	return "", nil
 }
 
-func newTestFileAdapter(t *testing.T, sshClient client.SSHClientInterface) *FileAdapter {
+func newTestFileAdapter(t *testing.T, sshClient proxmox.SSHClient) *FileAdapter {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -66,7 +65,7 @@ func newTestFileAdapter(t *testing.T, sshClient client.SSHClientInterface) *File
 
 	return NewFileAdapter(
 		pxa,
-		func(ctx context.Context) (client.SSHClientInterface, error) {
+		func(ctx context.Context) (proxmox.SSHClient, error) {
 			return sshClient, nil
 		},
 	)
@@ -76,8 +75,8 @@ func TestFileAdapterCreate(t *testing.T) {
 	t.Run("create success", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				assert.Equal(t, client.SSHOperationWrite, operation)
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				assert.Equal(t, proxmox.SSHOperationWrite, operation)
 				expectedPath := fmt.Sprintf("/mnt/pve/%s/%s/%s", dataStoreID, contentType, fileName)
 				assert.Equal(t, expectedPath, path)
 				assert.Equal(t, fileData, data[0])
@@ -104,7 +103,7 @@ func TestFileAdapterCreate(t *testing.T) {
 		t.Parallel()
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (client.SSHClientInterface, error) {
+			func(ctx context.Context) (proxmox.SSHClient, error) {
 				return nil, errors.New("ssh connection error")
 			},
 		)
@@ -118,7 +117,7 @@ func TestFileAdapterCreate(t *testing.T) {
 	t.Run("create handles ssh write error", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
 				return "", errors.New("ssh write error")
 			},
 		}
@@ -135,8 +134,8 @@ func TestFileAdapterGet(t *testing.T) {
 	t.Run("get success", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				assert.Equal(t, client.SSHOperationRead, operation)
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				assert.Equal(t, proxmox.SSHOperationRead, operation)
 				expectedPath := fmt.Sprintf("/mnt/pve/%s/%s/%s", dataStoreID, contentType, fileName)
 				assert.Equal(t, expectedPath, path)
 				return fileData, nil
@@ -165,7 +164,7 @@ func TestFileAdapterGet(t *testing.T) {
 		t.Parallel()
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (client.SSHClientInterface, error) {
+			func(ctx context.Context) (proxmox.SSHClient, error) {
 				return nil, errors.New("ssh connection error")
 			},
 		)
@@ -179,7 +178,7 @@ func TestFileAdapterGet(t *testing.T) {
 	t.Run("get handles ssh read error", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
 				return "", errors.New("ssh read error")
 			},
 		}
@@ -196,7 +195,7 @@ func TestFileAdapterUpdate(t *testing.T) {
 	t.Run("update success", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
 				return "", nil
 			},
 		}
@@ -229,7 +228,7 @@ func TestFileAdapterUpdate(t *testing.T) {
 		t.Parallel()
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (client.SSHClientInterface, error) {
+			func(ctx context.Context) (proxmox.SSHClient, error) {
 				return nil, errors.New("ssh connection error")
 			},
 		)
@@ -242,8 +241,8 @@ func TestFileAdapterUpdate(t *testing.T) {
 	t.Run("update handles ssh delete error", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				if operation == client.SSHOperationDelete {
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				if operation == proxmox.SSHOperationDelete {
 					return "", errors.New("ssh delete error")
 				}
 				return "", nil
@@ -259,8 +258,8 @@ func TestFileAdapterUpdate(t *testing.T) {
 	t.Run("update handles ssh write error", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				if operation == client.SSHOperationWrite {
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				if operation == proxmox.SSHOperationWrite {
 					return "", errors.New("ssh write error")
 				}
 				return "", nil
@@ -278,8 +277,8 @@ func TestFileAdapter_Delete(t *testing.T) {
 	t.Run("delete success", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
-				assert.Equal(t, client.SSHOperationDelete, operation)
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				assert.Equal(t, proxmox.SSHOperationDelete, operation)
 				expectedPath := fmt.Sprintf("/mnt/pve/%s/%s/%s", dataStoreID, contentType, fileName)
 				assert.Equal(t, expectedPath, path)
 				return "", nil
@@ -306,7 +305,7 @@ func TestFileAdapter_Delete(t *testing.T) {
 		t.Parallel()
 		adapter := NewFileAdapter(
 			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (client.SSHClientInterface, error) {
+			func(ctx context.Context) (proxmox.SSHClient, error) {
 				return nil, errors.New("ssh connection error")
 			},
 		)
@@ -319,7 +318,7 @@ func TestFileAdapter_Delete(t *testing.T) {
 	t.Run("delete handles ssh delete error", func(t *testing.T) {
 		t.Parallel()
 		sshClient := &mockSSHClient{
-			RunFunc: func(operation client.SSHOperation, path string, data ...string) (string, error) {
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
 				return "", errors.New("ssh delete error")
 			},
 		}
@@ -339,7 +338,7 @@ func TestNewFileAdapter(t *testing.T) {
 	err := pxa.Connect(context.Background())
 	require.NoError(t, err)
 
-	sshClientFunc := func(ctx context.Context) (client.SSHClientInterface, error) {
+	sshClientFunc := func(ctx context.Context) (proxmox.SSHClient, error) {
 		return &mockSSHClient{}, nil
 	}
 
