@@ -57,91 +57,91 @@ type mockVMOps struct {
 	deleteFunc func(ctx context.Context, vmID int, node *string) error
 }
 
-func (m *mockVMOps) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
-	if m.createVMFunc != nil {
-		return m.createVMFunc(ctx, inputs)
+func (mock *mockVMOps) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	if mock.createVMFunc != nil {
+		return mock.createVMFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockVMOps) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
-	if m.cloneVMFunc != nil {
-		return m.cloneVMFunc(ctx, inputs)
+func (mock *mockVMOps) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	if mock.cloneVMFunc != nil {
+		return mock.cloneVMFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockVMOps) ApplyConfig(
+func (mock *mockVMOps) ApplyConfig(
 	ctx context.Context, vmID int, node *string, inputs proxmox.VMInputs, timeout time.Duration,
 ) error {
-	if m.applyConfigFunc != nil {
-		return m.applyConfigFunc(ctx, vmID, node, inputs, timeout)
+	if mock.applyConfigFunc != nil {
+		return mock.applyConfigFunc(ctx, vmID, node, inputs, timeout)
 	}
 	return nil
 }
 
-func (m *mockVMOps) GetCurrentDisks(
+func (mock *mockVMOps) GetCurrentDisks(
 	ctx context.Context, vmID int, node *string,
 ) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
-	if m.getCurrentDisksFunc != nil {
-		return m.getCurrentDisksFunc(ctx, vmID, node)
+	if mock.getCurrentDisksFunc != nil {
+		return mock.getCurrentDisksFunc(ctx, vmID, node)
 	}
 	return nil, nil, nil
 }
 
-func (m *mockVMOps) ResizeDisk(
+func (mock *mockVMOps) ResizeDisk(
 	ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int,
 ) error {
-	if m.resizeDiskFunc != nil {
-		return m.resizeDiskFunc(ctx, vmID, node, diskInterface, sizeGB)
+	if mock.resizeDiskFunc != nil {
+		return mock.resizeDiskFunc(ctx, vmID, node, diskInterface, sizeGB)
 	}
 	return nil
 }
 
-func (m *mockVMOps) RemoveDisk(
+func (mock *mockVMOps) RemoveDisk(
 	ctx context.Context, vmID int, node *string, diskInterface string,
 ) error {
-	if m.removeDiskFunc != nil {
-		return m.removeDiskFunc(ctx, vmID, node, diskInterface)
+	if mock.removeDiskFunc != nil {
+		return mock.removeDiskFunc(ctx, vmID, node, diskInterface)
 	}
 	return nil
 }
 
-func (m *mockVMOps) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
-	if m.removeEfiDiskFunc != nil {
-		return m.removeEfiDiskFunc(ctx, vmID, node)
+func (mock *mockVMOps) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
+	if mock.removeEfiDiskFunc != nil {
+		return mock.removeEfiDiskFunc(ctx, vmID, node)
 	}
 	return nil
 }
 
-func (m *mockVMOps) Get(
+func (mock *mockVMOps) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	userDisks []*proxmox.Disk,
 ) (proxmox.VMInputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, vmID, node, userDisks)
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, vmID, node, userDisks)
 	}
 	return proxmox.VMInputs{VMID: &vmID}, nil
 }
 
-func (m *mockVMOps) UpdateConfig(
+func (mock *mockVMOps) UpdateConfig(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	inputs proxmox.VMInputs,
 	stateInputs proxmox.VMInputs,
 ) error {
-	if m.updateConfigFunc != nil {
-		return m.updateConfigFunc(ctx, vmID, node, inputs, stateInputs)
+	if mock.updateConfigFunc != nil {
+		return mock.updateConfigFunc(ctx, vmID, node, inputs, stateInputs)
 	}
 	return nil
 }
 
-func (m *mockVMOps) Delete(ctx context.Context, vmID int, node *string) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, vmID, node)
+func (mock *mockVMOps) Delete(ctx context.Context, vmID int, node *string) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, vmID, node)
 	}
 	return nil
 }
@@ -639,17 +639,17 @@ type mockErrorClient struct {
 	nextVMIDErr    error
 }
 
-func (m *mockErrorClient) Get(_ context.Context, _ string, _ any) error     { return nil }
-func (m *mockErrorClient) Post(_ context.Context, _ string, _, _ any) error { return nil }
-func (m *mockErrorClient) Put(_ context.Context, _ string, _, _ any) error  { return nil }
-func (m *mockErrorClient) Delete(_ context.Context, _ string, _ any) error  { return nil }
+func (mock *mockErrorClient) Get(_ context.Context, _ string, _ any) error     { return nil }
+func (mock *mockErrorClient) Post(_ context.Context, _ string, _, _ any) error { return nil }
+func (mock *mockErrorClient) Put(_ context.Context, _ string, _, _ any) error  { return nil }
+func (mock *mockErrorClient) Delete(_ context.Context, _ string, _ any) error  { return nil }
 
-func (m *mockErrorClient) ResolveNode(_ context.Context, _ *string) (string, error) {
-	return "", m.resolveNodeErr
+func (mock *mockErrorClient) ResolveNode(_ context.Context, _ *string) (string, error) {
+	return "", mock.resolveNodeErr
 }
 
-func (m *mockErrorClient) NextVMID(_ context.Context) (int, error) {
-	return 0, m.nextVMIDErr
+func (mock *mockErrorClient) NextVMID(_ context.Context) (int, error) {
+	return 0, mock.nextVMIDErr
 }
 
 func TestVMCreateConfigurationErrors(t *testing.T) {

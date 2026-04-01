@@ -58,17 +58,17 @@ type Outputs struct {
 
 // Annotate is used to annotate the input and output properties of the resource.
 // This is used to generate the schema for the resource and give default values.
-func (args *Inputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.DataStoreID, "The datastore to upload the file to.  (e.g:ceph-ha)")
-	a.Describe(&args.ContentType, "The type of the file (e.g: snippets)")
-	a.Describe(&args.SourceRaw, "The raw source data")
+func (inputs *Inputs) Annotate(a infer.Annotator) {
+	a.Describe(&inputs.DataStoreID, "The datastore to upload the file to.  (e.g:ceph-ha)")
+	a.Describe(&inputs.ContentType, "The type of the file (e.g: snippets)")
+	a.Describe(&inputs.SourceRaw, "The raw source data")
 }
 
 // Annotate is used to annotate the input and output properties of the resource.
 // This is used to generate the schema for the resource and give default values.
-func (args *FileSourceRaw) Annotate(a infer.Annotator) {
-	a.Describe(&args.FileData, "The raw data in []byte")
-	a.Describe(&args.FileName, "The name of the file")
+func (src *FileSourceRaw) Annotate(a infer.Annotator) {
+	a.Describe(&src.FileData, "The raw data in []byte")
+	a.Describe(&src.FileName, "The name of the file")
 }
 
 // Create creates a new file resource

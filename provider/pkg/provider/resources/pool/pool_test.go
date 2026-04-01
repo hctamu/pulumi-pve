@@ -52,16 +52,16 @@ type mockPoolOperations struct {
 	deleteFunc func(ctx context.Context, name string) error
 }
 
-func (m *mockPoolOperations) Create(ctx context.Context, inputs proxmox.PoolInputs) error {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (mock *mockPoolOperations) Create(ctx context.Context, inputs proxmox.PoolInputs) error {
+	if mock.createFunc != nil {
+		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockPoolOperations) Get(ctx context.Context, name string) (*proxmox.PoolOutputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, name)
+func (mock *mockPoolOperations) Get(ctx context.Context, name string) (*proxmox.PoolOutputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, name)
 	}
 	return &proxmox.PoolOutputs{
 		PoolInputs: proxmox.PoolInputs{
@@ -71,16 +71,16 @@ func (m *mockPoolOperations) Get(ctx context.Context, name string) (*proxmox.Poo
 	}, nil
 }
 
-func (m *mockPoolOperations) Update(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, name, inputs)
+func (mock *mockPoolOperations) Update(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
+	if mock.updateFunc != nil {
+		return mock.updateFunc(ctx, name, inputs)
 	}
 	return nil
 }
 
-func (m *mockPoolOperations) Delete(ctx context.Context, name string) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, name)
+func (mock *mockPoolOperations) Delete(ctx context.Context, name string) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, name)
 	}
 	return nil
 }

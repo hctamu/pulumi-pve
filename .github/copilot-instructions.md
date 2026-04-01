@@ -123,6 +123,7 @@ import (
 ```
 
 - **Format**: `gofumpt` (stricter than `gofmt`). Run `make lint` to auto-check.
+- **Method receivers**: Use meaningful names that reflect the type, not single letters or opaque abbreviations. Prefer a short but descriptive word derived from the type name (e.g., `adapter` for `*VMAdapter`, `inputs` for `*RoleInputs`, `mock` for `*mockXOperations`). Avoid `a`, `r`, `p`, `m`, `e`, `s`, and other one-letter receivers.
 
 ---
 

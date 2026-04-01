@@ -52,37 +52,37 @@ type mockUserOperations struct {
 	deleteFunc func(ctx context.Context, id string) error
 }
 
-func (m *mockUserOperations) Create(ctx context.Context, inputs proxmox.UserInputs) error {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (mock *mockUserOperations) Create(ctx context.Context, inputs proxmox.UserInputs) error {
+	if mock.createFunc != nil {
+		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockUserOperations) Get(ctx context.Context, id string) (*proxmox.UserOutputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, id)
+func (mock *mockUserOperations) Get(ctx context.Context, id string) (*proxmox.UserOutputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, id)
 	}
 	return &proxmox.UserOutputs{UserInputs: proxmox.UserInputs{Name: id}}, nil
 }
 
-func (m *mockUserOperations) Update(ctx context.Context, id string, inputs proxmox.UserInputs) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, id, inputs)
+func (mock *mockUserOperations) Update(ctx context.Context, id string, inputs proxmox.UserInputs) error {
+	if mock.updateFunc != nil {
+		return mock.updateFunc(ctx, id, inputs)
 	}
 	return nil
 }
 
-func (m *mockUserOperations) Delete(ctx context.Context, id string) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, id)
+func (mock *mockUserOperations) Delete(ctx context.Context, id string) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, id)
 	}
 	return nil
 }
 
 type notFoundError struct{ msg string }
 
-func (e *notFoundError) Error() string { return e.msg }
+func (notFound *notFoundError) Error() string { return notFound.msg }
 
 func TestUserOperationsNotConfigured(t *testing.T) {
 	t.Parallel()
