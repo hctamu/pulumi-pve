@@ -23,10 +23,10 @@ __all__ = [
     'DiskArgsDict',
     'EfiDiskArgs',
     'EfiDiskArgsDict',
+    'FileSourceRawArgs',
+    'FileSourceRawArgsDict',
     'NumaNodeArgs',
     'NumaNodeArgsDict',
-    'StorageFileSourceRawArgs',
-    'StorageFileSourceRawArgsDict',
 ]
 
 MYPY = False
@@ -418,6 +418,56 @@ class EfiDiskArgs:
 
 
 if not MYPY:
+    class FileSourceRawArgsDict(TypedDict):
+        file_data: pulumi.Input[_builtins.str]
+        """
+        The raw data in []byte
+        """
+        file_name: pulumi.Input[_builtins.str]
+        """
+        The name of the file
+        """
+elif False:
+    FileSourceRawArgsDict: TypeAlias = Mapping[str, Any]
+
+@pulumi.input_type
+class FileSourceRawArgs:
+    def __init__(__self__, *,
+                 file_data: pulumi.Input[_builtins.str],
+                 file_name: pulumi.Input[_builtins.str]):
+        """
+        :param pulumi.Input[_builtins.str] file_data: The raw data in []byte
+        :param pulumi.Input[_builtins.str] file_name: The name of the file
+        """
+        pulumi.set(__self__, "file_data", file_data)
+        pulumi.set(__self__, "file_name", file_name)
+
+    @_builtins.property
+    @pulumi.getter(name="fileData")
+    def file_data(self) -> pulumi.Input[_builtins.str]:
+        """
+        The raw data in []byte
+        """
+        return pulumi.get(self, "file_data")
+
+    @file_data.setter
+    def file_data(self, value: pulumi.Input[_builtins.str]):
+        pulumi.set(self, "file_data", value)
+
+    @_builtins.property
+    @pulumi.getter(name="fileName")
+    def file_name(self) -> pulumi.Input[_builtins.str]:
+        """
+        The name of the file
+        """
+        return pulumi.get(self, "file_name")
+
+    @file_name.setter
+    def file_name(self, value: pulumi.Input[_builtins.str]):
+        pulumi.set(self, "file_name", value)
+
+
+if not MYPY:
     class NumaNodeArgsDict(TypedDict):
         cpus: pulumi.Input[_builtins.str]
         host_nodes: NotRequired[pulumi.Input[_builtins.str]]
@@ -476,55 +526,5 @@ class NumaNodeArgs:
     @policy.setter
     def policy(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "policy", value)
-
-
-if not MYPY:
-    class StorageFileSourceRawArgsDict(TypedDict):
-        file_data: pulumi.Input[_builtins.str]
-        """
-        The raw data content of the file.
-        """
-        file_name: pulumi.Input[_builtins.str]
-        """
-        The name of the file.
-        """
-elif False:
-    StorageFileSourceRawArgsDict: TypeAlias = Mapping[str, Any]
-
-@pulumi.input_type
-class StorageFileSourceRawArgs:
-    def __init__(__self__, *,
-                 file_data: pulumi.Input[_builtins.str],
-                 file_name: pulumi.Input[_builtins.str]):
-        """
-        :param pulumi.Input[_builtins.str] file_data: The raw data content of the file.
-        :param pulumi.Input[_builtins.str] file_name: The name of the file.
-        """
-        pulumi.set(__self__, "file_data", file_data)
-        pulumi.set(__self__, "file_name", file_name)
-
-    @_builtins.property
-    @pulumi.getter(name="fileData")
-    def file_data(self) -> pulumi.Input[_builtins.str]:
-        """
-        The raw data content of the file.
-        """
-        return pulumi.get(self, "file_data")
-
-    @file_data.setter
-    def file_data(self, value: pulumi.Input[_builtins.str]):
-        pulumi.set(self, "file_data", value)
-
-    @_builtins.property
-    @pulumi.getter(name="fileName")
-    def file_name(self) -> pulumi.Input[_builtins.str]:
-        """
-        The name of the file.
-        """
-        return pulumi.get(self, "file_name")
-
-    @file_name.setter
-    def file_name(self, value: pulumi.Input[_builtins.str]):
-        pulumi.set(self, "file_name", value)
 
 

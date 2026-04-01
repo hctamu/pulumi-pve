@@ -10,19 +10,19 @@ import java.lang.String;
 import java.util.Objects;
 
 
-public final class StorageFileSourceRawArgs extends com.pulumi.resources.ResourceArgs {
+public final class FileSourceRawArgs extends com.pulumi.resources.ResourceArgs {
 
-    public static final StorageFileSourceRawArgs Empty = new StorageFileSourceRawArgs();
+    public static final FileSourceRawArgs Empty = new FileSourceRawArgs();
 
     /**
-     * The raw data content of the file.
+     * The raw data in []byte
      * 
      */
     @Import(name="fileData", required=true)
     private Output<String> fileData;
 
     /**
-     * @return The raw data content of the file.
+     * @return The raw data in []byte
      * 
      */
     public Output<String> fileData() {
@@ -30,23 +30,23 @@ public final class StorageFileSourceRawArgs extends com.pulumi.resources.Resourc
     }
 
     /**
-     * The name of the file.
+     * The name of the file
      * 
      */
     @Import(name="fileName", required=true)
     private Output<String> fileName;
 
     /**
-     * @return The name of the file.
+     * @return The name of the file
      * 
      */
     public Output<String> fileName() {
         return this.fileName;
     }
 
-    private StorageFileSourceRawArgs() {}
+    private FileSourceRawArgs() {}
 
-    private StorageFileSourceRawArgs(StorageFileSourceRawArgs $) {
+    private FileSourceRawArgs(FileSourceRawArgs $) {
         this.fileData = $.fileData;
         this.fileName = $.fileName;
     }
@@ -54,23 +54,23 @@ public final class StorageFileSourceRawArgs extends com.pulumi.resources.Resourc
     public static Builder builder() {
         return new Builder();
     }
-    public static Builder builder(StorageFileSourceRawArgs defaults) {
+    public static Builder builder(FileSourceRawArgs defaults) {
         return new Builder(defaults);
     }
 
     public static final class Builder {
-        private StorageFileSourceRawArgs $;
+        private FileSourceRawArgs $;
 
         public Builder() {
-            $ = new StorageFileSourceRawArgs();
+            $ = new FileSourceRawArgs();
         }
 
-        public Builder(StorageFileSourceRawArgs defaults) {
-            $ = new StorageFileSourceRawArgs(Objects.requireNonNull(defaults));
+        public Builder(FileSourceRawArgs defaults) {
+            $ = new FileSourceRawArgs(Objects.requireNonNull(defaults));
         }
 
         /**
-         * @param fileData The raw data content of the file.
+         * @param fileData The raw data in []byte
          * 
          * @return builder
          * 
@@ -81,7 +81,7 @@ public final class StorageFileSourceRawArgs extends com.pulumi.resources.Resourc
         }
 
         /**
-         * @param fileData The raw data content of the file.
+         * @param fileData The raw data in []byte
          * 
          * @return builder
          * 
@@ -91,7 +91,7 @@ public final class StorageFileSourceRawArgs extends com.pulumi.resources.Resourc
         }
 
         /**
-         * @param fileName The name of the file.
+         * @param fileName The name of the file
          * 
          * @return builder
          * 
@@ -102,7 +102,7 @@ public final class StorageFileSourceRawArgs extends com.pulumi.resources.Resourc
         }
 
         /**
-         * @param fileName The name of the file.
+         * @param fileName The name of the file
          * 
          * @return builder
          * 
@@ -111,12 +111,12 @@ public final class StorageFileSourceRawArgs extends com.pulumi.resources.Resourc
             return fileName(Output.of(fileName));
         }
 
-        public StorageFileSourceRawArgs build() {
+        public FileSourceRawArgs build() {
             if ($.fileData == null) {
-                throw new MissingRequiredPropertyException("StorageFileSourceRawArgs", "fileData");
+                throw new MissingRequiredPropertyException("FileSourceRawArgs", "fileData");
             }
             if ($.fileName == null) {
-                throw new MissingRequiredPropertyException("StorageFileSourceRawArgs", "fileName");
+                throw new MissingRequiredPropertyException("FileSourceRawArgs", "fileName");
             }
             return $;
         }

@@ -17,21 +17,14 @@ package vm_test
 
 import (
 	"context"
-	"io"
-	"net/http"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/vitorsalgado/mocha/v3"
-	"github.com/vitorsalgado/mocha/v3/expect"
-	"github.com/vitorsalgado/mocha/v3/params"
-	"github.com/vitorsalgado/mocha/v3/reply"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
@@ -365,7 +358,7 @@ func TestVMDiffCPU(t *testing.T) {
 
 			vmResource := &vm.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-				VMOps:  adapters.NewVMAdapter(adapters.NewProxmoxAdapter(nil)),
+				VMOps:  &mockVMOperations{},
 			}
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
@@ -402,50 +395,149 @@ func TestCPUAnnotate(t *testing.T) {
 	} = cpu
 }
 
-//nolint:paralleltest // uses global env + client seam
+// mockVMOperations is a test double for proxmox.VMOperations used in resource-level CPU tests.
+type mockVMOperations struct {
+	createVMFunc    func(ctx context.Context, inputs proxmox.VMInputs) error
+	cloneVMFunc     func(ctx context.Context, inputs proxmox.VMInputs) error
+	applyConfigFunc func(
+		ctx context.Context, vmID int, node *string,
+		inputs proxmox.VMInputs, timeout time.Duration,
+	) error
+	getCurrentDisksFunc func(
+		ctx context.Context, vmID int, node *string,
+	) (map[string]proxmox.Disk, *proxmox.EfiDisk, error)
+	resizeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int) error
+	removeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string) error
+	removeEfiDiskFunc func(ctx context.Context, vmID int, node *string) error
+	getFunc           func(
+		ctx context.Context, vmID int, node *string, userDisks []*proxmox.Disk,
+	) (proxmox.VMInputs, error)
+	updateConfigFunc func(
+		ctx context.Context, vmID int, node *string,
+		inputs proxmox.VMInputs, stateInputs proxmox.VMInputs,
+	) error
+	deleteFunc func(ctx context.Context, vmID int, node *string) error
+}
+
+var _ proxmox.VMOperations = (*mockVMOperations)(nil)
+
+func (mock *mockVMOperations) CreateVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	if mock.createVMFunc != nil {
+		return mock.createVMFunc(ctx, inputs)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) CloneVM(ctx context.Context, inputs proxmox.VMInputs) error {
+	if mock.cloneVMFunc != nil {
+		return mock.cloneVMFunc(ctx, inputs)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) ApplyConfig(
+	ctx context.Context, vmID int, node *string, inputs proxmox.VMInputs, timeout time.Duration,
+) error {
+	if mock.applyConfigFunc != nil {
+		return mock.applyConfigFunc(ctx, vmID, node, inputs, timeout)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) GetCurrentDisks(
+	ctx context.Context, vmID int, node *string,
+) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+	if mock.getCurrentDisksFunc != nil {
+		return mock.getCurrentDisksFunc(ctx, vmID, node)
+	}
+	return nil, nil, nil
+}
+
+func (mock *mockVMOperations) ResizeDisk(
+	ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int,
+) error {
+	if mock.resizeDiskFunc != nil {
+		return mock.resizeDiskFunc(ctx, vmID, node, diskInterface, sizeGB)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) RemoveDisk(
+	ctx context.Context, vmID int, node *string, diskInterface string,
+) error {
+	if mock.removeDiskFunc != nil {
+		return mock.removeDiskFunc(ctx, vmID, node, diskInterface)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
+	if mock.removeEfiDiskFunc != nil {
+		return mock.removeEfiDiskFunc(ctx, vmID, node)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) Get(
+	ctx context.Context, vmID int, node *string, userDisks []*proxmox.Disk,
+) (proxmox.VMInputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, vmID, node, userDisks)
+	}
+	return proxmox.VMInputs{VMID: &vmID}, nil
+}
+
+func (mock *mockVMOperations) UpdateConfig(
+	ctx context.Context, vmID int, node *string,
+	inputs proxmox.VMInputs, stateInputs proxmox.VMInputs,
+) error {
+	if mock.updateConfigFunc != nil {
+		return mock.updateConfigFunc(ctx, vmID, node, inputs, stateInputs)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) Delete(ctx context.Context, vmID int, node *string) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, vmID, node)
+	}
+	return nil
+}
+
 func TestVMReadWithCPU(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	// Mock GET /cluster/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/config - VM with CPU config
-	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":4,"sockets":2,"memory":4096,` +
-		`"cpu":"host,flags=+aes;-pcid,hidden=1","cpulimit":2,"cpuunits":2048,"vcpus":8,"numa":1,` +
-		`"numa0":"cpus=0-3,hostnodes=0,memory=2048,policy=bind","numa1":"cpus=4-7,hostnodes=1,memory=2048,policy=bind"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(vmConfigJSON)),
-	).Enable()
+	mockOps := &mockVMOperations{
+		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
+				VMID: testutils.Ptr(vmID),
+				Name: testutils.Ptr("test-vm"),
+				CPU: &proxmox.CPU{
+					Type:          testutils.Ptr("host"),
+					Cores:         testutils.Ptr(4),
+					Sockets:       testutils.Ptr(2),
+					Limit:         testutils.Ptr(2.0),
+					Units:         testutils.Ptr(2048),
+					Vcpus:         testutils.Ptr(8),
+					Numa:          testutils.Ptr(true),
+					Hidden:        testutils.Ptr(true),
+					FlagsEnabled:  []string{"aes"},
+					FlagsDisabled: []string{"pcid"},
+					NumaNodes: []proxmox.NumaNode{
+						{Cpus: "0-3", HostNodes: testutils.Ptr("0"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("bind")},
+						{Cpus: "4-7", HostNodes: testutils.Ptr("1"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("bind")},
+					},
+				},
+			}, nil
+		},
+	}
 
 	vmRes := &vm.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID},
+		VMOps:  mockOps,
 	}
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -485,78 +577,31 @@ func TestVMReadWithCPU(t *testing.T) {
 	assert.Equal(t, "bind", *resp.State.CPU.NumaNodes[1].Policy)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMUpdateCPUSuccess(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	// Mock GET /cluster/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/status
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/status/current
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/config - return updated config
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"vmid":100,"name":"test-vm","cores":4,"cpu":"host"}}`,
-			)),
-	).Enable()
-
-	// Mock POST /nodes/{node}/qemu/{vmid}/config for the update
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
-	).Enable()
-
-	// Mock task status endpoint
-	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
-		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(taskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
+	var updateConfigCalled bool
 	vmRes := &vm.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+		VMOps: &mockVMOperations{
+			updateConfigFunc: func(_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ proxmox.VMInputs) error {
+				updateConfigCalled = true
+				return nil
+			},
+		},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
 			Name:    testutils.Ptr("test-vm"),
-			Disks:   []*proxmox.Disk{},  // Empty disks
-			EfiDisk: &proxmox.EfiDisk{}, // Empty EfiDisk to prevent removal logic
+			Disks:   []*proxmox.Disk{},
+			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
 				Type:  testutils.Ptr("host"),
-				Cores: testutils.Ptr(4), // Changed from 2 to 4
+				Cores: testutils.Ptr(4),
 			},
 		},
 		State: proxmox.VMOutputs{
@@ -564,8 +609,8 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 				VMID:    testutils.Ptr(vmID),
 				Name:    testutils.Ptr("test-vm"),
 				Node:    &nodeName,
-				Disks:   []*proxmox.Disk{},  // Empty disks
-				EfiDisk: &proxmox.EfiDisk{}, // Empty EfiDisk
+				Disks:   []*proxmox.Disk{},
+				EfiDisk: &proxmox.EfiDisk{},
 				CPU: &proxmox.CPU{
 					Type:  testutils.Ptr("host"),
 					Cores: testutils.Ptr(2),
@@ -577,86 +622,32 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 	resp, err := vmRes.Update(context.Background(), req)
 	require.NoError(t, err)
 	assert.Equal(t, 4, *resp.Output.CPU.Cores)
-	mock.AssertCalled(t)
+	assert.True(t, updateConfigCalled)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMUpdateCPUWithNUMA(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":[{"type":"cluster","nodes":[{"name":"` + nodeName + `","status":"online"}]}]}`,
-			)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"node":"` + nodeName + `","status":"online"}}`,
-			)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			Reply(reply.OK().BodyString(
-				`{"data":{"status":"running","vmid":100}}`,
-			)),
-	).Enable()
-
-	// Mock GET /nodes/{node}/qemu/{vmid}/config - return updated config with NUMA
-	vmConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":4,"cpu":"host","numa":1,` +
-		`"numa0":"cpus=0-1,memory=2048","numa1":"cpus=2-3,memory=2048"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(vmConfigJSON)),
-	).Enable()
-
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			Reply(reply.OK().BodyString(`{"data":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:"}`)),
-	).Enable()
-
-	taskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:",` +
-		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmconfig",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	taskStatusURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmconfig:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(taskStatusURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(taskStatusJSON)}, nil
-			}),
-	).Enable()
-
 	vmRes := &vm.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+		VMOps: &mockVMOperations{},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
 			Name:    testutils.Ptr("test-vm"),
-			Disks:   []*proxmox.Disk{},  // Empty disks
-			EfiDisk: &proxmox.EfiDisk{}, // Empty EfiDisk to prevent removal logic
+			Disks:   []*proxmox.Disk{},
+			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
 				Type:  testutils.Ptr("host"),
 				Cores: testutils.Ptr(4),
-				Numa:  testutils.Ptr(true), // Enable NUMA
+				Numa:  testutils.Ptr(true),
 				NumaNodes: []proxmox.NumaNode{
-					{
-						Cpus:   "0-1",
-						Memory: testutils.Ptr(2048),
-					},
-					{
-						Cpus:   "2-3",
-						Memory: testutils.Ptr(2048),
-					},
+					{Cpus: "0-1", Memory: testutils.Ptr(2048)},
+					{Cpus: "2-3", Memory: testutils.Ptr(2048)},
 				},
 			},
 		},
@@ -665,8 +656,8 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 				VMID:    testutils.Ptr(vmID),
 				Name:    testutils.Ptr("test-vm"),
 				Node:    &nodeName,
-				Disks:   []*proxmox.Disk{},  // Empty disks
-				EfiDisk: &proxmox.EfiDisk{}, // Empty EfiDisk
+				Disks:   []*proxmox.Disk{},
+				EfiDisk: &proxmox.EfiDisk{},
 				CPU: &proxmox.CPU{
 					Type:  testutils.Ptr("host"),
 					Cores: testutils.Ptr(4),
@@ -681,83 +672,45 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 	require.Len(t, resp.Output.CPU.NumaNodes, 2)
 	assert.Equal(t, "0-1", resp.Output.CPU.NumaNodes[0].Cpus)
 	assert.Equal(t, "2-3", resp.Output.CPU.NumaNodes[1].Cpus)
-	mock.AssertCalled(t)
 }
 
-//nolint:paralleltest // uses global env + client seam
 func TestVMCreateWithCPU(t *testing.T) {
-	mock, cleanup := testutils.NewAPIMock(t)
-	defer cleanup()
+	t.Parallel()
 
+	vmID := 100
 	nodeName := "pve-node"
 
-	// Mock cluster status - use Repeat for multiple calls
-	clusterStatusJSON := `{"data":[{"type":"cluster","quorate":1,"nodes":1},` +
-		`{"type":"node","name":"` + nodeName + `","online":1}]}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/cluster/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(clusterStatusJSON)}, nil
-			}).
-			Repeat(10),
-	).Enable()
-
-	// Mock node status
-	nodeStatusJSON := `{"data":{"status":"online"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/status")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(nodeStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock VM creation POST - verify it includes CPU settings
-	var capturedBody string
-	createResponseJSON := `{"data":"UPID:pve-node:00001234:00000000:00000000:qmcreate:100:root@pam:"}`
-	mock.AddMocks(
-		mocha.Post(expect.URLPath("/nodes/" + nodeName + "/qemu")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				body, _ := io.ReadAll(r.Body)
-				capturedBody = string(body)
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(createResponseJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock create task status
-	createTaskStatusJSON := `{"data":{"upid":"UPID:pve-node:00001234:00000000:00000000:qmcreate:100:root@pam:",` +
-		`"node":"pve-node","pid":1234,"pstart":0,"starttime":1699999999,"type":"qmcreate",` +
-		`"id":"100","user":"root@pam","status":"stopped","exitstatus":"OK"}}`
-	createTaskURL := "/nodes/pve-node/tasks/UPID:pve-node:00001234:00000000:00000000:qmcreate:100:root@pam:/status"
-	mock.AddMocks(
-		mocha.Get(expect.URLPath(createTaskURL)).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(createTaskStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock new VM status
-	newVMStatusJSON := `{"data":{"status":"stopped","vmid":100}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/status/current")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMStatusJSON)}, nil
-			}),
-	).Enable()
-
-	// Mock new VM config - return with CPU config
-	newVMConfigJSON := `{"data":{"vmid":100,"name":"test-vm","cores":8,"sockets":2,"memory":4096,` +
-		`"cpu":"host,flags=+aes","cpulimit":4,"cpuunits":2048,"vcpus":16,"numa":1,` +
-		`"numa0":"cpus=0-7,memory=2048","numa1":"cpus=8-15,memory=2048"}}`
-	mock.AddMocks(
-		mocha.Get(expect.URLPath("/nodes/" + nodeName + "/qemu/100/config")).
-			ReplyFunction(func(r *http.Request, m reply.M, p params.P) (*reply.Response, error) {
-				return &reply.Response{Status: http.StatusOK, Body: strings.NewReader(newVMConfigJSON)}, nil
-			}),
-	).Enable()
+	var capturedInputs proxmox.VMInputs
+	mockOps := &mockVMOperations{
+		createVMFunc: func(_ context.Context, inputs proxmox.VMInputs) error {
+			capturedInputs = inputs
+			return nil
+		},
+		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
+				VMID: testutils.Ptr(vmID),
+				Name: testutils.Ptr("test-vm"),
+				CPU: &proxmox.CPU{
+					Type:         testutils.Ptr("host"),
+					Cores:        testutils.Ptr(8),
+					Sockets:      testutils.Ptr(2),
+					Limit:        testutils.Ptr(4.0),
+					Units:        testutils.Ptr(2048),
+					Vcpus:        testutils.Ptr(16),
+					Numa:         testutils.Ptr(true),
+					FlagsEnabled: []string{"aes"},
+					NumaNodes: []proxmox.NumaNode{
+						{Cpus: "0-7", Memory: testutils.Ptr(2048)},
+						{Cpus: "8-15", Memory: testutils.Ptr(2048)},
+					},
+				},
+			}, nil
+		},
+	}
 
 	vmRes := &vm.VM{
-		Client: &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-		VMOps:  adapters.NewVMAdapter(testutils.NewMockAdapter(mock.URL())),
+		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID},
+		VMOps:  mockOps,
 	}
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm",
@@ -797,10 +750,11 @@ func TestVMCreateWithCPU(t *testing.T) {
 	assert.Equal(t, []string{"aes"}, resp.Output.CPU.FlagsEnabled)
 	require.Len(t, resp.Output.CPU.NumaNodes, 2)
 
-	// Verify the request body contains CPU parameters (JSON format)
-	assert.Contains(t, capturedBody, `"cpu":"host`)
-	assert.Contains(t, capturedBody, `"cores":8`)
-	assert.Contains(t, capturedBody, `"sockets":2`)
-	assert.Contains(t, capturedBody, `"numa":1`)
-	mock.AssertCalled(t)
+	// Verify the inputs passed to CreateVM contain CPU parameters
+	require.NotNil(t, capturedInputs.CPU)
+	assert.Equal(t, "host", *capturedInputs.CPU.Type)
+	assert.Equal(t, 8, *capturedInputs.CPU.Cores)
+	assert.Equal(t, 2, *capturedInputs.CPU.Sockets)
+	assert.True(t, *capturedInputs.CPU.Numa)
+	assert.Equal(t, []string{"aes"}, capturedInputs.CPU.FlagsEnabled)
 }

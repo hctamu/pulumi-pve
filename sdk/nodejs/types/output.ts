@@ -8,20 +8,6 @@ import * as outputs from "../types/output";
 import * as utilities from "../utilities";
 
 export namespace proxmox {
-    export interface FileSourceRaw {
-        /**
-         * The raw data in []byte
-         */
-        fileData: string;
-        /**
-         * The name of the file
-         */
-        fileName: string;
-    }
-
-}
-
-export namespace vm {
     /**
      * CPU configuration for the virtual machine.
      */
@@ -75,22 +61,22 @@ export namespace vm {
         storage: string;
     }
 
+    export interface FileSourceRaw {
+        /**
+         * The raw data in []byte
+         */
+        fileData: string;
+        /**
+         * The name of the file
+         */
+        fileName: string;
+    }
+
     export interface NumaNode {
         cpus: string;
         hostNodes?: string;
         memory?: number;
         policy?: string;
-    }
-
-    export interface StorageFileSourceRaw {
-        /**
-         * The raw data content of the file.
-         */
-        fileData: string;
-        /**
-         * The name of the file.
-         */
-        fileName: string;
     }
 
 }
