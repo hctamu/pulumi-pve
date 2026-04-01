@@ -46,20 +46,20 @@ type capturedRequest struct {
 	body   map[string]interface{}
 }
 
-func (rc *requestCapture) add(method, path string, body map[string]interface{}) {
-	rc.mu.Lock()
-	defer rc.mu.Unlock()
-	rc.requests = append(rc.requests, capturedRequest{
+func (capture *requestCapture) add(method, path string, body map[string]interface{}) {
+	capture.mu.Lock()
+	defer capture.mu.Unlock()
+	capture.requests = append(capture.requests, capturedRequest{
 		method: method,
 		path:   path,
 		body:   body,
 	})
 }
 
-func (rc *requestCapture) get() []capturedRequest {
-	rc.mu.Lock()
-	defer rc.mu.Unlock()
-	return append([]capturedRequest(nil), rc.requests...)
+func (capture *requestCapture) get() []capturedRequest {
+	capture.mu.Lock()
+	defer capture.mu.Unlock()
+	return append([]capturedRequest(nil), capture.requests...)
 }
 
 func TestUserHealthyLifeCycle(t *testing.T) {

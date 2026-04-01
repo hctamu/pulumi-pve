@@ -43,11 +43,11 @@ type GroupInputs struct {
 }
 
 // Annotate is used to annotate the input and output properties of the resource.
-func (args *GroupInputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The name of the Proxmox group.")
-	a.SetDefault(&args.Comment, "Default group comment")
+func (inputs *GroupInputs) Annotate(a infer.Annotator) {
+	a.Describe(&inputs.Name, "The name of the Proxmox group.")
+	a.SetDefault(&inputs.Comment, "Default group comment")
 	a.Describe(
-		&args.Comment,
+		&inputs.Comment,
 		"An optional comment for the group. If not provided, defaults to 'Default group comment'.",
 	)
 }

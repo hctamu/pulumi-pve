@@ -43,10 +43,10 @@ type RoleInputs struct {
 }
 
 // Annotate adds descriptions to the Input properties for documentation and schema generation.
-func (args *RoleInputs) Annotate(a infer.Annotator) {
-	a.Describe(&args.Name, "The name of the Proxmox role.")
+func (inputs *RoleInputs) Annotate(a infer.Annotator) {
+	a.Describe(&inputs.Name, "The name of the Proxmox role.")
 	a.Describe(
-		&args.Privileges,
+		&inputs.Privileges,
 		"A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt').",
 	)
 }

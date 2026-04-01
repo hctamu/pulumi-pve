@@ -53,16 +53,16 @@ type mockHAOperations struct {
 	deleteFunc func(ctx context.Context, id int) error
 }
 
-func (m *mockHAOperations) Create(ctx context.Context, inputs proxmox.HAInputs) error {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (mock *mockHAOperations) Create(ctx context.Context, inputs proxmox.HAInputs) error {
+	if mock.createFunc != nil {
+		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockHAOperations) Get(ctx context.Context, id int) (*proxmox.HAOutputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, id)
+func (mock *mockHAOperations) Get(ctx context.Context, id int) (*proxmox.HAOutputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, id)
 	}
 	return &proxmox.HAOutputs{
 		HAInputs: proxmox.HAInputs{
@@ -72,21 +72,21 @@ func (m *mockHAOperations) Get(ctx context.Context, id int) (*proxmox.HAOutputs,
 	}, nil
 }
 
-func (m *mockHAOperations) Update(
+func (mock *mockHAOperations) Update(
 	ctx context.Context,
 	id int,
 	inputs proxmox.HAInputs,
 	oldOutputs proxmox.HAOutputs,
 ) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, id, inputs, oldOutputs)
+	if mock.updateFunc != nil {
+		return mock.updateFunc(ctx, id, inputs, oldOutputs)
 	}
 	return nil
 }
 
-func (m *mockHAOperations) Delete(ctx context.Context, id int) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, id)
+func (mock *mockHAOperations) Delete(ctx context.Context, id int) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, id)
 	}
 	return nil
 }

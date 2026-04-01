@@ -54,30 +54,30 @@ type mockACLOperations struct {
 	deleteFunc func(ctx context.Context, outputs proxmox.ACLOutputs) error
 }
 
-func (m *mockACLOperations) Create(ctx context.Context, inputs proxmox.ACLInputs) error {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (mock *mockACLOperations) Create(ctx context.Context, inputs proxmox.ACLInputs) error {
+	if mock.createFunc != nil {
+		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockACLOperations) Get(ctx context.Context, id string) (*proxmox.ACLOutputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, id)
+func (mock *mockACLOperations) Get(ctx context.Context, id string) (*proxmox.ACLOutputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, id)
 	}
 	return &proxmox.ACLOutputs{ACLInputs: proxmox.ACLInputs{}}, nil
 }
 
-func (m *mockACLOperations) Update(ctx context.Context, id string, inputs proxmox.ACLInputs) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, id, inputs)
+func (mock *mockACLOperations) Update(ctx context.Context, id string, inputs proxmox.ACLInputs) error {
+	if mock.updateFunc != nil {
+		return mock.updateFunc(ctx, id, inputs)
 	}
 	return nil
 }
 
-func (m *mockACLOperations) Delete(ctx context.Context, outputs proxmox.ACLOutputs) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, outputs)
+func (mock *mockACLOperations) Delete(ctx context.Context, outputs proxmox.ACLOutputs) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, outputs)
 	}
 	return nil
 }

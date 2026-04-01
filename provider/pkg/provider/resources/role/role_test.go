@@ -37,7 +37,7 @@ const (
 
 type notFoundError struct{ msg string }
 
-func (e *notFoundError) Error() string { return e.msg }
+func (notFound *notFoundError) Error() string { return notFound.msg }
 
 type mockRoleOperations struct {
 	createFunc func(ctx context.Context, inputs proxmox.RoleInputs) error
@@ -46,30 +46,30 @@ type mockRoleOperations struct {
 	deleteFunc func(ctx context.Context, id string) error
 }
 
-func (m *mockRoleOperations) Create(ctx context.Context, inputs proxmox.RoleInputs) error {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (mock *mockRoleOperations) Create(ctx context.Context, inputs proxmox.RoleInputs) error {
+	if mock.createFunc != nil {
+		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockRoleOperations) Get(ctx context.Context, id string) (*proxmox.RoleOutputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, id)
+func (mock *mockRoleOperations) Get(ctx context.Context, id string) (*proxmox.RoleOutputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, id)
 	}
 	return &proxmox.RoleOutputs{RoleInputs: proxmox.RoleInputs{Name: id}}, nil
 }
 
-func (m *mockRoleOperations) Update(ctx context.Context, id string, inputs proxmox.RoleInputs) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, id, inputs)
+func (mock *mockRoleOperations) Update(ctx context.Context, id string, inputs proxmox.RoleInputs) error {
+	if mock.updateFunc != nil {
+		return mock.updateFunc(ctx, id, inputs)
 	}
 	return nil
 }
 
-func (m *mockRoleOperations) Delete(ctx context.Context, id string) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, id)
+func (mock *mockRoleOperations) Delete(ctx context.Context, id string) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, id)
 	}
 	return nil
 }

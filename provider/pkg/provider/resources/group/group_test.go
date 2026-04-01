@@ -41,16 +41,16 @@ type mockGroupOperations struct {
 	deleteFunc func(ctx context.Context, id string) error
 }
 
-func (m *mockGroupOperations) Create(ctx context.Context, inputs proxmox.GroupInputs) error {
-	if m.createFunc != nil {
-		return m.createFunc(ctx, inputs)
+func (mock *mockGroupOperations) Create(ctx context.Context, inputs proxmox.GroupInputs) error {
+	if mock.createFunc != nil {
+		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (m *mockGroupOperations) Get(ctx context.Context, id string) (*proxmox.GroupOutputs, error) {
-	if m.getFunc != nil {
-		return m.getFunc(ctx, id)
+func (mock *mockGroupOperations) Get(ctx context.Context, id string) (*proxmox.GroupOutputs, error) {
+	if mock.getFunc != nil {
+		return mock.getFunc(ctx, id)
 	}
 	return &proxmox.GroupOutputs{
 		GroupInputs: proxmox.GroupInputs{
@@ -59,23 +59,23 @@ func (m *mockGroupOperations) Get(ctx context.Context, id string) (*proxmox.Grou
 	}, nil
 }
 
-func (m *mockGroupOperations) Update(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, id, inputs)
+func (mock *mockGroupOperations) Update(ctx context.Context, id string, inputs proxmox.GroupInputs) error {
+	if mock.updateFunc != nil {
+		return mock.updateFunc(ctx, id, inputs)
 	}
 	return nil
 }
 
-func (m *mockGroupOperations) Delete(ctx context.Context, id string) error {
-	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, id)
+func (mock *mockGroupOperations) Delete(ctx context.Context, id string) error {
+	if mock.deleteFunc != nil {
+		return mock.deleteFunc(ctx, id)
 	}
 	return nil
 }
 
 type notFoundError struct{ msg string }
 
-func (e *notFoundError) Error() string { return e.msg }
+func (notFound *notFoundError) Error() string { return notFound.msg }
 
 func TestGroupOperationsNotConfigured(t *testing.T) {
 	t.Parallel()
