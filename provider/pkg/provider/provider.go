@@ -18,7 +18,6 @@ package provider
 
 import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/client"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
@@ -118,7 +117,7 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 
 	// Create FileAdapter using the ProxmoxAdapter
-	fileAdapter := adapters.NewFileAdapter(proxmoxAdapter, client.GetSSHClient)
+	fileAdapter := adapters.NewFileAdapter(proxmoxAdapter, adapters.GetSSHClient(proxmoxAdapter, cfg))
 
 	return &file.File{FileOps: fileAdapter}
 }

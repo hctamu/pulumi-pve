@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package client
+package proxmox
 
 import "context"
 
@@ -29,8 +29,8 @@ const (
 	SSHOperationDelete SSHOperation = "rm"
 )
 
-// SSHClientInterface defines the operations our SSH client performs.
-type SSHClientInterface interface {
+// SSHClient defines the operations our SSH client performs.
+type SSHClient interface {
 	// Run executes a command on the remote host and returns its output.
 	// The 'command' parameter will be one of SSHOperationWrite, SSHOperationRead, or SSHOperationDelete.
 	// The 'filePath' is the target file path on the remote system.
@@ -38,5 +38,5 @@ type SSHClientInterface interface {
 	Run(command SSHOperation, filePath string, data ...string) (string, error)
 }
 
-// GetSSHClientFunc is a function type that returns an SSHClientInterface.
-type GetSSHClientFunc func(ctx context.Context) (SSHClientInterface, error)
+// GetSSHClientFunc is a function type that returns an SSHClient.
+type GetSSHClientFunc func(ctx context.Context) (SSHClient, error)
