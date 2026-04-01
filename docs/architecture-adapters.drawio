@@ -1,0 +1,142 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="Adapters Package — UML Class Diagram" id="adapters-uml">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ProxmoxAdapter                                         -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="pa" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;ProxmoxAdapter&lt;/b&gt;&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-top:2px;text-align:center;font-size:10px;&quot;&gt;&lt;i&gt;implements proxmox.Client&lt;/i&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- once : sync.Once&lt;br/&gt;- initErr : error&lt;br/&gt;+ PVEConfig : *config.Config&lt;br/&gt;- client : *api.Client&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Connect(ctx) : error&lt;br/&gt;+ Get(ctx, path) : ([]byte, error)&lt;br/&gt;+ Post(ctx, path, body) : ([]byte, error)&lt;br/&gt;+ Put(ctx, path, body) : ([]byte, error)&lt;br/&gt;+ Delete(ctx, path) : ([]byte, error)&lt;br/&gt;+ ResolveNode(ctx) : (string, error)&lt;br/&gt;+ NextVMID(ctx) : (int, error)&lt;br/&gt;+ Node(ctx, name) : (*api.Node, error)&lt;br/&gt;+ WaitForTask(ctx, task, timeout, interval) : error&lt;br/&gt;+ FindVirtualMachine(ctx, id) : (*api.VM, error)&lt;br/&gt;+ FindVirtualMachineOnNode(ctx, node, id) : (*api.VM, error)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="460" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- PoolAdapter                                            -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="pool" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;PoolAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- proxmoxAdapter : *ProxmoxAdapter&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Create(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, name) : (*PoolOutputs, error)&lt;br/&gt;+ Update(ctx, name, inputs) : error&lt;br/&gt;+ Delete(ctx, name) : error&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="580" y="40" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- HAAdapter                                              -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="ha" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;HAAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- client : proxmox.Client &lt;i&gt;(interface)&lt;/i&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Create(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, id) : (*HAOutputs, error)&lt;br/&gt;+ Update(ctx, id, inputs, old) : error&lt;br/&gt;+ Delete(ctx, id) : error&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="580" y="250" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- GroupAdapter                                           -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="grp" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;GroupAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- proxmoxAdapter : *ProxmoxAdapter&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Create(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, name) : (*GroupOutputs, error)&lt;br/&gt;+ Update(ctx, name, inputs) : error&lt;br/&gt;+ Delete(ctx, name) : error&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="990" y="40" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- RoleAdapter                                            -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="role" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;RoleAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- proxmoxAdapter : *ProxmoxAdapter&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Create(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, name) : (*RoleOutputs, error)&lt;br/&gt;+ Update(ctx, name, inputs) : error&lt;br/&gt;+ Delete(ctx, name) : error&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="990" y="250" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ACLAdapter                                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="acl" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;ACLAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- proxmoxAdapter : *ProxmoxAdapter&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Create(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, aclid) : (*ACLOutputs, error)&lt;br/&gt;+ Update(ctx, aclid, inputs) : error&lt;br/&gt;+ Delete(ctx, inputs) : error&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="40" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- UserAdapter                                            -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="user" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;UserAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- proxmoxAdapter : *ProxmoxAdapter&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ Create(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, name) : (*UserOutputs, error)&lt;br/&gt;+ Update(ctx, name, inputs) : error&lt;br/&gt;+ Delete(ctx, name) : error&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="250" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- VMAdapter                                              -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="vm" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;VMAdapter&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- client : *ProxmoxAdapter&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ CreateVM(ctx, inputs) : error&lt;br/&gt;+ CloneVM(ctx, inputs) : error&lt;br/&gt;+ Get(ctx, vmID, node, userDisks) : (VMInputs, error)&lt;br/&gt;+ UpdateConfig(ctx, vmID, node, inputs, state) : error&lt;br/&gt;+ Delete(ctx, vmID, node) : error&lt;br/&gt;+ ApplyConfig(ctx, vmID, node, inputs, timeout) : error&lt;br/&gt;+ GetCurrentDisks(ctx, vmID, node) : (map, *EfiDisk, error)&lt;br/&gt;+ ResizeDisk(ctx, vmID, node, iface, size) : error&lt;br/&gt;+ RemoveDisk(ctx, vmID, node, iface) : error&lt;br/&gt;+ RemoveEfiDisk(ctx, vmID, node) : error&lt;br/&gt;- findVM(ctx, vmID, node) : (*api.VM, error)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="460" height="310" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- External: go-proxmox api.Client                        -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="apiclient" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;«external»&lt;br/&gt;go-proxmox api.Client&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="900" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Domain interfaces (from pkg/proxmox)                   -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="iclient" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.Client&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="580" y="520" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ipoolops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.PoolOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="580" y="600" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ihaops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.HAOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="580" y="680" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ivmops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.VMOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="580" y="760" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="igrpops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.GroupOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="920" y="520" width="270" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iroleops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.RoleOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="920" y="600" width="270" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iaclops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.ACLOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="920" y="680" width="270" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="iuserops" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;«interface»&lt;br/&gt;&lt;b&gt;proxmox.UserOperations&lt;/b&gt;&lt;/p&gt;" style="verticalAlign=top;align=center;overflow=fill;fontSize=11;fontFamily=Courier New;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="920" y="760" width="270" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- REALIZATION (dashed + hollow triangle): Adapter ──▷ Interface -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="r-pa"   style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="pa"   target="iclient"  parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-pool" style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="pool" target="ipoolops" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-ha"   style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="ha"   target="ihaops"   parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-vm"   style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="vm"   target="ivmops"   parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-grp"  style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="grp"  target="igrpops"  parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-role" style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="role" target="iroleops" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-acl"  style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="acl"  target="iaclops"  parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="r-user" style="endArrow=block;endFill=0;dashed=1;strokeColor=#d6b656;" edge="1" source="user" target="iuserops" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- COMPOSITION (solid + filled diamond): Adapter ◆── ProxmoxAdapter -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="c-pool" style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="pool" target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c-ha"   style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="ha"   target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c-grp"  style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="grp"  target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c-role" style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="role" target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c-acl"  style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="acl"  target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c-user" style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="user" target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c-vm"   style="endArrow=diamond;endFill=1;strokeColor=#6c8ebf;" edge="1" source="vm"   target="pa" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ProxmoxAdapter uses external api.Client -->
+        <mxCell id="c-api" style="endArrow=diamond;endFill=1;strokeColor=#b85450;" edge="1" source="pa" target="apiclient" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- LEGEND                                                 -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <mxCell id="leg" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Legend&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;/&gt;&lt;p style=&quot;margin:0px;margin-left:4px;font-size:10px;&quot;&gt;- - -▷  Realization (implements interface)&lt;br/&gt;───◆  Composition (has-a reference)&lt;br/&gt;&lt;span style=&quot;background:#dae8fc;padding:1px 4px;&quot;&gt;Blue&lt;/span&gt; Central / complex classes&lt;br/&gt;&lt;span style=&quot;background:#d5e8d4;padding:1px 4px;&quot;&gt;Green&lt;/span&gt; Simple CRUD adapters&lt;br/&gt;&lt;span style=&quot;background:#fff2cc;padding:1px 4px;&quot;&gt;Yellow&lt;/span&gt; Domain interfaces (pkg/proxmox)&lt;br/&gt;&lt;span style=&quot;background:#f8cecc;padding:1px 4px;&quot;&gt;Red&lt;/span&gt; External dependency&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;html=1;fillColor=#fff;strokeColor=#999;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="520" width="340" height="160" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
