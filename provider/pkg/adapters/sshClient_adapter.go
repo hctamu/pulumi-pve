@@ -180,15 +180,3 @@ func (sa *SSHAdapter) generateSSHHost(ctx context.Context) (string, error) {
 	}
 	return "", nil
 }
-
-// GetSSHClient returns a proxmox.GetSSHClientFunc that lazily initializes and returns
-// an SSHAdapter as a proxmox.SSHClient. This follows the same pattern as the ProxmoxAdapter.
-func GetSSHClient(proxmoxAdapter *ProxmoxAdapter, cfg *config.Config) proxmox.GetSSHClientFunc {
-	adapter := NewSSHAdapter(proxmoxAdapter, cfg)
-	return func(ctx context.Context) (proxmox.SSHClient, error) {
-		if err := adapter.Connect(ctx); err != nil {
-			return nil, err
-		}
-		return adapter, nil
-	}
-}

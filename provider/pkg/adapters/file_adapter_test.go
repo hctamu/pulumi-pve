@@ -41,7 +41,16 @@ const (
 
 // mockSSHClient is a mock implementation of the SSHClient interface.
 type mockSSHClient struct {
-	RunFunc func(operation proxmox.SSHOperation, path string, data ...string) (string, error)
+	RunFunc     func(operation proxmox.SSHOperation, path string, data ...string) (string, error)
+	ConnectFunc func(ctx context.Context) error
+}
+
+// Connect initializes the mock SSH client.
+func (m *mockSSHClient) Connect(ctx context.Context) error {
+	if m.ConnectFunc != nil {
+		return m.ConnectFunc(ctx)
+	}
+	return nil
 }
 
 // Run executes the mock SSH command.
@@ -63,12 +72,7 @@ func newTestFileAdapter(t *testing.T, sshClient proxmox.SSHClient) *FileAdapter 
 	err := pxa.Connect(context.Background())
 	require.NoError(t, err)
 
-	return NewFileAdapter(
-		pxa,
-		func(ctx context.Context) (proxmox.SSHClient, error) {
-			return sshClient, nil
-		},
-	)
+	return NewFileAdapter(pxa, sshClient)
 }
 
 func TestFileAdapterCreate(t *testing.T) {
@@ -101,17 +105,17 @@ func TestFileAdapterCreate(t *testing.T) {
 
 	t.Run("create handles ssh client error", func(t *testing.T) {
 		t.Parallel()
-		adapter := NewFileAdapter(
-			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (proxmox.SSHClient, error) {
-				return nil, errors.New("ssh connection error")
+		sshClient := &mockSSHClient{
+			ConnectFunc: func(ctx context.Context) error {
+				return errors.New("ssh connection error")
 			},
-		)
+		}
+		adapter := newTestFileAdapter(t, sshClient)
 
 		inputs := proxmox.FileInputs{}
 		err := adapter.Create(context.Background(), inputs)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "error getting ssh client")
+		assert.Contains(t, err.Error(), "error connecting ssh client")
 	})
 
 	t.Run("create handles ssh write error", func(t *testing.T) {
@@ -162,17 +166,17 @@ func TestFileAdapterGet(t *testing.T) {
 
 	t.Run("get handles ssh client error", func(t *testing.T) {
 		t.Parallel()
-		adapter := NewFileAdapter(
-			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (proxmox.SSHClient, error) {
-				return nil, errors.New("ssh connection error")
+		sshClient := &mockSSHClient{
+			ConnectFunc: func(ctx context.Context) error {
+				return errors.New("ssh connection error")
 			},
-		)
+		}
+		adapter := newTestFileAdapter(t, sshClient)
 
 		inputs := proxmox.FileInputs{}
 		_, err := adapter.Get(context.Background(), inputs)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "error getting ssh client")
+		assert.Contains(t, err.Error(), "error connecting ssh client")
 	})
 
 	t.Run("get handles ssh read error", func(t *testing.T) {
@@ -226,16 +230,16 @@ func TestFileAdapterUpdate(t *testing.T) {
 
 	t.Run("update handles ssh client error", func(t *testing.T) {
 		t.Parallel()
-		adapter := NewFileAdapter(
-			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (proxmox.SSHClient, error) {
-				return nil, errors.New("ssh connection error")
+		sshClient := &mockSSHClient{
+			ConnectFunc: func(ctx context.Context) error {
+				return errors.New("ssh connection error")
 			},
-		)
+		}
+		adapter := newTestFileAdapter(t, sshClient)
 
 		err := adapter.Update(context.Background(), proxmox.FileInputs{}, proxmox.FileInputs{})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "error getting ssh client")
+		assert.Contains(t, err.Error(), "error connecting ssh client")
 	})
 
 	t.Run("update handles ssh delete error", func(t *testing.T) {
@@ -303,16 +307,16 @@ func TestFileAdapter_Delete(t *testing.T) {
 
 	t.Run("delete handles ssh client error", func(t *testing.T) {
 		t.Parallel()
-		adapter := NewFileAdapter(
-			NewProxmoxAdapter(&config.Config{PveURL: "http://localhost", PveUser: pveUser, PveToken: pveToken}),
-			func(ctx context.Context) (proxmox.SSHClient, error) {
-				return nil, errors.New("ssh connection error")
+		sshClient := &mockSSHClient{
+			ConnectFunc: func(ctx context.Context) error {
+				return errors.New("ssh connection error")
 			},
-		)
+		}
+		adapter := newTestFileAdapter(t, sshClient)
 
 		err := adapter.Delete(context.Background(), proxmox.FileOutputs{})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "error getting ssh client")
+		assert.Contains(t, err.Error(), "error connecting ssh client")
 	})
 
 	t.Run("delete handles ssh delete error", func(t *testing.T) {
@@ -338,11 +342,9 @@ func TestNewFileAdapter(t *testing.T) {
 	err := pxa.Connect(context.Background())
 	require.NoError(t, err)
 
-	sshClientFunc := func(ctx context.Context) (proxmox.SSHClient, error) {
-		return &mockSSHClient{}, nil
-	}
+	sshClient := &mockSSHClient{}
 
-	fileAdapter := NewFileAdapter(pxa, sshClientFunc)
+	fileAdapter := NewFileAdapter(pxa, sshClient)
 	require.NotNil(t, fileAdapter)
 	assert.Equal(t, pxa, fileAdapter.proxmoxAdapter)
 	assert.NotNil(t, fileAdapter.sshClient)
