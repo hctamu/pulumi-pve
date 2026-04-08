@@ -28,11 +28,11 @@ var _ proxmox.FileOperations = (*FileAdapter)(nil)
 // FileAdapter implements proxmox.FileOperations using the ProxmoxAdapter.
 type FileAdapter struct {
 	proxmoxAdapter *ProxmoxAdapter
-	sshClient      proxmox.GetSSHClientFunc
+	sshClient      proxmox.SSHClient
 }
 
 // NewFileAdapter creates a new FileAdapter wrapping the given ProxmoxAdapter.
-func NewFileAdapter(proxmoxAdapter *ProxmoxAdapter, sshClient proxmox.GetSSHClientFunc) *FileAdapter {
+func NewFileAdapter(proxmoxAdapter *ProxmoxAdapter, sshClient proxmox.SSHClient) *FileAdapter {
 	return &FileAdapter{
 		proxmoxAdapter: proxmoxAdapter,
 		sshClient:      sshClient,
@@ -45,9 +45,8 @@ func (file *FileAdapter) Create(ctx context.Context, inputs proxmox.FileInputs) 
 		return err
 	}
 
-	sc, err := file.sshClient(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting ssh client: %v", err)
+	if err := file.sshClient.Connect(ctx); err != nil {
+		return fmt.Errorf("error connecting ssh client: %v", err)
 	}
 
 	fileName := fmt.Sprintf(
@@ -57,7 +56,7 @@ func (file *FileAdapter) Create(ctx context.Context, inputs proxmox.FileInputs) 
 		inputs.SourceRaw.FileName,
 	)
 	fileData := inputs.SourceRaw.FileData
-	if _, err = sc.Run(proxmox.SSHOperationWrite, fileName, fileData); err != nil {
+	if _, err := file.sshClient.Run(proxmox.SSHOperationWrite, fileName, fileData); err != nil {
 		return fmt.Errorf("error sending data via SSH: %v", err)
 	}
 
@@ -70,9 +69,8 @@ func (file *FileAdapter) Get(ctx context.Context, inputs proxmox.FileInputs) (*p
 		return nil, err
 	}
 
-	sc, err := file.sshClient(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting ssh client: %v", err)
+	if err := file.sshClient.Connect(ctx); err != nil {
+		return nil, fmt.Errorf("error connecting ssh client: %v", err)
 	}
 
 	fileName := fmt.Sprintf(
@@ -82,7 +80,7 @@ func (file *FileAdapter) Get(ctx context.Context, inputs proxmox.FileInputs) (*p
 		inputs.SourceRaw.FileName,
 	)
 
-	fileContent, err := sc.Run(proxmox.SSHOperationRead, fileName)
+	fileContent, err := file.sshClient.Run(proxmox.SSHOperationRead, fileName)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file via SSH: %v", err)
 	}
@@ -109,9 +107,8 @@ func (file *FileAdapter) Update(
 		return err
 	}
 
-	sshClient, err := file.sshClient(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting ssh client: %v", err)
+	if err := file.sshClient.Connect(ctx); err != nil {
+		return fmt.Errorf("error connecting ssh client: %v", err)
 	}
 
 	// remove the file
@@ -121,7 +118,7 @@ func (file *FileAdapter) Update(
 		state.ContentType,
 		state.SourceRaw.FileName,
 	)
-	if _, err = sshClient.Run(proxmox.SSHOperationDelete, filePath); err != nil {
+	if _, err := file.sshClient.Run(proxmox.SSHOperationDelete, filePath); err != nil {
 		return fmt.Errorf("error removing file via SSH: %v", err)
 	}
 
@@ -131,7 +128,7 @@ func (file *FileAdapter) Update(
 		inputs.ContentType,
 		inputs.SourceRaw.FileName,
 	)
-	if _, err = sshClient.Run(proxmox.SSHOperationWrite, newFilePath, inputs.SourceRaw.FileData); err != nil {
+	if _, err := file.sshClient.Run(proxmox.SSHOperationWrite, newFilePath, inputs.SourceRaw.FileData); err != nil {
 		return fmt.Errorf("error creating file via SSH: %v", err)
 	}
 
@@ -144,9 +141,8 @@ func (file *FileAdapter) Delete(ctx context.Context, outputs proxmox.FileOutputs
 		return err
 	}
 
-	sc, err := file.sshClient(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting ssh client: %v", err)
+	if err := file.sshClient.Connect(ctx); err != nil {
+		return fmt.Errorf("error connecting ssh client: %v", err)
 	}
 
 	filePath := fmt.Sprintf(
@@ -155,7 +151,7 @@ func (file *FileAdapter) Delete(ctx context.Context, outputs proxmox.FileOutputs
 		outputs.ContentType,
 		outputs.SourceRaw.FileName,
 	)
-	if _, err = sc.Run(proxmox.SSHOperationDelete, filePath); err != nil {
+	if _, err := file.sshClient.Run(proxmox.SSHOperationDelete, filePath); err != nil {
 		return fmt.Errorf("error removing file via SSH: %v", err)
 	}
 

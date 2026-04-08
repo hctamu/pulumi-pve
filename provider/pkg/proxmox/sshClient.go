@@ -31,12 +31,12 @@ const (
 
 // SSHClient defines the operations our SSH client performs.
 type SSHClient interface {
+	// Connect initializes the SSH client configuration and discovers a target host.
+	// It is safe to call multiple times; initialization only happens once.
+	Connect(ctx context.Context) error
 	// Run executes a command on the remote host and returns its output.
 	// The 'command' parameter will be one of SSHOperationWrite, SSHOperationRead, or SSHOperationDelete.
 	// The 'filePath' is the target file path on the remote system.
 	// The 'data' parameter is optional and used for write operations.
 	Run(command SSHOperation, filePath string, data ...string) (string, error)
 }
-
-// GetSSHClientFunc is a function type that returns an SSHClient.
-type GetSSHClientFunc func(ctx context.Context) (SSHClient, error)

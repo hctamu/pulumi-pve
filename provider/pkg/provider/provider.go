@@ -116,8 +116,11 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 	// Create ProxmoxAdapter with config
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 
-	// Create FileAdapter using the ProxmoxAdapter
-	fileAdapter := adapters.NewFileAdapter(proxmoxAdapter, adapters.GetSSHClient(proxmoxAdapter, cfg))
+	// Create SSHAdapter with the ProxmoxAdapter and config
+	sshAdapter := adapters.NewSSHAdapter(proxmoxAdapter, cfg)
+
+	// Create FileAdapter using the ProxmoxAdapter and SSHAdapter
+	fileAdapter := adapters.NewFileAdapter(proxmoxAdapter, sshAdapter)
 
 	return &file.File{FileOps: fileAdapter}
 }
