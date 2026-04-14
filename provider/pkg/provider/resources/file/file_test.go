@@ -20,12 +20,13 @@ import (
 	"errors"
 	"testing"
 
-	fileResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	fileResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 type mockFileOperations struct {
