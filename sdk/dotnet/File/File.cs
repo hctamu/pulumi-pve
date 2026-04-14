@@ -8,9 +8,12 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Storage
+namespace Hctamu.Pve.File
 {
-    [PveResourceType("pve:storage:File")]
+    /// <summary>
+    /// A Proxmox file resource that represents a file in a Proxmox datastore.
+    /// </summary>
+    [PveResourceType("pve:file:File")]
     public partial class File : global::Pulumi.CustomResource
     {
         /// <summary>
@@ -29,7 +32,7 @@ namespace Hctamu.Pve.Storage
         /// The raw source data
         /// </summary>
         [Output("sourceRaw")]
-        public Output<Outputs.FileSourceRaw> SourceRaw { get; private set; } = null!;
+        public Output<Hctamu.Pve.Proxmox.Outputs.FileSourceRaw> SourceRaw { get; private set; } = null!;
 
 
         /// <summary>
@@ -40,12 +43,12 @@ namespace Hctamu.Pve.Storage
         /// <param name="args">The arguments used to populate this resource's properties</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
         public File(string name, FileArgs args, CustomResourceOptions? options = null)
-            : base("pve:storage:File", name, args ?? new FileArgs(), MakeResourceOptions(options, ""))
+            : base("pve:file:File", name, args ?? new FileArgs(), MakeResourceOptions(options, ""))
         {
         }
 
         private File(string name, Input<string> id, CustomResourceOptions? options = null)
-            : base("pve:storage:File", name, null, MakeResourceOptions(options, id))
+            : base("pve:file:File", name, null, MakeResourceOptions(options, id))
         {
         }
 
@@ -58,8 +61,7 @@ namespace Hctamu.Pve.Storage
                 {
                     "contentType",
                     "datastoreId",
-                    "sourceRaw.fileData",
-                    "sourceRaw.fileName",
+                    "sourceRaw",
                 },
             };
             var merged = CustomResourceOptions.Merge(defaultOptions, options);
@@ -99,7 +101,7 @@ namespace Hctamu.Pve.Storage
         /// The raw source data
         /// </summary>
         [Input("sourceRaw", required: true)]
-        public Input<Inputs.FileSourceRawArgs> SourceRaw { get; set; } = null!;
+        public Input<Hctamu.Pve.Proxmox.Inputs.FileSourceRawArgs> SourceRaw { get; set; } = null!;
 
         public FileArgs()
         {

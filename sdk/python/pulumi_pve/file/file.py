@@ -13,8 +13,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
-from . import outputs
-from ._inputs import *
+from .. import proxmox as _proxmox
 
 __all__ = ['FileArgs', 'File']
 
@@ -23,12 +22,12 @@ class FileArgs:
     def __init__(__self__, *,
                  content_type: pulumi.Input[_builtins.str],
                  datastore_id: pulumi.Input[_builtins.str],
-                 source_raw: pulumi.Input['FileSourceRawArgs']):
+                 source_raw: pulumi.Input['_proxmox.FileSourceRawArgs']):
         """
         The set of arguments for constructing a File resource.
         :param pulumi.Input[_builtins.str] content_type: The type of the file (e.g: snippets)
         :param pulumi.Input[_builtins.str] datastore_id: The datastore to upload the file to.  (e.g:ceph-ha)
-        :param pulumi.Input['FileSourceRawArgs'] source_raw: The raw source data
+        :param pulumi.Input['_proxmox.FileSourceRawArgs'] source_raw: The raw source data
         """
         pulumi.set(__self__, "content_type", content_type)
         pulumi.set(__self__, "datastore_id", datastore_id)
@@ -60,18 +59,18 @@ class FileArgs:
 
     @_builtins.property
     @pulumi.getter(name="sourceRaw")
-    def source_raw(self) -> pulumi.Input['FileSourceRawArgs']:
+    def source_raw(self) -> pulumi.Input['_proxmox.FileSourceRawArgs']:
         """
         The raw source data
         """
         return pulumi.get(self, "source_raw")
 
     @source_raw.setter
-    def source_raw(self, value: pulumi.Input['FileSourceRawArgs']):
+    def source_raw(self, value: pulumi.Input['_proxmox.FileSourceRawArgs']):
         pulumi.set(self, "source_raw", value)
 
 
-@pulumi.type_token("pve:storage:File")
+@pulumi.type_token("pve:file:File")
 class File(pulumi.CustomResource):
     @overload
     def __init__(__self__,
@@ -79,15 +78,16 @@ class File(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  content_type: Optional[pulumi.Input[_builtins.str]] = None,
                  datastore_id: Optional[pulumi.Input[_builtins.str]] = None,
-                 source_raw: Optional[pulumi.Input[Union['FileSourceRawArgs', 'FileSourceRawArgsDict']]] = None,
+                 source_raw: Optional[pulumi.Input[Union['_proxmox.FileSourceRawArgs', '_proxmox.FileSourceRawArgsDict']]] = None,
                  __props__=None):
         """
-        Create a File resource with the given unique name, props, and options.
+        A Proxmox file resource that represents a file in a Proxmox datastore.
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] content_type: The type of the file (e.g: snippets)
         :param pulumi.Input[_builtins.str] datastore_id: The datastore to upload the file to.  (e.g:ceph-ha)
-        :param pulumi.Input[Union['FileSourceRawArgs', 'FileSourceRawArgsDict']] source_raw: The raw source data
+        :param pulumi.Input[Union['_proxmox.FileSourceRawArgs', '_proxmox.FileSourceRawArgsDict']] source_raw: The raw source data
         """
         ...
     @overload
@@ -96,7 +96,8 @@ class File(pulumi.CustomResource):
                  args: FileArgs,
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
-        Create a File resource with the given unique name, props, and options.
+        A Proxmox file resource that represents a file in a Proxmox datastore.
+
         :param str resource_name: The name of the resource.
         :param FileArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -114,7 +115,7 @@ class File(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  content_type: Optional[pulumi.Input[_builtins.str]] = None,
                  datastore_id: Optional[pulumi.Input[_builtins.str]] = None,
-                 source_raw: Optional[pulumi.Input[Union['FileSourceRawArgs', 'FileSourceRawArgsDict']]] = None,
+                 source_raw: Optional[pulumi.Input[Union['_proxmox.FileSourceRawArgs', '_proxmox.FileSourceRawArgsDict']]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
         if not isinstance(opts, pulumi.ResourceOptions):
@@ -133,10 +134,10 @@ class File(pulumi.CustomResource):
             if source_raw is None and not opts.urn:
                 raise TypeError("Missing required property 'source_raw'")
             __props__.__dict__["source_raw"] = source_raw
-        replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["contentType", "datastoreId", "sourceRaw.fileData", "sourceRaw.fileName"])
+        replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["contentType", "datastoreId", "sourceRaw"])
         opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
         super(File, __self__).__init__(
-            'pve:storage:File',
+            'pve:file:File',
             resource_name,
             __props__,
             opts)
@@ -180,7 +181,7 @@ class File(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter(name="sourceRaw")
-    def source_raw(self) -> pulumi.Output['outputs.FileSourceRaw']:
+    def source_raw(self) -> pulumi.Output['_proxmox.outputs.FileSourceRaw']:
         """
         The raw source data
         """

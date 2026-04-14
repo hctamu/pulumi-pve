@@ -128,7 +128,7 @@ func (sa *SSHAdapter) Run(command proxmox.SSHOperation, filePath string, data ..
 		}
 
 		// Write data to the remote process.
-		if _, err := fmt.Fprintf(stdin, "%s\n", data[0]); err != nil {
+		if _, err := fmt.Fprintf(stdin, "%s", data[0]); err != nil {
 			return "", fmt.Errorf("error writing string: %v", err)
 		}
 

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Storage.Inputs
+namespace Hctamu.Pve.Proxmox.Inputs
 {
 
     public sealed class FileSourceRawArgs : global::Pulumi.ResourceArgs

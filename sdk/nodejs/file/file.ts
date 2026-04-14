@@ -6,6 +6,9 @@ import * as inputs from "../types/input";
 import * as outputs from "../types/output";
 import * as utilities from "../utilities";
 
+/**
+ * A Proxmox file resource that represents a file in a Proxmox datastore.
+ */
 export class File extends pulumi.CustomResource {
     /**
      * Get an existing File resource's state with the given name, ID, and optional extra
@@ -20,7 +23,7 @@ export class File extends pulumi.CustomResource {
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'pve:storage:File';
+    public static readonly __pulumiType = 'pve:file:File';
 
     /**
      * Returns true if the given object is an instance of File.  This is designed to work even
@@ -44,7 +47,7 @@ export class File extends pulumi.CustomResource {
     /**
      * The raw source data
      */
-    declare public readonly sourceRaw: pulumi.Output<outputs.storage.FileSourceRaw>;
+    declare public readonly sourceRaw: pulumi.Output<outputs.proxmox.FileSourceRaw>;
 
     /**
      * Create a File resource with the given unique name, arguments, and options.
@@ -75,7 +78,7 @@ export class File extends pulumi.CustomResource {
             resourceInputs["sourceRaw"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        const replaceOnChanges = { replaceOnChanges: ["contentType", "datastoreId", "sourceRaw.fileData", "sourceRaw.fileName"] };
+        const replaceOnChanges = { replaceOnChanges: ["contentType", "datastoreId", "sourceRaw"] };
         opts = pulumi.mergeOptions(opts, replaceOnChanges);
         super(File.__pulumiType, name, resourceInputs, opts);
     }
@@ -96,5 +99,5 @@ export interface FileArgs {
     /**
      * The raw source data
      */
-    sourceRaw: pulumi.Input<inputs.storage.FileSourceRawArgs>;
+    sourceRaw: pulumi.Input<inputs.proxmox.FileSourceRawArgs>;
 }

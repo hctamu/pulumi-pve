@@ -14,16 +14,18 @@ if typing.TYPE_CHECKING:
     acl = __acl
     import pulumi_pve.config as __config
     config = __config
+    import pulumi_pve.file as __file
+    file = __file
     import pulumi_pve.group as __group
     group = __group
     import pulumi_pve.ha as __ha
     ha = __ha
     import pulumi_pve.pool as __pool
     pool = __pool
+    import pulumi_pve.proxmox as __proxmox
+    proxmox = __proxmox
     import pulumi_pve.role as __role
     role = __role
-    import pulumi_pve.storage as __storage
-    storage = __storage
     import pulumi_pve.user as __user
     user = __user
     import pulumi_pve.vm as __vm
@@ -31,11 +33,12 @@ if typing.TYPE_CHECKING:
 else:
     acl = _utilities.lazy_import('pulumi_pve.acl')
     config = _utilities.lazy_import('pulumi_pve.config')
+    file = _utilities.lazy_import('pulumi_pve.file')
     group = _utilities.lazy_import('pulumi_pve.group')
     ha = _utilities.lazy_import('pulumi_pve.ha')
     pool = _utilities.lazy_import('pulumi_pve.pool')
+    proxmox = _utilities.lazy_import('pulumi_pve.proxmox')
     role = _utilities.lazy_import('pulumi_pve.role')
-    storage = _utilities.lazy_import('pulumi_pve.storage')
     user = _utilities.lazy_import('pulumi_pve.user')
     vm = _utilities.lazy_import('pulumi_pve.vm')
 
@@ -48,6 +51,14 @@ _utilities.register(
   "fqn": "pulumi_pve.acl",
   "classes": {
    "pve:acl:ACL": "ACL"
+  }
+ },
+ {
+  "pkg": "pve",
+  "mod": "file",
+  "fqn": "pulumi_pve.file",
+  "classes": {
+   "pve:file:File": "File"
   }
  },
  {
@@ -80,14 +91,6 @@ _utilities.register(
   "fqn": "pulumi_pve.role",
   "classes": {
    "pve:role:Role": "Role"
-  }
- },
- {
-  "pkg": "pve",
-  "mod": "storage",
-  "fqn": "pulumi_pve.storage",
-  "classes": {
-   "pve:storage:File": "File"
   }
  },
  {
