@@ -20,11 +20,11 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/acl"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/group"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/ha"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/pool"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/storage"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 
@@ -112,6 +112,19 @@ func newRoleResourceWithConfig(cfg *config.Config) *role.Role {
 	return &role.Role{RoleOps: roleAdapter}
 }
 
+func newFileWithConfig(cfg *config.Config) *file.File {
+	// Create ProxmoxAdapter with config
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+
+	// Create SSHAdapter with the ProxmoxAdapter and config
+	sshAdapter := adapters.NewSSHAdapter(proxmoxAdapter, cfg)
+
+	// Create FileAdapter using the ProxmoxAdapter and SSHAdapter
+	fileAdapter := adapters.NewFileAdapter(proxmoxAdapter, sshAdapter)
+
+	return &file.File{FileOps: fileAdapter}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -123,7 +136,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 	return infer.Provider(infer.Options{
 		Resources: []infer.InferredResource{
 			infer.Resource(newPoolResourceWithConfig(cfg)),
-			infer.Resource(&storage.File{}),
+			infer.Resource(newFileWithConfig(cfg)),
 			infer.Resource(newHAResourceWithConfig(cfg)),
 			infer.Resource(&vm.VM{}),
 			infer.Resource(newGroupResourceWithConfig(cfg)),
