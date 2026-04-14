@@ -7,7 +7,7 @@ import * as outputs from "../types/output";
 
 import * as utilities from "../utilities";
 
-export namespace storage {
+export namespace proxmox {
     export interface FileSourceRaw {
         /**
          * The raw data in []byte

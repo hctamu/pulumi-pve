@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Pulumi.Serialization;
 using Pulumi;
 
-namespace Hctamu.Pve.Storage.Outputs
+namespace Hctamu.Pve.Proxmox.Outputs
 {
 
     [OutputType]
