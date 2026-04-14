@@ -23,12 +23,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"golang.org/x/crypto/ssh"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 // Ensure SSHAdapter implements the proxmox.SSHClient interface.
