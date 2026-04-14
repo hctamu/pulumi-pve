@@ -20,8 +20,6 @@ import (
 	"testing"
 
 	"github.com/blang/semver"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,6 +27,9 @@ import (
 	"github.com/pulumi/pulumi-go-provider/integration"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/tokens"
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
+	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 const (
