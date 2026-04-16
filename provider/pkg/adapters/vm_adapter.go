@@ -685,21 +685,11 @@ func compareAndAddOption[T comparable](name string, options *[]api.VirtualMachin
 // because Proxmox returns tags sorted alphabetically regardless of submission order.
 // When a change is detected, the new tags are sent in the user-specified order.
 func compareAndAddTags(name string, options *[]api.VirtualMachineOption, newTags, currentTags []string) {
-	sortedNew := sortedTagsCopy(newTags)
-	sortedCurrent := sortedTagsCopy(currentTags)
-	if strings.Join(sortedNew, ",") == strings.Join(sortedCurrent, ",") {
+	if !utils.StringSliceChanged(newTags, currentTags) {
 		return
 	}
 	newTagsStr := strings.Join(newTags, ",")
 	*options = append(*options, api.VirtualMachineOption{Name: name, Value: &newTagsStr})
-}
-
-// sortedTagsCopy returns a sorted copy of tags without modifying the original slice.
-func sortedTagsCopy(tags []string) []string {
-	cp := make([]string, len(tags))
-	copy(cp, tags)
-	slices.Sort(cp)
-	return cp
 }
 
 // addOption adds name→*value to options if value is non-nil (dereferenced).

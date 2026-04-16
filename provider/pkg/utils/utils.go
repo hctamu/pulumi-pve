@@ -124,3 +124,18 @@ func PtrEqual[T comparable](a, b *T) bool {
 	}
 	return *a == *b
 }
+
+// StringSliceChanged returns true when the two tag slices contain different sets of values,
+// ignoring order.
+func StringSliceChanged(a, b []string) bool {
+	if len(a) != len(b) {
+		return true
+	}
+	sortedA := make([]string, len(a))
+	copy(sortedA, a)
+	sort.Strings(sortedA)
+	sortedB := make([]string, len(b))
+	copy(sortedB, b)
+	sort.Strings(sortedB)
+	return strings.Join(sortedA, ",") != strings.Join(sortedB, ",")
+}
