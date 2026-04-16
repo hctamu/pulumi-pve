@@ -13,123 +13,99 @@ namespace Hctamu.Pve.Vm
     [PveResourceType("pve:vm:VM")]
     public partial class VM : global::Pulumi.CustomResource
     {
-        [Output("acpi")]
-        public Output<int?> Acpi { get; private set; } = null!;
-
-        [Output("audio0")]
-        public Output<string?> Audio0 { get; private set; } = null!;
-
+        /// <summary>
+        /// Automatically start the VM when the host boots (1 to enable, 0 to disable).
+        /// </summary>
         [Output("autostart")]
         public Output<int?> Autostart { get; private set; } = null!;
 
+        /// <summary>
+        /// Minimum memory for ballooning in megabytes (0 disables the balloon device).
+        /// </summary>
         [Output("balloon")]
         public Output<int?> Balloon { get; private set; } = null!;
 
-        [Output("bios")]
-        public Output<string?> Bios { get; private set; } = null!;
-
-        [Output("cicustom")]
-        public Output<string?> Cicustom { get; private set; } = null!;
-
-        [Output("cipassword")]
-        public Output<string?> Cipassword { get; private set; } = null!;
-
-        [Output("citype")]
-        public Output<string?> Citype { get; private set; } = null!;
-
-        [Output("ciupgrade")]
-        public Output<int?> Ciupgrade { get; private set; } = null!;
-
-        [Output("ciuser")]
-        public Output<string?> Ciuser { get; private set; } = null!;
-
+        /// <summary>
+        /// Clone configuration for creating the VM from a source template or VM.
+        /// </summary>
         [Output("clone")]
         public Output<Hctamu.Pve.Proxmox.Outputs.Clone?> Clone { get; private set; } = null!;
 
+        /// <summary>
+        /// CPU configuration including type, topology, and feature flags.
+        /// </summary>
         [Output("cpu")]
         public Output<Hctamu.Pve.Proxmox.Outputs.CPU?> Cpu { get; private set; } = null!;
 
+        /// <summary>
+        /// Description or notes for the virtual machine.
+        /// </summary>
         [Output("description")]
         public Output<string?> Description { get; private set; } = null!;
 
+        /// <summary>
+        /// List of disk configurations attached to the virtual machine.
+        /// </summary>
         [Output("disks")]
         public Output<ImmutableArray<Hctamu.Pve.Proxmox.Outputs.Disk>> Disks { get; private set; } = null!;
 
+        /// <summary>
+        /// EFI disk configuration (required when bios is set to ovmf).
+        /// </summary>
         [Output("efidisk")]
         public Output<Hctamu.Pve.Proxmox.Outputs.EfiDisk?> Efidisk { get; private set; } = null!;
 
-        [Output("hookscript")]
-        public Output<string?> Hookscript { get; private set; } = null!;
-
-        [Output("hostpci0")]
-        public Output<string?> Hostpci0 { get; private set; } = null!;
-
+        /// <summary>
+        /// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+        /// </summary>
         [Output("hotplug")]
         public Output<string?> Hotplug { get; private set; } = null!;
 
-        [Output("hugepages")]
-        public Output<string?> Hugepages { get; private set; } = null!;
-
-        [Output("ipconfig0")]
-        public Output<string?> Ipconfig0 { get; private set; } = null!;
-
-        [Output("kvm")]
-        public Output<int?> Kvm { get; private set; } = null!;
-
-        [Output("lock")]
-        public Output<string?> Lock { get; private set; } = null!;
-
+        /// <summary>
+        /// Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+        /// </summary>
         [Output("machine")]
         public Output<string?> Machine { get; private set; } = null!;
 
+        /// <summary>
+        /// Memory size in megabytes.
+        /// </summary>
         [Output("memory")]
         public Output<int?> Memory { get; private set; } = null!;
 
+        /// <summary>
+        /// Name of the virtual machine.
+        /// </summary>
         [Output("name")]
         public Output<string> Name { get; private set; } = null!;
 
-        [Output("nameserver")]
-        public Output<string?> Nameserver { get; private set; } = null!;
-
+        /// <summary>
+        /// Proxmox node where the VM resides.
+        /// </summary>
         [Output("node")]
         public Output<string?> Node { get; private set; } = null!;
 
+        /// <summary>
+        /// Guest operating system type (e.g., l26, win11, other).
+        /// </summary>
         [Output("ostype")]
         public Output<string?> Ostype { get; private set; } = null!;
 
-        [Output("parallel0")]
-        public Output<string?> Parallel0 { get; private set; } = null!;
+        /// <summary>
+        /// Tags associated with the virtual machine.
+        /// </summary>
+        [Output("tags")]
+        public Output<ImmutableArray<string>> Tags { get; private set; } = null!;
 
-        [Output("protection")]
-        public Output<int?> Protection { get; private set; } = null!;
-
-        [Output("rng0")]
-        public Output<string?> Rng0 { get; private set; } = null!;
-
-        [Output("searchdomain")]
-        public Output<string?> Searchdomain { get; private set; } = null!;
-
-        [Output("serial0")]
-        public Output<string?> Serial0 { get; private set; } = null!;
-
-        [Output("sshkeys")]
-        public Output<string?> Sshkeys { get; private set; } = null!;
-
-        [Output("tablet")]
-        public Output<int?> Tablet { get; private set; } = null!;
-
+        /// <summary>
+        /// Mark the VM as a template (1) or a regular VM (0).
+        /// </summary>
         [Output("template")]
         public Output<int?> Template { get; private set; } = null!;
 
-        [Output("tpmstate0")]
-        public Output<string?> Tpmstate0 { get; private set; } = null!;
-
-        [Output("usb0")]
-        public Output<string?> Usb0 { get; private set; } = null!;
-
-        [Output("vga")]
-        public Output<string?> Vga { get; private set; } = null!;
-
+        /// <summary>
+        /// Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+        /// </summary>
         [Output("vmId")]
         public Output<int?> VmId { get; private set; } = null!;
 
@@ -178,128 +154,111 @@ namespace Hctamu.Pve.Vm
 
     public sealed class VMArgs : global::Pulumi.ResourceArgs
     {
-        [Input("acpi")]
-        public Input<int>? Acpi { get; set; }
-
-        [Input("audio0")]
-        public Input<string>? Audio0 { get; set; }
-
+        /// <summary>
+        /// Automatically start the VM when the host boots (1 to enable, 0 to disable).
+        /// </summary>
         [Input("autostart")]
         public Input<int>? Autostart { get; set; }
 
+        /// <summary>
+        /// Minimum memory for ballooning in megabytes (0 disables the balloon device).
+        /// </summary>
         [Input("balloon")]
         public Input<int>? Balloon { get; set; }
 
-        [Input("bios")]
-        public Input<string>? Bios { get; set; }
-
-        [Input("cicustom")]
-        public Input<string>? Cicustom { get; set; }
-
-        [Input("cipassword")]
-        public Input<string>? Cipassword { get; set; }
-
-        [Input("citype")]
-        public Input<string>? Citype { get; set; }
-
-        [Input("ciupgrade")]
-        public Input<int>? Ciupgrade { get; set; }
-
-        [Input("ciuser")]
-        public Input<string>? Ciuser { get; set; }
-
+        /// <summary>
+        /// Clone configuration for creating the VM from a source template or VM.
+        /// </summary>
         [Input("clone")]
         public Input<Hctamu.Pve.Proxmox.Inputs.CloneArgs>? Clone { get; set; }
 
+        /// <summary>
+        /// CPU configuration including type, topology, and feature flags.
+        /// </summary>
         [Input("cpu")]
         public Input<Hctamu.Pve.Proxmox.Inputs.CPUArgs>? Cpu { get; set; }
 
+        /// <summary>
+        /// Description or notes for the virtual machine.
+        /// </summary>
         [Input("description")]
         public Input<string>? Description { get; set; }
 
         [Input("disks", required: true)]
         private InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>? _disks;
+
+        /// <summary>
+        /// List of disk configurations attached to the virtual machine.
+        /// </summary>
         public InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs> Disks
         {
             get => _disks ?? (_disks = new InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>());
             set => _disks = value;
         }
 
+        /// <summary>
+        /// EFI disk configuration (required when bios is set to ovmf).
+        /// </summary>
         [Input("efidisk")]
         public Input<Hctamu.Pve.Proxmox.Inputs.EfiDiskArgs>? Efidisk { get; set; }
 
-        [Input("hookscript")]
-        public Input<string>? Hookscript { get; set; }
-
-        [Input("hostpci0")]
-        public Input<string>? Hostpci0 { get; set; }
-
+        /// <summary>
+        /// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+        /// </summary>
         [Input("hotplug")]
         public Input<string>? Hotplug { get; set; }
 
-        [Input("hugepages")]
-        public Input<string>? Hugepages { get; set; }
-
-        [Input("ipconfig0")]
-        public Input<string>? Ipconfig0 { get; set; }
-
-        [Input("kvm")]
-        public Input<int>? Kvm { get; set; }
-
-        [Input("lock")]
-        public Input<string>? Lock { get; set; }
-
+        /// <summary>
+        /// Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+        /// </summary>
         [Input("machine")]
         public Input<string>? Machine { get; set; }
 
+        /// <summary>
+        /// Memory size in megabytes.
+        /// </summary>
         [Input("memory")]
         public Input<int>? Memory { get; set; }
 
+        /// <summary>
+        /// Name of the virtual machine.
+        /// </summary>
         [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
 
-        [Input("nameserver")]
-        public Input<string>? Nameserver { get; set; }
-
+        /// <summary>
+        /// Proxmox node where the VM resides.
+        /// </summary>
         [Input("node")]
         public Input<string>? Node { get; set; }
 
+        /// <summary>
+        /// Guest operating system type (e.g., l26, win11, other).
+        /// </summary>
         [Input("ostype")]
         public Input<string>? Ostype { get; set; }
 
-        [Input("parallel0")]
-        public Input<string>? Parallel0 { get; set; }
+        [Input("tags")]
+        private InputList<string>? _tags;
 
-        [Input("protection")]
-        public Input<int>? Protection { get; set; }
+        /// <summary>
+        /// Tags associated with the virtual machine.
+        /// </summary>
+        public InputList<string> Tags
+        {
+            get => _tags ?? (_tags = new InputList<string>());
+            set => _tags = value;
+        }
 
-        [Input("rng0")]
-        public Input<string>? Rng0 { get; set; }
-
-        [Input("searchdomain")]
-        public Input<string>? Searchdomain { get; set; }
-
-        [Input("serial0")]
-        public Input<string>? Serial0 { get; set; }
-
-        [Input("sshkeys")]
-        public Input<string>? Sshkeys { get; set; }
-
-        [Input("tablet")]
-        public Input<int>? Tablet { get; set; }
-
+        /// <summary>
+        /// Mark the VM as a template (1) or a regular VM (0).
+        /// </summary>
         [Input("template")]
         public Input<int>? Template { get; set; }
 
-        [Input("tpmstate0")]
-        public Input<string>? Tpmstate0 { get; set; }
-
-        [Input("usb0")]
-        public Input<string>? Usb0 { get; set; }
-
-        [Input("vga")]
-        public Input<string>? Vga { get; set; }
-
+        /// <summary>
+        /// Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+        /// </summary>
         [Input("vmId")]
         public Input<int>? VmId { get; set; }
 

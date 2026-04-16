@@ -25,93 +25,197 @@ public final class CPUArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final CPUArgs Empty = new CPUArgs();
 
+    /**
+     * Number of CPU cores per socket.
+     * 
+     */
     @Import(name="cores")
     private @Nullable Output<Integer> cores;
 
+    /**
+     * @return Number of CPU cores per socket.
+     * 
+     */
     public Optional<Output<Integer>> cores() {
         return Optional.ofNullable(this.cores);
     }
 
+    /**
+     * List of CPU flags to disable.
+     * 
+     */
     @Import(name="flagsDisabled")
     private @Nullable Output<List<String>> flagsDisabled;
 
+    /**
+     * @return List of CPU flags to disable.
+     * 
+     */
     public Optional<Output<List<String>>> flagsDisabled() {
         return Optional.ofNullable(this.flagsDisabled);
     }
 
+    /**
+     * List of CPU flags to enable (e.g., pcid, spec-ctrl).
+     * 
+     */
     @Import(name="flagsEnabled")
     private @Nullable Output<List<String>> flagsEnabled;
 
+    /**
+     * @return List of CPU flags to enable (e.g., pcid, spec-ctrl).
+     * 
+     */
     public Optional<Output<List<String>>> flagsEnabled() {
         return Optional.ofNullable(this.flagsEnabled);
     }
 
+    /**
+     * Hide VM CPU type from the guest operating system.
+     * 
+     */
     @Import(name="hidden")
     private @Nullable Output<Boolean> hidden;
 
+    /**
+     * @return Hide VM CPU type from the guest operating system.
+     * 
+     */
     public Optional<Output<Boolean>> hidden() {
         return Optional.ofNullable(this.hidden);
     }
 
+    /**
+     * Hyper-V vendor ID presented to the guest (up to 12 characters).
+     * 
+     */
     @Import(name="hvVendorId")
     private @Nullable Output<String> hvVendorId;
 
+    /**
+     * @return Hyper-V vendor ID presented to the guest (up to 12 characters).
+     * 
+     */
     public Optional<Output<String>> hvVendorId() {
         return Optional.ofNullable(this.hvVendorId);
     }
 
+    /**
+     * CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+     * 
+     */
     @Import(name="limit")
     private @Nullable Output<Double> limit;
 
+    /**
+     * @return CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+     * 
+     */
     public Optional<Output<Double>> limit() {
         return Optional.ofNullable(this.limit);
     }
 
+    /**
+     * Enable NUMA topology.
+     * 
+     */
     @Import(name="numa")
     private @Nullable Output<Boolean> numa;
 
+    /**
+     * @return Enable NUMA topology.
+     * 
+     */
     public Optional<Output<Boolean>> numa() {
         return Optional.ofNullable(this.numa);
     }
 
+    /**
+     * NUMA node topology configuration.
+     * 
+     */
     @Import(name="numaNodes")
     private @Nullable Output<List<NumaNodeArgs>> numaNodes;
 
+    /**
+     * @return NUMA node topology configuration.
+     * 
+     */
     public Optional<Output<List<NumaNodeArgs>>> numaNodes() {
         return Optional.ofNullable(this.numaNodes);
     }
 
+    /**
+     * Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+     * 
+     */
     @Import(name="physBits")
     private @Nullable Output<String> physBits;
 
+    /**
+     * @return Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+     * 
+     */
     public Optional<Output<String>> physBits() {
         return Optional.ofNullable(this.physBits);
     }
 
+    /**
+     * Number of CPU sockets.
+     * 
+     */
     @Import(name="sockets")
     private @Nullable Output<Integer> sockets;
 
+    /**
+     * @return Number of CPU sockets.
+     * 
+     */
     public Optional<Output<Integer>> sockets() {
         return Optional.ofNullable(this.sockets);
     }
 
+    /**
+     * CPU type (e.g., host, kvm64, x86-64-v2-AES).
+     * 
+     */
     @Import(name="type")
     private @Nullable Output<String> type;
 
+    /**
+     * @return CPU type (e.g., host, kvm64, x86-64-v2-AES).
+     * 
+     */
     public Optional<Output<String>> type() {
         return Optional.ofNullable(this.type);
     }
 
+    /**
+     * CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+     * 
+     */
     @Import(name="units")
     private @Nullable Output<Integer> units;
 
+    /**
+     * @return CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+     * 
+     */
     public Optional<Output<Integer>> units() {
         return Optional.ofNullable(this.units);
     }
 
+    /**
+     * Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+     * 
+     */
     @Import(name="vcpus")
     private @Nullable Output<Integer> vcpus;
 
+    /**
+     * @return Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+     * 
+     */
     public Optional<Output<Integer>> vcpus() {
         return Optional.ofNullable(this.vcpus);
     }
@@ -152,131 +256,305 @@ public final class CPUArgs extends com.pulumi.resources.ResourceArgs {
             $ = new CPUArgs(Objects.requireNonNull(defaults));
         }
 
+        /**
+         * @param cores Number of CPU cores per socket.
+         * 
+         * @return builder
+         * 
+         */
         public Builder cores(@Nullable Output<Integer> cores) {
             $.cores = cores;
             return this;
         }
 
+        /**
+         * @param cores Number of CPU cores per socket.
+         * 
+         * @return builder
+         * 
+         */
         public Builder cores(Integer cores) {
             return cores(Output.of(cores));
         }
 
+        /**
+         * @param flagsDisabled List of CPU flags to disable.
+         * 
+         * @return builder
+         * 
+         */
         public Builder flagsDisabled(@Nullable Output<List<String>> flagsDisabled) {
             $.flagsDisabled = flagsDisabled;
             return this;
         }
 
+        /**
+         * @param flagsDisabled List of CPU flags to disable.
+         * 
+         * @return builder
+         * 
+         */
         public Builder flagsDisabled(List<String> flagsDisabled) {
             return flagsDisabled(Output.of(flagsDisabled));
         }
 
+        /**
+         * @param flagsDisabled List of CPU flags to disable.
+         * 
+         * @return builder
+         * 
+         */
         public Builder flagsDisabled(String... flagsDisabled) {
             return flagsDisabled(List.of(flagsDisabled));
         }
 
+        /**
+         * @param flagsEnabled List of CPU flags to enable (e.g., pcid, spec-ctrl).
+         * 
+         * @return builder
+         * 
+         */
         public Builder flagsEnabled(@Nullable Output<List<String>> flagsEnabled) {
             $.flagsEnabled = flagsEnabled;
             return this;
         }
 
+        /**
+         * @param flagsEnabled List of CPU flags to enable (e.g., pcid, spec-ctrl).
+         * 
+         * @return builder
+         * 
+         */
         public Builder flagsEnabled(List<String> flagsEnabled) {
             return flagsEnabled(Output.of(flagsEnabled));
         }
 
+        /**
+         * @param flagsEnabled List of CPU flags to enable (e.g., pcid, spec-ctrl).
+         * 
+         * @return builder
+         * 
+         */
         public Builder flagsEnabled(String... flagsEnabled) {
             return flagsEnabled(List.of(flagsEnabled));
         }
 
+        /**
+         * @param hidden Hide VM CPU type from the guest operating system.
+         * 
+         * @return builder
+         * 
+         */
         public Builder hidden(@Nullable Output<Boolean> hidden) {
             $.hidden = hidden;
             return this;
         }
 
+        /**
+         * @param hidden Hide VM CPU type from the guest operating system.
+         * 
+         * @return builder
+         * 
+         */
         public Builder hidden(Boolean hidden) {
             return hidden(Output.of(hidden));
         }
 
+        /**
+         * @param hvVendorId Hyper-V vendor ID presented to the guest (up to 12 characters).
+         * 
+         * @return builder
+         * 
+         */
         public Builder hvVendorId(@Nullable Output<String> hvVendorId) {
             $.hvVendorId = hvVendorId;
             return this;
         }
 
+        /**
+         * @param hvVendorId Hyper-V vendor ID presented to the guest (up to 12 characters).
+         * 
+         * @return builder
+         * 
+         */
         public Builder hvVendorId(String hvVendorId) {
             return hvVendorId(Output.of(hvVendorId));
         }
 
+        /**
+         * @param limit CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+         * 
+         * @return builder
+         * 
+         */
         public Builder limit(@Nullable Output<Double> limit) {
             $.limit = limit;
             return this;
         }
 
+        /**
+         * @param limit CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+         * 
+         * @return builder
+         * 
+         */
         public Builder limit(Double limit) {
             return limit(Output.of(limit));
         }
 
+        /**
+         * @param numa Enable NUMA topology.
+         * 
+         * @return builder
+         * 
+         */
         public Builder numa(@Nullable Output<Boolean> numa) {
             $.numa = numa;
             return this;
         }
 
+        /**
+         * @param numa Enable NUMA topology.
+         * 
+         * @return builder
+         * 
+         */
         public Builder numa(Boolean numa) {
             return numa(Output.of(numa));
         }
 
+        /**
+         * @param numaNodes NUMA node topology configuration.
+         * 
+         * @return builder
+         * 
+         */
         public Builder numaNodes(@Nullable Output<List<NumaNodeArgs>> numaNodes) {
             $.numaNodes = numaNodes;
             return this;
         }
 
+        /**
+         * @param numaNodes NUMA node topology configuration.
+         * 
+         * @return builder
+         * 
+         */
         public Builder numaNodes(List<NumaNodeArgs> numaNodes) {
             return numaNodes(Output.of(numaNodes));
         }
 
+        /**
+         * @param numaNodes NUMA node topology configuration.
+         * 
+         * @return builder
+         * 
+         */
         public Builder numaNodes(NumaNodeArgs... numaNodes) {
             return numaNodes(List.of(numaNodes));
         }
 
+        /**
+         * @param physBits Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+         * 
+         * @return builder
+         * 
+         */
         public Builder physBits(@Nullable Output<String> physBits) {
             $.physBits = physBits;
             return this;
         }
 
+        /**
+         * @param physBits Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+         * 
+         * @return builder
+         * 
+         */
         public Builder physBits(String physBits) {
             return physBits(Output.of(physBits));
         }
 
+        /**
+         * @param sockets Number of CPU sockets.
+         * 
+         * @return builder
+         * 
+         */
         public Builder sockets(@Nullable Output<Integer> sockets) {
             $.sockets = sockets;
             return this;
         }
 
+        /**
+         * @param sockets Number of CPU sockets.
+         * 
+         * @return builder
+         * 
+         */
         public Builder sockets(Integer sockets) {
             return sockets(Output.of(sockets));
         }
 
+        /**
+         * @param type CPU type (e.g., host, kvm64, x86-64-v2-AES).
+         * 
+         * @return builder
+         * 
+         */
         public Builder type(@Nullable Output<String> type) {
             $.type = type;
             return this;
         }
 
+        /**
+         * @param type CPU type (e.g., host, kvm64, x86-64-v2-AES).
+         * 
+         * @return builder
+         * 
+         */
         public Builder type(String type) {
             return type(Output.of(type));
         }
 
+        /**
+         * @param units CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+         * 
+         * @return builder
+         * 
+         */
         public Builder units(@Nullable Output<Integer> units) {
             $.units = units;
             return this;
         }
 
+        /**
+         * @param units CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+         * 
+         * @return builder
+         * 
+         */
         public Builder units(Integer units) {
             return units(Output.of(units));
         }
 
+        /**
+         * @param vcpus Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+         * 
+         * @return builder
+         * 
+         */
         public Builder vcpus(@Nullable Output<Integer> vcpus) {
             $.vcpus = vcpus;
             return this;
         }
 
+        /**
+         * @param vcpus Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+         * 
+         * @return builder
+         * 
+         */
         public Builder vcpus(Integer vcpus) {
             return vcpus(Output.of(vcpus));
         }

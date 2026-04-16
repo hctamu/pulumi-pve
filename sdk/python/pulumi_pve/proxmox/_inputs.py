@@ -37,18 +37,57 @@ if not MYPY:
         CPU configuration for the virtual machine.
         """
         cores: NotRequired[pulumi.Input[_builtins.int]]
+        """
+        Number of CPU cores per socket.
+        """
         flags_disabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
+        """
+        List of CPU flags to disable.
+        """
         flags_enabled: NotRequired[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]
+        """
+        List of CPU flags to enable (e.g., pcid, spec-ctrl).
+        """
         hidden: NotRequired[pulumi.Input[_builtins.bool]]
+        """
+        Hide VM CPU type from the guest operating system.
+        """
         hv_vendor_id: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        Hyper-V vendor ID presented to the guest (up to 12 characters).
+        """
         limit: NotRequired[pulumi.Input[_builtins.float]]
+        """
+        CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+        """
         numa: NotRequired[pulumi.Input[_builtins.bool]]
+        """
+        Enable NUMA topology.
+        """
         numa_nodes: NotRequired[pulumi.Input[Sequence[pulumi.Input['NumaNodeArgsDict']]]]
+        """
+        NUMA node topology configuration.
+        """
         phys_bits: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+        """
         sockets: NotRequired[pulumi.Input[_builtins.int]]
+        """
+        Number of CPU sockets.
+        """
         type: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        CPU type (e.g., host, kvm64, x86-64-v2-AES).
+        """
         units: NotRequired[pulumi.Input[_builtins.int]]
+        """
+        CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+        """
         vcpus: NotRequired[pulumi.Input[_builtins.int]]
+        """
+        Number of hotplugged vCPUs (must be <= cores * sockets).
+        """
 elif False:
     CPUArgsDict: TypeAlias = Mapping[str, Any]
 
@@ -70,6 +109,19 @@ class CPUArgs:
                  vcpus: Optional[pulumi.Input[_builtins.int]] = None):
         """
         CPU configuration for the virtual machine.
+        :param pulumi.Input[_builtins.int] cores: Number of CPU cores per socket.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] flags_disabled: List of CPU flags to disable.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] flags_enabled: List of CPU flags to enable (e.g., pcid, spec-ctrl).
+        :param pulumi.Input[_builtins.bool] hidden: Hide VM CPU type from the guest operating system.
+        :param pulumi.Input[_builtins.str] hv_vendor_id: Hyper-V vendor ID presented to the guest (up to 12 characters).
+        :param pulumi.Input[_builtins.float] limit: CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+        :param pulumi.Input[_builtins.bool] numa: Enable NUMA topology.
+        :param pulumi.Input[Sequence[pulumi.Input['NumaNodeArgs']]] numa_nodes: NUMA node topology configuration.
+        :param pulumi.Input[_builtins.str] phys_bits: Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+        :param pulumi.Input[_builtins.int] sockets: Number of CPU sockets.
+        :param pulumi.Input[_builtins.str] type: CPU type (e.g., host, kvm64, x86-64-v2-AES).
+        :param pulumi.Input[_builtins.int] units: CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+        :param pulumi.Input[_builtins.int] vcpus: Number of hotplugged vCPUs (must be <= cores * sockets).
         """
         if cores is None:
             cores = (_utilities.get_env_int('Number of CPU cores') or 1)
@@ -103,6 +155,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def cores(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Number of CPU cores per socket.
+        """
         return pulumi.get(self, "cores")
 
     @cores.setter
@@ -112,6 +167,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter(name="flagsDisabled")
     def flags_disabled(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        """
+        List of CPU flags to disable.
+        """
         return pulumi.get(self, "flags_disabled")
 
     @flags_disabled.setter
@@ -121,6 +179,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter(name="flagsEnabled")
     def flags_enabled(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        """
+        List of CPU flags to enable (e.g., pcid, spec-ctrl).
+        """
         return pulumi.get(self, "flags_enabled")
 
     @flags_enabled.setter
@@ -130,6 +191,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def hidden(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        """
+        Hide VM CPU type from the guest operating system.
+        """
         return pulumi.get(self, "hidden")
 
     @hidden.setter
@@ -139,6 +203,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter(name="hvVendorId")
     def hv_vendor_id(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Hyper-V vendor ID presented to the guest (up to 12 characters).
+        """
         return pulumi.get(self, "hv_vendor_id")
 
     @hv_vendor_id.setter
@@ -148,6 +215,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def limit(self) -> Optional[pulumi.Input[_builtins.float]]:
+        """
+        CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+        """
         return pulumi.get(self, "limit")
 
     @limit.setter
@@ -157,6 +227,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def numa(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        """
+        Enable NUMA topology.
+        """
         return pulumi.get(self, "numa")
 
     @numa.setter
@@ -166,6 +239,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter(name="numaNodes")
     def numa_nodes(self) -> Optional[pulumi.Input[Sequence[pulumi.Input['NumaNodeArgs']]]]:
+        """
+        NUMA node topology configuration.
+        """
         return pulumi.get(self, "numa_nodes")
 
     @numa_nodes.setter
@@ -175,6 +251,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter(name="physBits")
     def phys_bits(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+        """
         return pulumi.get(self, "phys_bits")
 
     @phys_bits.setter
@@ -184,6 +263,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def sockets(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Number of CPU sockets.
+        """
         return pulumi.get(self, "sockets")
 
     @sockets.setter
@@ -193,6 +275,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def type(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        CPU type (e.g., host, kvm64, x86-64-v2-AES).
+        """
         return pulumi.get(self, "type")
 
     @type.setter
@@ -202,6 +287,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def units(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+        """
         return pulumi.get(self, "units")
 
     @units.setter
@@ -211,6 +299,9 @@ class CPUArgs:
     @_builtins.property
     @pulumi.getter
     def vcpus(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Number of hotplugged vCPUs (must be <= cores * sockets).
+        """
         return pulumi.get(self, "vcpus")
 
     @vcpus.setter
@@ -220,11 +311,29 @@ class CPUArgs:
 
 if not MYPY:
     class CloneArgsDict(TypedDict):
+        """
+        Configuration for cloning a source virtual machine.
+        """
         vm_id: pulumi.Input[_builtins.int]
+        """
+        Source VM ID to clone from.
+        """
         data_store_id: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        Target storage pool for the cloned disks.
+        """
         full_clone: NotRequired[pulumi.Input[_builtins.bool]]
+        """
+        Create a full independent clone instead of a linked clone.
+        """
         node: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        Target Proxmox node for the clone operation.
+        """
         timeout: NotRequired[pulumi.Input[_builtins.int]]
+        """
+        Timeout in seconds for the clone operation.
+        """
 elif False:
     CloneArgsDict: TypeAlias = Mapping[str, Any]
 
@@ -236,6 +345,14 @@ class CloneArgs:
                  full_clone: Optional[pulumi.Input[_builtins.bool]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  timeout: Optional[pulumi.Input[_builtins.int]] = None):
+        """
+        Configuration for cloning a source virtual machine.
+        :param pulumi.Input[_builtins.int] vm_id: Source VM ID to clone from.
+        :param pulumi.Input[_builtins.str] data_store_id: Target storage pool for the cloned disks.
+        :param pulumi.Input[_builtins.bool] full_clone: Create a full independent clone instead of a linked clone.
+        :param pulumi.Input[_builtins.str] node: Target Proxmox node for the clone operation.
+        :param pulumi.Input[_builtins.int] timeout: Timeout in seconds for the clone operation.
+        """
         pulumi.set(__self__, "vm_id", vm_id)
         if data_store_id is not None:
             pulumi.set(__self__, "data_store_id", data_store_id)
@@ -249,6 +366,9 @@ class CloneArgs:
     @_builtins.property
     @pulumi.getter(name="vmId")
     def vm_id(self) -> pulumi.Input[_builtins.int]:
+        """
+        Source VM ID to clone from.
+        """
         return pulumi.get(self, "vm_id")
 
     @vm_id.setter
@@ -258,6 +378,9 @@ class CloneArgs:
     @_builtins.property
     @pulumi.getter(name="dataStoreId")
     def data_store_id(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Target storage pool for the cloned disks.
+        """
         return pulumi.get(self, "data_store_id")
 
     @data_store_id.setter
@@ -267,6 +390,9 @@ class CloneArgs:
     @_builtins.property
     @pulumi.getter(name="fullClone")
     def full_clone(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        """
+        Create a full independent clone instead of a linked clone.
+        """
         return pulumi.get(self, "full_clone")
 
     @full_clone.setter
@@ -276,6 +402,9 @@ class CloneArgs:
     @_builtins.property
     @pulumi.getter
     def node(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Target Proxmox node for the clone operation.
+        """
         return pulumi.get(self, "node")
 
     @node.setter
@@ -285,6 +414,9 @@ class CloneArgs:
     @_builtins.property
     @pulumi.getter
     def timeout(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Timeout in seconds for the clone operation.
+        """
         return pulumi.get(self, "timeout")
 
     @timeout.setter
@@ -294,10 +426,25 @@ class CloneArgs:
 
 if not MYPY:
     class DiskArgsDict(TypedDict):
+        """
+        Disk configuration for the virtual machine.
+        """
         interface: pulumi.Input[_builtins.str]
+        """
+        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        """
         size: pulumi.Input[_builtins.int]
+        """
+        Disk size in gigabytes.
+        """
         storage: pulumi.Input[_builtins.str]
+        """
+        Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+        """
         filename: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        File name of the disk image (computed by Proxmox if not provided).
+        """
 elif False:
     DiskArgsDict: TypeAlias = Mapping[str, Any]
 
@@ -308,6 +455,13 @@ class DiskArgs:
                  size: pulumi.Input[_builtins.int],
                  storage: pulumi.Input[_builtins.str],
                  filename: Optional[pulumi.Input[_builtins.str]] = None):
+        """
+        Disk configuration for the virtual machine.
+        :param pulumi.Input[_builtins.str] interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        :param pulumi.Input[_builtins.int] size: Disk size in gigabytes.
+        :param pulumi.Input[_builtins.str] storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+        :param pulumi.Input[_builtins.str] filename: File name of the disk image (computed by Proxmox if not provided).
+        """
         pulumi.set(__self__, "interface", interface)
         pulumi.set(__self__, "size", size)
         pulumi.set(__self__, "storage", storage)
@@ -317,6 +471,9 @@ class DiskArgs:
     @_builtins.property
     @pulumi.getter
     def interface(self) -> pulumi.Input[_builtins.str]:
+        """
+        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        """
         return pulumi.get(self, "interface")
 
     @interface.setter
@@ -326,6 +483,9 @@ class DiskArgs:
     @_builtins.property
     @pulumi.getter
     def size(self) -> pulumi.Input[_builtins.int]:
+        """
+        Disk size in gigabytes.
+        """
         return pulumi.get(self, "size")
 
     @size.setter
@@ -335,6 +495,9 @@ class DiskArgs:
     @_builtins.property
     @pulumi.getter
     def storage(self) -> pulumi.Input[_builtins.str]:
+        """
+        Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+        """
         return pulumi.get(self, "storage")
 
     @storage.setter
@@ -344,6 +507,9 @@ class DiskArgs:
     @_builtins.property
     @pulumi.getter
     def filename(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        File name of the disk image (computed by Proxmox if not provided).
+        """
         return pulumi.get(self, "filename")
 
     @filename.setter
@@ -357,9 +523,21 @@ if not MYPY:
         EFI disk configuration for the virtual machine.
         """
         efitype: pulumi.Input[_builtins.str]
+        """
+        EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+        """
         storage: pulumi.Input[_builtins.str]
+        """
+        Target storage pool for the EFI disk (e.g., local-lvm).
+        """
         filename: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        File name of the EFI disk image (computed by Proxmox if not provided).
+        """
         pre_enrolled_keys: NotRequired[pulumi.Input[_builtins.bool]]
+        """
+        Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+        """
 elif False:
     EfiDiskArgsDict: TypeAlias = Mapping[str, Any]
 
@@ -372,6 +550,10 @@ class EfiDiskArgs:
                  pre_enrolled_keys: Optional[pulumi.Input[_builtins.bool]] = None):
         """
         EFI disk configuration for the virtual machine.
+        :param pulumi.Input[_builtins.str] efitype: EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+        :param pulumi.Input[_builtins.str] storage: Target storage pool for the EFI disk (e.g., local-lvm).
+        :param pulumi.Input[_builtins.str] filename: File name of the EFI disk image (computed by Proxmox if not provided).
+        :param pulumi.Input[_builtins.bool] pre_enrolled_keys: Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
         """
         pulumi.set(__self__, "efitype", efitype)
         pulumi.set(__self__, "storage", storage)
@@ -383,6 +565,9 @@ class EfiDiskArgs:
     @_builtins.property
     @pulumi.getter
     def efitype(self) -> pulumi.Input[_builtins.str]:
+        """
+        EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+        """
         return pulumi.get(self, "efitype")
 
     @efitype.setter
@@ -392,6 +577,9 @@ class EfiDiskArgs:
     @_builtins.property
     @pulumi.getter
     def storage(self) -> pulumi.Input[_builtins.str]:
+        """
+        Target storage pool for the EFI disk (e.g., local-lvm).
+        """
         return pulumi.get(self, "storage")
 
     @storage.setter
@@ -401,6 +589,9 @@ class EfiDiskArgs:
     @_builtins.property
     @pulumi.getter
     def filename(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        File name of the EFI disk image (computed by Proxmox if not provided).
+        """
         return pulumi.get(self, "filename")
 
     @filename.setter
@@ -410,6 +601,9 @@ class EfiDiskArgs:
     @_builtins.property
     @pulumi.getter(name="preEnrolledKeys")
     def pre_enrolled_keys(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        """
+        Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+        """
         return pulumi.get(self, "pre_enrolled_keys")
 
     @pre_enrolled_keys.setter
@@ -469,10 +663,25 @@ class FileSourceRawArgs:
 
 if not MYPY:
     class NumaNodeArgsDict(TypedDict):
+        """
+        NUMA node topology configuration for the virtual machine.
+        """
         cpus: pulumi.Input[_builtins.str]
+        """
+        CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+        """
         host_nodes: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+        """
         memory: NotRequired[pulumi.Input[_builtins.int]]
+        """
+        Memory in megabytes allocated to this NUMA node.
+        """
         policy: NotRequired[pulumi.Input[_builtins.str]]
+        """
+        NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+        """
 elif False:
     NumaNodeArgsDict: TypeAlias = Mapping[str, Any]
 
@@ -483,6 +692,13 @@ class NumaNodeArgs:
                  host_nodes: Optional[pulumi.Input[_builtins.str]] = None,
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
                  policy: Optional[pulumi.Input[_builtins.str]] = None):
+        """
+        NUMA node topology configuration for the virtual machine.
+        :param pulumi.Input[_builtins.str] cpus: CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+        :param pulumi.Input[_builtins.str] host_nodes: Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+        :param pulumi.Input[_builtins.int] memory: Memory in megabytes allocated to this NUMA node.
+        :param pulumi.Input[_builtins.str] policy: NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+        """
         pulumi.set(__self__, "cpus", cpus)
         if host_nodes is not None:
             pulumi.set(__self__, "host_nodes", host_nodes)
@@ -494,6 +710,9 @@ class NumaNodeArgs:
     @_builtins.property
     @pulumi.getter
     def cpus(self) -> pulumi.Input[_builtins.str]:
+        """
+        CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+        """
         return pulumi.get(self, "cpus")
 
     @cpus.setter
@@ -503,6 +722,9 @@ class NumaNodeArgs:
     @_builtins.property
     @pulumi.getter(name="hostNodes")
     def host_nodes(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+        """
         return pulumi.get(self, "host_nodes")
 
     @host_nodes.setter
@@ -512,6 +734,9 @@ class NumaNodeArgs:
     @_builtins.property
     @pulumi.getter
     def memory(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Memory in megabytes allocated to this NUMA node.
+        """
         return pulumi.get(self, "memory")
 
     @memory.setter
@@ -521,6 +746,9 @@ class NumaNodeArgs:
     @_builtins.property
     @pulumi.getter
     def policy(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+        """
         return pulumi.get(self, "policy")
 
     @policy.setter
