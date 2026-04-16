@@ -22,7 +22,7 @@ import (
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // TestGetSortedMapKeys tests that the utility function correctly sorts map keys.
