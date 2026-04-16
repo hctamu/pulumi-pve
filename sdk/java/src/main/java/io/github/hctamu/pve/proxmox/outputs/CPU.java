@@ -16,57 +16,161 @@ import javax.annotation.Nullable;
 
 @CustomType
 public final class CPU {
+    /**
+     * @return Number of CPU cores per socket.
+     * 
+     */
     private @Nullable Integer cores;
+    /**
+     * @return List of CPU flags to disable.
+     * 
+     */
     private @Nullable List<String> flagsDisabled;
+    /**
+     * @return List of CPU flags to enable (e.g., pcid, spec-ctrl).
+     * 
+     */
     private @Nullable List<String> flagsEnabled;
+    /**
+     * @return Hide VM CPU type from the guest operating system.
+     * 
+     */
     private @Nullable Boolean hidden;
+    /**
+     * @return Hyper-V vendor ID presented to the guest (up to 12 characters).
+     * 
+     */
     private @Nullable String hvVendorId;
+    /**
+     * @return CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+     * 
+     */
     private @Nullable Double limit;
+    /**
+     * @return Enable NUMA topology.
+     * 
+     */
     private @Nullable Boolean numa;
+    /**
+     * @return NUMA node topology configuration.
+     * 
+     */
     private @Nullable List<NumaNode> numaNodes;
+    /**
+     * @return Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+     * 
+     */
     private @Nullable String physBits;
+    /**
+     * @return Number of CPU sockets.
+     * 
+     */
     private @Nullable Integer sockets;
+    /**
+     * @return CPU type (e.g., host, kvm64, x86-64-v2-AES).
+     * 
+     */
     private @Nullable String type;
+    /**
+     * @return CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+     * 
+     */
     private @Nullable Integer units;
+    /**
+     * @return Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+     * 
+     */
     private @Nullable Integer vcpus;
 
     private CPU() {}
+    /**
+     * @return Number of CPU cores per socket.
+     * 
+     */
     public Optional<Integer> cores() {
         return Optional.ofNullable(this.cores);
     }
+    /**
+     * @return List of CPU flags to disable.
+     * 
+     */
     public List<String> flagsDisabled() {
         return this.flagsDisabled == null ? List.of() : this.flagsDisabled;
     }
+    /**
+     * @return List of CPU flags to enable (e.g., pcid, spec-ctrl).
+     * 
+     */
     public List<String> flagsEnabled() {
         return this.flagsEnabled == null ? List.of() : this.flagsEnabled;
     }
+    /**
+     * @return Hide VM CPU type from the guest operating system.
+     * 
+     */
     public Optional<Boolean> hidden() {
         return Optional.ofNullable(this.hidden);
     }
+    /**
+     * @return Hyper-V vendor ID presented to the guest (up to 12 characters).
+     * 
+     */
     public Optional<String> hvVendorId() {
         return Optional.ofNullable(this.hvVendorId);
     }
+    /**
+     * @return CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+     * 
+     */
     public Optional<Double> limit() {
         return Optional.ofNullable(this.limit);
     }
+    /**
+     * @return Enable NUMA topology.
+     * 
+     */
     public Optional<Boolean> numa() {
         return Optional.ofNullable(this.numa);
     }
+    /**
+     * @return NUMA node topology configuration.
+     * 
+     */
     public List<NumaNode> numaNodes() {
         return this.numaNodes == null ? List.of() : this.numaNodes;
     }
+    /**
+     * @return Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+     * 
+     */
     public Optional<String> physBits() {
         return Optional.ofNullable(this.physBits);
     }
+    /**
+     * @return Number of CPU sockets.
+     * 
+     */
     public Optional<Integer> sockets() {
         return Optional.ofNullable(this.sockets);
     }
+    /**
+     * @return CPU type (e.g., host, kvm64, x86-64-v2-AES).
+     * 
+     */
     public Optional<String> type() {
         return Optional.ofNullable(this.type);
     }
+    /**
+     * @return CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+     * 
+     */
     public Optional<Integer> units() {
         return Optional.ofNullable(this.units);
     }
+    /**
+     * @return Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+     * 
+     */
     public Optional<Integer> vcpus() {
         return Optional.ofNullable(this.vcpus);
     }

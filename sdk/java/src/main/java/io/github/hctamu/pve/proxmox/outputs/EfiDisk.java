@@ -13,21 +13,53 @@ import javax.annotation.Nullable;
 
 @CustomType
 public final class EfiDisk {
+    /**
+     * @return EFI firmware size: &#39;2m&#39; (2 MB, legacy) or &#39;4m&#39; (4 MB, supports Secure Boot).
+     * 
+     */
     private String efitype;
+    /**
+     * @return File name of the EFI disk image (computed by Proxmox if not provided).
+     * 
+     */
     private @Nullable String filename;
+    /**
+     * @return Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+     * 
+     */
     private @Nullable Boolean preEnrolledKeys;
+    /**
+     * @return Target storage pool for the EFI disk (e.g., local-lvm).
+     * 
+     */
     private String storage;
 
     private EfiDisk() {}
+    /**
+     * @return EFI firmware size: &#39;2m&#39; (2 MB, legacy) or &#39;4m&#39; (4 MB, supports Secure Boot).
+     * 
+     */
     public String efitype() {
         return this.efitype;
     }
+    /**
+     * @return File name of the EFI disk image (computed by Proxmox if not provided).
+     * 
+     */
     public Optional<String> filename() {
         return Optional.ofNullable(this.filename);
     }
+    /**
+     * @return Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+     * 
+     */
     public Optional<Boolean> preEnrolledKeys() {
         return Optional.ofNullable(this.preEnrolledKeys);
     }
+    /**
+     * @return Target storage pool for the EFI disk (e.g., local-lvm).
+     * 
+     */
     public String storage() {
         return this.storage;
     }

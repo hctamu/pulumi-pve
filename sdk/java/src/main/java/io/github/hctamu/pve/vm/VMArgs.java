@@ -22,282 +22,242 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final VMArgs Empty = new VMArgs();
 
-    @Import(name="acpi")
-    private @Nullable Output<Integer> acpi;
-
-    public Optional<Output<Integer>> acpi() {
-        return Optional.ofNullable(this.acpi);
-    }
-
-    @Import(name="audio0")
-    private @Nullable Output<String> audio0;
-
-    public Optional<Output<String>> audio0() {
-        return Optional.ofNullable(this.audio0);
-    }
-
+    /**
+     * Automatically start the VM when the host boots (1 to enable, 0 to disable).
+     * 
+     */
     @Import(name="autostart")
     private @Nullable Output<Integer> autostart;
 
+    /**
+     * @return Automatically start the VM when the host boots (1 to enable, 0 to disable).
+     * 
+     */
     public Optional<Output<Integer>> autostart() {
         return Optional.ofNullable(this.autostart);
     }
 
+    /**
+     * Minimum memory for ballooning in megabytes (0 disables the balloon device).
+     * 
+     */
     @Import(name="balloon")
     private @Nullable Output<Integer> balloon;
 
+    /**
+     * @return Minimum memory for ballooning in megabytes (0 disables the balloon device).
+     * 
+     */
     public Optional<Output<Integer>> balloon() {
         return Optional.ofNullable(this.balloon);
     }
 
-    @Import(name="bios")
-    private @Nullable Output<String> bios;
-
-    public Optional<Output<String>> bios() {
-        return Optional.ofNullable(this.bios);
-    }
-
-    @Import(name="cicustom")
-    private @Nullable Output<String> cicustom;
-
-    public Optional<Output<String>> cicustom() {
-        return Optional.ofNullable(this.cicustom);
-    }
-
-    @Import(name="cipassword")
-    private @Nullable Output<String> cipassword;
-
-    public Optional<Output<String>> cipassword() {
-        return Optional.ofNullable(this.cipassword);
-    }
-
-    @Import(name="citype")
-    private @Nullable Output<String> citype;
-
-    public Optional<Output<String>> citype() {
-        return Optional.ofNullable(this.citype);
-    }
-
-    @Import(name="ciupgrade")
-    private @Nullable Output<Integer> ciupgrade;
-
-    public Optional<Output<Integer>> ciupgrade() {
-        return Optional.ofNullable(this.ciupgrade);
-    }
-
-    @Import(name="ciuser")
-    private @Nullable Output<String> ciuser;
-
-    public Optional<Output<String>> ciuser() {
-        return Optional.ofNullable(this.ciuser);
-    }
-
+    /**
+     * Clone configuration for creating the VM from a source template or VM.
+     * 
+     */
     @Import(name="clone")
     private @Nullable Output<CloneArgs> clone;
 
+    /**
+     * @return Clone configuration for creating the VM from a source template or VM.
+     * 
+     */
     public Optional<Output<CloneArgs>> clone_() {
         return Optional.ofNullable(this.clone);
     }
 
+    /**
+     * CPU configuration including type, topology, and feature flags.
+     * 
+     */
     @Import(name="cpu")
     private @Nullable Output<CPUArgs> cpu;
 
+    /**
+     * @return CPU configuration including type, topology, and feature flags.
+     * 
+     */
     public Optional<Output<CPUArgs>> cpu() {
         return Optional.ofNullable(this.cpu);
     }
 
+    /**
+     * Description or notes for the virtual machine.
+     * 
+     */
     @Import(name="description")
     private @Nullable Output<String> description;
 
+    /**
+     * @return Description or notes for the virtual machine.
+     * 
+     */
     public Optional<Output<String>> description() {
         return Optional.ofNullable(this.description);
     }
 
+    /**
+     * List of disk configurations attached to the virtual machine.
+     * 
+     */
     @Import(name="disks", required=true)
     private Output<List<DiskArgs>> disks;
 
+    /**
+     * @return List of disk configurations attached to the virtual machine.
+     * 
+     */
     public Output<List<DiskArgs>> disks() {
         return this.disks;
     }
 
+    /**
+     * EFI disk configuration (required when bios is set to ovmf).
+     * 
+     */
     @Import(name="efidisk")
     private @Nullable Output<EfiDiskArgs> efidisk;
 
+    /**
+     * @return EFI disk configuration (required when bios is set to ovmf).
+     * 
+     */
     public Optional<Output<EfiDiskArgs>> efidisk() {
         return Optional.ofNullable(this.efidisk);
     }
 
-    @Import(name="hookscript")
-    private @Nullable Output<String> hookscript;
-
-    public Optional<Output<String>> hookscript() {
-        return Optional.ofNullable(this.hookscript);
-    }
-
-    @Import(name="hostpci0")
-    private @Nullable Output<String> hostpci0;
-
-    public Optional<Output<String>> hostpci0() {
-        return Optional.ofNullable(this.hostpci0);
-    }
-
+    /**
+     * Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+     * 
+     */
     @Import(name="hotplug")
     private @Nullable Output<String> hotplug;
 
+    /**
+     * @return Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+     * 
+     */
     public Optional<Output<String>> hotplug() {
         return Optional.ofNullable(this.hotplug);
     }
 
-    @Import(name="hugepages")
-    private @Nullable Output<String> hugepages;
-
-    public Optional<Output<String>> hugepages() {
-        return Optional.ofNullable(this.hugepages);
-    }
-
-    @Import(name="ipconfig0")
-    private @Nullable Output<String> ipconfig0;
-
-    public Optional<Output<String>> ipconfig0() {
-        return Optional.ofNullable(this.ipconfig0);
-    }
-
-    @Import(name="kvm")
-    private @Nullable Output<Integer> kvm;
-
-    public Optional<Output<Integer>> kvm() {
-        return Optional.ofNullable(this.kvm);
-    }
-
-    @Import(name="lock")
-    private @Nullable Output<String> lock;
-
-    public Optional<Output<String>> lock() {
-        return Optional.ofNullable(this.lock);
-    }
-
+    /**
+     * Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+     * 
+     */
     @Import(name="machine")
     private @Nullable Output<String> machine;
 
+    /**
+     * @return Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+     * 
+     */
     public Optional<Output<String>> machine() {
         return Optional.ofNullable(this.machine);
     }
 
+    /**
+     * Memory size in megabytes.
+     * 
+     */
     @Import(name="memory")
     private @Nullable Output<Integer> memory;
 
+    /**
+     * @return Memory size in megabytes.
+     * 
+     */
     public Optional<Output<Integer>> memory() {
         return Optional.ofNullable(this.memory);
     }
 
+    /**
+     * Name of the virtual machine.
+     * 
+     */
     @Import(name="name", required=true)
     private Output<String> name;
 
+    /**
+     * @return Name of the virtual machine.
+     * 
+     */
     public Output<String> name() {
         return this.name;
     }
 
-    @Import(name="nameserver")
-    private @Nullable Output<String> nameserver;
-
-    public Optional<Output<String>> nameserver() {
-        return Optional.ofNullable(this.nameserver);
-    }
-
+    /**
+     * Proxmox node where the VM resides.
+     * 
+     */
     @Import(name="node")
     private @Nullable Output<String> node;
 
+    /**
+     * @return Proxmox node where the VM resides.
+     * 
+     */
     public Optional<Output<String>> node() {
         return Optional.ofNullable(this.node);
     }
 
+    /**
+     * Guest operating system type (e.g., l26, win11, other).
+     * 
+     */
     @Import(name="ostype")
     private @Nullable Output<String> ostype;
 
+    /**
+     * @return Guest operating system type (e.g., l26, win11, other).
+     * 
+     */
     public Optional<Output<String>> ostype() {
         return Optional.ofNullable(this.ostype);
     }
 
-    @Import(name="parallel0")
-    private @Nullable Output<String> parallel0;
+    /**
+     * Tags associated with the virtual machine.
+     * 
+     */
+    @Import(name="tags")
+    private @Nullable Output<List<String>> tags;
 
-    public Optional<Output<String>> parallel0() {
-        return Optional.ofNullable(this.parallel0);
+    /**
+     * @return Tags associated with the virtual machine.
+     * 
+     */
+    public Optional<Output<List<String>>> tags() {
+        return Optional.ofNullable(this.tags);
     }
 
-    @Import(name="protection")
-    private @Nullable Output<Integer> protection;
-
-    public Optional<Output<Integer>> protection() {
-        return Optional.ofNullable(this.protection);
-    }
-
-    @Import(name="rng0")
-    private @Nullable Output<String> rng0;
-
-    public Optional<Output<String>> rng0() {
-        return Optional.ofNullable(this.rng0);
-    }
-
-    @Import(name="searchdomain")
-    private @Nullable Output<String> searchdomain;
-
-    public Optional<Output<String>> searchdomain() {
-        return Optional.ofNullable(this.searchdomain);
-    }
-
-    @Import(name="serial0")
-    private @Nullable Output<String> serial0;
-
-    public Optional<Output<String>> serial0() {
-        return Optional.ofNullable(this.serial0);
-    }
-
-    @Import(name="sshkeys")
-    private @Nullable Output<String> sshkeys;
-
-    public Optional<Output<String>> sshkeys() {
-        return Optional.ofNullable(this.sshkeys);
-    }
-
-    @Import(name="tablet")
-    private @Nullable Output<Integer> tablet;
-
-    public Optional<Output<Integer>> tablet() {
-        return Optional.ofNullable(this.tablet);
-    }
-
+    /**
+     * Mark the VM as a template (1) or a regular VM (0).
+     * 
+     */
     @Import(name="template")
     private @Nullable Output<Integer> template;
 
+    /**
+     * @return Mark the VM as a template (1) or a regular VM (0).
+     * 
+     */
     public Optional<Output<Integer>> template() {
         return Optional.ofNullable(this.template);
     }
 
-    @Import(name="tpmstate0")
-    private @Nullable Output<String> tpmstate0;
-
-    public Optional<Output<String>> tpmstate0() {
-        return Optional.ofNullable(this.tpmstate0);
-    }
-
-    @Import(name="usb0")
-    private @Nullable Output<String> usb0;
-
-    public Optional<Output<String>> usb0() {
-        return Optional.ofNullable(this.usb0);
-    }
-
-    @Import(name="vga")
-    private @Nullable Output<String> vga;
-
-    public Optional<Output<String>> vga() {
-        return Optional.ofNullable(this.vga);
-    }
-
+    /**
+     * Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+     * 
+     */
     @Import(name="vmId")
     private @Nullable Output<Integer> vmId;
 
+    /**
+     * @return Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+     * 
+     */
     public Optional<Output<Integer>> vmId() {
         return Optional.ofNullable(this.vmId);
     }
@@ -305,45 +265,21 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
     private VMArgs() {}
 
     private VMArgs(VMArgs $) {
-        this.acpi = $.acpi;
-        this.audio0 = $.audio0;
         this.autostart = $.autostart;
         this.balloon = $.balloon;
-        this.bios = $.bios;
-        this.cicustom = $.cicustom;
-        this.cipassword = $.cipassword;
-        this.citype = $.citype;
-        this.ciupgrade = $.ciupgrade;
-        this.ciuser = $.ciuser;
         this.clone = $.clone;
         this.cpu = $.cpu;
         this.description = $.description;
         this.disks = $.disks;
         this.efidisk = $.efidisk;
-        this.hookscript = $.hookscript;
-        this.hostpci0 = $.hostpci0;
         this.hotplug = $.hotplug;
-        this.hugepages = $.hugepages;
-        this.ipconfig0 = $.ipconfig0;
-        this.kvm = $.kvm;
-        this.lock = $.lock;
         this.machine = $.machine;
         this.memory = $.memory;
         this.name = $.name;
-        this.nameserver = $.nameserver;
         this.node = $.node;
         this.ostype = $.ostype;
-        this.parallel0 = $.parallel0;
-        this.protection = $.protection;
-        this.rng0 = $.rng0;
-        this.searchdomain = $.searchdomain;
-        this.serial0 = $.serial0;
-        this.sshkeys = $.sshkeys;
-        this.tablet = $.tablet;
+        this.tags = $.tags;
         this.template = $.template;
-        this.tpmstate0 = $.tpmstate0;
-        this.usb0 = $.usb0;
-        this.vga = $.vga;
         this.vmId = $.vmId;
     }
 
@@ -365,366 +301,358 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
             $ = new VMArgs(Objects.requireNonNull(defaults));
         }
 
-        public Builder acpi(@Nullable Output<Integer> acpi) {
-            $.acpi = acpi;
-            return this;
-        }
-
-        public Builder acpi(Integer acpi) {
-            return acpi(Output.of(acpi));
-        }
-
-        public Builder audio0(@Nullable Output<String> audio0) {
-            $.audio0 = audio0;
-            return this;
-        }
-
-        public Builder audio0(String audio0) {
-            return audio0(Output.of(audio0));
-        }
-
+        /**
+         * @param autostart Automatically start the VM when the host boots (1 to enable, 0 to disable).
+         * 
+         * @return builder
+         * 
+         */
         public Builder autostart(@Nullable Output<Integer> autostart) {
             $.autostart = autostart;
             return this;
         }
 
+        /**
+         * @param autostart Automatically start the VM when the host boots (1 to enable, 0 to disable).
+         * 
+         * @return builder
+         * 
+         */
         public Builder autostart(Integer autostart) {
             return autostart(Output.of(autostart));
         }
 
+        /**
+         * @param balloon Minimum memory for ballooning in megabytes (0 disables the balloon device).
+         * 
+         * @return builder
+         * 
+         */
         public Builder balloon(@Nullable Output<Integer> balloon) {
             $.balloon = balloon;
             return this;
         }
 
+        /**
+         * @param balloon Minimum memory for ballooning in megabytes (0 disables the balloon device).
+         * 
+         * @return builder
+         * 
+         */
         public Builder balloon(Integer balloon) {
             return balloon(Output.of(balloon));
         }
 
-        public Builder bios(@Nullable Output<String> bios) {
-            $.bios = bios;
-            return this;
-        }
-
-        public Builder bios(String bios) {
-            return bios(Output.of(bios));
-        }
-
-        public Builder cicustom(@Nullable Output<String> cicustom) {
-            $.cicustom = cicustom;
-            return this;
-        }
-
-        public Builder cicustom(String cicustom) {
-            return cicustom(Output.of(cicustom));
-        }
-
-        public Builder cipassword(@Nullable Output<String> cipassword) {
-            $.cipassword = cipassword;
-            return this;
-        }
-
-        public Builder cipassword(String cipassword) {
-            return cipassword(Output.of(cipassword));
-        }
-
-        public Builder citype(@Nullable Output<String> citype) {
-            $.citype = citype;
-            return this;
-        }
-
-        public Builder citype(String citype) {
-            return citype(Output.of(citype));
-        }
-
-        public Builder ciupgrade(@Nullable Output<Integer> ciupgrade) {
-            $.ciupgrade = ciupgrade;
-            return this;
-        }
-
-        public Builder ciupgrade(Integer ciupgrade) {
-            return ciupgrade(Output.of(ciupgrade));
-        }
-
-        public Builder ciuser(@Nullable Output<String> ciuser) {
-            $.ciuser = ciuser;
-            return this;
-        }
-
-        public Builder ciuser(String ciuser) {
-            return ciuser(Output.of(ciuser));
-        }
-
+        /**
+         * @param clone Clone configuration for creating the VM from a source template or VM.
+         * 
+         * @return builder
+         * 
+         */
         public Builder clone_(@Nullable Output<CloneArgs> clone) {
             $.clone = clone;
             return this;
         }
 
+        /**
+         * @param clone Clone configuration for creating the VM from a source template or VM.
+         * 
+         * @return builder
+         * 
+         */
         public Builder clone_(CloneArgs clone) {
             return clone_(Output.of(clone));
         }
 
+        /**
+         * @param cpu CPU configuration including type, topology, and feature flags.
+         * 
+         * @return builder
+         * 
+         */
         public Builder cpu(@Nullable Output<CPUArgs> cpu) {
             $.cpu = cpu;
             return this;
         }
 
+        /**
+         * @param cpu CPU configuration including type, topology, and feature flags.
+         * 
+         * @return builder
+         * 
+         */
         public Builder cpu(CPUArgs cpu) {
             return cpu(Output.of(cpu));
         }
 
+        /**
+         * @param description Description or notes for the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder description(@Nullable Output<String> description) {
             $.description = description;
             return this;
         }
 
+        /**
+         * @param description Description or notes for the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder description(String description) {
             return description(Output.of(description));
         }
 
+        /**
+         * @param disks List of disk configurations attached to the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder disks(Output<List<DiskArgs>> disks) {
             $.disks = disks;
             return this;
         }
 
+        /**
+         * @param disks List of disk configurations attached to the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder disks(List<DiskArgs> disks) {
             return disks(Output.of(disks));
         }
 
+        /**
+         * @param disks List of disk configurations attached to the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder disks(DiskArgs... disks) {
             return disks(List.of(disks));
         }
 
+        /**
+         * @param efidisk EFI disk configuration (required when bios is set to ovmf).
+         * 
+         * @return builder
+         * 
+         */
         public Builder efidisk(@Nullable Output<EfiDiskArgs> efidisk) {
             $.efidisk = efidisk;
             return this;
         }
 
+        /**
+         * @param efidisk EFI disk configuration (required when bios is set to ovmf).
+         * 
+         * @return builder
+         * 
+         */
         public Builder efidisk(EfiDiskArgs efidisk) {
             return efidisk(Output.of(efidisk));
         }
 
-        public Builder hookscript(@Nullable Output<String> hookscript) {
-            $.hookscript = hookscript;
-            return this;
-        }
-
-        public Builder hookscript(String hookscript) {
-            return hookscript(Output.of(hookscript));
-        }
-
-        public Builder hostpci0(@Nullable Output<String> hostpci0) {
-            $.hostpci0 = hostpci0;
-            return this;
-        }
-
-        public Builder hostpci0(String hostpci0) {
-            return hostpci0(Output.of(hostpci0));
-        }
-
+        /**
+         * @param hotplug Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+         * 
+         * @return builder
+         * 
+         */
         public Builder hotplug(@Nullable Output<String> hotplug) {
             $.hotplug = hotplug;
             return this;
         }
 
+        /**
+         * @param hotplug Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+         * 
+         * @return builder
+         * 
+         */
         public Builder hotplug(String hotplug) {
             return hotplug(Output.of(hotplug));
         }
 
-        public Builder hugepages(@Nullable Output<String> hugepages) {
-            $.hugepages = hugepages;
-            return this;
-        }
-
-        public Builder hugepages(String hugepages) {
-            return hugepages(Output.of(hugepages));
-        }
-
-        public Builder ipconfig0(@Nullable Output<String> ipconfig0) {
-            $.ipconfig0 = ipconfig0;
-            return this;
-        }
-
-        public Builder ipconfig0(String ipconfig0) {
-            return ipconfig0(Output.of(ipconfig0));
-        }
-
-        public Builder kvm(@Nullable Output<Integer> kvm) {
-            $.kvm = kvm;
-            return this;
-        }
-
-        public Builder kvm(Integer kvm) {
-            return kvm(Output.of(kvm));
-        }
-
-        public Builder lock(@Nullable Output<String> lock) {
-            $.lock = lock;
-            return this;
-        }
-
-        public Builder lock(String lock) {
-            return lock(Output.of(lock));
-        }
-
+        /**
+         * @param machine Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+         * 
+         * @return builder
+         * 
+         */
         public Builder machine(@Nullable Output<String> machine) {
             $.machine = machine;
             return this;
         }
 
+        /**
+         * @param machine Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+         * 
+         * @return builder
+         * 
+         */
         public Builder machine(String machine) {
             return machine(Output.of(machine));
         }
 
+        /**
+         * @param memory Memory size in megabytes.
+         * 
+         * @return builder
+         * 
+         */
         public Builder memory(@Nullable Output<Integer> memory) {
             $.memory = memory;
             return this;
         }
 
+        /**
+         * @param memory Memory size in megabytes.
+         * 
+         * @return builder
+         * 
+         */
         public Builder memory(Integer memory) {
             return memory(Output.of(memory));
         }
 
+        /**
+         * @param name Name of the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder name(Output<String> name) {
             $.name = name;
             return this;
         }
 
+        /**
+         * @param name Name of the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
         public Builder name(String name) {
             return name(Output.of(name));
         }
 
-        public Builder nameserver(@Nullable Output<String> nameserver) {
-            $.nameserver = nameserver;
-            return this;
-        }
-
-        public Builder nameserver(String nameserver) {
-            return nameserver(Output.of(nameserver));
-        }
-
+        /**
+         * @param node Proxmox node where the VM resides.
+         * 
+         * @return builder
+         * 
+         */
         public Builder node(@Nullable Output<String> node) {
             $.node = node;
             return this;
         }
 
+        /**
+         * @param node Proxmox node where the VM resides.
+         * 
+         * @return builder
+         * 
+         */
         public Builder node(String node) {
             return node(Output.of(node));
         }
 
+        /**
+         * @param ostype Guest operating system type (e.g., l26, win11, other).
+         * 
+         * @return builder
+         * 
+         */
         public Builder ostype(@Nullable Output<String> ostype) {
             $.ostype = ostype;
             return this;
         }
 
+        /**
+         * @param ostype Guest operating system type (e.g., l26, win11, other).
+         * 
+         * @return builder
+         * 
+         */
         public Builder ostype(String ostype) {
             return ostype(Output.of(ostype));
         }
 
-        public Builder parallel0(@Nullable Output<String> parallel0) {
-            $.parallel0 = parallel0;
+        /**
+         * @param tags Tags associated with the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder tags(@Nullable Output<List<String>> tags) {
+            $.tags = tags;
             return this;
         }
 
-        public Builder parallel0(String parallel0) {
-            return parallel0(Output.of(parallel0));
+        /**
+         * @param tags Tags associated with the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder tags(List<String> tags) {
+            return tags(Output.of(tags));
         }
 
-        public Builder protection(@Nullable Output<Integer> protection) {
-            $.protection = protection;
-            return this;
+        /**
+         * @param tags Tags associated with the virtual machine.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder tags(String... tags) {
+            return tags(List.of(tags));
         }
 
-        public Builder protection(Integer protection) {
-            return protection(Output.of(protection));
-        }
-
-        public Builder rng0(@Nullable Output<String> rng0) {
-            $.rng0 = rng0;
-            return this;
-        }
-
-        public Builder rng0(String rng0) {
-            return rng0(Output.of(rng0));
-        }
-
-        public Builder searchdomain(@Nullable Output<String> searchdomain) {
-            $.searchdomain = searchdomain;
-            return this;
-        }
-
-        public Builder searchdomain(String searchdomain) {
-            return searchdomain(Output.of(searchdomain));
-        }
-
-        public Builder serial0(@Nullable Output<String> serial0) {
-            $.serial0 = serial0;
-            return this;
-        }
-
-        public Builder serial0(String serial0) {
-            return serial0(Output.of(serial0));
-        }
-
-        public Builder sshkeys(@Nullable Output<String> sshkeys) {
-            $.sshkeys = sshkeys;
-            return this;
-        }
-
-        public Builder sshkeys(String sshkeys) {
-            return sshkeys(Output.of(sshkeys));
-        }
-
-        public Builder tablet(@Nullable Output<Integer> tablet) {
-            $.tablet = tablet;
-            return this;
-        }
-
-        public Builder tablet(Integer tablet) {
-            return tablet(Output.of(tablet));
-        }
-
+        /**
+         * @param template Mark the VM as a template (1) or a regular VM (0).
+         * 
+         * @return builder
+         * 
+         */
         public Builder template(@Nullable Output<Integer> template) {
             $.template = template;
             return this;
         }
 
+        /**
+         * @param template Mark the VM as a template (1) or a regular VM (0).
+         * 
+         * @return builder
+         * 
+         */
         public Builder template(Integer template) {
             return template(Output.of(template));
         }
 
-        public Builder tpmstate0(@Nullable Output<String> tpmstate0) {
-            $.tpmstate0 = tpmstate0;
-            return this;
-        }
-
-        public Builder tpmstate0(String tpmstate0) {
-            return tpmstate0(Output.of(tpmstate0));
-        }
-
-        public Builder usb0(@Nullable Output<String> usb0) {
-            $.usb0 = usb0;
-            return this;
-        }
-
-        public Builder usb0(String usb0) {
-            return usb0(Output.of(usb0));
-        }
-
-        public Builder vga(@Nullable Output<String> vga) {
-            $.vga = vga;
-            return this;
-        }
-
-        public Builder vga(String vga) {
-            return vga(Output.of(vga));
-        }
-
+        /**
+         * @param vmId Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+         * 
+         * @return builder
+         * 
+         */
         public Builder vmId(@Nullable Output<Integer> vmId) {
             $.vmId = vmId;
             return this;
         }
 
+        /**
+         * @param vmId Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+         * 
+         * @return builder
+         * 
+         */
         public Builder vmId(Integer vmId) {
             return vmId(Output.of(vmId));
         }

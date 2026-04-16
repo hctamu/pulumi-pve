@@ -21,30 +21,62 @@ public final class EfiDiskArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final EfiDiskArgs Empty = new EfiDiskArgs();
 
+    /**
+     * EFI firmware size: &#39;2m&#39; (2 MB, legacy) or &#39;4m&#39; (4 MB, supports Secure Boot).
+     * 
+     */
     @Import(name="efitype", required=true)
     private Output<String> efitype;
 
+    /**
+     * @return EFI firmware size: &#39;2m&#39; (2 MB, legacy) or &#39;4m&#39; (4 MB, supports Secure Boot).
+     * 
+     */
     public Output<String> efitype() {
         return this.efitype;
     }
 
+    /**
+     * File name of the EFI disk image (computed by Proxmox if not provided).
+     * 
+     */
     @Import(name="filename")
     private @Nullable Output<String> filename;
 
+    /**
+     * @return File name of the EFI disk image (computed by Proxmox if not provided).
+     * 
+     */
     public Optional<Output<String>> filename() {
         return Optional.ofNullable(this.filename);
     }
 
+    /**
+     * Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+     * 
+     */
     @Import(name="preEnrolledKeys")
     private @Nullable Output<Boolean> preEnrolledKeys;
 
+    /**
+     * @return Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+     * 
+     */
     public Optional<Output<Boolean>> preEnrolledKeys() {
         return Optional.ofNullable(this.preEnrolledKeys);
     }
 
+    /**
+     * Target storage pool for the EFI disk (e.g., local-lvm).
+     * 
+     */
     @Import(name="storage", required=true)
     private Output<String> storage;
 
+    /**
+     * @return Target storage pool for the EFI disk (e.g., local-lvm).
+     * 
+     */
     public Output<String> storage() {
         return this.storage;
     }
@@ -76,38 +108,86 @@ public final class EfiDiskArgs extends com.pulumi.resources.ResourceArgs {
             $ = new EfiDiskArgs(Objects.requireNonNull(defaults));
         }
 
+        /**
+         * @param efitype EFI firmware size: &#39;2m&#39; (2 MB, legacy) or &#39;4m&#39; (4 MB, supports Secure Boot).
+         * 
+         * @return builder
+         * 
+         */
         public Builder efitype(Output<String> efitype) {
             $.efitype = efitype;
             return this;
         }
 
+        /**
+         * @param efitype EFI firmware size: &#39;2m&#39; (2 MB, legacy) or &#39;4m&#39; (4 MB, supports Secure Boot).
+         * 
+         * @return builder
+         * 
+         */
         public Builder efitype(String efitype) {
             return efitype(Output.of(efitype));
         }
 
+        /**
+         * @param filename File name of the EFI disk image (computed by Proxmox if not provided).
+         * 
+         * @return builder
+         * 
+         */
         public Builder filename(@Nullable Output<String> filename) {
             $.filename = filename;
             return this;
         }
 
+        /**
+         * @param filename File name of the EFI disk image (computed by Proxmox if not provided).
+         * 
+         * @return builder
+         * 
+         */
         public Builder filename(String filename) {
             return filename(Output.of(filename));
         }
 
+        /**
+         * @param preEnrolledKeys Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+         * 
+         * @return builder
+         * 
+         */
         public Builder preEnrolledKeys(@Nullable Output<Boolean> preEnrolledKeys) {
             $.preEnrolledKeys = preEnrolledKeys;
             return this;
         }
 
+        /**
+         * @param preEnrolledKeys Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+         * 
+         * @return builder
+         * 
+         */
         public Builder preEnrolledKeys(Boolean preEnrolledKeys) {
             return preEnrolledKeys(Output.of(preEnrolledKeys));
         }
 
+        /**
+         * @param storage Target storage pool for the EFI disk (e.g., local-lvm).
+         * 
+         * @return builder
+         * 
+         */
         public Builder storage(Output<String> storage) {
             $.storage = storage;
             return this;
         }
 
+        /**
+         * @param storage Target storage pool for the EFI disk (e.g., local-lvm).
+         * 
+         * @return builder
+         * 
+         */
         public Builder storage(String storage) {
             return storage(Output.of(storage));
         }
