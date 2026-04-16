@@ -11,12 +11,27 @@ using Pulumi;
 namespace Hctamu.Pve.Proxmox.Outputs
 {
 
+    /// <summary>
+    /// NUMA node topology configuration for the virtual machine.
+    /// </summary>
     [OutputType]
     public sealed class NumaNode
     {
+        /// <summary>
+        /// CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+        /// </summary>
         public readonly string Cpus;
+        /// <summary>
+        /// Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+        /// </summary>
         public readonly string? HostNodes;
+        /// <summary>
+        /// Memory in megabytes allocated to this NUMA node.
+        /// </summary>
         public readonly int? Memory;
+        /// <summary>
+        /// NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+        /// </summary>
         public readonly string? Policy;
 
         [OutputConstructor]

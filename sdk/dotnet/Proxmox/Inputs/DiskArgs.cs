@@ -11,17 +11,32 @@ using Pulumi;
 namespace Hctamu.Pve.Proxmox.Inputs
 {
 
+    /// <summary>
+    /// Disk configuration for the virtual machine.
+    /// </summary>
     public sealed class DiskArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// File name of the disk image (computed by Proxmox if not provided).
+        /// </summary>
         [Input("filename")]
         public Input<string>? Filename { get; set; }
 
+        /// <summary>
+        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        /// </summary>
         [Input("interface", required: true)]
         public Input<string> Interface { get; set; } = null!;
 
+        /// <summary>
+        /// Disk size in gigabytes.
+        /// </summary>
         [Input("size", required: true)]
         public Input<int> Size { get; set; } = null!;
 
+        /// <summary>
+        /// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+        /// </summary>
         [Input("storage", required: true)]
         public Input<string> Storage { get; set; } = null!;
 

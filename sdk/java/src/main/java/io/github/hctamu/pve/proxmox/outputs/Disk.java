@@ -13,21 +13,53 @@ import javax.annotation.Nullable;
 
 @CustomType
 public final class Disk {
+    /**
+     * @return File name of the disk image (computed by Proxmox if not provided).
+     * 
+     */
     private @Nullable String filename;
+    /**
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * 
+     */
     private String interface_;
+    /**
+     * @return Disk size in gigabytes.
+     * 
+     */
     private Integer size;
+    /**
+     * @return Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+     * 
+     */
     private String storage;
 
     private Disk() {}
+    /**
+     * @return File name of the disk image (computed by Proxmox if not provided).
+     * 
+     */
     public Optional<String> filename() {
         return Optional.ofNullable(this.filename);
     }
+    /**
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * 
+     */
     public String interface_() {
         return this.interface_;
     }
+    /**
+     * @return Disk size in gigabytes.
+     * 
+     */
     public Integer size() {
         return this.size;
     }
+    /**
+     * @return Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+     * 
+     */
     public String storage() {
         return this.storage;
     }

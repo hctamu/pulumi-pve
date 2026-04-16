@@ -17,9 +17,21 @@ namespace Hctamu.Pve.Proxmox.Outputs
     [OutputType]
     public sealed class EfiDisk
     {
+        /// <summary>
+        /// EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+        /// </summary>
         public readonly string Efitype;
+        /// <summary>
+        /// File name of the EFI disk image (computed by Proxmox if not provided).
+        /// </summary>
         public readonly string? Filename;
+        /// <summary>
+        /// Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+        /// </summary>
         public readonly bool? PreEnrolledKeys;
+        /// <summary>
+        /// Target storage pool for the EFI disk (e.g., local-lvm).
+        /// </summary>
         public readonly string Storage;
 
         [OutputConstructor]

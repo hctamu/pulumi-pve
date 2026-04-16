@@ -16,46 +16,38 @@ import (
 type VM struct {
 	pulumi.CustomResourceState
 
-	Acpi         pulumi.IntPtrOutput      `pulumi:"acpi"`
-	Audio0       pulumi.StringPtrOutput   `pulumi:"audio0"`
-	Autostart    pulumi.IntPtrOutput      `pulumi:"autostart"`
-	Balloon      pulumi.IntPtrOutput      `pulumi:"balloon"`
-	Bios         pulumi.StringPtrOutput   `pulumi:"bios"`
-	Cicustom     pulumi.StringPtrOutput   `pulumi:"cicustom"`
-	Cipassword   pulumi.StringPtrOutput   `pulumi:"cipassword"`
-	Citype       pulumi.StringPtrOutput   `pulumi:"citype"`
-	Ciupgrade    pulumi.IntPtrOutput      `pulumi:"ciupgrade"`
-	Ciuser       pulumi.StringPtrOutput   `pulumi:"ciuser"`
-	Clone        proxmox.ClonePtrOutput   `pulumi:"clone"`
-	Cpu          proxmox.CPUPtrOutput     `pulumi:"cpu"`
-	Description  pulumi.StringPtrOutput   `pulumi:"description"`
-	Disks        proxmox.DiskArrayOutput  `pulumi:"disks"`
-	Efidisk      proxmox.EfiDiskPtrOutput `pulumi:"efidisk"`
-	Hookscript   pulumi.StringPtrOutput   `pulumi:"hookscript"`
-	Hostpci0     pulumi.StringPtrOutput   `pulumi:"hostpci0"`
-	Hotplug      pulumi.StringPtrOutput   `pulumi:"hotplug"`
-	Hugepages    pulumi.StringPtrOutput   `pulumi:"hugepages"`
-	Ipconfig0    pulumi.StringPtrOutput   `pulumi:"ipconfig0"`
-	Kvm          pulumi.IntPtrOutput      `pulumi:"kvm"`
-	Lock         pulumi.StringPtrOutput   `pulumi:"lock"`
-	Machine      pulumi.StringPtrOutput   `pulumi:"machine"`
-	Memory       pulumi.IntPtrOutput      `pulumi:"memory"`
-	Name         pulumi.StringOutput      `pulumi:"name"`
-	Nameserver   pulumi.StringPtrOutput   `pulumi:"nameserver"`
-	Node         pulumi.StringPtrOutput   `pulumi:"node"`
-	Ostype       pulumi.StringPtrOutput   `pulumi:"ostype"`
-	Parallel0    pulumi.StringPtrOutput   `pulumi:"parallel0"`
-	Protection   pulumi.IntPtrOutput      `pulumi:"protection"`
-	Rng0         pulumi.StringPtrOutput   `pulumi:"rng0"`
-	Searchdomain pulumi.StringPtrOutput   `pulumi:"searchdomain"`
-	Serial0      pulumi.StringPtrOutput   `pulumi:"serial0"`
-	Sshkeys      pulumi.StringPtrOutput   `pulumi:"sshkeys"`
-	Tablet       pulumi.IntPtrOutput      `pulumi:"tablet"`
-	Template     pulumi.IntPtrOutput      `pulumi:"template"`
-	Tpmstate0    pulumi.StringPtrOutput   `pulumi:"tpmstate0"`
-	Usb0         pulumi.StringPtrOutput   `pulumi:"usb0"`
-	Vga          pulumi.StringPtrOutput   `pulumi:"vga"`
-	VmId         pulumi.IntPtrOutput      `pulumi:"vmId"`
+	// Automatically start the VM when the host boots (1 to enable, 0 to disable).
+	Autostart pulumi.IntPtrOutput `pulumi:"autostart"`
+	// Minimum memory for ballooning in megabytes (0 disables the balloon device).
+	Balloon pulumi.IntPtrOutput `pulumi:"balloon"`
+	// Clone configuration for creating the VM from a source template or VM.
+	Clone proxmox.ClonePtrOutput `pulumi:"clone"`
+	// CPU configuration including type, topology, and feature flags.
+	Cpu proxmox.CPUPtrOutput `pulumi:"cpu"`
+	// Description or notes for the virtual machine.
+	Description pulumi.StringPtrOutput `pulumi:"description"`
+	// List of disk configurations attached to the virtual machine.
+	Disks proxmox.DiskArrayOutput `pulumi:"disks"`
+	// EFI disk configuration (required when bios is set to ovmf).
+	Efidisk proxmox.EfiDiskPtrOutput `pulumi:"efidisk"`
+	// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+	Hotplug pulumi.StringPtrOutput `pulumi:"hotplug"`
+	// Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+	Machine pulumi.StringPtrOutput `pulumi:"machine"`
+	// Memory size in megabytes.
+	Memory pulumi.IntPtrOutput `pulumi:"memory"`
+	// Name of the virtual machine.
+	Name pulumi.StringOutput `pulumi:"name"`
+	// Proxmox node where the VM resides.
+	Node pulumi.StringPtrOutput `pulumi:"node"`
+	// Guest operating system type (e.g., l26, win11, other).
+	Ostype pulumi.StringPtrOutput `pulumi:"ostype"`
+	// Tags associated with the virtual machine.
+	Tags pulumi.StringArrayOutput `pulumi:"tags"`
+	// Mark the VM as a template (1) or a regular VM (0).
+	Template pulumi.IntPtrOutput `pulumi:"template"`
+	// Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+	VmId pulumi.IntPtrOutput `pulumi:"vmId"`
 }
 
 // NewVM registers a new resource with the given unique name, arguments, and options.
@@ -107,90 +99,74 @@ func (VMState) ElementType() reflect.Type {
 }
 
 type vmArgs struct {
-	Acpi         *int             `pulumi:"acpi"`
-	Audio0       *string          `pulumi:"audio0"`
-	Autostart    *int             `pulumi:"autostart"`
-	Balloon      *int             `pulumi:"balloon"`
-	Bios         *string          `pulumi:"bios"`
-	Cicustom     *string          `pulumi:"cicustom"`
-	Cipassword   *string          `pulumi:"cipassword"`
-	Citype       *string          `pulumi:"citype"`
-	Ciupgrade    *int             `pulumi:"ciupgrade"`
-	Ciuser       *string          `pulumi:"ciuser"`
-	Clone        *proxmox.Clone   `pulumi:"clone"`
-	Cpu          *proxmox.CPU     `pulumi:"cpu"`
-	Description  *string          `pulumi:"description"`
-	Disks        []proxmox.Disk   `pulumi:"disks"`
-	Efidisk      *proxmox.EfiDisk `pulumi:"efidisk"`
-	Hookscript   *string          `pulumi:"hookscript"`
-	Hostpci0     *string          `pulumi:"hostpci0"`
-	Hotplug      *string          `pulumi:"hotplug"`
-	Hugepages    *string          `pulumi:"hugepages"`
-	Ipconfig0    *string          `pulumi:"ipconfig0"`
-	Kvm          *int             `pulumi:"kvm"`
-	Lock         *string          `pulumi:"lock"`
-	Machine      *string          `pulumi:"machine"`
-	Memory       *int             `pulumi:"memory"`
-	Name         string           `pulumi:"name"`
-	Nameserver   *string          `pulumi:"nameserver"`
-	Node         *string          `pulumi:"node"`
-	Ostype       *string          `pulumi:"ostype"`
-	Parallel0    *string          `pulumi:"parallel0"`
-	Protection   *int             `pulumi:"protection"`
-	Rng0         *string          `pulumi:"rng0"`
-	Searchdomain *string          `pulumi:"searchdomain"`
-	Serial0      *string          `pulumi:"serial0"`
-	Sshkeys      *string          `pulumi:"sshkeys"`
-	Tablet       *int             `pulumi:"tablet"`
-	Template     *int             `pulumi:"template"`
-	Tpmstate0    *string          `pulumi:"tpmstate0"`
-	Usb0         *string          `pulumi:"usb0"`
-	Vga          *string          `pulumi:"vga"`
-	VmId         *int             `pulumi:"vmId"`
+	// Automatically start the VM when the host boots (1 to enable, 0 to disable).
+	Autostart *int `pulumi:"autostart"`
+	// Minimum memory for ballooning in megabytes (0 disables the balloon device).
+	Balloon *int `pulumi:"balloon"`
+	// Clone configuration for creating the VM from a source template or VM.
+	Clone *proxmox.Clone `pulumi:"clone"`
+	// CPU configuration including type, topology, and feature flags.
+	Cpu *proxmox.CPU `pulumi:"cpu"`
+	// Description or notes for the virtual machine.
+	Description *string `pulumi:"description"`
+	// List of disk configurations attached to the virtual machine.
+	Disks []proxmox.Disk `pulumi:"disks"`
+	// EFI disk configuration (required when bios is set to ovmf).
+	Efidisk *proxmox.EfiDisk `pulumi:"efidisk"`
+	// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+	Hotplug *string `pulumi:"hotplug"`
+	// Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+	Machine *string `pulumi:"machine"`
+	// Memory size in megabytes.
+	Memory *int `pulumi:"memory"`
+	// Name of the virtual machine.
+	Name string `pulumi:"name"`
+	// Proxmox node where the VM resides.
+	Node *string `pulumi:"node"`
+	// Guest operating system type (e.g., l26, win11, other).
+	Ostype *string `pulumi:"ostype"`
+	// Tags associated with the virtual machine.
+	Tags []string `pulumi:"tags"`
+	// Mark the VM as a template (1) or a regular VM (0).
+	Template *int `pulumi:"template"`
+	// Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+	VmId *int `pulumi:"vmId"`
 }
 
 // The set of arguments for constructing a VM resource.
 type VMArgs struct {
-	Acpi         pulumi.IntPtrInput
-	Audio0       pulumi.StringPtrInput
-	Autostart    pulumi.IntPtrInput
-	Balloon      pulumi.IntPtrInput
-	Bios         pulumi.StringPtrInput
-	Cicustom     pulumi.StringPtrInput
-	Cipassword   pulumi.StringPtrInput
-	Citype       pulumi.StringPtrInput
-	Ciupgrade    pulumi.IntPtrInput
-	Ciuser       pulumi.StringPtrInput
-	Clone        proxmox.ClonePtrInput
-	Cpu          proxmox.CPUPtrInput
-	Description  pulumi.StringPtrInput
-	Disks        proxmox.DiskArrayInput
-	Efidisk      proxmox.EfiDiskPtrInput
-	Hookscript   pulumi.StringPtrInput
-	Hostpci0     pulumi.StringPtrInput
-	Hotplug      pulumi.StringPtrInput
-	Hugepages    pulumi.StringPtrInput
-	Ipconfig0    pulumi.StringPtrInput
-	Kvm          pulumi.IntPtrInput
-	Lock         pulumi.StringPtrInput
-	Machine      pulumi.StringPtrInput
-	Memory       pulumi.IntPtrInput
-	Name         pulumi.StringInput
-	Nameserver   pulumi.StringPtrInput
-	Node         pulumi.StringPtrInput
-	Ostype       pulumi.StringPtrInput
-	Parallel0    pulumi.StringPtrInput
-	Protection   pulumi.IntPtrInput
-	Rng0         pulumi.StringPtrInput
-	Searchdomain pulumi.StringPtrInput
-	Serial0      pulumi.StringPtrInput
-	Sshkeys      pulumi.StringPtrInput
-	Tablet       pulumi.IntPtrInput
-	Template     pulumi.IntPtrInput
-	Tpmstate0    pulumi.StringPtrInput
-	Usb0         pulumi.StringPtrInput
-	Vga          pulumi.StringPtrInput
-	VmId         pulumi.IntPtrInput
+	// Automatically start the VM when the host boots (1 to enable, 0 to disable).
+	Autostart pulumi.IntPtrInput
+	// Minimum memory for ballooning in megabytes (0 disables the balloon device).
+	Balloon pulumi.IntPtrInput
+	// Clone configuration for creating the VM from a source template or VM.
+	Clone proxmox.ClonePtrInput
+	// CPU configuration including type, topology, and feature flags.
+	Cpu proxmox.CPUPtrInput
+	// Description or notes for the virtual machine.
+	Description pulumi.StringPtrInput
+	// List of disk configurations attached to the virtual machine.
+	Disks proxmox.DiskArrayInput
+	// EFI disk configuration (required when bios is set to ovmf).
+	Efidisk proxmox.EfiDiskPtrInput
+	// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+	Hotplug pulumi.StringPtrInput
+	// Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+	Machine pulumi.StringPtrInput
+	// Memory size in megabytes.
+	Memory pulumi.IntPtrInput
+	// Name of the virtual machine.
+	Name pulumi.StringInput
+	// Proxmox node where the VM resides.
+	Node pulumi.StringPtrInput
+	// Guest operating system type (e.g., l26, win11, other).
+	Ostype pulumi.StringPtrInput
+	// Tags associated with the virtual machine.
+	Tags pulumi.StringArrayInput
+	// Mark the VM as a template (1) or a regular VM (0).
+	Template pulumi.IntPtrInput
+	// Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+	VmId pulumi.IntPtrInput
 }
 
 func (VMArgs) ElementType() reflect.Type {
@@ -280,162 +256,82 @@ func (o VMOutput) ToVMOutputWithContext(ctx context.Context) VMOutput {
 	return o
 }
 
-func (o VMOutput) Acpi() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Acpi }).(pulumi.IntPtrOutput)
-}
-
-func (o VMOutput) Audio0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Audio0 }).(pulumi.StringPtrOutput)
-}
-
+// Automatically start the VM when the host boots (1 to enable, 0 to disable).
 func (o VMOutput) Autostart() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Autostart }).(pulumi.IntPtrOutput)
 }
 
+// Minimum memory for ballooning in megabytes (0 disables the balloon device).
 func (o VMOutput) Balloon() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Balloon }).(pulumi.IntPtrOutput)
 }
 
-func (o VMOutput) Bios() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Bios }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Cicustom() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Cicustom }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Cipassword() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Cipassword }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Citype() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Citype }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Ciupgrade() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Ciupgrade }).(pulumi.IntPtrOutput)
-}
-
-func (o VMOutput) Ciuser() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Ciuser }).(pulumi.StringPtrOutput)
-}
-
+// Clone configuration for creating the VM from a source template or VM.
 func (o VMOutput) Clone() proxmox.ClonePtrOutput {
 	return o.ApplyT(func(v *VM) proxmox.ClonePtrOutput { return v.Clone }).(proxmox.ClonePtrOutput)
 }
 
+// CPU configuration including type, topology, and feature flags.
 func (o VMOutput) Cpu() proxmox.CPUPtrOutput {
 	return o.ApplyT(func(v *VM) proxmox.CPUPtrOutput { return v.Cpu }).(proxmox.CPUPtrOutput)
 }
 
+// Description or notes for the virtual machine.
 func (o VMOutput) Description() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Description }).(pulumi.StringPtrOutput)
 }
 
+// List of disk configurations attached to the virtual machine.
 func (o VMOutput) Disks() proxmox.DiskArrayOutput {
 	return o.ApplyT(func(v *VM) proxmox.DiskArrayOutput { return v.Disks }).(proxmox.DiskArrayOutput)
 }
 
+// EFI disk configuration (required when bios is set to ovmf).
 func (o VMOutput) Efidisk() proxmox.EfiDiskPtrOutput {
 	return o.ApplyT(func(v *VM) proxmox.EfiDiskPtrOutput { return v.Efidisk }).(proxmox.EfiDiskPtrOutput)
 }
 
-func (o VMOutput) Hookscript() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Hookscript }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Hostpci0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Hostpci0 }).(pulumi.StringPtrOutput)
-}
-
+// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
 func (o VMOutput) Hotplug() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Hotplug }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Hugepages() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Hugepages }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Ipconfig0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Ipconfig0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Kvm() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Kvm }).(pulumi.IntPtrOutput)
-}
-
-func (o VMOutput) Lock() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Lock }).(pulumi.StringPtrOutput)
-}
-
+// Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
 func (o VMOutput) Machine() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Machine }).(pulumi.StringPtrOutput)
 }
 
+// Memory size in megabytes.
 func (o VMOutput) Memory() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Memory }).(pulumi.IntPtrOutput)
 }
 
+// Name of the virtual machine.
 func (o VMOutput) Name() pulumi.StringOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringOutput { return v.Name }).(pulumi.StringOutput)
 }
 
-func (o VMOutput) Nameserver() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Nameserver }).(pulumi.StringPtrOutput)
-}
-
+// Proxmox node where the VM resides.
 func (o VMOutput) Node() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Node }).(pulumi.StringPtrOutput)
 }
 
+// Guest operating system type (e.g., l26, win11, other).
 func (o VMOutput) Ostype() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Ostype }).(pulumi.StringPtrOutput)
 }
 
-func (o VMOutput) Parallel0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Parallel0 }).(pulumi.StringPtrOutput)
+// Tags associated with the virtual machine.
+func (o VMOutput) Tags() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v *VM) pulumi.StringArrayOutput { return v.Tags }).(pulumi.StringArrayOutput)
 }
 
-func (o VMOutput) Protection() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Protection }).(pulumi.IntPtrOutput)
-}
-
-func (o VMOutput) Rng0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Rng0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Searchdomain() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Searchdomain }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Serial0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Serial0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Sshkeys() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Sshkeys }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Tablet() pulumi.IntPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Tablet }).(pulumi.IntPtrOutput)
-}
-
+// Mark the VM as a template (1) or a regular VM (0).
 func (o VMOutput) Template() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.Template }).(pulumi.IntPtrOutput)
 }
 
-func (o VMOutput) Tpmstate0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Tpmstate0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Usb0() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Usb0 }).(pulumi.StringPtrOutput)
-}
-
-func (o VMOutput) Vga() pulumi.StringPtrOutput {
-	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Vga }).(pulumi.StringPtrOutput)
-}
-
+// Unique numeric identifier for the virtual machine (auto-assigned if omitted).
 func (o VMOutput) VmId() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.IntPtrOutput { return v.VmId }).(pulumi.IntPtrOutput)
 }

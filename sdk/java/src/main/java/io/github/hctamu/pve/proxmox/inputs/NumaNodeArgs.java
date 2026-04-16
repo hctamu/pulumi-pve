@@ -13,34 +13,70 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
+/**
+ * NUMA node topology configuration for the virtual machine.
+ * 
+ */
 public final class NumaNodeArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final NumaNodeArgs Empty = new NumaNodeArgs();
 
+    /**
+     * CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+     * 
+     */
     @Import(name="cpus", required=true)
     private Output<String> cpus;
 
+    /**
+     * @return CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+     * 
+     */
     public Output<String> cpus() {
         return this.cpus;
     }
 
+    /**
+     * Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+     * 
+     */
     @Import(name="hostNodes")
     private @Nullable Output<String> hostNodes;
 
+    /**
+     * @return Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+     * 
+     */
     public Optional<Output<String>> hostNodes() {
         return Optional.ofNullable(this.hostNodes);
     }
 
+    /**
+     * Memory in megabytes allocated to this NUMA node.
+     * 
+     */
     @Import(name="memory")
     private @Nullable Output<Integer> memory;
 
+    /**
+     * @return Memory in megabytes allocated to this NUMA node.
+     * 
+     */
     public Optional<Output<Integer>> memory() {
         return Optional.ofNullable(this.memory);
     }
 
+    /**
+     * NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+     * 
+     */
     @Import(name="policy")
     private @Nullable Output<String> policy;
 
+    /**
+     * @return NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+     * 
+     */
     public Optional<Output<String>> policy() {
         return Optional.ofNullable(this.policy);
     }
@@ -72,38 +108,86 @@ public final class NumaNodeArgs extends com.pulumi.resources.ResourceArgs {
             $ = new NumaNodeArgs(Objects.requireNonNull(defaults));
         }
 
+        /**
+         * @param cpus CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+         * 
+         * @return builder
+         * 
+         */
         public Builder cpus(Output<String> cpus) {
             $.cpus = cpus;
             return this;
         }
 
+        /**
+         * @param cpus CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+         * 
+         * @return builder
+         * 
+         */
         public Builder cpus(String cpus) {
             return cpus(Output.of(cpus));
         }
 
+        /**
+         * @param hostNodes Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+         * 
+         * @return builder
+         * 
+         */
         public Builder hostNodes(@Nullable Output<String> hostNodes) {
             $.hostNodes = hostNodes;
             return this;
         }
 
+        /**
+         * @param hostNodes Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+         * 
+         * @return builder
+         * 
+         */
         public Builder hostNodes(String hostNodes) {
             return hostNodes(Output.of(hostNodes));
         }
 
+        /**
+         * @param memory Memory in megabytes allocated to this NUMA node.
+         * 
+         * @return builder
+         * 
+         */
         public Builder memory(@Nullable Output<Integer> memory) {
             $.memory = memory;
             return this;
         }
 
+        /**
+         * @param memory Memory in megabytes allocated to this NUMA node.
+         * 
+         * @return builder
+         * 
+         */
         public Builder memory(Integer memory) {
             return memory(Output.of(memory));
         }
 
+        /**
+         * @param policy NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+         * 
+         * @return builder
+         * 
+         */
         public Builder policy(@Nullable Output<String> policy) {
             $.policy = policy;
             return this;
         }
 
+        /**
+         * @param policy NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+         * 
+         * @return builder
+         * 
+         */
         public Builder policy(String policy) {
             return policy(Output.of(policy));
         }

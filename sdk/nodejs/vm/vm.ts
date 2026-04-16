@@ -33,45 +33,69 @@ export class VM extends pulumi.CustomResource {
         return obj['__pulumiType'] === VM.__pulumiType;
     }
 
-    declare public readonly acpi: pulumi.Output<number | undefined>;
-    declare public readonly audio0: pulumi.Output<string | undefined>;
+    /**
+     * Automatically start the VM when the host boots (1 to enable, 0 to disable).
+     */
     declare public readonly autostart: pulumi.Output<number | undefined>;
+    /**
+     * Minimum memory for ballooning in megabytes (0 disables the balloon device).
+     */
     declare public readonly balloon: pulumi.Output<number | undefined>;
-    declare public readonly bios: pulumi.Output<string | undefined>;
-    declare public readonly cicustom: pulumi.Output<string | undefined>;
-    declare public readonly cipassword: pulumi.Output<string | undefined>;
-    declare public readonly citype: pulumi.Output<string | undefined>;
-    declare public readonly ciupgrade: pulumi.Output<number | undefined>;
-    declare public readonly ciuser: pulumi.Output<string | undefined>;
+    /**
+     * Clone configuration for creating the VM from a source template or VM.
+     */
     declare public readonly clone: pulumi.Output<outputs.proxmox.Clone | undefined>;
+    /**
+     * CPU configuration including type, topology, and feature flags.
+     */
     declare public readonly cpu: pulumi.Output<outputs.proxmox.CPU | undefined>;
+    /**
+     * Description or notes for the virtual machine.
+     */
     declare public readonly description: pulumi.Output<string | undefined>;
+    /**
+     * List of disk configurations attached to the virtual machine.
+     */
     declare public readonly disks: pulumi.Output<outputs.proxmox.Disk[]>;
+    /**
+     * EFI disk configuration (required when bios is set to ovmf).
+     */
     declare public readonly efidisk: pulumi.Output<outputs.proxmox.EfiDisk | undefined>;
-    declare public readonly hookscript: pulumi.Output<string | undefined>;
-    declare public readonly hostpci0: pulumi.Output<string | undefined>;
+    /**
+     * Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+     */
     declare public readonly hotplug: pulumi.Output<string | undefined>;
-    declare public readonly hugepages: pulumi.Output<string | undefined>;
-    declare public readonly ipconfig0: pulumi.Output<string | undefined>;
-    declare public readonly kvm: pulumi.Output<number | undefined>;
-    declare public readonly lock: pulumi.Output<string | undefined>;
+    /**
+     * Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+     */
     declare public readonly machine: pulumi.Output<string | undefined>;
+    /**
+     * Memory size in megabytes.
+     */
     declare public readonly memory: pulumi.Output<number | undefined>;
+    /**
+     * Name of the virtual machine.
+     */
     declare public readonly name: pulumi.Output<string>;
-    declare public readonly nameserver: pulumi.Output<string | undefined>;
+    /**
+     * Proxmox node where the VM resides.
+     */
     declare public readonly node: pulumi.Output<string | undefined>;
+    /**
+     * Guest operating system type (e.g., l26, win11, other).
+     */
     declare public readonly ostype: pulumi.Output<string | undefined>;
-    declare public readonly parallel0: pulumi.Output<string | undefined>;
-    declare public readonly protection: pulumi.Output<number | undefined>;
-    declare public readonly rng0: pulumi.Output<string | undefined>;
-    declare public readonly searchdomain: pulumi.Output<string | undefined>;
-    declare public readonly serial0: pulumi.Output<string | undefined>;
-    declare public readonly sshkeys: pulumi.Output<string | undefined>;
-    declare public readonly tablet: pulumi.Output<number | undefined>;
+    /**
+     * Tags associated with the virtual machine.
+     */
+    declare public readonly tags: pulumi.Output<string[] | undefined>;
+    /**
+     * Mark the VM as a template (1) or a regular VM (0).
+     */
     declare public readonly template: pulumi.Output<number | undefined>;
-    declare public readonly tpmstate0: pulumi.Output<string | undefined>;
-    declare public readonly usb0: pulumi.Output<string | undefined>;
-    declare public readonly vga: pulumi.Output<string | undefined>;
+    /**
+     * Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+     */
     declare public readonly vmId: pulumi.Output<number | undefined>;
 
     /**
@@ -91,86 +115,38 @@ export class VM extends pulumi.CustomResource {
             if (args?.name === undefined && !opts.urn) {
                 throw new Error("Missing required property 'name'");
             }
-            resourceInputs["acpi"] = args?.acpi;
-            resourceInputs["audio0"] = args?.audio0;
             resourceInputs["autostart"] = args?.autostart;
             resourceInputs["balloon"] = args?.balloon;
-            resourceInputs["bios"] = args?.bios;
-            resourceInputs["cicustom"] = args?.cicustom;
-            resourceInputs["cipassword"] = args?.cipassword;
-            resourceInputs["citype"] = args?.citype;
-            resourceInputs["ciupgrade"] = args?.ciupgrade;
-            resourceInputs["ciuser"] = args?.ciuser;
             resourceInputs["clone"] = args?.clone;
             resourceInputs["cpu"] = args ? (args.cpu ? pulumi.output(args.cpu).apply(inputs.proxmox.cpuargsProvideDefaults) : undefined) : undefined;
             resourceInputs["description"] = args?.description;
             resourceInputs["disks"] = args?.disks;
             resourceInputs["efidisk"] = args?.efidisk;
-            resourceInputs["hookscript"] = args?.hookscript;
-            resourceInputs["hostpci0"] = args?.hostpci0;
             resourceInputs["hotplug"] = args?.hotplug;
-            resourceInputs["hugepages"] = args?.hugepages;
-            resourceInputs["ipconfig0"] = args?.ipconfig0;
-            resourceInputs["kvm"] = args?.kvm;
-            resourceInputs["lock"] = args?.lock;
             resourceInputs["machine"] = args?.machine;
             resourceInputs["memory"] = args?.memory;
             resourceInputs["name"] = args?.name;
-            resourceInputs["nameserver"] = args?.nameserver;
             resourceInputs["node"] = args?.node;
             resourceInputs["ostype"] = args?.ostype;
-            resourceInputs["parallel0"] = args?.parallel0;
-            resourceInputs["protection"] = args?.protection;
-            resourceInputs["rng0"] = args?.rng0;
-            resourceInputs["searchdomain"] = args?.searchdomain;
-            resourceInputs["serial0"] = args?.serial0;
-            resourceInputs["sshkeys"] = args?.sshkeys;
-            resourceInputs["tablet"] = args?.tablet;
+            resourceInputs["tags"] = args?.tags;
             resourceInputs["template"] = args?.template;
-            resourceInputs["tpmstate0"] = args?.tpmstate0;
-            resourceInputs["usb0"] = args?.usb0;
-            resourceInputs["vga"] = args?.vga;
             resourceInputs["vmId"] = args?.vmId;
         } else {
-            resourceInputs["acpi"] = undefined /*out*/;
-            resourceInputs["audio0"] = undefined /*out*/;
             resourceInputs["autostart"] = undefined /*out*/;
             resourceInputs["balloon"] = undefined /*out*/;
-            resourceInputs["bios"] = undefined /*out*/;
-            resourceInputs["cicustom"] = undefined /*out*/;
-            resourceInputs["cipassword"] = undefined /*out*/;
-            resourceInputs["citype"] = undefined /*out*/;
-            resourceInputs["ciupgrade"] = undefined /*out*/;
-            resourceInputs["ciuser"] = undefined /*out*/;
             resourceInputs["clone"] = undefined /*out*/;
             resourceInputs["cpu"] = undefined /*out*/;
             resourceInputs["description"] = undefined /*out*/;
             resourceInputs["disks"] = undefined /*out*/;
             resourceInputs["efidisk"] = undefined /*out*/;
-            resourceInputs["hookscript"] = undefined /*out*/;
-            resourceInputs["hostpci0"] = undefined /*out*/;
             resourceInputs["hotplug"] = undefined /*out*/;
-            resourceInputs["hugepages"] = undefined /*out*/;
-            resourceInputs["ipconfig0"] = undefined /*out*/;
-            resourceInputs["kvm"] = undefined /*out*/;
-            resourceInputs["lock"] = undefined /*out*/;
             resourceInputs["machine"] = undefined /*out*/;
             resourceInputs["memory"] = undefined /*out*/;
             resourceInputs["name"] = undefined /*out*/;
-            resourceInputs["nameserver"] = undefined /*out*/;
             resourceInputs["node"] = undefined /*out*/;
             resourceInputs["ostype"] = undefined /*out*/;
-            resourceInputs["parallel0"] = undefined /*out*/;
-            resourceInputs["protection"] = undefined /*out*/;
-            resourceInputs["rng0"] = undefined /*out*/;
-            resourceInputs["searchdomain"] = undefined /*out*/;
-            resourceInputs["serial0"] = undefined /*out*/;
-            resourceInputs["sshkeys"] = undefined /*out*/;
-            resourceInputs["tablet"] = undefined /*out*/;
+            resourceInputs["tags"] = undefined /*out*/;
             resourceInputs["template"] = undefined /*out*/;
-            resourceInputs["tpmstate0"] = undefined /*out*/;
-            resourceInputs["usb0"] = undefined /*out*/;
-            resourceInputs["vga"] = undefined /*out*/;
             resourceInputs["vmId"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
@@ -182,44 +158,68 @@ export class VM extends pulumi.CustomResource {
  * The set of arguments for constructing a VM resource.
  */
 export interface VMArgs {
-    acpi?: pulumi.Input<number>;
-    audio0?: pulumi.Input<string>;
+    /**
+     * Automatically start the VM when the host boots (1 to enable, 0 to disable).
+     */
     autostart?: pulumi.Input<number>;
+    /**
+     * Minimum memory for ballooning in megabytes (0 disables the balloon device).
+     */
     balloon?: pulumi.Input<number>;
-    bios?: pulumi.Input<string>;
-    cicustom?: pulumi.Input<string>;
-    cipassword?: pulumi.Input<string>;
-    citype?: pulumi.Input<string>;
-    ciupgrade?: pulumi.Input<number>;
-    ciuser?: pulumi.Input<string>;
+    /**
+     * Clone configuration for creating the VM from a source template or VM.
+     */
     clone?: pulumi.Input<inputs.proxmox.CloneArgs>;
+    /**
+     * CPU configuration including type, topology, and feature flags.
+     */
     cpu?: pulumi.Input<inputs.proxmox.CPUArgs>;
+    /**
+     * Description or notes for the virtual machine.
+     */
     description?: pulumi.Input<string>;
+    /**
+     * List of disk configurations attached to the virtual machine.
+     */
     disks: pulumi.Input<pulumi.Input<inputs.proxmox.DiskArgs>[]>;
+    /**
+     * EFI disk configuration (required when bios is set to ovmf).
+     */
     efidisk?: pulumi.Input<inputs.proxmox.EfiDiskArgs>;
-    hookscript?: pulumi.Input<string>;
-    hostpci0?: pulumi.Input<string>;
+    /**
+     * Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+     */
     hotplug?: pulumi.Input<string>;
-    hugepages?: pulumi.Input<string>;
-    ipconfig0?: pulumi.Input<string>;
-    kvm?: pulumi.Input<number>;
-    lock?: pulumi.Input<string>;
+    /**
+     * Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+     */
     machine?: pulumi.Input<string>;
+    /**
+     * Memory size in megabytes.
+     */
     memory?: pulumi.Input<number>;
+    /**
+     * Name of the virtual machine.
+     */
     name: pulumi.Input<string>;
-    nameserver?: pulumi.Input<string>;
+    /**
+     * Proxmox node where the VM resides.
+     */
     node?: pulumi.Input<string>;
+    /**
+     * Guest operating system type (e.g., l26, win11, other).
+     */
     ostype?: pulumi.Input<string>;
-    parallel0?: pulumi.Input<string>;
-    protection?: pulumi.Input<number>;
-    rng0?: pulumi.Input<string>;
-    searchdomain?: pulumi.Input<string>;
-    serial0?: pulumi.Input<string>;
-    sshkeys?: pulumi.Input<string>;
-    tablet?: pulumi.Input<number>;
+    /**
+     * Tags associated with the virtual machine.
+     */
+    tags?: pulumi.Input<pulumi.Input<string>[]>;
+    /**
+     * Mark the VM as a template (1) or a regular VM (0).
+     */
     template?: pulumi.Input<number>;
-    tpmstate0?: pulumi.Input<string>;
-    usb0?: pulumi.Input<string>;
-    vga?: pulumi.Input<string>;
+    /**
+     * Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+     */
     vmId?: pulumi.Input<number>;
 }

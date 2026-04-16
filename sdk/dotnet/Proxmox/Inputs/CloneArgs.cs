@@ -11,20 +11,38 @@ using Pulumi;
 namespace Hctamu.Pve.Proxmox.Inputs
 {
 
+    /// <summary>
+    /// Configuration for cloning a source virtual machine.
+    /// </summary>
     public sealed class CloneArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// Target storage pool for the cloned disks.
+        /// </summary>
         [Input("dataStoreId")]
         public Input<string>? DataStoreId { get; set; }
 
+        /// <summary>
+        /// Create a full independent clone instead of a linked clone.
+        /// </summary>
         [Input("fullClone")]
         public Input<bool>? FullClone { get; set; }
 
+        /// <summary>
+        /// Target Proxmox node for the clone operation.
+        /// </summary>
         [Input("node")]
         public Input<string>? Node { get; set; }
 
+        /// <summary>
+        /// Timeout in seconds for the clone operation.
+        /// </summary>
         [Input("timeout")]
         public Input<int>? Timeout { get; set; }
 
+        /// <summary>
+        /// Source VM ID to clone from.
+        /// </summary>
         [Input("vmId", required: true)]
         public Input<int> VmId { get; set; } = null!;
 
