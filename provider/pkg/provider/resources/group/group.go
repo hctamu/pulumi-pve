@@ -24,8 +24,8 @@ import (
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // Group represents a Proxmox group resource.
