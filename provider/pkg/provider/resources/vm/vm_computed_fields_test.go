@@ -720,3 +720,80 @@ func TestVMCreateConfigurationErrors(t *testing.T) {
 		})
 	}
 }
+
+// --- Clone preservation tests ---
+
+// TestVMReadPreservesCloneFromInputs verifies that when the user provides clone
+// configuration in their inputs, it is preserved in the returned Inputs after a Read
+// (since Proxmox does not expose clone metadata via the VM config API).
+func TestVMReadPreservesCloneFromInputs(t *testing.T) {
+	t.Parallel()
+
+	vmID := 600
+	nodeName := "pve-node"
+
+	userClone := &proxmox.Clone{
+		VMID:      9000,
+		FullClone: testutils.Ptr(true),
+		Timeout:   300,
+	}
+
+	tests := []struct {
+		name      string
+		reqInputs proxmox.VMInputs
+		reqState  proxmox.VMOutputs
+		wantClone *proxmox.Clone
+	}{
+		{
+			name: "clone in inputs is preserved when state has no clone",
+			reqInputs: proxmox.VMInputs{
+				VMID:  testutils.Ptr(vmID),
+				Node:  &nodeName,
+				Clone: userClone,
+			},
+			reqState:  proxmox.VMOutputs{VMInputs: proxmox.VMInputs{VMID: testutils.Ptr(vmID)}},
+			wantClone: userClone,
+		},
+		{
+			name: "clone in inputs takes precedence over clone in state",
+			reqInputs: proxmox.VMInputs{
+				VMID:  testutils.Ptr(vmID),
+				Node:  &nodeName,
+				Clone: userClone,
+			},
+			reqState: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{
+				VMID:  testutils.Ptr(vmID),
+				Clone: &proxmox.Clone{VMID: 1111},
+			}},
+			wantClone: userClone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ops := &mockVMOps{
+				getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+					// API returns state without clone info
+					return proxmox.VMInputs{
+						VMID: &id,
+						Node: testutils.Ptr(nodeName),
+					}, nil
+				},
+			}
+
+			vmRes := &VM{VMOps: ops, Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID}}
+			req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+				ID:     "600",
+				Inputs: tt.reqInputs,
+				State:  tt.reqState,
+			}
+
+			resp, err := vmRes.Read(context.Background(), req)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.wantClone, resp.Inputs.Clone, "clone should be preserved in Inputs")
+		})
+	}
+}
