@@ -13,34 +13,70 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
+/**
+ * Disk configuration for the virtual machine.
+ * 
+ */
 public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final DiskArgs Empty = new DiskArgs();
 
+    /**
+     * File name of the disk image (computed by Proxmox if not provided).
+     * 
+     */
     @Import(name="filename")
     private @Nullable Output<String> filename;
 
+    /**
+     * @return File name of the disk image (computed by Proxmox if not provided).
+     * 
+     */
     public Optional<Output<String>> filename() {
         return Optional.ofNullable(this.filename);
     }
 
+    /**
+     * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * 
+     */
     @Import(name="interface", required=true)
     private Output<String> interface_;
 
+    /**
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * 
+     */
     public Output<String> interface_() {
         return this.interface_;
     }
 
+    /**
+     * Disk size in gigabytes.
+     * 
+     */
     @Import(name="size", required=true)
     private Output<Integer> size;
 
+    /**
+     * @return Disk size in gigabytes.
+     * 
+     */
     public Output<Integer> size() {
         return this.size;
     }
 
+    /**
+     * Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+     * 
+     */
     @Import(name="storage", required=true)
     private Output<String> storage;
 
+    /**
+     * @return Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+     * 
+     */
     public Output<String> storage() {
         return this.storage;
     }
@@ -72,38 +108,86 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
             $ = new DiskArgs(Objects.requireNonNull(defaults));
         }
 
+        /**
+         * @param filename File name of the disk image (computed by Proxmox if not provided).
+         * 
+         * @return builder
+         * 
+         */
         public Builder filename(@Nullable Output<String> filename) {
             $.filename = filename;
             return this;
         }
 
+        /**
+         * @param filename File name of the disk image (computed by Proxmox if not provided).
+         * 
+         * @return builder
+         * 
+         */
         public Builder filename(String filename) {
             return filename(Output.of(filename));
         }
 
+        /**
+         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         * 
+         * @return builder
+         * 
+         */
         public Builder interface_(Output<String> interface_) {
             $.interface_ = interface_;
             return this;
         }
 
+        /**
+         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         * 
+         * @return builder
+         * 
+         */
         public Builder interface_(String interface_) {
             return interface_(Output.of(interface_));
         }
 
+        /**
+         * @param size Disk size in gigabytes.
+         * 
+         * @return builder
+         * 
+         */
         public Builder size(Output<Integer> size) {
             $.size = size;
             return this;
         }
 
+        /**
+         * @param size Disk size in gigabytes.
+         * 
+         * @return builder
+         * 
+         */
         public Builder size(Integer size) {
             return size(Output.of(size));
         }
 
+        /**
+         * @param storage Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+         * 
+         * @return builder
+         * 
+         */
         public Builder storage(Output<String> storage) {
             $.storage = storage;
             return this;
         }
 
+        /**
+         * @param storage Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+         * 
+         * @return builder
+         * 
+         */
         public Builder storage(String storage) {
             return storage(Output.of(storage));
         }

@@ -12,18 +12,57 @@ export namespace proxmox {
      * CPU configuration for the virtual machine.
      */
     export interface CPU {
+        /**
+         * Number of CPU cores per socket.
+         */
         cores?: number;
+        /**
+         * List of CPU flags to disable.
+         */
         flagsDisabled?: string[];
+        /**
+         * List of CPU flags to enable (e.g., pcid, spec-ctrl).
+         */
         flagsEnabled?: string[];
+        /**
+         * Hide VM CPU type from the guest operating system.
+         */
         hidden?: boolean;
+        /**
+         * Hyper-V vendor ID presented to the guest (up to 12 characters).
+         */
         hvVendorId?: string;
+        /**
+         * CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+         */
         limit?: number;
+        /**
+         * Enable NUMA topology.
+         */
         numa?: boolean;
+        /**
+         * NUMA node topology configuration.
+         */
         numaNodes?: outputs.proxmox.NumaNode[];
+        /**
+         * Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+         */
         physBits?: string;
+        /**
+         * Number of CPU sockets.
+         */
         sockets?: number;
+        /**
+         * CPU type (e.g., host, kvm64, x86-64-v2-AES).
+         */
         type?: string;
+        /**
+         * CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+         */
         units?: number;
+        /**
+         * Number of hotplugged vCPUs (must be <= cores * sockets).
+         */
         vcpus?: number;
     }
     /**
@@ -36,18 +75,51 @@ export namespace proxmox {
         };
     }
 
+    /**
+     * Configuration for cloning a source virtual machine.
+     */
     export interface Clone {
+        /**
+         * Target storage pool for the cloned disks.
+         */
         dataStoreId?: string;
+        /**
+         * Create a full independent clone instead of a linked clone.
+         */
         fullClone?: boolean;
+        /**
+         * Target Proxmox node for the clone operation.
+         */
         node?: string;
+        /**
+         * Timeout in seconds for the clone operation.
+         */
         timeout?: number;
+        /**
+         * Source VM ID to clone from.
+         */
         vmId: number;
     }
 
+    /**
+     * Disk configuration for the virtual machine.
+     */
     export interface Disk {
+        /**
+         * File name of the disk image (computed by Proxmox if not provided).
+         */
         filename?: string;
+        /**
+         * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         */
         interface: string;
+        /**
+         * Disk size in gigabytes.
+         */
         size: number;
+        /**
+         * Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+         */
         storage: string;
     }
 
@@ -55,9 +127,21 @@ export namespace proxmox {
      * EFI disk configuration for the virtual machine.
      */
     export interface EfiDisk {
+        /**
+         * EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+         */
         efitype: string;
+        /**
+         * File name of the EFI disk image (computed by Proxmox if not provided).
+         */
         filename?: string;
+        /**
+         * Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+         */
         preEnrolledKeys?: boolean;
+        /**
+         * Target storage pool for the EFI disk (e.g., local-lvm).
+         */
         storage: string;
     }
 
@@ -72,10 +156,25 @@ export namespace proxmox {
         fileName: string;
     }
 
+    /**
+     * NUMA node topology configuration for the virtual machine.
+     */
     export interface NumaNode {
+        /**
+         * CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+         */
         cpus: string;
+        /**
+         * Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+         */
         hostNodes?: string;
+        /**
+         * Memory in megabytes allocated to this NUMA node.
+         */
         memory?: number;
+        /**
+         * NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+         */
         policy?: string;
     }
 

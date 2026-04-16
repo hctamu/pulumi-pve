@@ -16,11 +16,18 @@ namespace Hctamu.Pve.Proxmox.Inputs
     /// </summary>
     public sealed class CPUArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// Number of CPU cores per socket.
+        /// </summary>
         [Input("cores")]
         public Input<int>? Cores { get; set; }
 
         [Input("flagsDisabled")]
         private InputList<string>? _flagsDisabled;
+
+        /// <summary>
+        /// List of CPU flags to disable.
+        /// </summary>
         public InputList<string> FlagsDisabled
         {
             get => _flagsDisabled ?? (_flagsDisabled = new InputList<string>());
@@ -29,44 +36,79 @@ namespace Hctamu.Pve.Proxmox.Inputs
 
         [Input("flagsEnabled")]
         private InputList<string>? _flagsEnabled;
+
+        /// <summary>
+        /// List of CPU flags to enable (e.g., pcid, spec-ctrl).
+        /// </summary>
         public InputList<string> FlagsEnabled
         {
             get => _flagsEnabled ?? (_flagsEnabled = new InputList<string>());
             set => _flagsEnabled = value;
         }
 
+        /// <summary>
+        /// Hide VM CPU type from the guest operating system.
+        /// </summary>
         [Input("hidden")]
         public Input<bool>? Hidden { get; set; }
 
+        /// <summary>
+        /// Hyper-V vendor ID presented to the guest (up to 12 characters).
+        /// </summary>
         [Input("hvVendorId")]
         public Input<string>? HvVendorId { get; set; }
 
+        /// <summary>
+        /// CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+        /// </summary>
         [Input("limit")]
         public Input<double>? Limit { get; set; }
 
+        /// <summary>
+        /// Enable NUMA topology.
+        /// </summary>
         [Input("numa")]
         public Input<bool>? Numa { get; set; }
 
         [Input("numaNodes")]
         private InputList<Inputs.NumaNodeArgs>? _numaNodes;
+
+        /// <summary>
+        /// NUMA node topology configuration.
+        /// </summary>
         public InputList<Inputs.NumaNodeArgs> NumaNodes
         {
             get => _numaNodes ?? (_numaNodes = new InputList<Inputs.NumaNodeArgs>());
             set => _numaNodes = value;
         }
 
+        /// <summary>
+        /// Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+        /// </summary>
         [Input("physBits")]
         public Input<string>? PhysBits { get; set; }
 
+        /// <summary>
+        /// Number of CPU sockets.
+        /// </summary>
         [Input("sockets")]
         public Input<int>? Sockets { get; set; }
 
+        /// <summary>
+        /// CPU type (e.g., host, kvm64, x86-64-v2-AES).
+        /// </summary>
         [Input("type")]
         public Input<string>? Type { get; set; }
 
+        /// <summary>
+        /// CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+        /// </summary>
         [Input("units")]
         public Input<int>? Units { get; set; }
 
+        /// <summary>
+        /// Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+        /// </summary>
         [Input("vcpus")]
         public Input<int>? Vcpus { get; set; }
 

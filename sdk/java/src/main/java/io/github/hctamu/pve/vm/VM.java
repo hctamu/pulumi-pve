@@ -21,243 +21,227 @@ import javax.annotation.Nullable;
 
 @ResourceType(type="pve:vm:VM")
 public class VM extends com.pulumi.resources.CustomResource {
-    @Export(name="acpi", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> acpi;
-
-    public Output<Optional<Integer>> acpi() {
-        return Codegen.optional(this.acpi);
-    }
-    @Export(name="audio0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> audio0;
-
-    public Output<Optional<String>> audio0() {
-        return Codegen.optional(this.audio0);
-    }
+    /**
+     * Automatically start the VM when the host boots (1 to enable, 0 to disable).
+     * 
+     */
     @Export(name="autostart", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> autostart;
 
+    /**
+     * @return Automatically start the VM when the host boots (1 to enable, 0 to disable).
+     * 
+     */
     public Output<Optional<Integer>> autostart() {
         return Codegen.optional(this.autostart);
     }
+    /**
+     * Minimum memory for ballooning in megabytes (0 disables the balloon device).
+     * 
+     */
     @Export(name="balloon", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> balloon;
 
+    /**
+     * @return Minimum memory for ballooning in megabytes (0 disables the balloon device).
+     * 
+     */
     public Output<Optional<Integer>> balloon() {
         return Codegen.optional(this.balloon);
     }
-    @Export(name="bios", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> bios;
-
-    public Output<Optional<String>> bios() {
-        return Codegen.optional(this.bios);
-    }
-    @Export(name="cicustom", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> cicustom;
-
-    public Output<Optional<String>> cicustom() {
-        return Codegen.optional(this.cicustom);
-    }
-    @Export(name="cipassword", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> cipassword;
-
-    public Output<Optional<String>> cipassword() {
-        return Codegen.optional(this.cipassword);
-    }
-    @Export(name="citype", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> citype;
-
-    public Output<Optional<String>> citype() {
-        return Codegen.optional(this.citype);
-    }
-    @Export(name="ciupgrade", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> ciupgrade;
-
-    public Output<Optional<Integer>> ciupgrade() {
-        return Codegen.optional(this.ciupgrade);
-    }
-    @Export(name="ciuser", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> ciuser;
-
-    public Output<Optional<String>> ciuser() {
-        return Codegen.optional(this.ciuser);
-    }
+    /**
+     * Clone configuration for creating the VM from a source template or VM.
+     * 
+     */
     @Export(name="clone", refs={Clone.class}, tree="[0]")
     private Output</* @Nullable */ Clone> clone;
 
+    /**
+     * @return Clone configuration for creating the VM from a source template or VM.
+     * 
+     */
     public Output<Optional<Clone>> clone_() {
         return Codegen.optional(this.clone);
     }
+    /**
+     * CPU configuration including type, topology, and feature flags.
+     * 
+     */
     @Export(name="cpu", refs={CPU.class}, tree="[0]")
     private Output</* @Nullable */ CPU> cpu;
 
+    /**
+     * @return CPU configuration including type, topology, and feature flags.
+     * 
+     */
     public Output<Optional<CPU>> cpu() {
         return Codegen.optional(this.cpu);
     }
+    /**
+     * Description or notes for the virtual machine.
+     * 
+     */
     @Export(name="description", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> description;
 
+    /**
+     * @return Description or notes for the virtual machine.
+     * 
+     */
     public Output<Optional<String>> description() {
         return Codegen.optional(this.description);
     }
+    /**
+     * List of disk configurations attached to the virtual machine.
+     * 
+     */
     @Export(name="disks", refs={List.class,Disk.class}, tree="[0,1]")
     private Output<List<Disk>> disks;
 
+    /**
+     * @return List of disk configurations attached to the virtual machine.
+     * 
+     */
     public Output<List<Disk>> disks() {
         return this.disks;
     }
+    /**
+     * EFI disk configuration (required when bios is set to ovmf).
+     * 
+     */
     @Export(name="efidisk", refs={EfiDisk.class}, tree="[0]")
     private Output</* @Nullable */ EfiDisk> efidisk;
 
+    /**
+     * @return EFI disk configuration (required when bios is set to ovmf).
+     * 
+     */
     public Output<Optional<EfiDisk>> efidisk() {
         return Codegen.optional(this.efidisk);
     }
-    @Export(name="hookscript", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> hookscript;
-
-    public Output<Optional<String>> hookscript() {
-        return Codegen.optional(this.hookscript);
-    }
-    @Export(name="hostpci0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> hostpci0;
-
-    public Output<Optional<String>> hostpci0() {
-        return Codegen.optional(this.hostpci0);
-    }
+    /**
+     * Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+     * 
+     */
     @Export(name="hotplug", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> hotplug;
 
+    /**
+     * @return Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+     * 
+     */
     public Output<Optional<String>> hotplug() {
         return Codegen.optional(this.hotplug);
     }
-    @Export(name="hugepages", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> hugepages;
-
-    public Output<Optional<String>> hugepages() {
-        return Codegen.optional(this.hugepages);
-    }
-    @Export(name="ipconfig0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> ipconfig0;
-
-    public Output<Optional<String>> ipconfig0() {
-        return Codegen.optional(this.ipconfig0);
-    }
-    @Export(name="kvm", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> kvm;
-
-    public Output<Optional<Integer>> kvm() {
-        return Codegen.optional(this.kvm);
-    }
-    @Export(name="lock", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> lock;
-
-    public Output<Optional<String>> lock() {
-        return Codegen.optional(this.lock);
-    }
+    /**
+     * Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+     * 
+     */
     @Export(name="machine", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> machine;
 
+    /**
+     * @return Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+     * 
+     */
     public Output<Optional<String>> machine() {
         return Codegen.optional(this.machine);
     }
+    /**
+     * Memory size in megabytes.
+     * 
+     */
     @Export(name="memory", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> memory;
 
+    /**
+     * @return Memory size in megabytes.
+     * 
+     */
     public Output<Optional<Integer>> memory() {
         return Codegen.optional(this.memory);
     }
+    /**
+     * Name of the virtual machine.
+     * 
+     */
     @Export(name="name", refs={String.class}, tree="[0]")
     private Output<String> name;
 
+    /**
+     * @return Name of the virtual machine.
+     * 
+     */
     public Output<String> name() {
         return this.name;
     }
-    @Export(name="nameserver", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> nameserver;
-
-    public Output<Optional<String>> nameserver() {
-        return Codegen.optional(this.nameserver);
-    }
+    /**
+     * Proxmox node where the VM resides.
+     * 
+     */
     @Export(name="node", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> node;
 
+    /**
+     * @return Proxmox node where the VM resides.
+     * 
+     */
     public Output<Optional<String>> node() {
         return Codegen.optional(this.node);
     }
+    /**
+     * Guest operating system type (e.g., l26, win11, other).
+     * 
+     */
     @Export(name="ostype", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> ostype;
 
+    /**
+     * @return Guest operating system type (e.g., l26, win11, other).
+     * 
+     */
     public Output<Optional<String>> ostype() {
         return Codegen.optional(this.ostype);
     }
-    @Export(name="parallel0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> parallel0;
+    /**
+     * Tags associated with the virtual machine.
+     * 
+     */
+    @Export(name="tags", refs={List.class,String.class}, tree="[0,1]")
+    private Output</* @Nullable */ List<String>> tags;
 
-    public Output<Optional<String>> parallel0() {
-        return Codegen.optional(this.parallel0);
+    /**
+     * @return Tags associated with the virtual machine.
+     * 
+     */
+    public Output<Optional<List<String>>> tags() {
+        return Codegen.optional(this.tags);
     }
-    @Export(name="protection", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> protection;
-
-    public Output<Optional<Integer>> protection() {
-        return Codegen.optional(this.protection);
-    }
-    @Export(name="rng0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> rng0;
-
-    public Output<Optional<String>> rng0() {
-        return Codegen.optional(this.rng0);
-    }
-    @Export(name="searchdomain", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> searchdomain;
-
-    public Output<Optional<String>> searchdomain() {
-        return Codegen.optional(this.searchdomain);
-    }
-    @Export(name="serial0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> serial0;
-
-    public Output<Optional<String>> serial0() {
-        return Codegen.optional(this.serial0);
-    }
-    @Export(name="sshkeys", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> sshkeys;
-
-    public Output<Optional<String>> sshkeys() {
-        return Codegen.optional(this.sshkeys);
-    }
-    @Export(name="tablet", refs={Integer.class}, tree="[0]")
-    private Output</* @Nullable */ Integer> tablet;
-
-    public Output<Optional<Integer>> tablet() {
-        return Codegen.optional(this.tablet);
-    }
+    /**
+     * Mark the VM as a template (1) or a regular VM (0).
+     * 
+     */
     @Export(name="template", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> template;
 
+    /**
+     * @return Mark the VM as a template (1) or a regular VM (0).
+     * 
+     */
     public Output<Optional<Integer>> template() {
         return Codegen.optional(this.template);
     }
-    @Export(name="tpmstate0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> tpmstate0;
-
-    public Output<Optional<String>> tpmstate0() {
-        return Codegen.optional(this.tpmstate0);
-    }
-    @Export(name="usb0", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> usb0;
-
-    public Output<Optional<String>> usb0() {
-        return Codegen.optional(this.usb0);
-    }
-    @Export(name="vga", refs={String.class}, tree="[0]")
-    private Output</* @Nullable */ String> vga;
-
-    public Output<Optional<String>> vga() {
-        return Codegen.optional(this.vga);
-    }
+    /**
+     * Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+     * 
+     */
     @Export(name="vmId", refs={Integer.class}, tree="[0]")
     private Output</* @Nullable */ Integer> vmId;
 
+    /**
+     * @return Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+     * 
+     */
     public Output<Optional<Integer>> vmId() {
         return Codegen.optional(this.vmId);
     }

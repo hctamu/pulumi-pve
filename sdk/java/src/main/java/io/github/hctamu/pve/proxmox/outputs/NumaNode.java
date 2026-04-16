@@ -13,21 +13,53 @@ import javax.annotation.Nullable;
 
 @CustomType
 public final class NumaNode {
+    /**
+     * @return CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+     * 
+     */
     private String cpus;
+    /**
+     * @return Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+     * 
+     */
     private @Nullable String hostNodes;
+    /**
+     * @return Memory in megabytes allocated to this NUMA node.
+     * 
+     */
     private @Nullable Integer memory;
+    /**
+     * @return NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+     * 
+     */
     private @Nullable String policy;
 
     private NumaNode() {}
+    /**
+     * @return CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+     * 
+     */
     public String cpus() {
         return this.cpus;
     }
+    /**
+     * @return Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+     * 
+     */
     public Optional<String> hostNodes() {
         return Optional.ofNullable(this.hostNodes);
     }
+    /**
+     * @return Memory in megabytes allocated to this NUMA node.
+     * 
+     */
     public Optional<Integer> memory() {
         return Optional.ofNullable(this.memory);
     }
+    /**
+     * @return NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+     * 
+     */
     public Optional<String> policy() {
         return Optional.ofNullable(this.policy);
     }

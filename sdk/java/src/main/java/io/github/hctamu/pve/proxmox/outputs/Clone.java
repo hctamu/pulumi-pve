@@ -14,25 +14,65 @@ import javax.annotation.Nullable;
 
 @CustomType
 public final class Clone {
+    /**
+     * @return Target storage pool for the cloned disks.
+     * 
+     */
     private @Nullable String dataStoreId;
+    /**
+     * @return Create a full independent clone instead of a linked clone.
+     * 
+     */
     private @Nullable Boolean fullClone;
+    /**
+     * @return Target Proxmox node for the clone operation.
+     * 
+     */
     private @Nullable String node;
+    /**
+     * @return Timeout in seconds for the clone operation.
+     * 
+     */
     private @Nullable Integer timeout;
+    /**
+     * @return Source VM ID to clone from.
+     * 
+     */
     private Integer vmId;
 
     private Clone() {}
+    /**
+     * @return Target storage pool for the cloned disks.
+     * 
+     */
     public Optional<String> dataStoreId() {
         return Optional.ofNullable(this.dataStoreId);
     }
+    /**
+     * @return Create a full independent clone instead of a linked clone.
+     * 
+     */
     public Optional<Boolean> fullClone() {
         return Optional.ofNullable(this.fullClone);
     }
+    /**
+     * @return Target Proxmox node for the clone operation.
+     * 
+     */
     public Optional<String> node() {
         return Optional.ofNullable(this.node);
     }
+    /**
+     * @return Timeout in seconds for the clone operation.
+     * 
+     */
     public Optional<Integer> timeout() {
         return Optional.ofNullable(this.timeout);
     }
+    /**
+     * @return Source VM ID to clone from.
+     * 
+     */
     public Integer vmId() {
         return this.vmId;
     }

@@ -14,41 +14,85 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
+/**
+ * Configuration for cloning a source virtual machine.
+ * 
+ */
 public final class CloneArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final CloneArgs Empty = new CloneArgs();
 
+    /**
+     * Target storage pool for the cloned disks.
+     * 
+     */
     @Import(name="dataStoreId")
     private @Nullable Output<String> dataStoreId;
 
+    /**
+     * @return Target storage pool for the cloned disks.
+     * 
+     */
     public Optional<Output<String>> dataStoreId() {
         return Optional.ofNullable(this.dataStoreId);
     }
 
+    /**
+     * Create a full independent clone instead of a linked clone.
+     * 
+     */
     @Import(name="fullClone")
     private @Nullable Output<Boolean> fullClone;
 
+    /**
+     * @return Create a full independent clone instead of a linked clone.
+     * 
+     */
     public Optional<Output<Boolean>> fullClone() {
         return Optional.ofNullable(this.fullClone);
     }
 
+    /**
+     * Target Proxmox node for the clone operation.
+     * 
+     */
     @Import(name="node")
     private @Nullable Output<String> node;
 
+    /**
+     * @return Target Proxmox node for the clone operation.
+     * 
+     */
     public Optional<Output<String>> node() {
         return Optional.ofNullable(this.node);
     }
 
+    /**
+     * Timeout in seconds for the clone operation.
+     * 
+     */
     @Import(name="timeout")
     private @Nullable Output<Integer> timeout;
 
+    /**
+     * @return Timeout in seconds for the clone operation.
+     * 
+     */
     public Optional<Output<Integer>> timeout() {
         return Optional.ofNullable(this.timeout);
     }
 
+    /**
+     * Source VM ID to clone from.
+     * 
+     */
     @Import(name="vmId", required=true)
     private Output<Integer> vmId;
 
+    /**
+     * @return Source VM ID to clone from.
+     * 
+     */
     public Output<Integer> vmId() {
         return this.vmId;
     }
@@ -81,47 +125,107 @@ public final class CloneArgs extends com.pulumi.resources.ResourceArgs {
             $ = new CloneArgs(Objects.requireNonNull(defaults));
         }
 
+        /**
+         * @param dataStoreId Target storage pool for the cloned disks.
+         * 
+         * @return builder
+         * 
+         */
         public Builder dataStoreId(@Nullable Output<String> dataStoreId) {
             $.dataStoreId = dataStoreId;
             return this;
         }
 
+        /**
+         * @param dataStoreId Target storage pool for the cloned disks.
+         * 
+         * @return builder
+         * 
+         */
         public Builder dataStoreId(String dataStoreId) {
             return dataStoreId(Output.of(dataStoreId));
         }
 
+        /**
+         * @param fullClone Create a full independent clone instead of a linked clone.
+         * 
+         * @return builder
+         * 
+         */
         public Builder fullClone(@Nullable Output<Boolean> fullClone) {
             $.fullClone = fullClone;
             return this;
         }
 
+        /**
+         * @param fullClone Create a full independent clone instead of a linked clone.
+         * 
+         * @return builder
+         * 
+         */
         public Builder fullClone(Boolean fullClone) {
             return fullClone(Output.of(fullClone));
         }
 
+        /**
+         * @param node Target Proxmox node for the clone operation.
+         * 
+         * @return builder
+         * 
+         */
         public Builder node(@Nullable Output<String> node) {
             $.node = node;
             return this;
         }
 
+        /**
+         * @param node Target Proxmox node for the clone operation.
+         * 
+         * @return builder
+         * 
+         */
         public Builder node(String node) {
             return node(Output.of(node));
         }
 
+        /**
+         * @param timeout Timeout in seconds for the clone operation.
+         * 
+         * @return builder
+         * 
+         */
         public Builder timeout(@Nullable Output<Integer> timeout) {
             $.timeout = timeout;
             return this;
         }
 
+        /**
+         * @param timeout Timeout in seconds for the clone operation.
+         * 
+         * @return builder
+         * 
+         */
         public Builder timeout(Integer timeout) {
             return timeout(Output.of(timeout));
         }
 
+        /**
+         * @param vmId Source VM ID to clone from.
+         * 
+         * @return builder
+         * 
+         */
         public Builder vmId(Output<Integer> vmId) {
             $.vmId = vmId;
             return this;
         }
 
+        /**
+         * @param vmId Source VM ID to clone from.
+         * 
+         * @return builder
+         * 
+         */
         public Builder vmId(Integer vmId) {
             return vmId(Output.of(vmId));
         }

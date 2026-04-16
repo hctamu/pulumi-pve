@@ -15,19 +15,32 @@ var _ = internal.GetEnvOrDefault
 
 // CPU configuration for the virtual machine.
 type CPU struct {
-	Cores         *int       `pulumi:"cores"`
-	FlagsDisabled []string   `pulumi:"flagsDisabled"`
-	FlagsEnabled  []string   `pulumi:"flagsEnabled"`
-	Hidden        *bool      `pulumi:"hidden"`
-	HvVendorId    *string    `pulumi:"hvVendorId"`
-	Limit         *float64   `pulumi:"limit"`
-	Numa          *bool      `pulumi:"numa"`
-	NumaNodes     []NumaNode `pulumi:"numaNodes"`
-	PhysBits      *string    `pulumi:"physBits"`
-	Sockets       *int       `pulumi:"sockets"`
-	Type          *string    `pulumi:"type"`
-	Units         *int       `pulumi:"units"`
-	Vcpus         *int       `pulumi:"vcpus"`
+	// Number of CPU cores per socket.
+	Cores *int `pulumi:"cores"`
+	// List of CPU flags to disable.
+	FlagsDisabled []string `pulumi:"flagsDisabled"`
+	// List of CPU flags to enable (e.g., pcid, spec-ctrl).
+	FlagsEnabled []string `pulumi:"flagsEnabled"`
+	// Hide VM CPU type from the guest operating system.
+	Hidden *bool `pulumi:"hidden"`
+	// Hyper-V vendor ID presented to the guest (up to 12 characters).
+	HvVendorId *string `pulumi:"hvVendorId"`
+	// CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+	Limit *float64 `pulumi:"limit"`
+	// Enable NUMA topology.
+	Numa *bool `pulumi:"numa"`
+	// NUMA node topology configuration.
+	NumaNodes []NumaNode `pulumi:"numaNodes"`
+	// Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+	PhysBits *string `pulumi:"physBits"`
+	// Number of CPU sockets.
+	Sockets *int `pulumi:"sockets"`
+	// CPU type (e.g., host, kvm64, x86-64-v2-AES).
+	Type *string `pulumi:"type"`
+	// CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+	Units *int `pulumi:"units"`
+	// Number of hotplugged vCPUs (must be <= cores * sockets).
+	Vcpus *int `pulumi:"vcpus"`
 }
 
 // Defaults sets the appropriate defaults for CPU
@@ -58,19 +71,32 @@ type CPUInput interface {
 
 // CPU configuration for the virtual machine.
 type CPUArgs struct {
-	Cores         pulumi.IntPtrInput      `pulumi:"cores"`
+	// Number of CPU cores per socket.
+	Cores pulumi.IntPtrInput `pulumi:"cores"`
+	// List of CPU flags to disable.
 	FlagsDisabled pulumi.StringArrayInput `pulumi:"flagsDisabled"`
-	FlagsEnabled  pulumi.StringArrayInput `pulumi:"flagsEnabled"`
-	Hidden        pulumi.BoolPtrInput     `pulumi:"hidden"`
-	HvVendorId    pulumi.StringPtrInput   `pulumi:"hvVendorId"`
-	Limit         pulumi.Float64PtrInput  `pulumi:"limit"`
-	Numa          pulumi.BoolPtrInput     `pulumi:"numa"`
-	NumaNodes     NumaNodeArrayInput      `pulumi:"numaNodes"`
-	PhysBits      pulumi.StringPtrInput   `pulumi:"physBits"`
-	Sockets       pulumi.IntPtrInput      `pulumi:"sockets"`
-	Type          pulumi.StringPtrInput   `pulumi:"type"`
-	Units         pulumi.IntPtrInput      `pulumi:"units"`
-	Vcpus         pulumi.IntPtrInput      `pulumi:"vcpus"`
+	// List of CPU flags to enable (e.g., pcid, spec-ctrl).
+	FlagsEnabled pulumi.StringArrayInput `pulumi:"flagsEnabled"`
+	// Hide VM CPU type from the guest operating system.
+	Hidden pulumi.BoolPtrInput `pulumi:"hidden"`
+	// Hyper-V vendor ID presented to the guest (up to 12 characters).
+	HvVendorId pulumi.StringPtrInput `pulumi:"hvVendorId"`
+	// CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+	Limit pulumi.Float64PtrInput `pulumi:"limit"`
+	// Enable NUMA topology.
+	Numa pulumi.BoolPtrInput `pulumi:"numa"`
+	// NUMA node topology configuration.
+	NumaNodes NumaNodeArrayInput `pulumi:"numaNodes"`
+	// Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+	PhysBits pulumi.StringPtrInput `pulumi:"physBits"`
+	// Number of CPU sockets.
+	Sockets pulumi.IntPtrInput `pulumi:"sockets"`
+	// CPU type (e.g., host, kvm64, x86-64-v2-AES).
+	Type pulumi.StringPtrInput `pulumi:"type"`
+	// CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+	Units pulumi.IntPtrInput `pulumi:"units"`
+	// Number of hotplugged vCPUs (must be <= cores * sockets).
+	Vcpus pulumi.IntPtrInput `pulumi:"vcpus"`
 }
 
 // Defaults sets the appropriate defaults for CPUArgs
@@ -164,54 +190,67 @@ func (o CPUOutput) ToCPUPtrOutputWithContext(ctx context.Context) CPUPtrOutput {
 	}).(CPUPtrOutput)
 }
 
+// Number of CPU cores per socket.
 func (o CPUOutput) Cores() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v CPU) *int { return v.Cores }).(pulumi.IntPtrOutput)
 }
 
+// List of CPU flags to disable.
 func (o CPUOutput) FlagsDisabled() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v CPU) []string { return v.FlagsDisabled }).(pulumi.StringArrayOutput)
 }
 
+// List of CPU flags to enable (e.g., pcid, spec-ctrl).
 func (o CPUOutput) FlagsEnabled() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v CPU) []string { return v.FlagsEnabled }).(pulumi.StringArrayOutput)
 }
 
+// Hide VM CPU type from the guest operating system.
 func (o CPUOutput) Hidden() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v CPU) *bool { return v.Hidden }).(pulumi.BoolPtrOutput)
 }
 
+// Hyper-V vendor ID presented to the guest (up to 12 characters).
 func (o CPUOutput) HvVendorId() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v CPU) *string { return v.HvVendorId }).(pulumi.StringPtrOutput)
 }
 
+// CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
 func (o CPUOutput) Limit() pulumi.Float64PtrOutput {
 	return o.ApplyT(func(v CPU) *float64 { return v.Limit }).(pulumi.Float64PtrOutput)
 }
 
+// Enable NUMA topology.
 func (o CPUOutput) Numa() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v CPU) *bool { return v.Numa }).(pulumi.BoolPtrOutput)
 }
 
+// NUMA node topology configuration.
 func (o CPUOutput) NumaNodes() NumaNodeArrayOutput {
 	return o.ApplyT(func(v CPU) []NumaNode { return v.NumaNodes }).(NumaNodeArrayOutput)
 }
 
+// Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
 func (o CPUOutput) PhysBits() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v CPU) *string { return v.PhysBits }).(pulumi.StringPtrOutput)
 }
 
+// Number of CPU sockets.
 func (o CPUOutput) Sockets() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v CPU) *int { return v.Sockets }).(pulumi.IntPtrOutput)
 }
 
+// CPU type (e.g., host, kvm64, x86-64-v2-AES).
 func (o CPUOutput) Type() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v CPU) *string { return v.Type }).(pulumi.StringPtrOutput)
 }
 
+// CPU weight for the scheduler relative to other VMs (higher = more CPU time).
 func (o CPUOutput) Units() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v CPU) *int { return v.Units }).(pulumi.IntPtrOutput)
 }
 
+// Number of hotplugged vCPUs (must be <= cores * sockets).
 func (o CPUOutput) Vcpus() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v CPU) *int { return v.Vcpus }).(pulumi.IntPtrOutput)
 }
@@ -240,6 +279,7 @@ func (o CPUPtrOutput) Elem() CPUOutput {
 	}).(CPUOutput)
 }
 
+// Number of CPU cores per socket.
 func (o CPUPtrOutput) Cores() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *CPU) *int {
 		if v == nil {
@@ -249,6 +289,7 @@ func (o CPUPtrOutput) Cores() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+// List of CPU flags to disable.
 func (o CPUPtrOutput) FlagsDisabled() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v *CPU) []string {
 		if v == nil {
@@ -258,6 +299,7 @@ func (o CPUPtrOutput) FlagsDisabled() pulumi.StringArrayOutput {
 	}).(pulumi.StringArrayOutput)
 }
 
+// List of CPU flags to enable (e.g., pcid, spec-ctrl).
 func (o CPUPtrOutput) FlagsEnabled() pulumi.StringArrayOutput {
 	return o.ApplyT(func(v *CPU) []string {
 		if v == nil {
@@ -267,6 +309,7 @@ func (o CPUPtrOutput) FlagsEnabled() pulumi.StringArrayOutput {
 	}).(pulumi.StringArrayOutput)
 }
 
+// Hide VM CPU type from the guest operating system.
 func (o CPUPtrOutput) Hidden() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *CPU) *bool {
 		if v == nil {
@@ -276,6 +319,7 @@ func (o CPUPtrOutput) Hidden() pulumi.BoolPtrOutput {
 	}).(pulumi.BoolPtrOutput)
 }
 
+// Hyper-V vendor ID presented to the guest (up to 12 characters).
 func (o CPUPtrOutput) HvVendorId() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *CPU) *string {
 		if v == nil {
@@ -285,6 +329,7 @@ func (o CPUPtrOutput) HvVendorId() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
 func (o CPUPtrOutput) Limit() pulumi.Float64PtrOutput {
 	return o.ApplyT(func(v *CPU) *float64 {
 		if v == nil {
@@ -294,6 +339,7 @@ func (o CPUPtrOutput) Limit() pulumi.Float64PtrOutput {
 	}).(pulumi.Float64PtrOutput)
 }
 
+// Enable NUMA topology.
 func (o CPUPtrOutput) Numa() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *CPU) *bool {
 		if v == nil {
@@ -303,6 +349,7 @@ func (o CPUPtrOutput) Numa() pulumi.BoolPtrOutput {
 	}).(pulumi.BoolPtrOutput)
 }
 
+// NUMA node topology configuration.
 func (o CPUPtrOutput) NumaNodes() NumaNodeArrayOutput {
 	return o.ApplyT(func(v *CPU) []NumaNode {
 		if v == nil {
@@ -312,6 +359,7 @@ func (o CPUPtrOutput) NumaNodes() NumaNodeArrayOutput {
 	}).(NumaNodeArrayOutput)
 }
 
+// Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
 func (o CPUPtrOutput) PhysBits() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *CPU) *string {
 		if v == nil {
@@ -321,6 +369,7 @@ func (o CPUPtrOutput) PhysBits() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// Number of CPU sockets.
 func (o CPUPtrOutput) Sockets() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *CPU) *int {
 		if v == nil {
@@ -330,6 +379,7 @@ func (o CPUPtrOutput) Sockets() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+// CPU type (e.g., host, kvm64, x86-64-v2-AES).
 func (o CPUPtrOutput) Type() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *CPU) *string {
 		if v == nil {
@@ -339,6 +389,7 @@ func (o CPUPtrOutput) Type() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// CPU weight for the scheduler relative to other VMs (higher = more CPU time).
 func (o CPUPtrOutput) Units() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *CPU) *int {
 		if v == nil {
@@ -348,6 +399,7 @@ func (o CPUPtrOutput) Units() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+// Number of hotplugged vCPUs (must be <= cores * sockets).
 func (o CPUPtrOutput) Vcpus() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *CPU) *int {
 		if v == nil {
@@ -357,12 +409,18 @@ func (o CPUPtrOutput) Vcpus() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+// Configuration for cloning a source virtual machine.
 type Clone struct {
+	// Target storage pool for the cloned disks.
 	DataStoreId *string `pulumi:"dataStoreId"`
-	FullClone   *bool   `pulumi:"fullClone"`
-	Node        *string `pulumi:"node"`
-	Timeout     *int    `pulumi:"timeout"`
-	VmId        int     `pulumi:"vmId"`
+	// Create a full independent clone instead of a linked clone.
+	FullClone *bool `pulumi:"fullClone"`
+	// Target Proxmox node for the clone operation.
+	Node *string `pulumi:"node"`
+	// Timeout in seconds for the clone operation.
+	Timeout *int `pulumi:"timeout"`
+	// Source VM ID to clone from.
+	VmId int `pulumi:"vmId"`
 }
 
 // CloneInput is an input type that accepts CloneArgs and CloneOutput values.
@@ -376,12 +434,18 @@ type CloneInput interface {
 	ToCloneOutputWithContext(context.Context) CloneOutput
 }
 
+// Configuration for cloning a source virtual machine.
 type CloneArgs struct {
+	// Target storage pool for the cloned disks.
 	DataStoreId pulumi.StringPtrInput `pulumi:"dataStoreId"`
-	FullClone   pulumi.BoolPtrInput   `pulumi:"fullClone"`
-	Node        pulumi.StringPtrInput `pulumi:"node"`
-	Timeout     pulumi.IntPtrInput    `pulumi:"timeout"`
-	VmId        pulumi.IntInput       `pulumi:"vmId"`
+	// Create a full independent clone instead of a linked clone.
+	FullClone pulumi.BoolPtrInput `pulumi:"fullClone"`
+	// Target Proxmox node for the clone operation.
+	Node pulumi.StringPtrInput `pulumi:"node"`
+	// Timeout in seconds for the clone operation.
+	Timeout pulumi.IntPtrInput `pulumi:"timeout"`
+	// Source VM ID to clone from.
+	VmId pulumi.IntInput `pulumi:"vmId"`
 }
 
 func (CloneArgs) ElementType() reflect.Type {
@@ -437,6 +501,7 @@ func (i *clonePtrType) ToClonePtrOutputWithContext(ctx context.Context) ClonePtr
 	return pulumi.ToOutputWithContext(ctx, i).(ClonePtrOutput)
 }
 
+// Configuration for cloning a source virtual machine.
 type CloneOutput struct{ *pulumi.OutputState }
 
 func (CloneOutput) ElementType() reflect.Type {
@@ -461,22 +526,27 @@ func (o CloneOutput) ToClonePtrOutputWithContext(ctx context.Context) ClonePtrOu
 	}).(ClonePtrOutput)
 }
 
+// Target storage pool for the cloned disks.
 func (o CloneOutput) DataStoreId() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Clone) *string { return v.DataStoreId }).(pulumi.StringPtrOutput)
 }
 
+// Create a full independent clone instead of a linked clone.
 func (o CloneOutput) FullClone() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v Clone) *bool { return v.FullClone }).(pulumi.BoolPtrOutput)
 }
 
+// Target Proxmox node for the clone operation.
 func (o CloneOutput) Node() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Clone) *string { return v.Node }).(pulumi.StringPtrOutput)
 }
 
+// Timeout in seconds for the clone operation.
 func (o CloneOutput) Timeout() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v Clone) *int { return v.Timeout }).(pulumi.IntPtrOutput)
 }
 
+// Source VM ID to clone from.
 func (o CloneOutput) VmId() pulumi.IntOutput {
 	return o.ApplyT(func(v Clone) int { return v.VmId }).(pulumi.IntOutput)
 }
@@ -505,6 +575,7 @@ func (o ClonePtrOutput) Elem() CloneOutput {
 	}).(CloneOutput)
 }
 
+// Target storage pool for the cloned disks.
 func (o ClonePtrOutput) DataStoreId() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Clone) *string {
 		if v == nil {
@@ -514,6 +585,7 @@ func (o ClonePtrOutput) DataStoreId() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// Create a full independent clone instead of a linked clone.
 func (o ClonePtrOutput) FullClone() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *Clone) *bool {
 		if v == nil {
@@ -523,6 +595,7 @@ func (o ClonePtrOutput) FullClone() pulumi.BoolPtrOutput {
 	}).(pulumi.BoolPtrOutput)
 }
 
+// Target Proxmox node for the clone operation.
 func (o ClonePtrOutput) Node() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Clone) *string {
 		if v == nil {
@@ -532,6 +605,7 @@ func (o ClonePtrOutput) Node() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// Timeout in seconds for the clone operation.
 func (o ClonePtrOutput) Timeout() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *Clone) *int {
 		if v == nil {
@@ -541,6 +615,7 @@ func (o ClonePtrOutput) Timeout() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+// Source VM ID to clone from.
 func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v *Clone) *int {
 		if v == nil {
@@ -550,11 +625,16 @@ func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 	}).(pulumi.IntPtrOutput)
 }
 
+// Disk configuration for the virtual machine.
 type Disk struct {
-	Filename  *string `pulumi:"filename"`
-	Interface string  `pulumi:"interface"`
-	Size      int     `pulumi:"size"`
-	Storage   string  `pulumi:"storage"`
+	// File name of the disk image (computed by Proxmox if not provided).
+	Filename *string `pulumi:"filename"`
+	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+	Interface string `pulumi:"interface"`
+	// Disk size in gigabytes.
+	Size int `pulumi:"size"`
+	// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+	Storage string `pulumi:"storage"`
 }
 
 // DiskInput is an input type that accepts DiskArgs and DiskOutput values.
@@ -568,11 +648,16 @@ type DiskInput interface {
 	ToDiskOutputWithContext(context.Context) DiskOutput
 }
 
+// Disk configuration for the virtual machine.
 type DiskArgs struct {
-	Filename  pulumi.StringPtrInput `pulumi:"filename"`
-	Interface pulumi.StringInput    `pulumi:"interface"`
-	Size      pulumi.IntInput       `pulumi:"size"`
-	Storage   pulumi.StringInput    `pulumi:"storage"`
+	// File name of the disk image (computed by Proxmox if not provided).
+	Filename pulumi.StringPtrInput `pulumi:"filename"`
+	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+	Interface pulumi.StringInput `pulumi:"interface"`
+	// Disk size in gigabytes.
+	Size pulumi.IntInput `pulumi:"size"`
+	// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+	Storage pulumi.StringInput `pulumi:"storage"`
 }
 
 func (DiskArgs) ElementType() reflect.Type {
@@ -612,6 +697,7 @@ func (i DiskArray) ToDiskArrayOutputWithContext(ctx context.Context) DiskArrayOu
 	return pulumi.ToOutputWithContext(ctx, i).(DiskArrayOutput)
 }
 
+// Disk configuration for the virtual machine.
 type DiskOutput struct{ *pulumi.OutputState }
 
 func (DiskOutput) ElementType() reflect.Type {
@@ -626,18 +712,22 @@ func (o DiskOutput) ToDiskOutputWithContext(ctx context.Context) DiskOutput {
 	return o
 }
 
+// File name of the disk image (computed by Proxmox if not provided).
 func (o DiskOutput) Filename() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Disk) *string { return v.Filename }).(pulumi.StringPtrOutput)
 }
 
+// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
 func (o DiskOutput) Interface() pulumi.StringOutput {
 	return o.ApplyT(func(v Disk) string { return v.Interface }).(pulumi.StringOutput)
 }
 
+// Disk size in gigabytes.
 func (o DiskOutput) Size() pulumi.IntOutput {
 	return o.ApplyT(func(v Disk) int { return v.Size }).(pulumi.IntOutput)
 }
 
+// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
 func (o DiskOutput) Storage() pulumi.StringOutput {
 	return o.ApplyT(func(v Disk) string { return v.Storage }).(pulumi.StringOutput)
 }
@@ -664,10 +754,14 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 
 // EFI disk configuration for the virtual machine.
 type EfiDisk struct {
-	Efitype         string  `pulumi:"efitype"`
-	Filename        *string `pulumi:"filename"`
-	PreEnrolledKeys *bool   `pulumi:"preEnrolledKeys"`
-	Storage         string  `pulumi:"storage"`
+	// EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+	Efitype string `pulumi:"efitype"`
+	// File name of the EFI disk image (computed by Proxmox if not provided).
+	Filename *string `pulumi:"filename"`
+	// Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+	PreEnrolledKeys *bool `pulumi:"preEnrolledKeys"`
+	// Target storage pool for the EFI disk (e.g., local-lvm).
+	Storage string `pulumi:"storage"`
 }
 
 // EfiDiskInput is an input type that accepts EfiDiskArgs and EfiDiskOutput values.
@@ -683,10 +777,14 @@ type EfiDiskInput interface {
 
 // EFI disk configuration for the virtual machine.
 type EfiDiskArgs struct {
-	Efitype         pulumi.StringInput    `pulumi:"efitype"`
-	Filename        pulumi.StringPtrInput `pulumi:"filename"`
-	PreEnrolledKeys pulumi.BoolPtrInput   `pulumi:"preEnrolledKeys"`
-	Storage         pulumi.StringInput    `pulumi:"storage"`
+	// EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+	Efitype pulumi.StringInput `pulumi:"efitype"`
+	// File name of the EFI disk image (computed by Proxmox if not provided).
+	Filename pulumi.StringPtrInput `pulumi:"filename"`
+	// Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+	PreEnrolledKeys pulumi.BoolPtrInput `pulumi:"preEnrolledKeys"`
+	// Target storage pool for the EFI disk (e.g., local-lvm).
+	Storage pulumi.StringInput `pulumi:"storage"`
 }
 
 func (EfiDiskArgs) ElementType() reflect.Type {
@@ -767,18 +865,22 @@ func (o EfiDiskOutput) ToEfiDiskPtrOutputWithContext(ctx context.Context) EfiDis
 	}).(EfiDiskPtrOutput)
 }
 
+// EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
 func (o EfiDiskOutput) Efitype() pulumi.StringOutput {
 	return o.ApplyT(func(v EfiDisk) string { return v.Efitype }).(pulumi.StringOutput)
 }
 
+// File name of the EFI disk image (computed by Proxmox if not provided).
 func (o EfiDiskOutput) Filename() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v EfiDisk) *string { return v.Filename }).(pulumi.StringPtrOutput)
 }
 
+// Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
 func (o EfiDiskOutput) PreEnrolledKeys() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v EfiDisk) *bool { return v.PreEnrolledKeys }).(pulumi.BoolPtrOutput)
 }
 
+// Target storage pool for the EFI disk (e.g., local-lvm).
 func (o EfiDiskOutput) Storage() pulumi.StringOutput {
 	return o.ApplyT(func(v EfiDisk) string { return v.Storage }).(pulumi.StringOutput)
 }
@@ -807,6 +909,7 @@ func (o EfiDiskPtrOutput) Elem() EfiDiskOutput {
 	}).(EfiDiskOutput)
 }
 
+// EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
 func (o EfiDiskPtrOutput) Efitype() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *EfiDisk) *string {
 		if v == nil {
@@ -816,6 +919,7 @@ func (o EfiDiskPtrOutput) Efitype() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// File name of the EFI disk image (computed by Proxmox if not provided).
 func (o EfiDiskPtrOutput) Filename() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *EfiDisk) *string {
 		if v == nil {
@@ -825,6 +929,7 @@ func (o EfiDiskPtrOutput) Filename() pulumi.StringPtrOutput {
 	}).(pulumi.StringPtrOutput)
 }
 
+// Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
 func (o EfiDiskPtrOutput) PreEnrolledKeys() pulumi.BoolPtrOutput {
 	return o.ApplyT(func(v *EfiDisk) *bool {
 		if v == nil {
@@ -834,6 +939,7 @@ func (o EfiDiskPtrOutput) PreEnrolledKeys() pulumi.BoolPtrOutput {
 	}).(pulumi.BoolPtrOutput)
 }
 
+// Target storage pool for the EFI disk (e.g., local-lvm).
 func (o EfiDiskPtrOutput) Storage() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *EfiDisk) *string {
 		if v == nil {
@@ -904,11 +1010,16 @@ func (o FileSourceRawOutput) FileName() pulumi.StringOutput {
 	return o.ApplyT(func(v FileSourceRaw) string { return v.FileName }).(pulumi.StringOutput)
 }
 
+// NUMA node topology configuration for the virtual machine.
 type NumaNode struct {
-	Cpus      string  `pulumi:"cpus"`
+	// CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+	Cpus string `pulumi:"cpus"`
+	// Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
 	HostNodes *string `pulumi:"hostNodes"`
-	Memory    *int    `pulumi:"memory"`
-	Policy    *string `pulumi:"policy"`
+	// Memory in megabytes allocated to this NUMA node.
+	Memory *int `pulumi:"memory"`
+	// NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+	Policy *string `pulumi:"policy"`
 }
 
 // NumaNodeInput is an input type that accepts NumaNodeArgs and NumaNodeOutput values.
@@ -922,11 +1033,16 @@ type NumaNodeInput interface {
 	ToNumaNodeOutputWithContext(context.Context) NumaNodeOutput
 }
 
+// NUMA node topology configuration for the virtual machine.
 type NumaNodeArgs struct {
-	Cpus      pulumi.StringInput    `pulumi:"cpus"`
+	// CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+	Cpus pulumi.StringInput `pulumi:"cpus"`
+	// Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
 	HostNodes pulumi.StringPtrInput `pulumi:"hostNodes"`
-	Memory    pulumi.IntPtrInput    `pulumi:"memory"`
-	Policy    pulumi.StringPtrInput `pulumi:"policy"`
+	// Memory in megabytes allocated to this NUMA node.
+	Memory pulumi.IntPtrInput `pulumi:"memory"`
+	// NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+	Policy pulumi.StringPtrInput `pulumi:"policy"`
 }
 
 func (NumaNodeArgs) ElementType() reflect.Type {
@@ -966,6 +1082,7 @@ func (i NumaNodeArray) ToNumaNodeArrayOutputWithContext(ctx context.Context) Num
 	return pulumi.ToOutputWithContext(ctx, i).(NumaNodeArrayOutput)
 }
 
+// NUMA node topology configuration for the virtual machine.
 type NumaNodeOutput struct{ *pulumi.OutputState }
 
 func (NumaNodeOutput) ElementType() reflect.Type {
@@ -980,18 +1097,22 @@ func (o NumaNodeOutput) ToNumaNodeOutputWithContext(ctx context.Context) NumaNod
 	return o
 }
 
+// CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
 func (o NumaNodeOutput) Cpus() pulumi.StringOutput {
 	return o.ApplyT(func(v NumaNode) string { return v.Cpus }).(pulumi.StringOutput)
 }
 
+// Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
 func (o NumaNodeOutput) HostNodes() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v NumaNode) *string { return v.HostNodes }).(pulumi.StringPtrOutput)
 }
 
+// Memory in megabytes allocated to this NUMA node.
 func (o NumaNodeOutput) Memory() pulumi.IntPtrOutput {
 	return o.ApplyT(func(v NumaNode) *int { return v.Memory }).(pulumi.IntPtrOutput)
 }
 
+// NUMA memory allocation policy (preferred, bind, interleave, or mpol).
 func (o NumaNodeOutput) Policy() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v NumaNode) *string { return v.Policy }).(pulumi.StringPtrOutput)
 }

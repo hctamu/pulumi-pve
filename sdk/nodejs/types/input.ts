@@ -12,18 +12,57 @@ export namespace proxmox {
      * CPU configuration for the virtual machine.
      */
     export interface CPUArgs {
+        /**
+         * Number of CPU cores per socket.
+         */
         cores?: pulumi.Input<number>;
+        /**
+         * List of CPU flags to disable.
+         */
         flagsDisabled?: pulumi.Input<pulumi.Input<string>[]>;
+        /**
+         * List of CPU flags to enable (e.g., pcid, spec-ctrl).
+         */
         flagsEnabled?: pulumi.Input<pulumi.Input<string>[]>;
+        /**
+         * Hide VM CPU type from the guest operating system.
+         */
         hidden?: pulumi.Input<boolean>;
+        /**
+         * Hyper-V vendor ID presented to the guest (up to 12 characters).
+         */
         hvVendorId?: pulumi.Input<string>;
+        /**
+         * CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+         */
         limit?: pulumi.Input<number>;
+        /**
+         * Enable NUMA topology.
+         */
         numa?: pulumi.Input<boolean>;
+        /**
+         * NUMA node topology configuration.
+         */
         numaNodes?: pulumi.Input<pulumi.Input<inputs.proxmox.NumaNodeArgs>[]>;
+        /**
+         * Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+         */
         physBits?: pulumi.Input<string>;
+        /**
+         * Number of CPU sockets.
+         */
         sockets?: pulumi.Input<number>;
+        /**
+         * CPU type (e.g., host, kvm64, x86-64-v2-AES).
+         */
         type?: pulumi.Input<string>;
+        /**
+         * CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+         */
         units?: pulumi.Input<number>;
+        /**
+         * Number of hotplugged vCPUs (must be <= cores * sockets).
+         */
         vcpus?: pulumi.Input<number>;
     }
     /**
@@ -36,18 +75,51 @@ export namespace proxmox {
         };
     }
 
+    /**
+     * Configuration for cloning a source virtual machine.
+     */
     export interface CloneArgs {
+        /**
+         * Target storage pool for the cloned disks.
+         */
         dataStoreId?: pulumi.Input<string>;
+        /**
+         * Create a full independent clone instead of a linked clone.
+         */
         fullClone?: pulumi.Input<boolean>;
+        /**
+         * Target Proxmox node for the clone operation.
+         */
         node?: pulumi.Input<string>;
+        /**
+         * Timeout in seconds for the clone operation.
+         */
         timeout?: pulumi.Input<number>;
+        /**
+         * Source VM ID to clone from.
+         */
         vmId: pulumi.Input<number>;
     }
 
+    /**
+     * Disk configuration for the virtual machine.
+     */
     export interface DiskArgs {
+        /**
+         * File name of the disk image (computed by Proxmox if not provided).
+         */
         filename?: pulumi.Input<string>;
+        /**
+         * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         */
         interface: pulumi.Input<string>;
+        /**
+         * Disk size in gigabytes.
+         */
         size: pulumi.Input<number>;
+        /**
+         * Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+         */
         storage: pulumi.Input<string>;
     }
 
@@ -55,9 +127,21 @@ export namespace proxmox {
      * EFI disk configuration for the virtual machine.
      */
     export interface EfiDiskArgs {
+        /**
+         * EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
+         */
         efitype: pulumi.Input<string>;
+        /**
+         * File name of the EFI disk image (computed by Proxmox if not provided).
+         */
         filename?: pulumi.Input<string>;
+        /**
+         * Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
+         */
         preEnrolledKeys?: pulumi.Input<boolean>;
+        /**
+         * Target storage pool for the EFI disk (e.g., local-lvm).
+         */
         storage: pulumi.Input<string>;
     }
 
@@ -72,10 +156,25 @@ export namespace proxmox {
         fileName: pulumi.Input<string>;
     }
 
+    /**
+     * NUMA node topology configuration for the virtual machine.
+     */
     export interface NumaNodeArgs {
+        /**
+         * CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+         */
         cpus: pulumi.Input<string>;
+        /**
+         * Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+         */
         hostNodes?: pulumi.Input<string>;
+        /**
+         * Memory in megabytes allocated to this NUMA node.
+         */
         memory?: pulumi.Input<number>;
+        /**
+         * NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+         */
         policy?: pulumi.Input<string>;
     }
 }

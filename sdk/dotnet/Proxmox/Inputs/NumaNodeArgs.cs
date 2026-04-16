@@ -11,17 +11,32 @@ using Pulumi;
 namespace Hctamu.Pve.Proxmox.Inputs
 {
 
+    /// <summary>
+    /// NUMA node topology configuration for the virtual machine.
+    /// </summary>
     public sealed class NumaNodeArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
+        /// </summary>
         [Input("cpus", required: true)]
         public Input<string> Cpus { get; set; } = null!;
 
+        /// <summary>
+        /// Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
+        /// </summary>
         [Input("hostNodes")]
         public Input<string>? HostNodes { get; set; }
 
+        /// <summary>
+        /// Memory in megabytes allocated to this NUMA node.
+        /// </summary>
         [Input("memory")]
         public Input<int>? Memory { get; set; }
 
+        /// <summary>
+        /// NUMA memory allocation policy (preferred, bind, interleave, or mpol).
+        /// </summary>
         [Input("policy")]
         public Input<string>? Policy { get; set; }
 

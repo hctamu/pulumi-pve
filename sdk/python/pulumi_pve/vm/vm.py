@@ -22,69 +22,45 @@ class VMArgs:
     def __init__(__self__, *,
                  disks: pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]],
                  name: pulumi.Input[_builtins.str],
-                 acpi: Optional[pulumi.Input[_builtins.int]] = None,
-                 audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
                  balloon: Optional[pulumi.Input[_builtins.int]] = None,
-                 bios: Optional[pulumi.Input[_builtins.str]] = None,
-                 cicustom: Optional[pulumi.Input[_builtins.str]] = None,
-                 cipassword: Optional[pulumi.Input[_builtins.str]] = None,
-                 citype: Optional[pulumi.Input[_builtins.str]] = None,
-                 ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
-                 ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input['_proxmox.CloneArgs']] = None,
                  cpu: Optional[pulumi.Input['_proxmox.CPUArgs']] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  efidisk: Optional[pulumi.Input['_proxmox.EfiDiskArgs']] = None,
-                 hookscript: Optional[pulumi.Input[_builtins.str]] = None,
-                 hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
-                 hugepages: Optional[pulumi.Input[_builtins.str]] = None,
-                 ipconfig0: Optional[pulumi.Input[_builtins.str]] = None,
-                 kvm: Optional[pulumi.Input[_builtins.int]] = None,
-                 lock: Optional[pulumi.Input[_builtins.str]] = None,
                  machine: Optional[pulumi.Input[_builtins.str]] = None,
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
-                 nameserver: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
-                 parallel0: Optional[pulumi.Input[_builtins.str]] = None,
-                 protection: Optional[pulumi.Input[_builtins.int]] = None,
-                 rng0: Optional[pulumi.Input[_builtins.str]] = None,
-                 searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
-                 serial0: Optional[pulumi.Input[_builtins.str]] = None,
-                 sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
-                 tablet: Optional[pulumi.Input[_builtins.int]] = None,
+                 tags: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  template: Optional[pulumi.Input[_builtins.int]] = None,
-                 tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
-                 usb0: Optional[pulumi.Input[_builtins.str]] = None,
-                 vga: Optional[pulumi.Input[_builtins.str]] = None,
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None):
         """
         The set of arguments for constructing a VM resource.
+        :param pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]] disks: List of disk configurations attached to the virtual machine.
+        :param pulumi.Input[_builtins.str] name: Name of the virtual machine.
+        :param pulumi.Input[_builtins.int] autostart: Automatically start the VM when the host boots (1 to enable, 0 to disable).
+        :param pulumi.Input[_builtins.int] balloon: Minimum memory for ballooning in megabytes (0 disables the balloon device).
+        :param pulumi.Input['_proxmox.CloneArgs'] clone: Clone configuration for creating the VM from a source template or VM.
+        :param pulumi.Input['_proxmox.CPUArgs'] cpu: CPU configuration including type, topology, and feature flags.
+        :param pulumi.Input[_builtins.str] description: Description or notes for the virtual machine.
+        :param pulumi.Input['_proxmox.EfiDiskArgs'] efidisk: EFI disk configuration (required when bios is set to ovmf).
+        :param pulumi.Input[_builtins.str] hotplug: Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+        :param pulumi.Input[_builtins.str] machine: Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+        :param pulumi.Input[_builtins.int] memory: Memory size in megabytes.
+        :param pulumi.Input[_builtins.str] node: Proxmox node where the VM resides.
+        :param pulumi.Input[_builtins.str] ostype: Guest operating system type (e.g., l26, win11, other).
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] tags: Tags associated with the virtual machine.
+        :param pulumi.Input[_builtins.int] template: Mark the VM as a template (1) or a regular VM (0).
+        :param pulumi.Input[_builtins.int] vm_id: Unique numeric identifier for the virtual machine (auto-assigned if omitted).
         """
         pulumi.set(__self__, "disks", disks)
         pulumi.set(__self__, "name", name)
-        if acpi is not None:
-            pulumi.set(__self__, "acpi", acpi)
-        if audio0 is not None:
-            pulumi.set(__self__, "audio0", audio0)
         if autostart is not None:
             pulumi.set(__self__, "autostart", autostart)
         if balloon is not None:
             pulumi.set(__self__, "balloon", balloon)
-        if bios is not None:
-            pulumi.set(__self__, "bios", bios)
-        if cicustom is not None:
-            pulumi.set(__self__, "cicustom", cicustom)
-        if cipassword is not None:
-            pulumi.set(__self__, "cipassword", cipassword)
-        if citype is not None:
-            pulumi.set(__self__, "citype", citype)
-        if ciupgrade is not None:
-            pulumi.set(__self__, "ciupgrade", ciupgrade)
-        if ciuser is not None:
-            pulumi.set(__self__, "ciuser", ciuser)
         if clone is not None:
             pulumi.set(__self__, "clone", clone)
         if cpu is not None:
@@ -93,58 +69,29 @@ class VMArgs:
             pulumi.set(__self__, "description", description)
         if efidisk is not None:
             pulumi.set(__self__, "efidisk", efidisk)
-        if hookscript is not None:
-            pulumi.set(__self__, "hookscript", hookscript)
-        if hostpci0 is not None:
-            pulumi.set(__self__, "hostpci0", hostpci0)
         if hotplug is not None:
             pulumi.set(__self__, "hotplug", hotplug)
-        if hugepages is not None:
-            pulumi.set(__self__, "hugepages", hugepages)
-        if ipconfig0 is not None:
-            pulumi.set(__self__, "ipconfig0", ipconfig0)
-        if kvm is not None:
-            pulumi.set(__self__, "kvm", kvm)
-        if lock is not None:
-            pulumi.set(__self__, "lock", lock)
         if machine is not None:
             pulumi.set(__self__, "machine", machine)
         if memory is not None:
             pulumi.set(__self__, "memory", memory)
-        if nameserver is not None:
-            pulumi.set(__self__, "nameserver", nameserver)
         if node is not None:
             pulumi.set(__self__, "node", node)
         if ostype is not None:
             pulumi.set(__self__, "ostype", ostype)
-        if parallel0 is not None:
-            pulumi.set(__self__, "parallel0", parallel0)
-        if protection is not None:
-            pulumi.set(__self__, "protection", protection)
-        if rng0 is not None:
-            pulumi.set(__self__, "rng0", rng0)
-        if searchdomain is not None:
-            pulumi.set(__self__, "searchdomain", searchdomain)
-        if serial0 is not None:
-            pulumi.set(__self__, "serial0", serial0)
-        if sshkeys is not None:
-            pulumi.set(__self__, "sshkeys", sshkeys)
-        if tablet is not None:
-            pulumi.set(__self__, "tablet", tablet)
+        if tags is not None:
+            pulumi.set(__self__, "tags", tags)
         if template is not None:
             pulumi.set(__self__, "template", template)
-        if tpmstate0 is not None:
-            pulumi.set(__self__, "tpmstate0", tpmstate0)
-        if usb0 is not None:
-            pulumi.set(__self__, "usb0", usb0)
-        if vga is not None:
-            pulumi.set(__self__, "vga", vga)
         if vm_id is not None:
             pulumi.set(__self__, "vm_id", vm_id)
 
     @_builtins.property
     @pulumi.getter
     def disks(self) -> pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]]:
+        """
+        List of disk configurations attached to the virtual machine.
+        """
         return pulumi.get(self, "disks")
 
     @disks.setter
@@ -154,6 +101,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def name(self) -> pulumi.Input[_builtins.str]:
+        """
+        Name of the virtual machine.
+        """
         return pulumi.get(self, "name")
 
     @name.setter
@@ -162,25 +112,10 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def acpi(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "acpi")
-
-    @acpi.setter
-    def acpi(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "acpi", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def audio0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "audio0")
-
-    @audio0.setter
-    def audio0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "audio0", value)
-
-    @_builtins.property
-    @pulumi.getter
     def autostart(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Automatically start the VM when the host boots (1 to enable, 0 to disable).
+        """
         return pulumi.get(self, "autostart")
 
     @autostart.setter
@@ -190,6 +125,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def balloon(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Minimum memory for ballooning in megabytes (0 disables the balloon device).
+        """
         return pulumi.get(self, "balloon")
 
     @balloon.setter
@@ -198,61 +136,10 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def bios(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "bios")
-
-    @bios.setter
-    def bios(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "bios", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def cicustom(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "cicustom")
-
-    @cicustom.setter
-    def cicustom(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "cicustom", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def cipassword(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "cipassword")
-
-    @cipassword.setter
-    def cipassword(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "cipassword", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def citype(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "citype")
-
-    @citype.setter
-    def citype(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "citype", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def ciupgrade(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "ciupgrade")
-
-    @ciupgrade.setter
-    def ciupgrade(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "ciupgrade", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def ciuser(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "ciuser")
-
-    @ciuser.setter
-    def ciuser(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "ciuser", value)
-
-    @_builtins.property
-    @pulumi.getter
     def clone(self) -> Optional[pulumi.Input['_proxmox.CloneArgs']]:
+        """
+        Clone configuration for creating the VM from a source template or VM.
+        """
         return pulumi.get(self, "clone")
 
     @clone.setter
@@ -262,6 +149,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def cpu(self) -> Optional[pulumi.Input['_proxmox.CPUArgs']]:
+        """
+        CPU configuration including type, topology, and feature flags.
+        """
         return pulumi.get(self, "cpu")
 
     @cpu.setter
@@ -271,6 +161,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def description(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Description or notes for the virtual machine.
+        """
         return pulumi.get(self, "description")
 
     @description.setter
@@ -280,6 +173,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def efidisk(self) -> Optional[pulumi.Input['_proxmox.EfiDiskArgs']]:
+        """
+        EFI disk configuration (required when bios is set to ovmf).
+        """
         return pulumi.get(self, "efidisk")
 
     @efidisk.setter
@@ -288,25 +184,10 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def hookscript(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "hookscript")
-
-    @hookscript.setter
-    def hookscript(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "hookscript", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def hostpci0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "hostpci0")
-
-    @hostpci0.setter
-    def hostpci0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "hostpci0", value)
-
-    @_builtins.property
-    @pulumi.getter
     def hotplug(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+        """
         return pulumi.get(self, "hotplug")
 
     @hotplug.setter
@@ -315,43 +196,10 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def hugepages(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "hugepages")
-
-    @hugepages.setter
-    def hugepages(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "hugepages", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def ipconfig0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "ipconfig0")
-
-    @ipconfig0.setter
-    def ipconfig0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "ipconfig0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def kvm(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "kvm")
-
-    @kvm.setter
-    def kvm(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "kvm", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def lock(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "lock")
-
-    @lock.setter
-    def lock(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "lock", value)
-
-    @_builtins.property
-    @pulumi.getter
     def machine(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+        """
         return pulumi.get(self, "machine")
 
     @machine.setter
@@ -361,6 +209,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def memory(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Memory size in megabytes.
+        """
         return pulumi.get(self, "memory")
 
     @memory.setter
@@ -369,16 +220,10 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def nameserver(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "nameserver")
-
-    @nameserver.setter
-    def nameserver(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "nameserver", value)
-
-    @_builtins.property
-    @pulumi.getter
     def node(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Proxmox node where the VM resides.
+        """
         return pulumi.get(self, "node")
 
     @node.setter
@@ -388,6 +233,9 @@ class VMArgs:
     @_builtins.property
     @pulumi.getter
     def ostype(self) -> Optional[pulumi.Input[_builtins.str]]:
+        """
+        Guest operating system type (e.g., l26, win11, other).
+        """
         return pulumi.get(self, "ostype")
 
     @ostype.setter
@@ -396,70 +244,22 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def parallel0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "parallel0")
+    def tags(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        """
+        Tags associated with the virtual machine.
+        """
+        return pulumi.get(self, "tags")
 
-    @parallel0.setter
-    def parallel0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "parallel0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def protection(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "protection")
-
-    @protection.setter
-    def protection(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "protection", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def rng0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "rng0")
-
-    @rng0.setter
-    def rng0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "rng0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def searchdomain(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "searchdomain")
-
-    @searchdomain.setter
-    def searchdomain(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "searchdomain", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def serial0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "serial0")
-
-    @serial0.setter
-    def serial0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "serial0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def sshkeys(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "sshkeys")
-
-    @sshkeys.setter
-    def sshkeys(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "sshkeys", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def tablet(self) -> Optional[pulumi.Input[_builtins.int]]:
-        return pulumi.get(self, "tablet")
-
-    @tablet.setter
-    def tablet(self, value: Optional[pulumi.Input[_builtins.int]]):
-        pulumi.set(self, "tablet", value)
+    @tags.setter
+    def tags(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]):
+        pulumi.set(self, "tags", value)
 
     @_builtins.property
     @pulumi.getter
     def template(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Mark the VM as a template (1) or a regular VM (0).
+        """
         return pulumi.get(self, "template")
 
     @template.setter
@@ -467,35 +267,11 @@ class VMArgs:
         pulumi.set(self, "template", value)
 
     @_builtins.property
-    @pulumi.getter
-    def tpmstate0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "tpmstate0")
-
-    @tpmstate0.setter
-    def tpmstate0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "tpmstate0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def usb0(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "usb0")
-
-    @usb0.setter
-    def usb0(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "usb0", value)
-
-    @_builtins.property
-    @pulumi.getter
-    def vga(self) -> Optional[pulumi.Input[_builtins.str]]:
-        return pulumi.get(self, "vga")
-
-    @vga.setter
-    def vga(self, value: Optional[pulumi.Input[_builtins.str]]):
-        pulumi.set(self, "vga", value)
-
-    @_builtins.property
     @pulumi.getter(name="vmId")
     def vm_id(self) -> Optional[pulumi.Input[_builtins.int]]:
+        """
+        Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+        """
         return pulumi.get(self, "vm_id")
 
     @vm_id.setter
@@ -509,51 +285,43 @@ class VM(pulumi.CustomResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 acpi: Optional[pulumi.Input[_builtins.int]] = None,
-                 audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
                  balloon: Optional[pulumi.Input[_builtins.int]] = None,
-                 bios: Optional[pulumi.Input[_builtins.str]] = None,
-                 cicustom: Optional[pulumi.Input[_builtins.str]] = None,
-                 cipassword: Optional[pulumi.Input[_builtins.str]] = None,
-                 citype: Optional[pulumi.Input[_builtins.str]] = None,
-                 ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
-                 ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']]] = None,
                  cpu: Optional[pulumi.Input[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
                  efidisk: Optional[pulumi.Input[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']]] = None,
-                 hookscript: Optional[pulumi.Input[_builtins.str]] = None,
-                 hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
-                 hugepages: Optional[pulumi.Input[_builtins.str]] = None,
-                 ipconfig0: Optional[pulumi.Input[_builtins.str]] = None,
-                 kvm: Optional[pulumi.Input[_builtins.int]] = None,
-                 lock: Optional[pulumi.Input[_builtins.str]] = None,
                  machine: Optional[pulumi.Input[_builtins.str]] = None,
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
                  name: Optional[pulumi.Input[_builtins.str]] = None,
-                 nameserver: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
-                 parallel0: Optional[pulumi.Input[_builtins.str]] = None,
-                 protection: Optional[pulumi.Input[_builtins.int]] = None,
-                 rng0: Optional[pulumi.Input[_builtins.str]] = None,
-                 searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
-                 serial0: Optional[pulumi.Input[_builtins.str]] = None,
-                 sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
-                 tablet: Optional[pulumi.Input[_builtins.int]] = None,
+                 tags: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  template: Optional[pulumi.Input[_builtins.int]] = None,
-                 tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
-                 usb0: Optional[pulumi.Input[_builtins.str]] = None,
-                 vga: Optional[pulumi.Input[_builtins.str]] = None,
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None,
                  __props__=None):
         """
         Create a VM resource with the given unique name, props, and options.
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
+        :param pulumi.Input[_builtins.int] autostart: Automatically start the VM when the host boots (1 to enable, 0 to disable).
+        :param pulumi.Input[_builtins.int] balloon: Minimum memory for ballooning in megabytes (0 disables the balloon device).
+        :param pulumi.Input[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']] clone: Clone configuration for creating the VM from a source template or VM.
+        :param pulumi.Input[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']] cpu: CPU configuration including type, topology, and feature flags.
+        :param pulumi.Input[_builtins.str] description: Description or notes for the virtual machine.
+        :param pulumi.Input[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]] disks: List of disk configurations attached to the virtual machine.
+        :param pulumi.Input[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']] efidisk: EFI disk configuration (required when bios is set to ovmf).
+        :param pulumi.Input[_builtins.str] hotplug: Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+        :param pulumi.Input[_builtins.str] machine: Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+        :param pulumi.Input[_builtins.int] memory: Memory size in megabytes.
+        :param pulumi.Input[_builtins.str] name: Name of the virtual machine.
+        :param pulumi.Input[_builtins.str] node: Proxmox node where the VM resides.
+        :param pulumi.Input[_builtins.str] ostype: Guest operating system type (e.g., l26, win11, other).
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] tags: Tags associated with the virtual machine.
+        :param pulumi.Input[_builtins.int] template: Mark the VM as a template (1) or a regular VM (0).
+        :param pulumi.Input[_builtins.int] vm_id: Unique numeric identifier for the virtual machine (auto-assigned if omitted).
         """
         ...
     @overload
@@ -578,45 +346,21 @@ class VM(pulumi.CustomResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 acpi: Optional[pulumi.Input[_builtins.int]] = None,
-                 audio0: Optional[pulumi.Input[_builtins.str]] = None,
                  autostart: Optional[pulumi.Input[_builtins.int]] = None,
                  balloon: Optional[pulumi.Input[_builtins.int]] = None,
-                 bios: Optional[pulumi.Input[_builtins.str]] = None,
-                 cicustom: Optional[pulumi.Input[_builtins.str]] = None,
-                 cipassword: Optional[pulumi.Input[_builtins.str]] = None,
-                 citype: Optional[pulumi.Input[_builtins.str]] = None,
-                 ciupgrade: Optional[pulumi.Input[_builtins.int]] = None,
-                 ciuser: Optional[pulumi.Input[_builtins.str]] = None,
                  clone: Optional[pulumi.Input[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']]] = None,
                  cpu: Optional[pulumi.Input[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']]] = None,
                  description: Optional[pulumi.Input[_builtins.str]] = None,
                  disks: Optional[pulumi.Input[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
                  efidisk: Optional[pulumi.Input[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']]] = None,
-                 hookscript: Optional[pulumi.Input[_builtins.str]] = None,
-                 hostpci0: Optional[pulumi.Input[_builtins.str]] = None,
                  hotplug: Optional[pulumi.Input[_builtins.str]] = None,
-                 hugepages: Optional[pulumi.Input[_builtins.str]] = None,
-                 ipconfig0: Optional[pulumi.Input[_builtins.str]] = None,
-                 kvm: Optional[pulumi.Input[_builtins.int]] = None,
-                 lock: Optional[pulumi.Input[_builtins.str]] = None,
                  machine: Optional[pulumi.Input[_builtins.str]] = None,
                  memory: Optional[pulumi.Input[_builtins.int]] = None,
                  name: Optional[pulumi.Input[_builtins.str]] = None,
-                 nameserver: Optional[pulumi.Input[_builtins.str]] = None,
                  node: Optional[pulumi.Input[_builtins.str]] = None,
                  ostype: Optional[pulumi.Input[_builtins.str]] = None,
-                 parallel0: Optional[pulumi.Input[_builtins.str]] = None,
-                 protection: Optional[pulumi.Input[_builtins.int]] = None,
-                 rng0: Optional[pulumi.Input[_builtins.str]] = None,
-                 searchdomain: Optional[pulumi.Input[_builtins.str]] = None,
-                 serial0: Optional[pulumi.Input[_builtins.str]] = None,
-                 sshkeys: Optional[pulumi.Input[_builtins.str]] = None,
-                 tablet: Optional[pulumi.Input[_builtins.int]] = None,
+                 tags: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
                  template: Optional[pulumi.Input[_builtins.int]] = None,
-                 tpmstate0: Optional[pulumi.Input[_builtins.str]] = None,
-                 usb0: Optional[pulumi.Input[_builtins.str]] = None,
-                 vga: Optional[pulumi.Input[_builtins.str]] = None,
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
@@ -627,16 +371,8 @@ class VM(pulumi.CustomResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = VMArgs.__new__(VMArgs)
 
-            __props__.__dict__["acpi"] = acpi
-            __props__.__dict__["audio0"] = audio0
             __props__.__dict__["autostart"] = autostart
             __props__.__dict__["balloon"] = balloon
-            __props__.__dict__["bios"] = bios
-            __props__.__dict__["cicustom"] = cicustom
-            __props__.__dict__["cipassword"] = cipassword
-            __props__.__dict__["citype"] = citype
-            __props__.__dict__["ciupgrade"] = ciupgrade
-            __props__.__dict__["ciuser"] = ciuser
             __props__.__dict__["clone"] = clone
             __props__.__dict__["cpu"] = cpu
             __props__.__dict__["description"] = description
@@ -644,32 +380,16 @@ class VM(pulumi.CustomResource):
                 raise TypeError("Missing required property 'disks'")
             __props__.__dict__["disks"] = disks
             __props__.__dict__["efidisk"] = efidisk
-            __props__.__dict__["hookscript"] = hookscript
-            __props__.__dict__["hostpci0"] = hostpci0
             __props__.__dict__["hotplug"] = hotplug
-            __props__.__dict__["hugepages"] = hugepages
-            __props__.__dict__["ipconfig0"] = ipconfig0
-            __props__.__dict__["kvm"] = kvm
-            __props__.__dict__["lock"] = lock
             __props__.__dict__["machine"] = machine
             __props__.__dict__["memory"] = memory
             if name is None and not opts.urn:
                 raise TypeError("Missing required property 'name'")
             __props__.__dict__["name"] = name
-            __props__.__dict__["nameserver"] = nameserver
             __props__.__dict__["node"] = node
             __props__.__dict__["ostype"] = ostype
-            __props__.__dict__["parallel0"] = parallel0
-            __props__.__dict__["protection"] = protection
-            __props__.__dict__["rng0"] = rng0
-            __props__.__dict__["searchdomain"] = searchdomain
-            __props__.__dict__["serial0"] = serial0
-            __props__.__dict__["sshkeys"] = sshkeys
-            __props__.__dict__["tablet"] = tablet
+            __props__.__dict__["tags"] = tags
             __props__.__dict__["template"] = template
-            __props__.__dict__["tpmstate0"] = tpmstate0
-            __props__.__dict__["usb0"] = usb0
-            __props__.__dict__["vga"] = vga
             __props__.__dict__["vm_id"] = vm_id
         super(VM, __self__).__init__(
             'pve:vm:VM',
@@ -693,245 +413,149 @@ class VM(pulumi.CustomResource):
 
         __props__ = VMArgs.__new__(VMArgs)
 
-        __props__.__dict__["acpi"] = None
-        __props__.__dict__["audio0"] = None
         __props__.__dict__["autostart"] = None
         __props__.__dict__["balloon"] = None
-        __props__.__dict__["bios"] = None
-        __props__.__dict__["cicustom"] = None
-        __props__.__dict__["cipassword"] = None
-        __props__.__dict__["citype"] = None
-        __props__.__dict__["ciupgrade"] = None
-        __props__.__dict__["ciuser"] = None
         __props__.__dict__["clone"] = None
         __props__.__dict__["cpu"] = None
         __props__.__dict__["description"] = None
         __props__.__dict__["disks"] = None
         __props__.__dict__["efidisk"] = None
-        __props__.__dict__["hookscript"] = None
-        __props__.__dict__["hostpci0"] = None
         __props__.__dict__["hotplug"] = None
-        __props__.__dict__["hugepages"] = None
-        __props__.__dict__["ipconfig0"] = None
-        __props__.__dict__["kvm"] = None
-        __props__.__dict__["lock"] = None
         __props__.__dict__["machine"] = None
         __props__.__dict__["memory"] = None
         __props__.__dict__["name"] = None
-        __props__.__dict__["nameserver"] = None
         __props__.__dict__["node"] = None
         __props__.__dict__["ostype"] = None
-        __props__.__dict__["parallel0"] = None
-        __props__.__dict__["protection"] = None
-        __props__.__dict__["rng0"] = None
-        __props__.__dict__["searchdomain"] = None
-        __props__.__dict__["serial0"] = None
-        __props__.__dict__["sshkeys"] = None
-        __props__.__dict__["tablet"] = None
+        __props__.__dict__["tags"] = None
         __props__.__dict__["template"] = None
-        __props__.__dict__["tpmstate0"] = None
-        __props__.__dict__["usb0"] = None
-        __props__.__dict__["vga"] = None
         __props__.__dict__["vm_id"] = None
         return VM(resource_name, opts=opts, __props__=__props__)
 
     @_builtins.property
     @pulumi.getter
-    def acpi(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "acpi")
-
-    @_builtins.property
-    @pulumi.getter
-    def audio0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "audio0")
-
-    @_builtins.property
-    @pulumi.getter
     def autostart(self) -> pulumi.Output[Optional[_builtins.int]]:
+        """
+        Automatically start the VM when the host boots (1 to enable, 0 to disable).
+        """
         return pulumi.get(self, "autostart")
 
     @_builtins.property
     @pulumi.getter
     def balloon(self) -> pulumi.Output[Optional[_builtins.int]]:
+        """
+        Minimum memory for ballooning in megabytes (0 disables the balloon device).
+        """
         return pulumi.get(self, "balloon")
 
     @_builtins.property
     @pulumi.getter
-    def bios(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "bios")
-
-    @_builtins.property
-    @pulumi.getter
-    def cicustom(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "cicustom")
-
-    @_builtins.property
-    @pulumi.getter
-    def cipassword(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "cipassword")
-
-    @_builtins.property
-    @pulumi.getter
-    def citype(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "citype")
-
-    @_builtins.property
-    @pulumi.getter
-    def ciupgrade(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "ciupgrade")
-
-    @_builtins.property
-    @pulumi.getter
-    def ciuser(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "ciuser")
-
-    @_builtins.property
-    @pulumi.getter
     def clone(self) -> pulumi.Output[Optional['_proxmox.outputs.Clone']]:
+        """
+        Clone configuration for creating the VM from a source template or VM.
+        """
         return pulumi.get(self, "clone")
 
     @_builtins.property
     @pulumi.getter
     def cpu(self) -> pulumi.Output[Optional['_proxmox.outputs.CPU']]:
+        """
+        CPU configuration including type, topology, and feature flags.
+        """
         return pulumi.get(self, "cpu")
 
     @_builtins.property
     @pulumi.getter
     def description(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        Description or notes for the virtual machine.
+        """
         return pulumi.get(self, "description")
 
     @_builtins.property
     @pulumi.getter
     def disks(self) -> pulumi.Output[Sequence['_proxmox.outputs.Disk']]:
+        """
+        List of disk configurations attached to the virtual machine.
+        """
         return pulumi.get(self, "disks")
 
     @_builtins.property
     @pulumi.getter
     def efidisk(self) -> pulumi.Output[Optional['_proxmox.outputs.EfiDisk']]:
+        """
+        EFI disk configuration (required when bios is set to ovmf).
+        """
         return pulumi.get(self, "efidisk")
 
     @_builtins.property
     @pulumi.getter
-    def hookscript(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "hookscript")
-
-    @_builtins.property
-    @pulumi.getter
-    def hostpci0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "hostpci0")
-
-    @_builtins.property
-    @pulumi.getter
     def hotplug(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
+        """
         return pulumi.get(self, "hotplug")
 
     @_builtins.property
     @pulumi.getter
-    def hugepages(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "hugepages")
-
-    @_builtins.property
-    @pulumi.getter
-    def ipconfig0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "ipconfig0")
-
-    @_builtins.property
-    @pulumi.getter
-    def kvm(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "kvm")
-
-    @_builtins.property
-    @pulumi.getter
-    def lock(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "lock")
-
-    @_builtins.property
-    @pulumi.getter
     def machine(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
+        """
         return pulumi.get(self, "machine")
 
     @_builtins.property
     @pulumi.getter
     def memory(self) -> pulumi.Output[Optional[_builtins.int]]:
+        """
+        Memory size in megabytes.
+        """
         return pulumi.get(self, "memory")
 
     @_builtins.property
     @pulumi.getter
     def name(self) -> pulumi.Output[_builtins.str]:
+        """
+        Name of the virtual machine.
+        """
         return pulumi.get(self, "name")
 
     @_builtins.property
     @pulumi.getter
-    def nameserver(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "nameserver")
-
-    @_builtins.property
-    @pulumi.getter
     def node(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        Proxmox node where the VM resides.
+        """
         return pulumi.get(self, "node")
 
     @_builtins.property
     @pulumi.getter
     def ostype(self) -> pulumi.Output[Optional[_builtins.str]]:
+        """
+        Guest operating system type (e.g., l26, win11, other).
+        """
         return pulumi.get(self, "ostype")
 
     @_builtins.property
     @pulumi.getter
-    def parallel0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "parallel0")
-
-    @_builtins.property
-    @pulumi.getter
-    def protection(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "protection")
-
-    @_builtins.property
-    @pulumi.getter
-    def rng0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "rng0")
-
-    @_builtins.property
-    @pulumi.getter
-    def searchdomain(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "searchdomain")
-
-    @_builtins.property
-    @pulumi.getter
-    def serial0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "serial0")
-
-    @_builtins.property
-    @pulumi.getter
-    def sshkeys(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "sshkeys")
-
-    @_builtins.property
-    @pulumi.getter
-    def tablet(self) -> pulumi.Output[Optional[_builtins.int]]:
-        return pulumi.get(self, "tablet")
+    def tags(self) -> pulumi.Output[Optional[Sequence[_builtins.str]]]:
+        """
+        Tags associated with the virtual machine.
+        """
+        return pulumi.get(self, "tags")
 
     @_builtins.property
     @pulumi.getter
     def template(self) -> pulumi.Output[Optional[_builtins.int]]:
+        """
+        Mark the VM as a template (1) or a regular VM (0).
+        """
         return pulumi.get(self, "template")
-
-    @_builtins.property
-    @pulumi.getter
-    def tpmstate0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "tpmstate0")
-
-    @_builtins.property
-    @pulumi.getter
-    def usb0(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "usb0")
-
-    @_builtins.property
-    @pulumi.getter
-    def vga(self) -> pulumi.Output[Optional[_builtins.str]]:
-        return pulumi.get(self, "vga")
 
     @_builtins.property
     @pulumi.getter(name="vmId")
     def vm_id(self) -> pulumi.Output[Optional[_builtins.int]]:
+        """
+        Unique numeric identifier for the virtual machine (auto-assigned if omitted).
+        """
         return pulumi.get(self, "vm_id")
 

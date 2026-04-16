@@ -17,18 +17,57 @@ namespace Hctamu.Pve.Proxmox.Outputs
     [OutputType]
     public sealed class CPU
     {
+        /// <summary>
+        /// Number of CPU cores per socket.
+        /// </summary>
         public readonly int? Cores;
+        /// <summary>
+        /// List of CPU flags to disable.
+        /// </summary>
         public readonly ImmutableArray<string> FlagsDisabled;
+        /// <summary>
+        /// List of CPU flags to enable (e.g., pcid, spec-ctrl).
+        /// </summary>
         public readonly ImmutableArray<string> FlagsEnabled;
+        /// <summary>
+        /// Hide VM CPU type from the guest operating system.
+        /// </summary>
         public readonly bool? Hidden;
+        /// <summary>
+        /// Hyper-V vendor ID presented to the guest (up to 12 characters).
+        /// </summary>
         public readonly string? HvVendorId;
+        /// <summary>
+        /// CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
+        /// </summary>
         public readonly double? Limit;
+        /// <summary>
+        /// Enable NUMA topology.
+        /// </summary>
         public readonly bool? Numa;
+        /// <summary>
+        /// NUMA node topology configuration.
+        /// </summary>
         public readonly ImmutableArray<Outputs.NumaNode> NumaNodes;
+        /// <summary>
+        /// Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
+        /// </summary>
         public readonly string? PhysBits;
+        /// <summary>
+        /// Number of CPU sockets.
+        /// </summary>
         public readonly int? Sockets;
+        /// <summary>
+        /// CPU type (e.g., host, kvm64, x86-64-v2-AES).
+        /// </summary>
         public readonly string? Type;
+        /// <summary>
+        /// CPU weight for the scheduler relative to other VMs (higher = more CPU time).
+        /// </summary>
         public readonly int? Units;
+        /// <summary>
+        /// Number of hotplugged vCPUs (must be &lt;= cores * sockets).
+        /// </summary>
         public readonly int? Vcpus;
 
         [OutputConstructor]
