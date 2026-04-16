@@ -21,8 +21,8 @@ import (
 
 	api "github.com/luthermonson/go-proxmox"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/utils"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // Ensure RoleAdapter implements the RoleOperations interface
