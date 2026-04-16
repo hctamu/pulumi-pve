@@ -71,6 +71,7 @@
       "properties": {
         "cores": {
           "type": "integer",
+          "description": "Number of CPU cores per socket.",
           "default": 1,
           "defaultInfo": {
             "environment": [
@@ -82,66 +83,84 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "List of CPU flags to disable."
         },
         "flagsEnabled": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "List of CPU flags to enable (e.g., pcid, spec-ctrl)."
         },
         "hidden": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Hide VM CPU type from the guest operating system."
         },
         "hvVendorId": {
-          "type": "string"
+          "type": "string",
+          "description": "Hyper-V vendor ID presented to the guest (up to 12 characters)."
         },
         "limit": {
-          "type": "number"
+          "type": "number",
+          "description": "CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%)."
         },
         "numa": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Enable NUMA topology."
         },
         "numaNodes": {
           "type": "array",
           "items": {
             "$ref": "#/types/pve:proxmox:NumaNode"
-          }
+          },
+          "description": "NUMA node topology configuration."
         },
         "physBits": {
-          "type": "string"
+          "type": "string",
+          "description": "Number of physical address bits exposed to the guest (e.g., 36, 40, 48)."
         },
         "sockets": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of CPU sockets."
         },
         "type": {
-          "type": "string"
+          "type": "string",
+          "description": "CPU type (e.g., host, kvm64, x86-64-v2-AES)."
         },
         "units": {
-          "type": "integer"
+          "type": "integer",
+          "description": "CPU weight for the scheduler relative to other VMs (higher = more CPU time)."
         },
         "vcpus": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Number of hotplugged vCPUs (must be <= cores * sockets)."
         }
       },
       "type": "object"
     },
     "pve:proxmox:Clone": {
+      "description": "Configuration for cloning a source virtual machine.",
       "properties": {
         "dataStoreId": {
-          "type": "string"
+          "type": "string",
+          "description": "Target storage pool for the cloned disks."
         },
         "fullClone": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Create a full independent clone instead of a linked clone."
         },
         "node": {
-          "type": "string"
+          "type": "string",
+          "description": "Target Proxmox node for the clone operation."
         },
         "timeout": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Timeout in seconds for the clone operation."
         },
         "vmId": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Source VM ID to clone from."
         }
       },
       "type": "object",
@@ -150,18 +169,23 @@
       ]
     },
     "pve:proxmox:Disk": {
+      "description": "Disk configuration for the virtual machine.",
       "properties": {
         "filename": {
-          "type": "string"
+          "type": "string",
+          "description": "File name of the disk image (computed by Proxmox if not provided)."
         },
         "interface": {
-          "type": "string"
+          "type": "string",
+          "description": "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2)."
         },
         "size": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Disk size in gigabytes."
         },
         "storage": {
-          "type": "string"
+          "type": "string",
+          "description": "Target storage pool for the disk (e.g., local-lvm, ceph-pool)."
         }
       },
       "type": "object",
@@ -175,16 +199,20 @@
       "description": "EFI disk configuration for the virtual machine.",
       "properties": {
         "efitype": {
-          "type": "string"
+          "type": "string",
+          "description": "EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot)."
         },
         "filename": {
-          "type": "string"
+          "type": "string",
+          "description": "File name of the EFI disk image (computed by Proxmox if not provided)."
         },
         "preEnrolledKeys": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Pre-enroll Microsoft and standard UEFI keys into the EFI firmware."
         },
         "storage": {
-          "type": "string"
+          "type": "string",
+          "description": "Target storage pool for the EFI disk (e.g., local-lvm)."
         }
       },
       "type": "object",
@@ -213,18 +241,23 @@
       ]
     },
     "pve:proxmox:NumaNode": {
+      "description": "NUMA node topology configuration for the virtual machine.",
       "properties": {
         "cpus": {
-          "type": "string"
+          "type": "string",
+          "description": "CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3)."
         },
         "hostNodes": {
-          "type": "string"
+          "type": "string",
+          "description": "Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1)."
         },
         "memory": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Memory in megabytes allocated to this NUMA node."
         },
         "policy": {
-          "type": "string"
+          "type": "string",
+          "description": "NUMA memory allocation policy (preferred, bind, interleave, or mpol)."
         }
       },
       "type": "object",
@@ -667,128 +700,75 @@
     },
     "pve:vm:VM": {
       "properties": {
-        "acpi": {
-          "type": "integer"
-        },
-        "audio0": {
-          "type": "string"
-        },
         "autostart": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Automatically start the VM when the host boots (1 to enable, 0 to disable)."
         },
         "balloon": {
-          "type": "integer"
-        },
-        "bios": {
-          "type": "string"
-        },
-        "cicustom": {
-          "type": "string"
-        },
-        "cipassword": {
-          "type": "string"
-        },
-        "citype": {
-          "type": "string"
-        },
-        "ciupgrade": {
-          "type": "integer"
-        },
-        "ciuser": {
-          "type": "string"
+          "type": "integer",
+          "description": "Minimum memory for ballooning in megabytes (0 disables the balloon device)."
         },
         "clone": {
-          "$ref": "#/types/pve:proxmox:Clone"
+          "$ref": "#/types/pve:proxmox:Clone",
+          "description": "Clone configuration for creating the VM from a source template or VM."
         },
         "cpu": {
-          "$ref": "#/types/pve:proxmox:CPU"
+          "$ref": "#/types/pve:proxmox:CPU",
+          "description": "CPU configuration including type, topology, and feature flags."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Description or notes for the virtual machine."
         },
         "disks": {
           "type": "array",
           "items": {
             "$ref": "#/types/pve:proxmox:Disk"
-          }
+          },
+          "description": "List of disk configurations attached to the virtual machine."
         },
         "efidisk": {
-          "$ref": "#/types/pve:proxmox:EfiDisk"
-        },
-        "hookscript": {
-          "type": "string"
-        },
-        "hostpci0": {
-          "type": "string"
+          "$ref": "#/types/pve:proxmox:EfiDisk",
+          "description": "EFI disk configuration (required when bios is set to ovmf)."
         },
         "hotplug": {
-          "type": "string"
-        },
-        "hugepages": {
-          "type": "string"
-        },
-        "ipconfig0": {
-          "type": "string"
-        },
-        "kvm": {
-          "type": "integer"
-        },
-        "lock": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated list of hotplug features (network, disk, cpu, memory, usb)."
         },
         "machine": {
-          "type": "string"
+          "type": "string",
+          "description": "Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1)."
         },
         "memory": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Memory size in megabytes."
         },
         "name": {
-          "type": "string"
-        },
-        "nameserver": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the virtual machine."
         },
         "node": {
-          "type": "string"
+          "type": "string",
+          "description": "Proxmox node where the VM resides."
         },
         "ostype": {
-          "type": "string"
+          "type": "string",
+          "description": "Guest operating system type (e.g., l26, win11, other)."
         },
-        "parallel0": {
-          "type": "string"
-        },
-        "protection": {
-          "type": "integer"
-        },
-        "rng0": {
-          "type": "string"
-        },
-        "searchdomain": {
-          "type": "string"
-        },
-        "serial0": {
-          "type": "string"
-        },
-        "sshkeys": {
-          "type": "string"
-        },
-        "tablet": {
-          "type": "integer"
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags associated with the virtual machine."
         },
         "template": {
-          "type": "integer"
-        },
-        "tpmstate0": {
-          "type": "string"
-        },
-        "usb0": {
-          "type": "string"
-        },
-        "vga": {
-          "type": "string"
+          "type": "integer",
+          "description": "Mark the VM as a template (1) or a regular VM (0)."
         },
         "vmId": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Unique numeric identifier for the virtual machine (auto-assigned if omitted)."
         }
       },
       "type": "object",
@@ -797,128 +777,75 @@
         "name"
       ],
       "inputProperties": {
-        "acpi": {
-          "type": "integer"
-        },
-        "audio0": {
-          "type": "string"
-        },
         "autostart": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Automatically start the VM when the host boots (1 to enable, 0 to disable)."
         },
         "balloon": {
-          "type": "integer"
-        },
-        "bios": {
-          "type": "string"
-        },
-        "cicustom": {
-          "type": "string"
-        },
-        "cipassword": {
-          "type": "string"
-        },
-        "citype": {
-          "type": "string"
-        },
-        "ciupgrade": {
-          "type": "integer"
-        },
-        "ciuser": {
-          "type": "string"
+          "type": "integer",
+          "description": "Minimum memory for ballooning in megabytes (0 disables the balloon device)."
         },
         "clone": {
-          "$ref": "#/types/pve:proxmox:Clone"
+          "$ref": "#/types/pve:proxmox:Clone",
+          "description": "Clone configuration for creating the VM from a source template or VM."
         },
         "cpu": {
-          "$ref": "#/types/pve:proxmox:CPU"
+          "$ref": "#/types/pve:proxmox:CPU",
+          "description": "CPU configuration including type, topology, and feature flags."
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "description": "Description or notes for the virtual machine."
         },
         "disks": {
           "type": "array",
           "items": {
             "$ref": "#/types/pve:proxmox:Disk"
-          }
+          },
+          "description": "List of disk configurations attached to the virtual machine."
         },
         "efidisk": {
-          "$ref": "#/types/pve:proxmox:EfiDisk"
-        },
-        "hookscript": {
-          "type": "string"
-        },
-        "hostpci0": {
-          "type": "string"
+          "$ref": "#/types/pve:proxmox:EfiDisk",
+          "description": "EFI disk configuration (required when bios is set to ovmf)."
         },
         "hotplug": {
-          "type": "string"
-        },
-        "hugepages": {
-          "type": "string"
-        },
-        "ipconfig0": {
-          "type": "string"
-        },
-        "kvm": {
-          "type": "integer"
-        },
-        "lock": {
-          "type": "string"
+          "type": "string",
+          "description": "Comma-separated list of hotplug features (network, disk, cpu, memory, usb)."
         },
         "machine": {
-          "type": "string"
+          "type": "string",
+          "description": "Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1)."
         },
         "memory": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Memory size in megabytes."
         },
         "name": {
-          "type": "string"
-        },
-        "nameserver": {
-          "type": "string"
+          "type": "string",
+          "description": "Name of the virtual machine."
         },
         "node": {
-          "type": "string"
+          "type": "string",
+          "description": "Proxmox node where the VM resides."
         },
         "ostype": {
-          "type": "string"
+          "type": "string",
+          "description": "Guest operating system type (e.g., l26, win11, other)."
         },
-        "parallel0": {
-          "type": "string"
-        },
-        "protection": {
-          "type": "integer"
-        },
-        "rng0": {
-          "type": "string"
-        },
-        "searchdomain": {
-          "type": "string"
-        },
-        "serial0": {
-          "type": "string"
-        },
-        "sshkeys": {
-          "type": "string"
-        },
-        "tablet": {
-          "type": "integer"
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags associated with the virtual machine."
         },
         "template": {
-          "type": "integer"
-        },
-        "tpmstate0": {
-          "type": "string"
-        },
-        "usb0": {
-          "type": "string"
-        },
-        "vga": {
-          "type": "string"
+          "type": "integer",
+          "description": "Mark the VM as a template (1) or a regular VM (0)."
         },
         "vmId": {
-          "type": "integer"
+          "type": "integer",
+          "description": "Unique numeric identifier for the virtual machine (auto-assigned if omitted)."
         }
       },
       "requiredInputs": [
