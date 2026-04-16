@@ -3582,3 +3582,201 @@ func TestVMAdapterCreateValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildVMOptionsTags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		tags        []string
+		wantTagsVal string
+	}{
+		{
+			name:        "nil tags produces empty tags option",
+			tags:        nil,
+			wantTagsVal: "",
+		},
+		{
+			name:        "empty slice produces empty tags option",
+			tags:        []string{},
+			wantTagsVal: "",
+		},
+		{
+			name:        "single tag",
+			tags:        []string{"prod"},
+			wantTagsVal: "prod",
+		},
+		{
+			name:        "multiple tags joined by comma",
+			tags:        []string{"prod", "web", "frontend"},
+			wantTagsVal: "prod,web,frontend",
+		},
+		{
+			name:        "tag order is preserved",
+			tags:        []string{"z-last", "a-first", "m-middle"},
+			wantTagsVal: "z-last,a-first,m-middle",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			inputs := proxmox.VMInputs{Tags: tt.tags}
+			options := adapters.BuildVMOptions(inputs, 100)
+
+			var tagsOpt *api.VirtualMachineOption
+			for i := range options {
+				if options[i].Name == "tags" {
+					tagsOpt = &options[i]
+					break
+				}
+			}
+
+			require.NotNil(t, tagsOpt, "expected a 'tags' option to be present")
+			gotVal, ok := tagsOpt.Value.(*string)
+			require.True(t, ok, "tags value should be a *string")
+			assert.Equal(t, tt.wantTagsVal, *gotVal)
+		})
+	}
+}
+
+func TestBuildVMOptionsDiffTags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		newTags     []string
+		currentTags []string
+		wantChanged bool
+		wantTagsVal string
+	}{
+		{
+			name:        "no change - both nil",
+			newTags:     nil,
+			currentTags: nil,
+			wantChanged: false,
+		},
+		{
+			name:        "no change - both empty",
+			newTags:     []string{},
+			currentTags: []string{},
+			wantChanged: false,
+		},
+		{
+			name:        "no change - same tags same order",
+			newTags:     []string{"prod", "web"},
+			currentTags: []string{"prod", "web"},
+			wantChanged: false,
+		},
+		{
+			name:        "changed - tag added",
+			newTags:     []string{"prod", "web"},
+			currentTags: []string{"prod"},
+			wantChanged: true,
+			wantTagsVal: "prod,web",
+		},
+		{
+			name:        "changed - tag removed",
+			newTags:     []string{"prod"},
+			currentTags: []string{"prod", "web"},
+			wantChanged: true,
+			wantTagsVal: "prod",
+		},
+		{
+			name:        "changed - tag replaced",
+			newTags:     []string{"staging"},
+			currentTags: []string{"prod"},
+			wantChanged: true,
+			wantTagsVal: "staging",
+		},
+		{
+			name:        "no change - order differs",
+			newTags:     []string{"web", "prod"},
+			currentTags: []string{"prod", "web"},
+			wantChanged: false,
+		},
+		{
+			name:        "changed - from nil to tags",
+			newTags:     []string{"prod"},
+			currentTags: nil,
+			wantChanged: true,
+			wantTagsVal: "prod",
+		},
+		{
+			name:        "changed - tags cleared",
+			newTags:     nil,
+			currentTags: []string{"prod"},
+			wantChanged: true,
+			wantTagsVal: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			newInputs := proxmox.VMInputs{Tags: tt.newTags}
+			currentInputs := proxmox.VMInputs{Tags: tt.currentTags}
+			options := adapters.BuildVMOptionsDiff(newInputs, 100, &currentInputs)
+
+			var tagsOpt *api.VirtualMachineOption
+			for i := range options {
+				if options[i].Name == "tags" {
+					tagsOpt = &options[i]
+					break
+				}
+			}
+
+			if !tt.wantChanged {
+				assert.Nil(t, tagsOpt, "expected no 'tags' option when unchanged")
+				return
+			}
+
+			require.NotNil(t, tagsOpt, "expected a 'tags' option when changed")
+			gotVal, ok := tagsOpt.Value.(*string)
+			require.True(t, ok, "tags value should be a *string")
+			assert.Equal(t, tt.wantTagsVal, *gotVal)
+		})
+	}
+}
+
+func TestVMReadTags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		tagsSlice []string
+		wantTags  []string
+	}{
+		{
+			name:      "nil tags slice returns nil tags",
+			tagsSlice: nil,
+			wantTags:  nil,
+		},
+		{
+			name:      "single tag preserved",
+			tagsSlice: []string{"prod"},
+			wantTags:  []string{"prod"},
+		},
+		{
+			name:      "multiple tags preserved in order",
+			tagsSlice: []string{"prod", "web", "frontend"},
+			wantTags:  []string{"prod", "web", "frontend"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := createMockVM(nil)
+			vm.VirtualMachineConfig.TagsSlice = tt.tagsSlice
+
+			result, err := adapters.ConvertVMConfigToInputs(vm, nil)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantTags, result.Tags)
+		})
+	}
+}

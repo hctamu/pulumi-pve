@@ -7,7 +7,7 @@ plugins:
 
 resources:
   myFile:
-    type: pve:storage:File
+    type: pve:file:File
     properties:
       datastoreId: cephfs
       contentType: snippets
@@ -20,6 +20,9 @@ resources:
     type: pve:vm:VM
     properties:
       name: "aTestVM"
+      tags:
+        - "tag4"
+        - "tag3"
       description: "test VM"
       cpu:
         type: EPYC-v3
