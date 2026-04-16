@@ -107,11 +107,30 @@ type CPU struct {
 
 // Annotate provides documentation for the CPU type.
 func (cpu *CPU) Annotate(a infer.Annotator) {
-	a.Describe(
-		&cpu,
-		"CPU configuration for the virtual machine.",
-	)
+	a.Describe(&cpu, "CPU configuration for the virtual machine.")
+	a.Describe(&cpu.Type, "CPU type (e.g., host, kvm64, x86-64-v2-AES).")
+	a.Describe(&cpu.FlagsEnabled, "List of CPU flags to enable (e.g., pcid, spec-ctrl).")
+	a.Describe(&cpu.FlagsDisabled, "List of CPU flags to disable.")
+	a.Describe(&cpu.Hidden, "Hide VM CPU type from the guest operating system.")
+	a.Describe(&cpu.HVVendorID, "Hyper-V vendor ID presented to the guest (up to 12 characters).")
+	a.Describe(&cpu.PhysBits, "Number of physical address bits exposed to the guest (e.g., 36, 40, 48).")
+	a.Describe(&cpu.Cores, "Number of CPU cores per socket.")
+	a.Describe(&cpu.Sockets, "Number of CPU sockets.")
+	a.Describe(&cpu.Limit, "CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).")
+	a.Describe(&cpu.Units, "CPU weight for the scheduler relative to other VMs (higher = more CPU time).")
+	a.Describe(&cpu.Vcpus, "Number of hotplugged vCPUs (must be <= cores * sockets).")
+	a.Describe(&cpu.Numa, "Enable NUMA topology.")
+	a.Describe(&cpu.NumaNodes, "NUMA node topology configuration.")
 	a.SetDefault(&cpu.Cores, 1, "Number of CPU cores")
+}
+
+// Annotate provides documentation for the NumaNode type.
+func (numaNode *NumaNode) Annotate(a infer.Annotator) {
+	a.Describe(&numaNode, "NUMA node topology configuration for the virtual machine.")
+	a.Describe(&numaNode.Cpus, "CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).")
+	a.Describe(&numaNode.HostNodes, "Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).")
+	a.Describe(&numaNode.Memory, "Memory in megabytes allocated to this NUMA node.")
+	a.Describe(&numaNode.Policy, "NUMA memory allocation policy (preferred, bind, interleave, or mpol).")
 }
 
 // Clone represents the configuration for cloning a virtual machine.
@@ -121,6 +140,16 @@ type Clone struct {
 	FullClone   *bool   `pulumi:"fullClone,optional"`
 	NodeID      *string `pulumi:"node,optional"`
 	Timeout     int     `pulumi:"timeout,optional"`
+}
+
+// Annotate provides documentation for the Clone type.
+func (clone *Clone) Annotate(a infer.Annotator) {
+	a.Describe(&clone, "Configuration for cloning a source virtual machine.")
+	a.Describe(&clone.VMID, "Source VM ID to clone from.")
+	a.Describe(&clone.DataStoreID, "Target storage pool for the cloned disks.")
+	a.Describe(&clone.FullClone, "Create a full independent clone instead of a linked clone.")
+	a.Describe(&clone.NodeID, "Target Proxmox node for the clone operation.")
+	a.Describe(&clone.Timeout, "Timeout in seconds for the clone operation.")
 }
 
 // DiskBase contains common fields shared between Disk and EfiDisk.
@@ -134,6 +163,15 @@ type Disk struct {
 	DiskBase
 	Size      int    `pulumi:"size"`      // Size in Gigabytes (required for regular disks).
 	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
+}
+
+// Annotate provides documentation for the Disk type.
+func (disk *Disk) Annotate(a infer.Annotator) {
+	a.Describe(&disk, "Disk configuration for the virtual machine.")
+	a.Describe(&disk.Storage, "Target storage pool for the disk (e.g., local-lvm, ceph-pool).")
+	a.Describe(&disk.FileID, "File name of the disk image (computed by Proxmox if not provided).")
+	a.Describe(&disk.Size, "Disk size in gigabytes.")
+	a.Describe(&disk.Interface, "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).")
 }
 
 // EfiType represents the EFI type for an EFI disk.
@@ -154,10 +192,11 @@ type EfiDisk struct {
 
 // Annotate provides documentation for the EfiDisk type.
 func (efiDisk *EfiDisk) Annotate(a infer.Annotator) {
-	a.Describe(
-		&efiDisk,
-		"EFI disk configuration for the virtual machine.",
-	)
+	a.Describe(&efiDisk, "EFI disk configuration for the virtual machine.")
+	a.Describe(&efiDisk.Storage, "Target storage pool for the EFI disk (e.g., local-lvm).")
+	a.Describe(&efiDisk.FileID, "File name of the EFI disk image (computed by Proxmox if not provided).")
+	a.Describe(&efiDisk.EfiType, "EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).")
+	a.Describe(&efiDisk.PreEnrolledKeys, "Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.")
 }
 
 // ValidateEfiType checks if the EfiType is valid.
@@ -172,78 +211,43 @@ func (efiDisk EfiDisk) ValidateEfiType() error {
 
 // VMInputs represents the input configuration for a virtual machine.
 type VMInputs struct {
-	Name        *string `pulumi:"name"`
-	Description *string `pulumi:"description,optional"`
-	Node        *string `pulumi:"node,optional"`
-	VMID        *int    `pulumi:"vmId,optional"`
-	Hookscript  *string `pulumi:"hookscript,optional"`
-	Hotplug     *string `pulumi:"hotplug,optional"`
-	Template    *int    `pulumi:"template,optional"`
-	// Agent       *string `pulumi:"agent,optional"`
-	Autostart *int `pulumi:"autostart,optional"`
-	Tablet    *int `pulumi:"tablet,optional"`
-	KVM       *int `pulumi:"kvm,optional"`
-	// Tags       *string `pulumi:"tags,optional"`
-	Protection *int    `pulumi:"protection,optional"`
-	Lock       *string `pulumi:"lock,optional"`
-
-	// Boot   *string `pulumi:"boot,optional"`
-	// OnBoot *int    `pulumi:"onboot,optional"`
-
-	OSType  *string `pulumi:"ostype,optional"`
-	Machine *string `pulumi:"machine,optional"`
-	Bio     *string `pulumi:"bios,optional"`
-
-	EfiDisk *EfiDisk `pulumi:"efidisk,optional"`
-
-	// SMBios1 *string `pulumi:"smbios1,optional"`
-	Acpi *int `pulumi:"acpi,optional"`
-
-	// Sockets  *int    `pulumi:"sockets,optional"`
-
-	CPU       *CPU    `pulumi:"cpu,optional"`
-	Memory    *int    `pulumi:"memory,optional"`
-	Hugepages *string `pulumi:"hugepages,optional"`
-	Balloon   *int    `pulumi:"balloon,optional"`
-
-	VGA *string `pulumi:"vga,optional"`
-	// SCSIHW    *string `pulumi:"scsihw,optional"`
-	TPMState0 *string `pulumi:"tpmstate0,optional"`
-	Rng0      *string `pulumi:"rng0,optional"`
-	Audio0    *string `pulumi:"audio0,optional"`
-
-	Disks []*Disk `pulumi:"disks"`
-
-	// Net0 *string `pulumi:"net0,optional"`
-
-	HostPCI0 *string `pulumi:"hostpci0,optional"`
-
-	Serial0 *string `pulumi:"serial0,optional"`
-
-	USB0 *string `pulumi:"usb0,optional"`
-
-	Parallel0 *string `pulumi:"parallel0,optional"`
-
-	CIType       *string `pulumi:"citype,optional"`
-	CIUser       *string `pulumi:"ciuser,optional"`
-	CIPassword   *string `pulumi:"cipassword,optional"`
-	Nameserver   *string `pulumi:"nameserver,optional"`
-	Searchdomain *string `pulumi:"searchdomain,optional"`
-	SSHKeys      *string `pulumi:"sshkeys,optional"`
-	CICustom     *string `pulumi:"cicustom,optional"`
-	CIUpgrade    *int    `pulumi:"ciupgrade,optional"`
-
-	IPConfig0 *string `pulumi:"ipconfig0,optional"`
-
-	Clone *Clone `pulumi:"clone,optional"`
+	Name        *string  `pulumi:"name"`
+	Description *string  `pulumi:"description,optional"`
+	Node        *string  `pulumi:"node,optional"`
+	VMID        *int     `pulumi:"vmId,optional"`
+	Hotplug     *string  `pulumi:"hotplug,optional"`
+	Template    *int     `pulumi:"template,optional"`
+	Autostart   *int     `pulumi:"autostart,optional"`
+	Tags        []string `pulumi:"tags,optional"`
+	OSType      *string  `pulumi:"ostype,optional"`
+	Machine     *string  `pulumi:"machine,optional"`
+	EfiDisk     *EfiDisk `pulumi:"efidisk,optional"`
+	CPU         *CPU     `pulumi:"cpu,optional"`
+	Memory      *int     `pulumi:"memory,optional"`
+	Balloon     *int     `pulumi:"balloon,optional"`
+	Disks       []*Disk  `pulumi:"disks"`
+	Clone       *Clone   `pulumi:"clone,optional"`
 }
 
 // Annotate adds descriptions to the VMInputs resource and its properties.
 func (inputs *VMInputs) Annotate(a infer.Annotator) {
-	a.Describe(
-		inputs,
-		"A Proxmox Virtual Machine (VM) resource that manages virtual machines in the Proxmox VE.",
-	)
+	a.Describe(inputs, "A Proxmox Virtual Machine (VM) resource that manages virtual machines in the Proxmox VE.")
+	a.Describe(&inputs.Name, "Name of the virtual machine.")
+	a.Describe(&inputs.Description, "Description or notes for the virtual machine.")
+	a.Describe(&inputs.Node, "Proxmox node where the VM resides.")
+	a.Describe(&inputs.VMID, "Unique numeric identifier for the virtual machine (auto-assigned if omitted).")
+	a.Describe(&inputs.Hotplug, "Comma-separated list of hotplug features (network, disk, cpu, memory, usb).")
+	a.Describe(&inputs.Template, "Mark the VM as a template (1) or a regular VM (0).")
+	a.Describe(&inputs.Autostart, "Automatically start the VM when the host boots (1 to enable, 0 to disable).")
+	a.Describe(&inputs.Tags, "Tags associated with the virtual machine.")
+	a.Describe(&inputs.OSType, "Guest operating system type (e.g., l26, win11, other).")
+	a.Describe(&inputs.Machine, "Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).")
+	a.Describe(&inputs.EfiDisk, "EFI disk configuration (required when bios is set to ovmf).")
+	a.Describe(&inputs.CPU, "CPU configuration including type, topology, and feature flags.")
+	a.Describe(&inputs.Memory, "Memory size in megabytes.")
+	a.Describe(&inputs.Balloon, "Minimum memory for ballooning in megabytes (0 disables the balloon device).")
+	a.Describe(&inputs.Disks, "List of disk configurations attached to the virtual machine.")
+	a.Describe(&inputs.Clone, "Clone configuration for creating the VM from a source template or VM.")
 }
 
 // VMOutputs represents the output state of a Proxmox virtual machine resource.
