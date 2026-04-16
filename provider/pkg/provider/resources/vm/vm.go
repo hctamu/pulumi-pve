@@ -22,13 +22,13 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
-	"sort"
 	"time"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // VM represents a Proxmox virtual machine resource.
@@ -205,6 +205,11 @@ func readCurrentOutput(
 
 	currentOutput := readResponse.State
 
+	// Preserve clone configuration (not returned by Read) if user supplied it.
+	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
+		currentOutput.Clone = request.Inputs.Clone
+	}
+
 	return currentOutput, nil
 }
 
@@ -301,7 +306,7 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 
 	// When the API returns the same set of tags (just alphabetically reordered by Proxmox),
 	// preserve the user's original ordering so that refreshes don't trigger phantom diffs.
-	if !tagsChanged(state.Tags, userInputs.Tags) {
+	if !utils.StringSliceChanged(state.Tags, userInputs.Tags) {
 		preserved.Tags = userInputs.Tags
 	}
 
@@ -666,7 +671,7 @@ func compareSliceFields(name string, inField, stateField reflect.Value) *p.Prope
 		inputTags, okIn := inField.Interface().([]string)
 		stateTags, okState := stateField.Interface().([]string)
 		if okIn && okState {
-			if tagsChanged(inputTags, stateTags) {
+			if utils.StringSliceChanged(inputTags, stateTags) {
 				return &p.PropertyDiff{Kind: p.Update}
 			}
 			return nil
@@ -678,22 +683,6 @@ func compareSliceFields(name string, inField, stateField reflect.Value) *p.Prope
 		return &p.PropertyDiff{Kind: p.Update}
 	}
 	return nil
-}
-
-// tagsChanged returns true when the two tag slices contain different sets of values,
-// ignoring order. Proxmox returns tags in alphabetical order regardless of submission
-// order, so order differences alone should not be treated as a real change.
-func tagsChanged(a, b []string) bool {
-	if len(a) != len(b) {
-		return true
-	}
-	sortedA := make([]string, len(a))
-	copy(sortedA, a)
-	sort.Strings(sortedA)
-	sortedB := make([]string, len(b))
-	copy(sortedB, b)
-	sort.Strings(sortedB)
-	return !reflect.DeepEqual(sortedA, sortedB)
 }
 
 // getPulumiPropertyName extracts the property name from a pulumi struct tag.

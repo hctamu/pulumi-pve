@@ -21,8 +21,8 @@ resources:
     properties:
       name: "aTestVM"
       tags:
-        - "tag4"
-        - "tag3"
+        - "tag2"
+        - "tag1"
       description: "test VM"
       cpu:
         type: EPYC-v3
