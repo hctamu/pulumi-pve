@@ -441,7 +441,7 @@ func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 	addOption("autostart", &options, inputs.Autostart)
 	addOption("balloon", &options, inputs.Balloon)
 
-	tags := strings.Join(inputs.Tags, ",")
+	tags := strings.Join(inputs.Tags, ";")
 	addOption("tags", &options, &tags)
 
 	if inputs.CPU != nil {
@@ -688,7 +688,7 @@ func compareAndAddTags(name string, options *[]api.VirtualMachineOption, newTags
 	if !utils.StringSliceChanged(newTags, currentTags) {
 		return
 	}
-	newTagsStr := strings.Join(newTags, ",")
+	newTagsStr := strings.Join(newTags, ";")
 	*options = append(*options, api.VirtualMachineOption{Name: name, Value: &newTagsStr})
 }
 

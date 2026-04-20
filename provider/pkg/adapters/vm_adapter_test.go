@@ -3607,14 +3607,14 @@ func TestBuildVMOptionsTags(t *testing.T) {
 			wantTagsVal: "prod",
 		},
 		{
-			name:        "multiple tags joined by comma",
+			name:        "multiple tags joined by semicolon",
 			tags:        []string{"prod", "web", "frontend"},
-			wantTagsVal: "prod,web,frontend",
+			wantTagsVal: "prod;web;frontend",
 		},
 		{
 			name:        "tag order is preserved",
 			tags:        []string{"z-last", "a-first", "m-middle"},
-			wantTagsVal: "z-last,a-first,m-middle",
+			wantTagsVal: "z-last;a-first;m-middle",
 		},
 	}
 
@@ -3674,7 +3674,7 @@ func TestBuildVMOptionsDiffTags(t *testing.T) {
 			newTags:     []string{"prod", "web"},
 			currentTags: []string{"prod"},
 			wantChanged: true,
-			wantTagsVal: "prod,web",
+			wantTagsVal: "prod;web",
 		},
 		{
 			name:        "changed - tag removed",
