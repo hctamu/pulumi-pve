@@ -814,3 +814,450 @@ func TestVMComputedVMIDLifeCycle(t *testing.T) {
 	}
 	assert.True(t, calledNextID, "expected GET /cluster/nextid to be called when vmId is omitted")
 }
+
+// ---------------------------------------------------------------------------
+// Autostart lifecycle
+// ---------------------------------------------------------------------------
+
+// TestVMAutostartLifeCycle verifies that the autostart field is sent on create,
+// read back from the API, and updated via config POST. Updating to 0 should send
+// the new value and result in a nil output (Proxmox omits autostart=0 in responses).
+func TestVMAutostartLifeCycle(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping lifecycle test in short mode")
+	}
+
+	var capture vmLifecycleCapture
+
+	var stateMu sync.Mutex
+	configPostsSeen := 0
+
+	currentConfig := func() map[string]interface{} {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		if configPostsSeen > 0 {
+			// autostart=0 is omitted by Proxmox in GET responses (json:",omitempty")
+			return map[string]interface{}{}
+		}
+		return map[string]interface{}{"autostart": 1}
+	}
+
+	var createBody, updateBody map[string]interface{}
+	onPost := func(isCreate bool, body map[string]interface{}) {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		if isCreate {
+			createBody = body
+		} else {
+			updateBody = body
+			configPostsSeen++
+		}
+	}
+
+	server := newVMLifecycleServer(t, lifecycleNodeName, lifecycleVMIDStr,
+		currentConfig, onPost, &capture, "")
+	defer server.Close()
+
+	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
+
+	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	vmID := property.New(lifecycleVMID)
+	node := property.New(lifecycleNodeName)
+	name := property.New(lifecycleVMName)
+
+	integration.LifeCycleTest{
+		Resource: "pve:vm:VM",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":      name,
+				"vmId":      vmID,
+				"node":      node,
+				"autostart": property.New(float64(1)),
+				"disks":     emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outAutostart := out.Get("autostart")
+				require.False(t, outAutostart.IsNull(), "expected autostart in output after Create")
+				assert.Equal(t, float64(1), outAutostart.AsNumber())
+			},
+		},
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":      name,
+				"vmId":      vmID,
+				"node":      node,
+				"autostart": property.New(float64(0)),
+				"disks":     emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				// Update builds output from user inputs directly, so explicit 0 is preserved.
+				outAutostart := out.Get("autostart")
+				assert.Equal(t, float64(0), outAutostart.AsNumber(), "expected autostart=0 in update output")
+			},
+		}},
+	}.Run(t, pulumiServer)
+
+	stateMu.Lock()
+	cb, ub := createBody, updateBody
+	stateMu.Unlock()
+
+	require.NotNil(t, cb, "expected create POST to be captured")
+	assert.Equal(t, float64(1), cb["autostart"], "create POST should include autostart=1")
+
+	require.NotNil(t, ub, "expected config update POST to be captured")
+	assert.Equal(t, float64(0), ub["autostart"], "update POST should include autostart=0")
+}
+
+// ---------------------------------------------------------------------------
+// Hotplug lifecycle
+// ---------------------------------------------------------------------------
+
+// TestVMHotplugLifeCycle verifies that the hotplug field is sent on create,
+// read back from the API, and updated via config POST.
+func TestVMHotplugLifeCycle(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping lifecycle test in short mode")
+	}
+
+	var capture vmLifecycleCapture
+
+	const (
+		hotplugCreate = "network,disk"
+		hotplugUpdate = "network"
+	)
+
+	var stateMu sync.Mutex
+	configPostsSeen := 0
+
+	currentConfig := func() map[string]interface{} {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		hp := hotplugCreate
+		if configPostsSeen > 0 {
+			hp = hotplugUpdate
+		}
+		return map[string]interface{}{"hotplug": hp}
+	}
+
+	var createBody, updateBody map[string]interface{}
+	onPost := func(isCreate bool, body map[string]interface{}) {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		if isCreate {
+			createBody = body
+		} else {
+			updateBody = body
+			configPostsSeen++
+		}
+	}
+
+	server := newVMLifecycleServer(t, lifecycleNodeName, lifecycleVMIDStr,
+		currentConfig, onPost, &capture, "")
+	defer server.Close()
+
+	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
+
+	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	vmID := property.New(lifecycleVMID)
+	node := property.New(lifecycleNodeName)
+	name := property.New(lifecycleVMName)
+
+	integration.LifeCycleTest{
+		Resource: "pve:vm:VM",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    name,
+				"vmId":    vmID,
+				"node":    node,
+				"hotplug": property.New(hotplugCreate),
+				"disks":   emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outHotplug := out.Get("hotplug")
+				require.False(t, outHotplug.IsNull(), "expected hotplug in output after Create")
+				assert.Equal(t, hotplugCreate, outHotplug.AsString())
+			},
+		},
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    name,
+				"vmId":    vmID,
+				"node":    node,
+				"hotplug": property.New(hotplugUpdate),
+				"disks":   emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outHotplug := out.Get("hotplug")
+				require.False(t, outHotplug.IsNull(), "expected hotplug in output after Update")
+				assert.Equal(t, hotplugUpdate, outHotplug.AsString())
+			},
+		}},
+	}.Run(t, pulumiServer)
+
+	stateMu.Lock()
+	cb, ub := createBody, updateBody
+	stateMu.Unlock()
+
+	require.NotNil(t, cb, "expected create POST to be captured")
+	assert.Equal(t, hotplugCreate, cb["hotplug"], "create POST should include hotplug")
+
+	require.NotNil(t, ub, "expected config update POST to be captured")
+	assert.Equal(t, hotplugUpdate, ub["hotplug"], "update POST should include updated hotplug")
+}
+
+// ---------------------------------------------------------------------------
+// OSType lifecycle
+// ---------------------------------------------------------------------------
+
+// TestVMOSTypeLifeCycle verifies that the ostype field is sent on create,
+// read back from the API, and updated via config POST.
+func TestVMOSTypeLifeCycle(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping lifecycle test in short mode")
+	}
+
+	var capture vmLifecycleCapture
+
+	const (
+		ostypeCreate = "l26"
+		ostypeUpdate = "win11"
+	)
+
+	var stateMu sync.Mutex
+	configPostsSeen := 0
+
+	currentConfig := func() map[string]interface{} {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		ost := ostypeCreate
+		if configPostsSeen > 0 {
+			ost = ostypeUpdate
+		}
+		return map[string]interface{}{"ostype": ost}
+	}
+
+	var createBody, updateBody map[string]interface{}
+	onPost := func(isCreate bool, body map[string]interface{}) {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		if isCreate {
+			createBody = body
+		} else {
+			updateBody = body
+			configPostsSeen++
+		}
+	}
+
+	server := newVMLifecycleServer(t, lifecycleNodeName, lifecycleVMIDStr,
+		currentConfig, onPost, &capture, "")
+	defer server.Close()
+
+	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
+
+	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	vmID := property.New(lifecycleVMID)
+	node := property.New(lifecycleNodeName)
+	name := property.New(lifecycleVMName)
+
+	integration.LifeCycleTest{
+		Resource: "pve:vm:VM",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":   name,
+				"vmId":   vmID,
+				"node":   node,
+				"ostype": property.New(ostypeCreate),
+				"disks":  emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outOSType := out.Get("ostype")
+				require.False(t, outOSType.IsNull(), "expected ostype in output after Create")
+				assert.Equal(t, ostypeCreate, outOSType.AsString())
+			},
+		},
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":   name,
+				"vmId":   vmID,
+				"node":   node,
+				"ostype": property.New(ostypeUpdate),
+				"disks":  emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outOSType := out.Get("ostype")
+				require.False(t, outOSType.IsNull(), "expected ostype in output after Update")
+				assert.Equal(t, ostypeUpdate, outOSType.AsString())
+			},
+		}},
+	}.Run(t, pulumiServer)
+
+	stateMu.Lock()
+	cb, ub := createBody, updateBody
+	stateMu.Unlock()
+
+	require.NotNil(t, cb, "expected create POST to be captured")
+	assert.Equal(t, ostypeCreate, cb["ostype"], "create POST should include ostype")
+
+	require.NotNil(t, ub, "expected config update POST to be captured")
+	assert.Equal(t, ostypeUpdate, ub["ostype"], "update POST should include updated ostype")
+}
+
+// ---------------------------------------------------------------------------
+// Machine lifecycle
+// ---------------------------------------------------------------------------
+
+// TestVMMachineLifeCycle verifies that the machine type field is sent on create,
+// read back from the API, and updated via config POST.
+func TestVMMachineLifeCycle(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping lifecycle test in short mode")
+	}
+
+	var capture vmLifecycleCapture
+
+	const (
+		machineCreate = "q35"
+		machineUpdate = "pc"
+	)
+
+	var stateMu sync.Mutex
+	configPostsSeen := 0
+
+	currentConfig := func() map[string]interface{} {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		m := machineCreate
+		if configPostsSeen > 0 {
+			m = machineUpdate
+		}
+		return map[string]interface{}{"machine": m}
+	}
+
+	var createBody, updateBody map[string]interface{}
+	onPost := func(isCreate bool, body map[string]interface{}) {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		if isCreate {
+			createBody = body
+		} else {
+			updateBody = body
+			configPostsSeen++
+		}
+	}
+
+	server := newVMLifecycleServer(t, lifecycleNodeName, lifecycleVMIDStr,
+		currentConfig, onPost, &capture, "")
+	defer server.Close()
+
+	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
+
+	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	vmID := property.New(lifecycleVMID)
+	node := property.New(lifecycleNodeName)
+	name := property.New(lifecycleVMName)
+
+	integration.LifeCycleTest{
+		Resource: "pve:vm:VM",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    name,
+				"vmId":    vmID,
+				"node":    node,
+				"machine": property.New(machineCreate),
+				"disks":   emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outMachine := out.Get("machine")
+				require.False(t, outMachine.IsNull(), "expected machine in output after Create")
+				assert.Equal(t, machineCreate, outMachine.AsString())
+			},
+		},
+		Updates: []integration.Operation{{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":    name,
+				"vmId":    vmID,
+				"node":    node,
+				"machine": property.New(machineUpdate),
+				"disks":   emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outMachine := out.Get("machine")
+				require.False(t, outMachine.IsNull(), "expected machine in output after Update")
+				assert.Equal(t, machineUpdate, outMachine.AsString())
+			},
+		}},
+	}.Run(t, pulumiServer)
+
+	stateMu.Lock()
+	cb, ub := createBody, updateBody
+	stateMu.Unlock()
+
+	require.NotNil(t, cb, "expected create POST to be captured")
+	assert.Equal(t, machineCreate, cb["machine"], "create POST should include machine")
+
+	require.NotNil(t, ub, "expected config update POST to be captured")
+	assert.Equal(t, machineUpdate, ub["machine"], "update POST should include updated machine")
+}
+
+// ---------------------------------------------------------------------------
+// Template lifecycle
+// ---------------------------------------------------------------------------
+
+// TestVMTemplateLifeCycle verifies that a VM can be created as a template
+// (template=1), and that the value is sent in the create POST body and
+// read back from the API config response.
+func TestVMTemplateLifeCycle(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping lifecycle test in short mode")
+	}
+
+	var capture vmLifecycleCapture
+
+	currentConfig := func() map[string]interface{} {
+		return map[string]interface{}{"template": 1}
+	}
+
+	var createBody map[string]interface{}
+	onPost := func(isCreate bool, body map[string]interface{}) {
+		if isCreate {
+			createBody = body
+		}
+	}
+
+	server := newVMLifecycleServer(t, lifecycleNodeName, lifecycleVMIDStr,
+		currentConfig, onPost, &capture, "")
+	defer server.Close()
+
+	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
+
+	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	vmID := property.New(lifecycleVMID)
+	node := property.New(lifecycleNodeName)
+	name := property.New(lifecycleVMName)
+
+	integration.LifeCycleTest{
+		Resource: "pve:vm:VM",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":     name,
+				"vmId":     vmID,
+				"node":     node,
+				"template": property.New(float64(1)),
+				"disks":    emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outTemplate := out.Get("template")
+				require.False(t, outTemplate.IsNull(), "expected template in output after Create")
+				assert.Equal(t, float64(1), outTemplate.AsNumber())
+			},
+		},
+	}.Run(t, pulumiServer)
+
+	require.NotNil(t, createBody, "expected create POST to be captured")
+	assert.Equal(t, float64(1), createBody["template"], "create POST should include template=1")
+}

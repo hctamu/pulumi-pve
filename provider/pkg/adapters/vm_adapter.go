@@ -440,6 +440,10 @@ func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 	addOption("description", &options, inputs.Description)
 	addOption("autostart", &options, inputs.Autostart)
 	addOption("balloon", &options, inputs.Balloon)
+	addOption("ostype", &options, inputs.OSType)
+	addOption("machine", &options, inputs.Machine)
+	addOption("hotplug", &options, inputs.Hotplug)
+	addOption("template", &options, inputs.Template)
 
 	tags := strings.Join(inputs.Tags, ";")
 	addOption("tags", &options, &tags)
@@ -492,6 +496,9 @@ func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmo
 	compareAndAddOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
 	compareAndAddOption("balloon", &options, inputs.Balloon, currentInputs.Balloon)
 	compareAndAddOption("ostype", &options, inputs.OSType, currentInputs.OSType)
+	compareAndAddOption("hotplug", &options, inputs.Hotplug, currentInputs.Hotplug)
+	compareAndAddOption("machine", &options, inputs.Machine, currentInputs.Machine)
+	compareAndAddOption("template", &options, inputs.Template, currentInputs.Template)
 	compareAndAddTags("tags", &options, inputs.Tags, currentInputs.Tags)
 	addCPUDiff(&options, &inputs, currentInputs)
 	if !reflect.DeepEqual(inputs.EfiDisk, currentInputs.EfiDisk) {
