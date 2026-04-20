@@ -153,7 +153,7 @@ func newVMHTTPMockServer(
 
 // TestVMAdapterCreateVMSendsTags verifies that VMAdapter.CreateVM sends the
 // tags field in the POST body to /nodes/{node}/qemu, joining the tags slice
-// with a comma delimiter as expected by the Proxmox API.
+// with a semicolon delimiter as expected by the Proxmox API.
 func TestVMAdapterCreateVMSendsTags(t *testing.T) {
 	t.Parallel()
 
@@ -168,9 +168,9 @@ func TestVMAdapterCreateVMSendsTags(t *testing.T) {
 			expectedBody: "prod",
 		},
 		{
-			name:         "multiple tags joined with comma",
+			name:         "multiple tags joined with semicolon",
 			tags:         []string{"prod", "web", "frontend"},
-			expectedBody: "prod,web,frontend",
+			expectedBody: "prod;web;frontend",
 		},
 		{
 			name:         "nil tags sends empty string",
@@ -258,7 +258,7 @@ func TestVMAdapterUpdateConfigSendsDiffTags(t *testing.T) {
 			currentTags:       []string{"prod"},
 			newTags:           []string{"prod", "web"},
 			expectConfigPost:  true,
-			expectedTagsValue: "prod,web",
+			expectedTagsValue: "prod;web",
 		},
 		{
 			name:             "tags unchanged - no config POST",
