@@ -283,8 +283,8 @@ func TestVMTagsLifeCycle(t *testing.T) {
 	assert.True(t, hasDelete, "expected DELETE to /nodes/%s/qemu/%s (cleanup)", lifecycleNodeName, lifecycleVMIDStr)
 
 	if hasCreate {
-		assert.Equal(t, "prod,web", createBody["tags"],
-			"expected tags to be comma-joined in create POST body")
+		assert.Equal(t, "prod;web", createBody["tags"],
+			"expected tags to be semicolon-joined in create POST body")
 	}
 	if hasUpdate {
 		assert.Equal(t, "staging", updateBody["tags"],
