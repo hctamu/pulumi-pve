@@ -2332,7 +2332,7 @@ func TestVMCreateDiskOrderingIntegration(t *testing.T) {
 			name := "test-vm"
 			vmid := 100
 			inputs := proxmox.VMInputs{
-				Name:  &name,
+				Name:  name,
 				VMID:  &vmid,
 				Disks: tc.disks,
 			}
@@ -2391,7 +2391,7 @@ func TestVMCreateDiskOptionsConsistency(t *testing.T) {
 	name := "test-vm-consistency"
 	vmid := 200
 	inputs := proxmox.VMInputs{
-		Name:  &name,
+		Name:  name,
 		VMID:  &vmid,
 		Disks: disks,
 	}
@@ -2464,7 +2464,7 @@ func BenchmarkBuildOptionsDiskOrdering(b *testing.B) {
 			name := "benchmark-vm"
 			vmid := 1000 + bm.diskCount
 			inputs := proxmox.VMInputs{
-				Name:  &name,
+				Name:  name,
 				VMID:  &vmid,
 				Disks: disks,
 			}
@@ -2494,7 +2494,7 @@ func BenchmarkBuildOptionsConsistency(b *testing.B) {
 	name := "benchmark-consistency-vm"
 	vmid := 2000
 	inputs := proxmox.VMInputs{
-		Name:  &name,
+		Name:  name,
 		VMID:  &vmid,
 		Disks: disks,
 	}
@@ -2556,7 +2556,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 		name := "production-vm"
 		vmid := 500
 		inputs := proxmox.VMInputs{
-			Name:  &name,
+			Name:  name,
 			VMID:  &vmid,
 			Disks: testCase.disks,
 		}
@@ -2780,7 +2780,7 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 			name := "test-vm-" + tc.name
 			vmid := 100
 			inputs := proxmox.VMInputs{
-				Name:  &name,
+				Name:  name,
 				VMID:  &vmid,
 				Disks: tc.inputDisks,
 			}
@@ -2893,7 +2893,7 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 		name := "build-options-test-vm"
 		vmid := 200
 		inputs := proxmox.VMInputs{
-			Name:  &name,
+			Name:  name,
 			VMID:  &vmid,
 			Disks: orderedDisks,
 		}
@@ -3589,32 +3589,32 @@ func TestBuildVMOptionsTags(t *testing.T) {
 	tests := []struct {
 		name        string
 		tags        []string
-		wantTagsVal string
+		wantTagsVal *string
 	}{
 		{
 			name:        "nil tags produces empty tags option",
 			tags:        nil,
-			wantTagsVal: "",
+			wantTagsVal: nil,
 		},
 		{
 			name:        "empty slice produces empty tags option",
 			tags:        []string{},
-			wantTagsVal: "",
+			wantTagsVal: nil,
 		},
 		{
 			name:        "single tag",
 			tags:        []string{"prod"},
-			wantTagsVal: "prod",
+			wantTagsVal: testutils.Ptr("prod"),
 		},
 		{
 			name:        "multiple tags joined by semicolon",
 			tags:        []string{"prod", "web", "frontend"},
-			wantTagsVal: "prod;web;frontend",
+			wantTagsVal: testutils.Ptr("prod;web;frontend"),
 		},
 		{
 			name:        "tag order is preserved",
 			tags:        []string{"z-last", "a-first", "m-middle"},
-			wantTagsVal: "z-last;a-first;m-middle",
+			wantTagsVal: testutils.Ptr("z-last;a-first;m-middle"),
 		},
 	}
 
@@ -3633,10 +3633,15 @@ func TestBuildVMOptionsTags(t *testing.T) {
 				}
 			}
 
+			if tt.wantTagsVal == nil {
+				assert.Nil(t, tagsOpt, "expected no 'tags' option when tags is nil")
+				return
+			}
+
 			require.NotNil(t, tagsOpt, "expected a 'tags' option to be present")
 			gotVal, ok := tagsOpt.Value.(*string)
 			require.True(t, ok, "tags value should be a *string")
-			assert.Equal(t, tt.wantTagsVal, *gotVal)
+			assert.Equal(t, tt.wantTagsVal, gotVal)
 		})
 	}
 }
@@ -3755,6 +3760,11 @@ func TestVMReadTags(t *testing.T) {
 			wantTags:  nil,
 		},
 		{
+			name:      "empty slice normalizes to nil",
+			tagsSlice: []string{},
+			wantTags:  nil,
+		},
+		{
 			name:      "single tag preserved",
 			tagsSlice: []string{"prod"},
 			wantTags:  []string{"prod"},
@@ -3777,6 +3787,47 @@ func TestVMReadTags(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.wantTags, result.Tags)
+		})
+	}
+}
+
+// TestVMReadTagsWhitespaceFromAPI verifies that when Proxmox returns a whitespace-only
+// Tags string (which happens for VMs created without tags), the resulting state has nil
+// tags rather than a slice containing a whitespace element.
+// Proxmox returns " " (a single space) for VMs with no tags; this must be normalised to nil.
+func TestVMReadTagsWhitespaceFromAPI(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		tagsStr  string
+		wantTags []string
+	}{
+		{
+			name:     "single space from API returns nil tags",
+			tagsStr:  " ",
+			wantTags: nil,
+		},
+		{
+			name:     "multiple spaces from API returns nil tags",
+			tagsStr:  "   ",
+			wantTags: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := createMockVM(nil)
+			vm.VirtualMachineConfig.Tags = tt.tagsStr
+			vm.VirtualMachineConfig.TagsSlice = nil
+
+			result, err := adapters.ConvertVMConfigToInputs(vm, nil)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantTags, result.Tags,
+				"whitespace-only Tags string from API should produce nil tags, not %v", result.Tags)
 		})
 	}
 }

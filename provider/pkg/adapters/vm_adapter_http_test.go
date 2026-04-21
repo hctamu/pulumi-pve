@@ -206,7 +206,7 @@ func TestVMAdapterCreateVMSendsTags(t *testing.T) {
 			node := nodeName
 			id := vmID
 			inputs := proxmox.VMInputs{
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node: &node,
 				VMID: &id,
 				Tags: tt.tags,
@@ -230,8 +230,12 @@ func TestVMAdapterCreateVMSendsTags(t *testing.T) {
 
 			require.NotNil(t, capturedCreateBody, "expected POST to /nodes/%s/qemu to be captured", nodeName)
 			gotTags, ok := capturedCreateBody["tags"]
-			require.True(t, ok, "expected 'tags' key in POST body")
-			assert.Equal(t, tt.expectedBody, gotTags)
+			if tt.tags == nil {
+				require.False(t, ok, "'tags' key should not be present in POST body when tags is nil")
+			} else {
+				require.True(t, ok, "expected 'tags' key in POST body")
+				assert.Equal(t, tt.expectedBody, gotTags)
+			}
 		})
 	}
 }
@@ -325,13 +329,13 @@ func TestVMAdapterUpdateConfigSendsDiffTags(t *testing.T) {
 			node := nodeName
 			id := vmID
 			newInputs := proxmox.VMInputs{
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node: &node,
 				VMID: &id,
 				Tags: tt.newTags,
 			}
 			stateInputs := proxmox.VMInputs{
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node: &node,
 				VMID: &id,
 				Tags: tt.currentTags,
@@ -540,7 +544,7 @@ func TestVMAdapterCreateVMSendsAllFields(t *testing.T) {
 	template := 1
 
 	inputs := proxmox.VMInputs{
-		Name:        testutils.Ptr("full-vm"),
+		Name:        "full-vm",
 		Node:        &node,
 		VMID:        &id,
 		Memory:      &mem,
@@ -600,7 +604,7 @@ func TestVMAdapterCreateVMSendsCPU(t *testing.T) {
 	numa := true
 
 	inputs := proxmox.VMInputs{
-		Name: testutils.Ptr("cpu-vm"),
+		Name: "cpu-vm",
 		Node: &node,
 		VMID: &id,
 		CPU: &proxmox.CPU{
@@ -674,7 +678,7 @@ func TestVMAdapterCreateVMSendsDisks(t *testing.T) {
 	node := nodeName
 	id := vmID
 	inputs := proxmox.VMInputs{
-		Name: testutils.Ptr("disk-vm"),
+		Name: "disk-vm",
 		Node: &node,
 		VMID: &id,
 		Disks: []*proxmox.Disk{
@@ -720,7 +724,7 @@ func TestVMAdapterCreateVMSendsEfiDisk(t *testing.T) {
 	node := nodeName
 	id := vmID
 	inputs := proxmox.VMInputs{
-		Name: testutils.Ptr("efi-vm"),
+		Name: "efi-vm",
 		Node: &node,
 		VMID: &id,
 		EfiDisk: &proxmox.EfiDisk{
@@ -783,7 +787,7 @@ func TestVMAdapterGetReadsConfig(t *testing.T) {
 	result, err := vmAdapter.Get(context.Background(), vmID, &node, nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, "my-vm", *result.Name)
+	assert.Equal(t, "my-vm", result.Name)
 	assert.Equal(t, 4096, *result.Memory)
 	assert.Equal(t, "a test vm", *result.Description)
 	assert.Equal(t, []string{"prod", "web"}, result.Tags)
@@ -969,7 +973,7 @@ func TestVMAdapterApplyConfigSendsOptions(t *testing.T) {
 	mem := 2048
 
 	inputs := proxmox.VMInputs{
-		Name:   testutils.Ptr("apply-vm"),
+		Name:   "apply-vm",
 		Memory: &mem,
 		Tags:   []string{"staging"},
 		Disks:  []*proxmox.Disk{},
@@ -1004,17 +1008,15 @@ func TestVMAdapterApplyConfigMinimalInputs(t *testing.T) {
 	defer server.Close()
 
 	node := nodeName
-	inputs := proxmox.VMInputs{Disks: []*proxmox.Disk{}}
+	inputs := proxmox.VMInputs{Disks: []*proxmox.Disk{}, Name: "testVM"}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
 	err := vmAdapter.ApplyConfig(context.Background(), vmID, &node, inputs, 60*time.Second)
 	require.NoError(t, err)
 
 	req := capture.find(http.MethodPost, "/qemu/"+vmIDStr+"/config")
-	require.NotNil(t, req, "expected POST to config (tags is always sent)")
-	assert.Equal(t, "", req.body["tags"], "empty inputs should send empty tags")
 	_, hasName := req.body["name"]
-	assert.False(t, hasName, "empty inputs should not include name")
+	assert.True(t, hasName, "minimal inputs should still include name field")
 }
 
 // ---------------------------------------------------------------------------
@@ -1063,7 +1065,7 @@ func TestVMAdapterCloneVMSendsRequest(t *testing.T) {
 			node := nodeName
 			id := targetVMID
 			inputs := proxmox.VMInputs{
-				Name: testutils.Ptr("cloned-vm"),
+				Name: "cloned-vm",
 				Node: &node,
 				VMID: &id,
 				Clone: &proxmox.Clone{

@@ -514,7 +514,7 @@ func TestVMReadWithCPU(t *testing.T) {
 		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				CPU: &proxmox.CPU{
 					Type:          testutils.Ptr("host"),
 					Cores:         testutils.Ptr(4),
@@ -596,7 +596,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
-			Name:    testutils.Ptr("test-vm"),
+			Name: "test-vm",
 			Disks:   []*proxmox.Disk{},
 			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
@@ -607,7 +607,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
 				VMID:    testutils.Ptr(vmID),
-				Name:    testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node:    &nodeName,
 				Disks:   []*proxmox.Disk{},
 				EfiDisk: &proxmox.EfiDisk{},
@@ -638,7 +638,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
-			Name:    testutils.Ptr("test-vm"),
+			Name: "test-vm",
 			Disks:   []*proxmox.Disk{},
 			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
@@ -654,7 +654,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
 				VMID:    testutils.Ptr(vmID),
-				Name:    testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node:    &nodeName,
 				Disks:   []*proxmox.Disk{},
 				EfiDisk: &proxmox.EfiDisk{},
@@ -689,7 +689,7 @@ func TestVMCreateWithCPU(t *testing.T) {
 		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				CPU: &proxmox.CPU{
 					Type:         testutils.Ptr("host"),
 					Cores:        testutils.Ptr(8),
@@ -715,7 +715,7 @@ func TestVMCreateWithCPU(t *testing.T) {
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm",
 		Inputs: proxmox.VMInputs{
-			Name: testutils.Ptr("test-vm"),
+			Name: "test-vm",
 			Node: &nodeName,
 			CPU: &proxmox.CPU{
 				Type:         testutils.Ptr("host"),
