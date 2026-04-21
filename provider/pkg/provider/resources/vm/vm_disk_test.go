@@ -27,7 +27,6 @@ import (
 
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestVMDiffDisksChange(t *testing.T) {
@@ -167,12 +166,12 @@ func TestVMDiffDisksChange(t *testing.T) {
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name:  testutils.Ptr("test-vm"),
+					Name:  "test-vm",
 					Disks: tt.inputDisks,
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name:  testutils.Ptr("test-vm"),
+						Name:  "test-vm",
 						Disks: tt.stateDisks,
 					},
 				},

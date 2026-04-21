@@ -206,13 +206,13 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name:    testutils.Ptr("test-vm"),
+					Name: "test-vm",
 					EfiDisk: tt.inputEfiDisk,
 					Disks:   []*proxmox.Disk{}, // Empty disks to focus on EFI
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name:    testutils.Ptr("test-vm"),
+						Name: "test-vm",
 						EfiDisk: tt.stateEfiDisk,
 						Disks:   []*proxmox.Disk{},
 					},
@@ -260,7 +260,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
-			Name: testutils.Ptr("test-vm"),
+			Name: "test-vm",
 			EfiDisk: &proxmox.EfiDisk{
 				EfiType: proxmox.EfiType4M,
 			},
@@ -268,7 +268,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node: &nodeName,
 				EfiDisk: &proxmox.EfiDisk{
 					EfiType: proxmox.EfiType2M,
@@ -302,7 +302,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
-			Name: testutils.Ptr("test-vm"),
+			Name: "test-vm",
 			EfiDisk: &proxmox.EfiDisk{
 				EfiType:         proxmox.EfiType4M,
 				PreEnrolledKeys: testutils.Ptr(true),
@@ -311,7 +311,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node: &nodeName,
 				EfiDisk: &proxmox.EfiDisk{
 					EfiType: proxmox.EfiType4M,
@@ -343,7 +343,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 			getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: testutils.Ptr(vmID),
-					Name: testutils.Ptr("test-vm"),
+					Name: "test-vm",
 					EfiDisk: &proxmox.EfiDisk{
 						DiskBase:        proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
 						EfiType:         proxmox.EfiType4M,
@@ -385,7 +385,7 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 			getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: testutils.Ptr(vmID),
-					Name: testutils.Ptr("test-vm"),
+					Name: "test-vm",
 				}, nil
 			},
 		},
@@ -440,7 +440,7 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm",
 		Inputs: proxmox.VMInputs{
-			Name: testutils.Ptr("cloned-vm"),
+			Name: "cloned-vm",
 			Node: &nodeName,
 			Clone: &proxmox.Clone{
 				VMID:    sourceVMID,
@@ -493,7 +493,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "cloned-vm-with-efi",
 		Inputs: proxmox.VMInputs{
-			Name: testutils.Ptr("cloned-vm"),
+			Name: "cloned-vm",
 			Node: &nodeName,
 			Clone: &proxmox.Clone{
 				VMID:    sourceVMID,
@@ -533,7 +533,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(newVMID),
-				Name: testutils.Ptr("test-vm-with-efi"),
+				Name: "test-vm-with-efi",
 				EfiDisk: &proxmox.EfiDisk{
 					DiskBase:        proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:         proxmox.EfiType4M,
@@ -550,7 +550,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm-with-efi",
 		Inputs: proxmox.VMInputs{
-			Name:   testutils.Ptr("test-vm-with-efi"),
+			Name: "test-vm-with-efi",
 			Node:   &nodeName,
 			CPU:    &proxmox.CPU{Cores: testutils.Ptr(2)},
 			Memory: testutils.Ptr(2048),

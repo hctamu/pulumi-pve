@@ -597,6 +597,11 @@ func (vm *VM) Diff(
 		case inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer:
 			// Handle pointer fields with special cases
 			propertyDiff = comparePointerFields(name, inField, stateField, computed)
+		default:
+			// Handle plain value types (string, int, bool, …)
+			if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
+				propertyDiff = &p.PropertyDiff{Kind: p.Update}
+			}
 		}
 
 		if propertyDiff != nil {

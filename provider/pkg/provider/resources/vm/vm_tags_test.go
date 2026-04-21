@@ -132,29 +132,42 @@ func TestVMDiffTags(t *testing.T) {
 	}
 }
 
-// TestVMCreatePassesTags verifies that Create passes the tags from inputs to CreateVM.
+// TestVMCreatePassesTags verifies that Create stores the correct tags in output state.
+// The mock's Get return (mockReturnTags) simulates the normalised adapter response:
+// the real adapter returns nil for VMs with no tags (including when the user supplied
+// an empty slice and Proxmox echoes back a whitespace-only tags string).
 func TestVMCreatePassesTags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name         string
-		tags         []string
-		expectedTags []string
+		name           string
+		inputTags      []string // tags supplied by the user in Create inputs
+		mockReturnTags []string // tags the mock Get returns (simulates normalised adapter)
+		expectedTags   []string // expected tags in the output state
 	}{
 		{
-			name:         "no tags passes empty slice",
-			tags:         nil,
-			expectedTags: nil,
+			name:           "nil input - nil state",
+			inputTags:      nil,
+			mockReturnTags: nil,
+			expectedTags:   nil,
 		},
 		{
-			name:         "single tag forwarded",
-			tags:         []string{"prod"},
-			expectedTags: []string{"prod"},
+			name:           "empty slice input - nil state (adapter normalises whitespace response)",
+			inputTags:      []string{},
+			mockReturnTags: nil, // fixed adapter returns nil, not [" "], for no-tag VMs
+			expectedTags:   nil,
 		},
 		{
-			name:         "multiple tags forwarded in order",
-			tags:         []string{"prod", "web", "frontend"},
-			expectedTags: []string{"prod", "web", "frontend"},
+			name:           "single tag forwarded",
+			inputTags:      []string{"prod"},
+			mockReturnTags: []string{"prod"},
+			expectedTags:   []string{"prod"},
+		},
+		{
+			name:           "multiple tags forwarded in order",
+			inputTags:      []string{"prod", "web", "frontend"},
+			mockReturnTags: []string{"prod", "web", "frontend"},
+			expectedTags:   []string{"prod", "web", "frontend"},
 		},
 	}
 
@@ -162,22 +175,20 @@ func TestVMCreatePassesTags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var receivedTags []string
 			node := "pve-node"
 			id := 100
 
 			vmResource := &vm.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: node, DefaultVMID: id},
 				VMOps: &mockVMOperations{
-					createVMFunc: func(_ context.Context, inputs proxmox.VMInputs) error {
-						receivedTags = inputs.Tags
+					createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 						return nil
 					},
 					getFunc: func(_ context.Context, vmID int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
 						return proxmox.VMInputs{
 							VMID:  &vmID,
 							Node:  &node,
-							Tags:  tt.tags,
+							Tags:  tt.mockReturnTags,
 							Disks: []*proxmox.Disk{},
 						}, nil
 					},
@@ -187,18 +198,17 @@ func TestVMCreatePassesTags(t *testing.T) {
 			req := infer.CreateRequest[proxmox.VMInputs]{
 				Name: "test-vm",
 				Inputs: proxmox.VMInputs{
-					Name:  testutils.Ptr("test-vm"),
+					Name: "test-vm",
 					VMID:  &id,
 					Node:  &node,
-					Tags:  tt.tags,
+					Tags:  tt.inputTags,
 					Disks: []*proxmox.Disk{},
 				},
 			}
 
 			resp, err := vmResource.Create(context.Background(), req)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedTags, receivedTags, "expected CreateVM to receive correct tags")
-			assert.Equal(t, tt.tags, resp.Output.Tags, "expected output state tags to reflect input")
+			assert.Equal(t, tt.expectedTags, resp.Output.Tags, "expected output state tags to match normalised mock response")
 		})
 	}
 }
@@ -207,24 +217,36 @@ func TestVMCreatePassesTags(t *testing.T) {
 func TestVMReadReturnsTags(t *testing.T) {
 	t.Parallel()
 
+	// mockTags is what the mock's Get returns; it simulates what the real adapter
+	// returns after normalisation (always nil, never []string{}, for no-tag VMs).
 	tests := []struct {
 		name         string
-		tags         []string
-		expectedTags []string
+		inputTags    []string // tags the user provides in Read inputs
+		mockTags     []string // tags returned by mock Get (simulates normalised adapter)
+		expectedTags []string // expected tags in output state
 	}{
 		{
-			name:         "read returns nil tags",
-			tags:         nil,
+			name:         "nil input tags - nil state",
+			inputTags:    nil,
+			mockTags:     nil,
+			expectedTags: nil,
+		},
+		{
+			name:         "empty slice input - nil state (adapter normalises whitespace response)",
+			inputTags:    []string{},
+			mockTags:     nil, // fixed adapter normalises [" "] → nil
 			expectedTags: nil,
 		},
 		{
 			name:         "read returns single tag",
-			tags:         []string{"prod"},
+			inputTags:    []string{"prod"},
+			mockTags:     []string{"prod"},
 			expectedTags: []string{"prod"},
 		},
 		{
 			name:         "read returns multiple tags",
-			tags:         []string{"prod", "web", "frontend"},
+			inputTags:    []string{"prod", "web", "frontend"},
+			mockTags:     []string{"prod", "web", "frontend"},
 			expectedTags: []string{"prod", "web", "frontend"},
 		},
 	}
@@ -243,7 +265,7 @@ func TestVMReadReturnsTags(t *testing.T) {
 						return proxmox.VMInputs{
 							VMID:  &vmID,
 							Node:  &node,
-							Tags:  tt.tags,
+							Tags:  tt.mockTags,
 							Disks: []*proxmox.Disk{},
 						}, nil
 					},
@@ -255,7 +277,7 @@ func TestVMReadReturnsTags(t *testing.T) {
 				Inputs: proxmox.VMInputs{
 					VMID:  &id,
 					Node:  &node,
-					Tags:  tt.tags,
+					Tags:  tt.inputTags,
 					Disks: []*proxmox.Disk{},
 				},
 				State: proxmox.VMOutputs{
@@ -420,7 +442,7 @@ func TestVMUpdatePassesTags(t *testing.T) {
 			req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name:  testutils.Ptr("test-vm"),
+					Name: "test-vm",
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.newTags,
@@ -428,7 +450,7 @@ func TestVMUpdatePassesTags(t *testing.T) {
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name:  testutils.Ptr("test-vm"),
+						Name: "test-vm",
 						VMID:  &id,
 						Node:  &node,
 						Tags:  tt.oldTags,

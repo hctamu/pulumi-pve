@@ -609,7 +609,7 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "500",
 		Inputs: proxmox.VMInputs{
-			Name: testutils.Ptr("test-vm"),
+			Name: "test-vm",
 			Node: &nodeName,
 			Disks: []*proxmox.Disk{{
 				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
@@ -693,7 +693,7 @@ func TestVMCreateConfigurationErrors(t *testing.T) {
 			client: &mockErrorClient{nextVMIDErr: nextIDErr},
 			vmOps:  &mockVMOps{},
 			inputs: proxmox.VMInputs{
-				Name: testutils.Ptr("test-vm"),
+				Name: "test-vm",
 				Node: &nodeName,
 				// VMID is nil so NextVMID is called
 			},
