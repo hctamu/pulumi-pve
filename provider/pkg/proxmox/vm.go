@@ -211,7 +211,7 @@ func (efiDisk EfiDisk) ValidateEfiType() error {
 
 // VMInputs represents the input configuration for a virtual machine.
 type VMInputs struct {
-	Name        *string  `pulumi:"name"`
+	Name        string   `pulumi:"name"`
 	Description *string  `pulumi:"description,optional"`
 	Node        *string  `pulumi:"node,optional"`
 	VMID        *int     `pulumi:"vmId,optional"`

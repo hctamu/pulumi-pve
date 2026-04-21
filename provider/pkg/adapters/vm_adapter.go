@@ -353,8 +353,17 @@ func ConvertVMConfigToInputs(
 ) (stateInputs proxmox.VMInputs, err error) {
 	// go-proxmox does not populate TagsSlice from the JSON tags field during HTTP responses.
 	// Call SplitTags to ensure TagsSlice is derived from the Tags string when not already set.
-	if vm.VirtualMachineConfig.TagsSlice == nil && vm.VirtualMachineConfig.Tags != "" {
+	// Trim whitespace first: Proxmox returns " " for VMs created without tags.
+	if vm.VirtualMachineConfig.TagsSlice == nil && strings.TrimSpace(vm.VirtualMachineConfig.Tags) != "" {
 		vm.SplitTags()
+	}
+
+	// Normalize: filter out empty/whitespace-only entries so that no-tag VMs always produce nil.
+	var cleanTags []string
+	for _, tag := range vm.VirtualMachineConfig.TagsSlice {
+		if strings.TrimSpace(tag) != "" {
+			cleanTags = append(cleanTags, tag)
+		}
 	}
 
 	vmConfig := vm.VirtualMachineConfig
@@ -411,7 +420,7 @@ func ConvertVMConfigToInputs(
 	vmID = int(vm.VMID) // #nosec G115 - overflow checked above
 
 	stateInputs = proxmox.VMInputs{
-		Name:        strOrNil(vmConfig.Name),
+		Name:        vmConfig.Name,
 		Description: strOrNil(vmConfig.Description),
 		VMID:        &vmID,
 		Hotplug:     strOrNil(vmConfig.Hotplug),
@@ -425,7 +434,7 @@ func ConvertVMConfigToInputs(
 		Balloon:     intOrNil(vmConfig.Balloon),
 		Disks:       stateDisks,
 		Node:        strOrNil(vm.Node),
-		Tags:        vmConfig.TagsSlice,
+		Tags:        cleanTags,
 	}
 
 	return stateInputs, nil
@@ -435,7 +444,9 @@ func ConvertVMConfigToInputs(
 func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOption {
 	options := []api.VirtualMachineOption{}
 
-	addOption("name", &options, inputs.Name)
+	if inputs.Name != "" {
+		options = append(options, api.VirtualMachineOption{Name: "name", Value: inputs.Name})
+	}
 	addOption("memory", &options, inputs.Memory)
 	addOption("description", &options, inputs.Description)
 	addOption("autostart", &options, inputs.Autostart)
@@ -445,8 +456,12 @@ func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 	addOption("hotplug", &options, inputs.Hotplug)
 	addOption("template", &options, inputs.Template)
 
-	tags := strings.Join(inputs.Tags, ";")
-	addOption("tags", &options, &tags)
+	var tags *string
+	if len(inputs.Tags) > 0 {
+		tagsStr := strings.Join(inputs.Tags, ";")
+		tags = &tagsStr
+	}
+	addOption("tags", &options, tags)
 
 	if inputs.CPU != nil {
 		if cpuStr := CPUToProxmoxString(inputs.CPU); cpuStr != "" {
@@ -491,14 +506,14 @@ func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmox.VMInputs) []api.VirtualMachineOption {
 	options := []api.VirtualMachineOption{}
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
-	compareAndAddOption("memory", &options, inputs.Memory, currentInputs.Memory)
-	compareAndAddOption("description", &options, inputs.Description, currentInputs.Description)
-	compareAndAddOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
-	compareAndAddOption("balloon", &options, inputs.Balloon, currentInputs.Balloon)
-	compareAndAddOption("ostype", &options, inputs.OSType, currentInputs.OSType)
-	compareAndAddOption("hotplug", &options, inputs.Hotplug, currentInputs.Hotplug)
-	compareAndAddOption("machine", &options, inputs.Machine, currentInputs.Machine)
-	compareAndAddOption("template", &options, inputs.Template, currentInputs.Template)
+	compareAndAddPtrOption("memory", &options, inputs.Memory, currentInputs.Memory)
+	compareAndAddPtrOption("description", &options, inputs.Description, currentInputs.Description)
+	compareAndAddPtrOption("autostart", &options, inputs.Autostart, currentInputs.Autostart)
+	compareAndAddPtrOption("balloon", &options, inputs.Balloon, currentInputs.Balloon)
+	compareAndAddPtrOption("ostype", &options, inputs.OSType, currentInputs.OSType)
+	compareAndAddPtrOption("hotplug", &options, inputs.Hotplug, currentInputs.Hotplug)
+	compareAndAddPtrOption("machine", &options, inputs.Machine, currentInputs.Machine)
+	compareAndAddPtrOption("template", &options, inputs.Template, currentInputs.Template)
 	compareAndAddTags("tags", &options, inputs.Tags, currentInputs.Tags)
 	addCPUDiff(&options, &inputs, currentInputs)
 	if !reflect.DeepEqual(inputs.EfiDisk, currentInputs.EfiDisk) {
@@ -596,7 +611,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *p
 	if currentInputs.CPU != nil {
 		oldCores = currentInputs.CPU.Cores
 	}
-	compareAndAddOption("cores", options, newCores, oldCores)
+	compareAndAddPtrOption("cores", options, newCores, oldCores)
 
 	var newSockets, oldSockets *int
 	if newInputs.CPU != nil {
@@ -605,7 +620,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *p
 	if currentInputs.CPU != nil {
 		oldSockets = currentInputs.CPU.Sockets
 	}
-	compareAndAddOption("sockets", options, newSockets, oldSockets)
+	compareAndAddPtrOption("sockets", options, newSockets, oldSockets)
 
 	var newLimit, oldLimit *float64
 	if newInputs.CPU != nil {
@@ -614,7 +629,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *p
 	if currentInputs.CPU != nil {
 		oldLimit = currentInputs.CPU.Limit
 	}
-	compareAndAddOption("cpulimit", options, newLimit, oldLimit)
+	compareAndAddPtrOption("cpulimit", options, newLimit, oldLimit)
 
 	var newUnits, oldUnits *int
 	if newInputs.CPU != nil {
@@ -623,7 +638,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *p
 	if currentInputs.CPU != nil {
 		oldUnits = currentInputs.CPU.Units
 	}
-	compareAndAddOption("cpuunits", options, newUnits, oldUnits)
+	compareAndAddPtrOption("cpuunits", options, newUnits, oldUnits)
 
 	var newVcpus, oldVcpus *int
 	if newInputs.CPU != nil {
@@ -632,7 +647,7 @@ func addCPUDiff(options *[]api.VirtualMachineOption, newInputs, currentInputs *p
 	if currentInputs.CPU != nil {
 		oldVcpus = currentInputs.CPU.Vcpus
 	}
-	compareAndAddOption("vcpus", options, newVcpus, oldVcpus)
+	compareAndAddPtrOption("vcpus", options, newVcpus, oldVcpus)
 
 	var newNuma, oldNuma *bool
 	if newInputs.CPU != nil {
@@ -681,7 +696,17 @@ func intOrNil(v int) *int {
 }
 
 // compareAndAddOption adds name→newValue to options when newValue differs from currentValue.
-func compareAndAddOption[T comparable](name string, options *[]api.VirtualMachineOption, newValue, currentValue *T) {
+// Use this for non-pointer comparable types (string, int, float64, …).
+func compareAndAddOption[T comparable](name string, options *[]api.VirtualMachineOption, newValue, currentValue T) {
+	if newValue != currentValue {
+		*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
+	}
+}
+
+// compareAndAddPtrOption adds name→newValue to options when the pointed-to values differ.
+// A nil newValue means "not set"; no option is added in that case.
+// Use this for optional pointer fields where nil signals absence.
+func compareAndAddPtrOption[T comparable](name string, options *[]api.VirtualMachineOption, newValue, currentValue *T) {
 	if utils.DifferPtr(newValue, currentValue) && newValue != nil {
 		*options = append(*options, api.VirtualMachineOption{Name: name, Value: newValue})
 	}
