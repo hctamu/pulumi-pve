@@ -596,7 +596,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
-			Name: "test-vm",
+			Name:    "test-vm",
 			Disks:   []*proxmox.Disk{},
 			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
@@ -607,7 +607,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
 				VMID:    testutils.Ptr(vmID),
-				Name: "test-vm",
+				Name:    "test-vm",
 				Node:    &nodeName,
 				Disks:   []*proxmox.Disk{},
 				EfiDisk: &proxmox.EfiDisk{},
@@ -638,7 +638,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 		ID: "100",
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
-			Name: "test-vm",
+			Name:    "test-vm",
 			Disks:   []*proxmox.Disk{},
 			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
@@ -654,7 +654,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
 				VMID:    testutils.Ptr(vmID),
-				Name: "test-vm",
+				Name:    "test-vm",
 				Node:    &nodeName,
 				Disks:   []*proxmox.Disk{},
 				EfiDisk: &proxmox.EfiDisk{},

@@ -86,14 +86,14 @@ func TestVMDiffComputedFields(t *testing.T) {
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name: "test-vm",
+					Name:  "test-vm",
 					VMID:  tt.inputVMID,
 					Node:  tt.inputNode,
 					Disks: []*proxmox.Disk{},
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name: "test-vm",
+						Name:  "test-vm",
 						VMID:  tt.stateVMID,
 						Node:  tt.stateNode,
 						Disks: []*proxmox.Disk{},
@@ -170,7 +170,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name: "test-vm",
+					Name:   "test-vm",
 					Memory: tt.inputMemory,
 					CPU: &proxmox.CPU{
 						Cores: tt.inputCores,
@@ -179,7 +179,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name: "test-vm",
+						Name:   "test-vm",
 						Memory: tt.stateMemory,
 						CPU: &proxmox.CPU{
 							Cores: tt.stateCores,
@@ -204,7 +204,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
 		Inputs: proxmox.VMInputs{
-			Name: "new-name",
+			Name:   "new-name",
 			Memory: testutils.Ptr(4096),
 			CPU: &proxmox.CPU{
 				Cores: testutils.Ptr(4),
@@ -216,7 +216,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 		},
 		State: proxmox.VMOutputs{
 			VMInputs: proxmox.VMInputs{
-				Name: "old-name",
+				Name:   "old-name",
 				Memory: testutils.Ptr(2048),
 				CPU: &proxmox.CPU{
 					Cores: testutils.Ptr(2),
