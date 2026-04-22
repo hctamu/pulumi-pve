@@ -198,7 +198,7 @@ func TestVMCreatePassesTags(t *testing.T) {
 			req := infer.CreateRequest[proxmox.VMInputs]{
 				Name: "test-vm",
 				Inputs: proxmox.VMInputs{
-					Name: "test-vm",
+					Name:  "test-vm",
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.inputTags,
@@ -442,7 +442,7 @@ func TestVMUpdatePassesTags(t *testing.T) {
 			req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name: "test-vm",
+					Name:  "test-vm",
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.newTags,
@@ -450,7 +450,7 @@ func TestVMUpdatePassesTags(t *testing.T) {
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name: "test-vm",
+						Name:  "test-vm",
 						VMID:  &id,
 						Node:  &node,
 						Tags:  tt.oldTags,
