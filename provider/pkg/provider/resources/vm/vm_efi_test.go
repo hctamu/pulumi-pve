@@ -206,13 +206,13 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 			req := infer.DiffRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 				ID: "100",
 				Inputs: proxmox.VMInputs{
-					Name: "test-vm",
+					Name:    "test-vm",
 					EfiDisk: tt.inputEfiDisk,
 					Disks:   []*proxmox.Disk{}, // Empty disks to focus on EFI
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name: "test-vm",
+						Name:    "test-vm",
 						EfiDisk: tt.stateEfiDisk,
 						Disks:   []*proxmox.Disk{},
 					},
@@ -550,7 +550,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 	req := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "test-vm-with-efi",
 		Inputs: proxmox.VMInputs{
-			Name: "test-vm-with-efi",
+			Name:   "test-vm-with-efi",
 			Node:   &nodeName,
 			CPU:    &proxmox.CPU{Cores: testutils.Ptr(2)},
 			Memory: testutils.Ptr(2048),
