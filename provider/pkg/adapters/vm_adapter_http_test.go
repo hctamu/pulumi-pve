@@ -990,9 +990,8 @@ func TestVMAdapterApplyConfigSendsOptions(t *testing.T) {
 	assert.Equal(t, "staging", req.body["tags"])
 }
 
-// TestVMAdapterApplyConfigMinimalInputs verifies that ApplyConfig with only
-// empty inputs still sends the tags option (tags is always serialized, even
-// as an empty string) and does not include other fields.
+// TestVMAdapterApplyConfigMinimalInputs verifies that ApplyConfig with
+// minimal inputs (only Name and Node) still sends a valid request with the name field.
 func TestVMAdapterApplyConfigMinimalInputs(t *testing.T) {
 	t.Parallel()
 

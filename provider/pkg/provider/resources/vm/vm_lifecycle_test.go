@@ -77,7 +77,7 @@ func (capture *vmLifecycleCapture) all() []vmCapturedRequest {
 
 // TestVMTagsLifeCycle verifies a full create/update/delete lifecycle for a VM with tags.
 // It validates that:
-//   - Create sends tags as comma-separated string in the POST body
+//   - Create sends tags as semicolon-separated string in the POST body
 //   - Read correctly populates tags from the semicolon-separated Proxmox config format
 //   - Update sends the new tags in the config POST body
 func TestVMTagsLifeCycle(t *testing.T) {
