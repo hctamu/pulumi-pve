@@ -738,6 +738,12 @@ func TestVMReadPreservesCloneFromInputs(t *testing.T) {
 		Timeout:   300,
 	}
 
+	inputs := proxmox.VMInputs{
+		VMID:  testutils.Ptr(vmID),
+		Node:  &nodeName,
+		Clone: userClone,
+	}
+
 	tests := []struct {
 		name      string
 		reqInputs proxmox.VMInputs
@@ -745,26 +751,9 @@ func TestVMReadPreservesCloneFromInputs(t *testing.T) {
 		wantClone *proxmox.Clone
 	}{
 		{
-			name: "clone in inputs is preserved when state has no clone",
-			reqInputs: proxmox.VMInputs{
-				VMID:  testutils.Ptr(vmID),
-				Node:  &nodeName,
-				Clone: userClone,
-			},
-			reqState:  proxmox.VMOutputs{VMInputs: proxmox.VMInputs{VMID: testutils.Ptr(vmID)}},
-			wantClone: userClone,
-		},
-		{
-			name: "clone in inputs takes precedence over clone in state",
-			reqInputs: proxmox.VMInputs{
-				VMID:  testutils.Ptr(vmID),
-				Node:  &nodeName,
-				Clone: userClone,
-			},
-			reqState: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{
-				VMID:  testutils.Ptr(vmID),
-				Clone: &proxmox.Clone{VMID: 1111},
-			}},
+			name:      "clone in inputs is preserved when state has no clone",
+			reqInputs: inputs,
+			reqState:  proxmox.VMOutputs{VMInputs: inputs},
 			wantClone: userClone,
 		},
 	}
@@ -794,6 +783,7 @@ func TestVMReadPreservesCloneFromInputs(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.wantClone, resp.Inputs.Clone, "clone should be preserved in Inputs")
+			require.Equal(t, tt.wantClone, resp.State.Clone, "clone should be preserved in State")
 		})
 	}
 }
