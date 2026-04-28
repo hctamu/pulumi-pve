@@ -522,12 +522,26 @@
       "properties": {
         "comment": {
           "type": "string",
-          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'."
+          "description": "An optional comment for the pool"
         },
         "name": {
           "type": "string",
           "description": "The name of the Proxmox pool.",
           "replaceOnChanges": true
+        },
+        "storage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An optional list of storage names to assign to the pool."
+        },
+        "vms": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "An optional list of VM IDs to assign to the pool."
         }
       },
       "type": "object",
@@ -537,12 +551,26 @@
       "inputProperties": {
         "comment": {
           "type": "string",
-          "description": "An optional comment for the pool. If not provided, defaults to 'Default pool comment'."
+          "description": "An optional comment for the pool"
         },
         "name": {
           "type": "string",
           "description": "The name of the Proxmox pool.",
           "replaceOnChanges": true
+        },
+        "storage": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An optional list of storage names to assign to the pool."
+        },
+        "vms": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "An optional list of VM IDs to assign to the pool."
         }
       },
       "requiredInputs": [

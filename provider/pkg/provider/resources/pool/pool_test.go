@@ -48,7 +48,7 @@ const (
 type mockPoolOperations struct {
 	createFunc func(ctx context.Context, inputs proxmox.PoolInputs) error
 	getFunc    func(ctx context.Context, name string) (*proxmox.PoolOutputs, error)
-	updateFunc func(ctx context.Context, name string, inputs proxmox.PoolInputs) error
+	updateFunc func(ctx context.Context, name string, state proxmox.PoolInputs, inputs proxmox.PoolInputs) error
 	deleteFunc func(ctx context.Context, name string) error
 }
 
@@ -71,9 +71,14 @@ func (mock *mockPoolOperations) Get(ctx context.Context, name string) (*proxmox.
 	}, nil
 }
 
-func (mock *mockPoolOperations) Update(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
+func (mock *mockPoolOperations) Update(
+	ctx context.Context,
+	name string,
+	state proxmox.PoolInputs,
+	inputs proxmox.PoolInputs,
+) error {
 	if mock.updateFunc != nil {
-		return mock.updateFunc(ctx, name, inputs)
+		return mock.updateFunc(ctx, name, state, inputs)
 	}
 	return nil
 }
@@ -244,7 +249,7 @@ func TestPoolUpdateSuccess(t *testing.T) {
 	t.Parallel()
 
 	mockOps := &mockPoolOperations{
-		updateFunc: func(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
+		updateFunc: func(ctx context.Context, name string, state proxmox.PoolInputs, inputs proxmox.PoolInputs) error {
 			assert.Equal(t, poolName1, name)
 			assert.Equal(t, comment2, inputs.Comment)
 			return nil
@@ -268,7 +273,7 @@ func TestPoolUpdateBackendFailure(t *testing.T) {
 
 	expectedErr := errors.New("failed to update Pool resource: 500 Internal Server Error")
 	mockOps := &mockPoolOperations{
-		updateFunc: func(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
+		updateFunc: func(ctx context.Context, name string, state proxmox.PoolInputs, inputs proxmox.PoolInputs) error {
 			return expectedErr
 		},
 	}
@@ -303,7 +308,7 @@ func TestPoolUpdateDryRun(t *testing.T) {
 	t.Parallel()
 
 	mockOps := &mockPoolOperations{
-		updateFunc: func(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
+		updateFunc: func(ctx context.Context, name string, state proxmox.PoolInputs, inputs proxmox.PoolInputs) error {
 			t.Error("Update should not be called during dry run")
 			return nil
 		},
@@ -372,4 +377,205 @@ func TestPoolDeleteClientAcquisitionFailure(t *testing.T) {
 	_, err := pool.Delete(context.Background(), req)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "PoolOperations not configured")
+}
+
+func TestPoolCreateWithMembers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input proxmox.PoolInputs
+	}{
+		{
+			name: "create with vms and storage",
+			input: proxmox.PoolInputs{
+				Name:    poolName1,
+				Comment: comment1,
+				VMs:     []int{100, 101},
+				Storage: []string{"local", "ceph"},
+			},
+		},
+		{
+			name: "create with vms only",
+			input: proxmox.PoolInputs{
+				Name: poolName1,
+				VMs:  []int{200},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var receivedInputs proxmox.PoolInputs
+			mockOps := &mockPoolOperations{
+				createFunc: func(ctx context.Context, inputs proxmox.PoolInputs) error {
+					receivedInputs = inputs
+					return nil
+				},
+			}
+
+			p := &poolResource.Pool{PoolOps: mockOps}
+			req := infer.CreateRequest[proxmox.PoolInputs]{
+				Name:   resourceName,
+				Inputs: tt.input,
+			}
+			resp, err := p.Create(context.Background(), req)
+			require.NoError(t, err)
+			assert.Equal(t, tt.input.VMs, resp.Output.VMs)
+			assert.Equal(t, tt.input.Storage, resp.Output.Storage)
+			assert.Equal(t, tt.input.VMs, receivedInputs.VMs)
+			assert.Equal(t, tt.input.Storage, receivedInputs.Storage)
+		})
+	}
+}
+
+func TestPoolReadWithMembers(t *testing.T) {
+	t.Parallel()
+
+	mockOps := &mockPoolOperations{
+		getFunc: func(ctx context.Context, name string) (*proxmox.PoolOutputs, error) {
+			return &proxmox.PoolOutputs{
+				PoolInputs: proxmox.PoolInputs{
+					Name:    name,
+					Comment: comment1,
+					VMs:     []int{100, 101},
+					Storage: []string{"local"},
+				},
+			}, nil
+		},
+	}
+
+	p := &poolResource.Pool{PoolOps: mockOps}
+	req := infer.ReadRequest[proxmox.PoolInputs, proxmox.PoolOutputs]{
+		ID:     resourceName,
+		Inputs: proxmox.PoolInputs{Name: poolName1},
+	}
+	resp, err := p.Read(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, []int{100, 101}, resp.State.VMs)
+	assert.Equal(t, []string{"local"}, resp.State.Storage)
+}
+
+func TestPoolDiff(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		inputs      proxmox.PoolInputs
+		state       proxmox.PoolOutputs
+		wantChanges bool
+		wantKeys    []string
+	}{
+		{
+			name: "no changes",
+			inputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Comment: comment1,
+				VMs:     []int{100, 101},
+				Storage: []string{"local"},
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Comment: comment1,
+				VMs:     []int{100, 101},
+				Storage: []string{"local"},
+			}},
+			wantChanges: false,
+		},
+		{
+			name: "vms reordered — no change",
+			inputs: proxmox.PoolInputs{
+				Name: poolName1,
+				VMs:  []int{101, 100},
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name: poolName1,
+				VMs:  []int{100, 101},
+			}},
+			wantChanges: false,
+		},
+		{
+			name: "storage reordered — no change",
+			inputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Storage: []string{"ceph", "local"},
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Storage: []string{"local", "ceph"},
+			}},
+			wantChanges: false,
+		},
+		{
+			name: "vms changed",
+			inputs: proxmox.PoolInputs{
+				Name: poolName1,
+				VMs:  []int{100, 102},
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name: poolName1,
+				VMs:  []int{100, 101},
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"vms"},
+		},
+		{
+			name: "storage changed",
+			inputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Storage: []string{"ceph"},
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Storage: []string{"local"},
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"storage"},
+		},
+		{
+			name: "comment changed",
+			inputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Comment: comment2,
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name:    poolName1,
+				Comment: comment1,
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"comment"},
+		},
+		{
+			name: "name changed triggers replace",
+			inputs: proxmox.PoolInputs{
+				Name: poolName2,
+			},
+			state: proxmox.PoolOutputs{PoolInputs: proxmox.PoolInputs{
+				Name: poolName1,
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"name"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			p := &poolResource.Pool{PoolOps: &mockPoolOperations{}}
+			req := infer.DiffRequest[proxmox.PoolInputs, proxmox.PoolOutputs]{
+				ID:     resourceName,
+				Inputs: tt.inputs,
+				State:  tt.state,
+			}
+			resp, err := p.Diff(context.Background(), req)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantChanges, resp.HasChanges)
+			for _, key := range tt.wantKeys {
+				assert.Contains(t, resp.DetailedDiff, key)
+			}
+		})
+	}
 }

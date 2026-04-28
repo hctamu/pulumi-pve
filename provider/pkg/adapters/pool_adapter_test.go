@@ -379,7 +379,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
-		err = poolAdapter.Update(context.Background(), "test-pool", inputs)
+		err = poolAdapter.Update(context.Background(), "test-pool", proxmox.PoolInputs{}, inputs)
 		require.NoError(t, err)
 
 		// Verify last captured request (the PUT)
@@ -445,7 +445,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
-		err = poolAdapter.Update(context.Background(), "test-pool", inputs)
+		err = poolAdapter.Update(context.Background(), "test-pool", proxmox.PoolInputs{Comment: "Old comment"}, inputs)
 		require.NoError(t, err)
 
 		assert.Equal(t, http.MethodPut, captured.Method)
@@ -479,7 +479,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
-		err = poolAdapter.Update(context.Background(), "nonexistent-pool", inputs)
+		err = poolAdapter.Update(context.Background(), "nonexistent-pool", proxmox.PoolInputs{}, inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to get Pool resource for update: 500 Internal Server Error")
 	})
@@ -527,7 +527,7 @@ func TestPoolAdapterUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
-		err = poolAdapter.Update(context.Background(), "test-pool", inputs)
+		err = poolAdapter.Update(context.Background(), "test-pool", proxmox.PoolInputs{}, inputs)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to update Pool resource: 500 Internal Server Error")
 	})
@@ -688,4 +688,325 @@ func TestNewPoolAdapter(t *testing.T) {
 		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
 		require.NotNil(t, poolAdapter)
 	})
+}
+
+func TestPoolAdapterCreateWithMembers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		inputs      proxmox.PoolInputs
+		wantVMs     string
+		wantStorage string
+	}{
+		{
+			name: "create with vms and storage",
+			inputs: proxmox.PoolInputs{
+				Name:    "test-pool",
+				Comment: "comment",
+				VMs:     []int{100, 101},
+				Storage: []string{"local", "local-lvm"},
+			},
+			wantVMs:     "100,101",
+			wantStorage: "local,local-lvm",
+		},
+		{
+			name: "create with vms only",
+			inputs: proxmox.PoolInputs{
+				Name: "vms-pool",
+				VMs:  []int{200},
+			},
+			wantVMs:     "200",
+			wantStorage: "",
+		},
+		{
+			name: "create with storage only",
+			inputs: proxmox.PoolInputs{
+				Name:    "storage-pool",
+				Storage: []string{"ceph"},
+			},
+			wantVMs:     "",
+			wantStorage: "ceph",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			requestCount := 0
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+					requestCount++
+					switch requestCount {
+					case 1:
+						// POST /pools — NewPool
+						assert.Equal(t, http.MethodPost, r.Method)
+						assert.Equal(t, "/pools", r.URL.Path)
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write([]byte(`{"data": null}`))
+					case 2:
+						// GET /pools/{name} — fetch pool object
+						assert.Equal(t, http.MethodGet, r.Method)
+						w.Header().Set("Content-Type", "application/json")
+						w.WriteHeader(http.StatusOK)
+						err := json.NewEncoder(w).Encode(map[string]interface{}{
+							"data": map[string]interface{}{
+								"poolid":  tt.inputs.Name,
+								"comment": tt.inputs.Comment,
+							},
+						})
+						require.NoError(t, err)
+					case 3:
+						// PUT /pools/{name} — add members
+						assert.Equal(t, http.MethodPut, r.Method)
+						var body map[string]interface{}
+						err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&body)
+						require.NoError(t, err)
+						if tt.wantVMs != "" {
+							assert.Equal(t, tt.wantVMs, body["vms"])
+						}
+						if tt.wantStorage != "" {
+							assert.Equal(t, tt.wantStorage, body["storage"])
+						}
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write([]byte(`{"data": null}`))
+					}
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
+			err = poolAdapter.Create(context.Background(), tt.inputs)
+			require.NoError(t, err)
+			assert.Equal(t, 3, requestCount)
+		})
+	}
+}
+
+func TestPoolAdapterGetWithMembers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		apiMembers  []map[string]interface{}
+		wantVMs     []int
+		wantStorage []string
+	}{
+		{
+			name: "get pool with qemu and storage members",
+			apiMembers: []map[string]interface{}{
+				{"id": "qemu/100", "type": "qemu", "vmid": 100, "node": "pve1", "status": "running"},
+				{"id": "qemu/101", "type": "qemu", "vmid": 101, "node": "pve1", "status": "stopped"},
+				{"id": "storage/pve1/local", "type": "storage", "storage": "local", "node": "pve1"},
+			},
+			wantVMs:     []int{100, 101},
+			wantStorage: []string{"local"},
+		},
+		{
+			name: "get pool with lxc member",
+			apiMembers: []map[string]interface{}{
+				{"id": "lxc/200", "type": "lxc", "vmid": 200, "node": "pve1", "status": "running"},
+			},
+			wantVMs:     []int{200},
+			wantStorage: nil,
+		},
+		{
+			name:        "get pool with no members",
+			apiMembers:  []map[string]interface{}{},
+			wantVMs:     nil,
+			wantStorage: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					err := json.NewEncoder(w).Encode(map[string]interface{}{
+						"data": map[string]interface{}{
+							"poolid":  "test-pool",
+							"comment": "test",
+							"members": tt.apiMembers,
+						},
+					})
+					require.NoError(t, err)
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
+			outputs, err := poolAdapter.Get(context.Background(), "test-pool")
+			require.NoError(t, err)
+			require.NotNil(t, outputs)
+
+			assert.Equal(t, tt.wantVMs, outputs.VMs)
+			assert.Equal(t, tt.wantStorage, outputs.Storage)
+		})
+	}
+}
+
+func TestPoolAdapterUpdateWithMembers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		inputs        proxmox.PoolInputs
+		state         proxmox.PoolInputs
+		wantRequests  int
+		wantAddVMs    string
+		wantRemoveVMs string
+	}{
+		{
+			name: "add new VMs to pool",
+			inputs: proxmox.PoolInputs{
+				Name:    "test-pool",
+				Comment: "updated",
+				VMs:     []int{100, 101},
+			},
+			state:        proxmox.PoolInputs{},
+			wantRequests: 2, // GET + PUT add
+			wantAddVMs:   "100,101",
+		},
+		{
+			name: "remove VMs from pool",
+			inputs: proxmox.PoolInputs{
+				Name:    "test-pool",
+				Comment: "updated",
+				VMs:     []int{},
+			},
+			state: proxmox.PoolInputs{
+				VMs: []int{100},
+			},
+			wantRequests:  3, // GET + PUT add (comment changed) + PUT remove
+			wantRemoveVMs: "100",
+		},
+		{
+			name: "add and remove VMs",
+			inputs: proxmox.PoolInputs{
+				Name: "test-pool",
+				VMs:  []int{102},
+			},
+			state: proxmox.PoolInputs{
+				VMs: []int{100},
+			},
+			wantRequests:  3, // GET + PUT add 102 + PUT remove 100
+			wantAddVMs:    "102",
+			wantRemoveVMs: "100",
+		},
+		{
+			name: "no member changes updates only comment",
+			inputs: proxmox.PoolInputs{
+				Name:    "test-pool",
+				Comment: "new comment",
+				VMs:     []int{100},
+			},
+			state: proxmox.PoolInputs{
+				VMs: []int{100},
+			},
+			wantRequests: 2, // GET + PUT comment only
+		},
+		{
+			name: "no changes at all — no PUT issued",
+			inputs: proxmox.PoolInputs{
+				Name:    "test-pool",
+				Comment: "same",
+				VMs:     []int{100},
+				Storage: []string{"local"},
+			},
+			state: proxmox.PoolInputs{
+				Comment: "same",
+				VMs:     []int{100},
+				Storage: []string{"local"},
+			},
+			wantRequests: 1, // GET only
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			requestCount := 0
+			var putBodies []map[string]interface{}
+
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+					requestCount++
+					if r.Method == http.MethodGet {
+						w.Header().Set("Content-Type", "application/json")
+						w.WriteHeader(http.StatusOK)
+						err := json.NewEncoder(w).Encode(map[string]interface{}{
+							"data": map[string]interface{}{
+								"poolid":  tt.inputs.Name,
+								"comment": "old",
+							},
+						})
+						require.NoError(t, err)
+					} else {
+						var body map[string]interface{}
+						_ = json.NewDecoder(strings.NewReader(req.Body)).Decode(&body)
+						putBodies = append(putBodies, body)
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write([]byte(`{"data": null}`))
+					}
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
+			err = poolAdapter.Update(context.Background(), tt.inputs.Name, tt.state, tt.inputs)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantRequests, requestCount)
+
+			if tt.wantAddVMs != "" {
+				require.NotEmpty(t, putBodies)
+				assert.Equal(t, tt.wantAddVMs, putBodies[0]["vms"])
+			}
+
+			if tt.wantRemoveVMs != "" {
+				lastPut := putBodies[len(putBodies)-1]
+				assert.Equal(t, tt.wantRemoveVMs, lastPut["vms"])
+				deleteVal, _ := lastPut["delete"].(bool)
+				assert.True(t, deleteVal)
+			}
+		})
+	}
 }

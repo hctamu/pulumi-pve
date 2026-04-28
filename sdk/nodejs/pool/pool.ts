@@ -35,13 +35,21 @@ export class Pool extends pulumi.CustomResource {
     }
 
     /**
-     * An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+     * An optional comment for the pool
      */
     declare public readonly comment: pulumi.Output<string | undefined>;
     /**
      * The name of the Proxmox pool.
      */
     declare public readonly name: pulumi.Output<string>;
+    /**
+     * An optional list of storage names to assign to the pool.
+     */
+    declare public readonly storage: pulumi.Output<string[] | undefined>;
+    /**
+     * An optional list of VM IDs to assign to the pool.
+     */
+    declare public readonly vms: pulumi.Output<number[] | undefined>;
 
     /**
      * Create a Pool resource with the given unique name, arguments, and options.
@@ -59,9 +67,13 @@ export class Pool extends pulumi.CustomResource {
             }
             resourceInputs["comment"] = args?.comment;
             resourceInputs["name"] = args?.name;
+            resourceInputs["storage"] = args?.storage;
+            resourceInputs["vms"] = args?.vms;
         } else {
             resourceInputs["comment"] = undefined /*out*/;
             resourceInputs["name"] = undefined /*out*/;
+            resourceInputs["storage"] = undefined /*out*/;
+            resourceInputs["vms"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
         const replaceOnChanges = { replaceOnChanges: ["name"] };
@@ -75,11 +87,19 @@ export class Pool extends pulumi.CustomResource {
  */
 export interface PoolArgs {
     /**
-     * An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+     * An optional comment for the pool
      */
     comment?: pulumi.Input<string>;
     /**
      * The name of the Proxmox pool.
      */
     name: pulumi.Input<string>;
+    /**
+     * An optional list of storage names to assign to the pool.
+     */
+    storage?: pulumi.Input<pulumi.Input<string>[]>;
+    /**
+     * An optional list of VM IDs to assign to the pool.
+     */
+    vms?: pulumi.Input<pulumi.Input<number>[]>;
 }

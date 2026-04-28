@@ -21,6 +21,7 @@ import (
 
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
@@ -93,39 +94,60 @@ func TestGetSortedMapKeys(t *testing.T) {
 func TestGetSortedMapKeys_IntKeys(t *testing.T) {
 	t.Parallel()
 
-	input := map[int]string{
-		10: "ten",
-		1:  "one",
-		5:  "five",
-		2:  "two",
+	tests := []struct {
+		name     string
+		input    map[int]string
+		expected []int
+	}{
+		{
+			name:     "unsorted int keys",
+			input:    map[int]string{10: "ten", 1: "one", 5: "five", 2: "two"},
+			expected: []int{1, 2, 5, 10},
+		},
+		{
+			name:     "empty map",
+			input:    map[int]string{},
+			expected: []int{},
+		},
+		{
+			name:     "single entry",
+			input:    map[int]string{42: "forty-two"},
+			expected: []int{42},
+		},
 	}
-	expected := []int{1, 2, 5, 10}
-
-	result := utils.GetSortedMapKeys(input)
-	assert.Equal(t, expected, result, "Integer keys should be sorted numerically")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := utils.GetSortedMapKeys(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
 
 // TestGetSortedMapKeys_Consistency tests that multiple calls return the same order.
 func TestGetSortedMapKeys_Consistency(t *testing.T) {
 	t.Parallel()
 
-	input := map[string]string{
-		"z": "last",
-		"a": "first",
-		"m": "middle",
-		"b": "second",
+	tests := []struct {
+		name     string
+		input    map[string]string
+		expected []string
+	}{
+		{
+			name:     "four entries",
+			input:    map[string]string{"z": "last", "a": "first", "m": "middle", "b": "second"},
+			expected: []string{"a", "b", "m", "z"},
+		},
 	}
-
-	var previousResult []string
-	for i := 0; i < 5; i++ {
-		result := utils.GetSortedMapKeys(input)
-
-		if i == 0 {
-			previousResult = result
-			assert.Equal(t, []string{"a", "b", "m", "z"}, result, "First result should be sorted")
-		} else {
-			assert.Equal(t, previousResult, result, "Results should be consistent across multiple calls")
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			first := utils.GetSortedMapKeys(tt.input)
+			require.Equal(t, tt.expected, first)
+			for i := 1; i < 5; i++ {
+				assert.Equal(t, first, utils.GetSortedMapKeys(tt.input))
+			}
+		})
 	}
 }
 
@@ -195,6 +217,197 @@ func TestMapToStringSlice(t *testing.T) {
 
 func TestIsNotFound(t *testing.T) {
 	t.Parallel()
-	assert.True(t, utils.IsNotFound(errors.New("resource 'x' does not exist")))
-	assert.False(t, utils.IsNotFound(errors.New("some other error")))
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{"contains does not exist", errors.New("resource 'x' does not exist"), true},
+		{"other error", errors.New("some other error"), false},
+		{"empty message", errors.New(""), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.IsNotFound(tt.err))
+		})
+	}
+}
+
+func TestDifferPtr(t *testing.T) {
+	t.Parallel()
+	intVal := func(i int) *int { v := i; return &v }
+	tests := []struct {
+		name     string
+		a        *int
+		b        *int
+		expected bool
+	}{
+		{"both nil", nil, nil, false},
+		{"a nil b non-nil", nil, intVal(1), true},
+		{"a non-nil b nil", intVal(1), nil, true},
+		{"equal values", intVal(5), intVal(5), false},
+		{"different values", intVal(5), intVal(6), true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.DifferPtr(tt.a, tt.b))
+		})
+	}
+}
+
+func TestEndsWithLetter(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"empty string", "", false},
+		{"ends with letter", "abc", true},
+		{"ends with digit", "abc1", false},
+		{"ends with space", "abc ", false},
+		{"single letter", "a", true},
+		{"single digit", "9", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.EndsWithLetter(tt.input))
+		})
+	}
+}
+
+func TestPtrEqual(t *testing.T) {
+	t.Parallel()
+	strVal := func(s string) *string { v := s; return &v }
+	tests := []struct {
+		name     string
+		a        *string
+		b        *string
+		expected bool
+	}{
+		{"both nil", nil, nil, true},
+		{"a nil b non-nil", nil, strVal("x"), false},
+		{"a non-nil b nil", strVal("x"), nil, false},
+		{"equal values", strVal("hello"), strVal("hello"), true},
+		{"different values", strVal("hello"), strVal("world"), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.PtrEqual(tt.a, tt.b))
+		})
+	}
+}
+
+func TestStringSliceChanged(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		a        []string
+		b        []string
+		expected bool
+	}{
+		{"both empty", []string{}, []string{}, false},
+		{"equal same order", []string{"a", "b"}, []string{"a", "b"}, false},
+		{"equal different order", []string{"b", "a"}, []string{"a", "b"}, false},
+		{"different length", []string{"a"}, []string{"a", "b"}, true},
+		{"different values", []string{"a", "c"}, []string{"a", "b"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.StringSliceChanged(tt.a, tt.b))
+		})
+	}
+}
+
+func TestIntSliceChanged(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		a        []int
+		b        []int
+		expected bool
+	}{
+		{"both empty", []int{}, []int{}, false},
+		{"equal same order", []int{1, 2, 3}, []int{1, 2, 3}, false},
+		{"equal different order", []int{3, 1, 2}, []int{1, 2, 3}, false},
+		{"different length", []int{1}, []int{1, 2}, true},
+		{"different values", []int{1, 3}, []int{1, 2}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.IntSliceChanged(tt.a, tt.b))
+		})
+	}
+}
+
+func TestJoinInts(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		input    []int
+		expected string
+	}{
+		{"empty slice", []int{}, ""},
+		{"single element", []int{42}, "42"},
+		{"multiple elements", []int{1, 2, 3}, "1,2,3"},
+		{"negative values", []int{-1, 0, 1}, "-1,0,1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.JoinInts(tt.input))
+		})
+	}
+}
+
+func TestIntSliceDiff(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		a        []int
+		b        []int
+		expected []int
+	}{
+		{"both empty", []int{}, []int{}, nil},
+		{"a empty", []int{}, []int{1, 2}, nil},
+		{"b empty", []int{1, 2}, []int{}, []int{1, 2}},
+		{"no overlap", []int{1, 2}, []int{3, 4}, []int{1, 2}},
+		{"full overlap", []int{1, 2}, []int{1, 2}, nil},
+		{"partial overlap", []int{1, 2, 3}, []int{2}, []int{1, 3}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.IntSliceDiff(tt.a, tt.b))
+		})
+	}
+}
+
+func TestStringSliceDiff(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		a        []string
+		b        []string
+		expected []string
+	}{
+		{"both empty", []string{}, []string{}, nil},
+		{"a empty", []string{}, []string{"x"}, nil},
+		{"b empty", []string{"x", "y"}, []string{}, []string{"x", "y"}},
+		{"no overlap", []string{"a", "b"}, []string{"c", "d"}, []string{"a", "b"}},
+		{"full overlap", []string{"a", "b"}, []string{"a", "b"}, nil},
+		{"partial overlap", []string{"a", "b", "c"}, []string{"b"}, []string{"a", "c"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, utils.StringSliceDiff(tt.a, tt.b))
+		})
+	}
 }
