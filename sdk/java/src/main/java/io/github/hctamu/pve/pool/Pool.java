@@ -9,7 +9,9 @@ import com.pulumi.core.annotations.ResourceType;
 import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.pool.PoolArgs;
+import java.lang.Integer;
 import java.lang.String;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -20,14 +22,14 @@ import javax.annotation.Nullable;
 @ResourceType(type="pve:pool:Pool")
 public class Pool extends com.pulumi.resources.CustomResource {
     /**
-     * An optional comment for the pool. If not provided, defaults to &#39;Default pool comment&#39;.
+     * An optional comment for the pool
      * 
      */
     @Export(name="comment", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> comment;
 
     /**
-     * @return An optional comment for the pool. If not provided, defaults to &#39;Default pool comment&#39;.
+     * @return An optional comment for the pool
      * 
      */
     public Output<Optional<String>> comment() {
@@ -46,6 +48,34 @@ public class Pool extends com.pulumi.resources.CustomResource {
      */
     public Output<String> name() {
         return this.name;
+    }
+    /**
+     * An optional list of storage names to assign to the pool.
+     * 
+     */
+    @Export(name="storage", refs={List.class,String.class}, tree="[0,1]")
+    private Output</* @Nullable */ List<String>> storage;
+
+    /**
+     * @return An optional list of storage names to assign to the pool.
+     * 
+     */
+    public Output<Optional<List<String>>> storage() {
+        return Codegen.optional(this.storage);
+    }
+    /**
+     * An optional list of VM IDs to assign to the pool.
+     * 
+     */
+    @Export(name="vms", refs={List.class,Integer.class}, tree="[0,1]")
+    private Output</* @Nullable */ List<Integer>> vms;
+
+    /**
+     * @return An optional list of VM IDs to assign to the pool.
+     * 
+     */
+    public Output<Optional<List<Integer>>> vms() {
+        return Codegen.optional(this.vms);
     }
 
     /**

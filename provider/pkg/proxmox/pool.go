@@ -30,7 +30,7 @@ type PoolOperations interface {
 	Get(ctx context.Context, name string) (*PoolOutputs, error)
 
 	// Update updates an existing Pool resource.
-	Update(ctx context.Context, name string, inputs PoolInputs) error
+	Update(ctx context.Context, name string, state PoolInputs, inputs PoolInputs) error
 
 	// Delete deletes an existing Pool resource by its name.
 	Delete(ctx context.Context, name string) error
@@ -38,8 +38,10 @@ type PoolOperations interface {
 
 // PoolInputs represents the input properties for the Pool resource
 type PoolInputs struct {
-	Name    string `pulumi:"name"             provider:"replaceOnChanges"`
-	Comment string `pulumi:"comment,optional"`
+	Name    string   `pulumi:"name"             provider:"replaceOnChanges"`
+	Comment string   `pulumi:"comment,optional"`
+	VMs     []int    `pulumi:"vms,optional"`
+	Storage []string `pulumi:"storage,optional"`
 }
 
 // Annotate adds descriptions to the Input properties for documentation and schema generation.
@@ -47,8 +49,10 @@ func (inputs *PoolInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Name, "The name of the Proxmox pool.")
 	a.Describe(
 		&inputs.Comment,
-		"An optional comment for the pool. If not provided, defaults to 'Default pool comment'.",
+		"An optional comment for the pool",
 	)
+	a.Describe(&inputs.VMs, "An optional list of VM IDs to assign to the pool.")
+	a.Describe(&inputs.Storage, "An optional list of storage names to assign to the pool.")
 }
 
 // PoolOutputs represents the output properties for the Pool resource

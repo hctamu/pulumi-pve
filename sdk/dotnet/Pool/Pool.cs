@@ -17,7 +17,7 @@ namespace Hctamu.Pve.Pool
     public partial class Pool : global::Pulumi.CustomResource
     {
         /// <summary>
-        /// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+        /// An optional comment for the pool
         /// </summary>
         [Output("comment")]
         public Output<string?> Comment { get; private set; } = null!;
@@ -27,6 +27,18 @@ namespace Hctamu.Pve.Pool
         /// </summary>
         [Output("name")]
         public Output<string> Name { get; private set; } = null!;
+
+        /// <summary>
+        /// An optional list of storage names to assign to the pool.
+        /// </summary>
+        [Output("storage")]
+        public Output<ImmutableArray<string>> Storage { get; private set; } = null!;
+
+        /// <summary>
+        /// An optional list of VM IDs to assign to the pool.
+        /// </summary>
+        [Output("vms")]
+        public Output<ImmutableArray<int>> Vms { get; private set; } = null!;
 
 
         /// <summary>
@@ -79,7 +91,7 @@ namespace Hctamu.Pve.Pool
     public sealed class PoolArgs : global::Pulumi.ResourceArgs
     {
         /// <summary>
-        /// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+        /// An optional comment for the pool
         /// </summary>
         [Input("comment")]
         public Input<string>? Comment { get; set; }
@@ -89,6 +101,30 @@ namespace Hctamu.Pve.Pool
         /// </summary>
         [Input("name", required: true)]
         public Input<string> Name { get; set; } = null!;
+
+        [Input("storage")]
+        private InputList<string>? _storage;
+
+        /// <summary>
+        /// An optional list of storage names to assign to the pool.
+        /// </summary>
+        public InputList<string> Storage
+        {
+            get => _storage ?? (_storage = new InputList<string>());
+            set => _storage = value;
+        }
+
+        [Input("vms")]
+        private InputList<int>? _vms;
+
+        /// <summary>
+        /// An optional list of VM IDs to assign to the pool.
+        /// </summary>
+        public InputList<int> Vms
+        {
+            get => _vms ?? (_vms = new InputList<int>());
+            set => _vms = value;
+        }
 
         public PoolArgs()
         {

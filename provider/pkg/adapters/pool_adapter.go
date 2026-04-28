@@ -18,10 +18,12 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	api "github.com/luthermonson/go-proxmox"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // Ensure PoolAdapter implements the PoolOperations interface
@@ -46,6 +48,23 @@ func (pool *PoolAdapter) Create(ctx context.Context, inputs proxmox.PoolInputs) 
 	if err := pool.proxmoxAdapter.client.NewPool(ctx, inputs.Name, inputs.Comment); err != nil {
 		return fmt.Errorf("failed to create Pool resource: %w", err)
 	}
+
+	if len(inputs.VMs) == 0 && len(inputs.Storage) == 0 {
+		return nil
+	}
+
+	apiPool, err := pool.proxmoxAdapter.client.Pool(ctx, inputs.Name)
+	if err != nil {
+		return fmt.Errorf("failed to get Pool resource after creation: %w", err)
+	}
+
+	updateOption := &api.PoolUpdateOption{
+		VirtualMachines: utils.JoinInts(inputs.VMs),
+		Storage:         strings.Join(inputs.Storage, ","),
+	}
+	if err := apiPool.Update(ctx, updateOption); err != nil {
+		return fmt.Errorf("failed to add members to Pool resource: %w", err)
+	}
 	return nil
 }
 
@@ -60,17 +79,35 @@ func (pool *PoolAdapter) Get(ctx context.Context, name string) (*proxmox.PoolOut
 		return nil, fmt.Errorf("failed to get Pool resource: %w", err)
 	}
 
-	// Convert API Pool to domain outputs
+	var vms []int
+	var storages []string
+	for i := range apiPool.Members {
+		member := &apiPool.Members[i]
+		switch member.Type {
+		case "qemu", "lxc":
+			vms = append(vms, int(member.VMID)) //nolint:gosec // VMID values are always small positive integers
+		case "storage":
+			storages = append(storages, member.Storage)
+		}
+	}
+
 	return &proxmox.PoolOutputs{
 		PoolInputs: proxmox.PoolInputs{
 			Name:    apiPool.PoolID,
 			Comment: apiPool.Comment,
+			VMs:     vms,
+			Storage: storages,
 		},
 	}, nil
 }
 
 // Update updates an existing Pool resource.
-func (pool *PoolAdapter) Update(ctx context.Context, name string, inputs proxmox.PoolInputs) error {
+func (pool *PoolAdapter) Update(
+	ctx context.Context,
+	name string,
+	state proxmox.PoolInputs,
+	inputs proxmox.PoolInputs,
+) error {
 	if err := pool.proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}
@@ -80,13 +117,36 @@ func (pool *PoolAdapter) Update(ctx context.Context, name string, inputs proxmox
 		return fmt.Errorf("failed to get Pool resource for update: %w", err)
 	}
 
-	updateOption := &api.PoolUpdateOption{
-		Comment: inputs.Comment,
+	vmAdds := utils.IntSliceDiff(inputs.VMs, state.VMs)
+	vmRemoves := utils.IntSliceDiff(state.VMs, inputs.VMs)
+	storageAdds := utils.StringSliceDiff(inputs.Storage, state.Storage)
+	storageRemoves := utils.StringSliceDiff(state.Storage, inputs.Storage)
+	commentChanged := inputs.Comment != state.Comment
+
+	// Issue add call only when there is something to add or the comment changed.
+	if commentChanged || len(vmAdds) > 0 || len(storageAdds) > 0 {
+		addOption := &api.PoolUpdateOption{
+			Comment:         inputs.Comment,
+			VirtualMachines: utils.JoinInts(vmAdds),
+			Storage:         strings.Join(storageAdds, ","),
+		}
+		if err := apiPool.Update(ctx, addOption); err != nil {
+			return fmt.Errorf("failed to update Pool resource: %w", err)
+		}
 	}
 
-	if err := apiPool.Update(ctx, updateOption); err != nil {
-		return fmt.Errorf("failed to update Pool resource: %w", err)
+	// Remove members in a separate call if needed.
+	if len(vmRemoves) > 0 || len(storageRemoves) > 0 {
+		removeOption := &api.PoolUpdateOption{
+			Delete:          true,
+			VirtualMachines: utils.JoinInts(vmRemoves),
+			Storage:         strings.Join(storageRemoves, ","),
+		}
+		if err := apiPool.Update(ctx, removeOption); err != nil {
+			return fmt.Errorf("failed to remove members from Pool resource: %w", err)
+		}
 	}
+
 	return nil
 }
 

@@ -16,10 +16,14 @@ import (
 type Pool struct {
 	pulumi.CustomResourceState
 
-	// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+	// An optional comment for the pool
 	Comment pulumi.StringPtrOutput `pulumi:"comment"`
 	// The name of the Proxmox pool.
 	Name pulumi.StringOutput `pulumi:"name"`
+	// An optional list of storage names to assign to the pool.
+	Storage pulumi.StringArrayOutput `pulumi:"storage"`
+	// An optional list of VM IDs to assign to the pool.
+	Vms pulumi.IntArrayOutput `pulumi:"vms"`
 }
 
 // NewPool registers a new resource with the given unique name, arguments, and options.
@@ -69,18 +73,26 @@ func (PoolState) ElementType() reflect.Type {
 }
 
 type poolArgs struct {
-	// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+	// An optional comment for the pool
 	Comment *string `pulumi:"comment"`
 	// The name of the Proxmox pool.
 	Name string `pulumi:"name"`
+	// An optional list of storage names to assign to the pool.
+	Storage []string `pulumi:"storage"`
+	// An optional list of VM IDs to assign to the pool.
+	Vms []int `pulumi:"vms"`
 }
 
 // The set of arguments for constructing a Pool resource.
 type PoolArgs struct {
-	// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+	// An optional comment for the pool
 	Comment pulumi.StringPtrInput
 	// The name of the Proxmox pool.
 	Name pulumi.StringInput
+	// An optional list of storage names to assign to the pool.
+	Storage pulumi.StringArrayInput
+	// An optional list of VM IDs to assign to the pool.
+	Vms pulumi.IntArrayInput
 }
 
 func (PoolArgs) ElementType() reflect.Type {
@@ -170,7 +182,7 @@ func (o PoolOutput) ToPoolOutputWithContext(ctx context.Context) PoolOutput {
 	return o
 }
 
-// An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+// An optional comment for the pool
 func (o PoolOutput) Comment() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *Pool) pulumi.StringPtrOutput { return v.Comment }).(pulumi.StringPtrOutput)
 }
@@ -178,6 +190,16 @@ func (o PoolOutput) Comment() pulumi.StringPtrOutput {
 // The name of the Proxmox pool.
 func (o PoolOutput) Name() pulumi.StringOutput {
 	return o.ApplyT(func(v *Pool) pulumi.StringOutput { return v.Name }).(pulumi.StringOutput)
+}
+
+// An optional list of storage names to assign to the pool.
+func (o PoolOutput) Storage() pulumi.StringArrayOutput {
+	return o.ApplyT(func(v *Pool) pulumi.StringArrayOutput { return v.Storage }).(pulumi.StringArrayOutput)
+}
+
+// An optional list of VM IDs to assign to the pool.
+func (o PoolOutput) Vms() pulumi.IntArrayOutput {
+	return o.ApplyT(func(v *Pool) pulumi.IntArrayOutput { return v.Vms }).(pulumi.IntArrayOutput)
 }
 
 type PoolArrayOutput struct{ *pulumi.OutputState }
