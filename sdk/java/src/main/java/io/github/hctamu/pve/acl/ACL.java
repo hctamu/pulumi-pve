@@ -131,9 +131,7 @@ public class ACL extends com.pulumi.resources.CustomResource {
     private static com.pulumi.resources.CustomResourceOptions makeResourceOptions(@Nullable com.pulumi.resources.CustomResourceOptions options, @Nullable Output<java.lang.String> id) {
         var defaultOptions = com.pulumi.resources.CustomResourceOptions.builder()
             .version(Utilities.getVersion())
-<<<<<<< HEAD
             .pluginDownloadURL("github://api.github.com/hctamu/pulumi-pve")
-=======
             .replaceOnChanges(List.of(
                 "path",
                 "propagate",
@@ -141,7 +139,6 @@ public class ACL extends com.pulumi.resources.CustomResource {
                 "type",
                 "ugid"
             ))
->>>>>>> 2937458 (chore: bump dependency versions)
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }
