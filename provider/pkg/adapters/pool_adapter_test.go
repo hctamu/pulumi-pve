@@ -176,13 +176,14 @@ func TestPoolAdapterGet(t *testing.T) {
 			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 				// Verify request method and path
 				assert.Equal(t, http.MethodGet, r.Method)
-				assert.Equal(t, "/pools/test-pool", r.URL.Path)
+				assert.Equal(t, "/pools/", r.URL.Path)
+				assert.Equal(t, "test-pool", r.URL.Query().Get("poolid"))
 
 				// Send response
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				responseData := map[string]interface{}{
-					"data": apiResponse,
+					"data": []interface{}{apiResponse},
 				}
 				err := json.NewEncoder(w).Encode(responseData)
 				require.NoError(t, err)
@@ -211,7 +212,7 @@ func TestPoolAdapterGet(t *testing.T) {
 
 		// Verify captured request
 		assert.Equal(t, http.MethodGet, captured.Method)
-		assert.Equal(t, "/pools/test-pool", captured.Path)
+		assert.Equal(t, "/pools/", captured.Path)
 	})
 
 	t.Run("successful get without comment", func(t *testing.T) {
@@ -223,11 +224,12 @@ func TestPoolAdapterGet(t *testing.T) {
 		}
 
 		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-			assert.Equal(t, "/pools/simple-pool", r.URL.Path)
+			assert.Equal(t, "/pools/", r.URL.Path)
+			assert.Equal(t, "simple-pool", r.URL.Query().Get("poolid"))
 
 			w.WriteHeader(http.StatusOK)
 			responseData := map[string]interface{}{
-				"data": apiResponse,
+				"data": []interface{}{apiResponse},
 			}
 			err := json.NewEncoder(w).Encode(responseData)
 			require.NoError(t, err)
@@ -292,7 +294,7 @@ func TestPoolAdapterGet(t *testing.T) {
 		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusOK)
 			responseData := map[string]interface{}{
-				"data": apiResponse,
+				"data": []interface{}{apiResponse},
 			}
 			err := json.NewEncoder(w).Encode(responseData)
 			require.NoError(t, err)
@@ -338,15 +340,16 @@ func TestPoolAdapterUpdate(t *testing.T) {
 				if requestCount == 1 {
 					// First request: GET pool
 					assert.Equal(t, http.MethodGet, r.Method)
-					assert.Equal(t, "/pools/test-pool", r.URL.Path)
+					assert.Equal(t, "/pools/", r.URL.Path)
+					assert.Equal(t, "test-pool", r.URL.Query().Get("poolid"))
 
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusOK)
 					responseData := map[string]interface{}{
-						"data": map[string]interface{}{
+						"data": []interface{}{map[string]interface{}{
 							"poolid":  "test-pool",
 							"comment": "Old comment",
-						},
+						}},
 					}
 					err := json.NewEncoder(w).Encode(responseData)
 					require.NoError(t, err)
@@ -407,10 +410,10 @@ func TestPoolAdapterUpdate(t *testing.T) {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusOK)
 					responseData := map[string]interface{}{
-						"data": map[string]interface{}{
+						"data": []interface{}{map[string]interface{}{
 							"poolid":  "test-pool",
 							"comment": "Old comment",
-						},
+						}},
 					}
 					err := json.NewEncoder(w).Encode(responseData)
 					require.NoError(t, err)
@@ -501,10 +504,10 @@ func TestPoolAdapterUpdate(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				responseData := map[string]interface{}{
-					"data": map[string]interface{}{
+					"data": []interface{}{map[string]interface{}{
 						"poolid":  "test-pool",
 						"comment": "Old comment",
-					},
+					}},
 				}
 				err := json.NewEncoder(w).Encode(responseData)
 				require.NoError(t, err)
@@ -550,15 +553,16 @@ func TestPoolAdapterDelete(t *testing.T) {
 				if requestCount == 1 {
 					// First request: GET pool
 					assert.Equal(t, http.MethodGet, r.Method)
-					assert.Equal(t, "/pools/test-pool", r.URL.Path)
+					assert.Equal(t, "/pools/", r.URL.Path)
+					assert.Equal(t, "test-pool", r.URL.Query().Get("poolid"))
 
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusOK)
 					responseData := map[string]interface{}{
-						"data": map[string]interface{}{
+						"data": []interface{}{map[string]interface{}{
 							"poolid":  "test-pool",
 							"comment": "Test comment",
-						},
+						}},
 					}
 					err := json.NewEncoder(w).Encode(responseData)
 					require.NoError(t, err)
@@ -637,10 +641,10 @@ func TestPoolAdapterDelete(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
 				responseData := map[string]interface{}{
-					"data": map[string]interface{}{
+					"data": []interface{}{map[string]interface{}{
 						"poolid":  "test-pool",
 						"comment": "Test",
-					},
+					}},
 				}
 				err := json.NewEncoder(w).Encode(responseData)
 				require.NoError(t, err)
@@ -747,15 +751,15 @@ func TestPoolAdapterCreateWithMembers(t *testing.T) {
 						w.WriteHeader(http.StatusOK)
 						_, _ = w.Write([]byte(`{"data": null}`))
 					case 2:
-						// GET /pools/{name} — fetch pool object
+						// GET /pools/?poolid={name} — fetch pool object
 						assert.Equal(t, http.MethodGet, r.Method)
 						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusOK)
 						err := json.NewEncoder(w).Encode(map[string]interface{}{
-							"data": map[string]interface{}{
+							"data": []interface{}{map[string]interface{}{
 								"poolid":  tt.inputs.Name,
 								"comment": tt.inputs.Comment,
-							},
+							}},
 						})
 						require.NoError(t, err)
 					case 3:
@@ -840,11 +844,11 @@ func TestPoolAdapterGetWithMembers(t *testing.T) {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusOK)
 					err := json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
+						"data": []interface{}{map[string]interface{}{
 							"poolid":  "test-pool",
 							"comment": "test",
 							"members": tt.apiMembers,
-						},
+						}},
 					})
 					require.NoError(t, err)
 				},
@@ -964,10 +968,10 @@ func TestPoolAdapterUpdateWithMembers(t *testing.T) {
 						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusOK)
 						err := json.NewEncoder(w).Encode(map[string]interface{}{
-							"data": map[string]interface{}{
+							"data": []interface{}{map[string]interface{}{
 								"poolid":  tt.inputs.Name,
 								"comment": "old",
-							},
+							}},
 						})
 						require.NoError(t, err)
 					} else {

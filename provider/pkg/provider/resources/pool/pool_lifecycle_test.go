@@ -112,8 +112,8 @@ func TestPoolHealthyLifeCycle(t *testing.T) {
 
 		case http.MethodGet:
 			// Read Pool resource - return different comment after first call
-			switch r.URL.Path {
-			case "/pools/" + poolNameTest:
+			poolid := r.URL.Query().Get("poolid")
+			if poolid == poolNameTest {
 				getCount++
 				comment := commentInitial
 				if getCount >= 2 { // After update, return new comment
@@ -121,12 +121,12 @@ func TestPoolHealthyLifeCycle(t *testing.T) {
 				}
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
-					"data": map[string]interface{}{
+					"data": []interface{}{map[string]interface{}{
 						"poolid":  poolNameTest,
 						"comment": comment,
-					},
+					}},
 				})
-			default:
+			} else {
 				w.WriteHeader(http.StatusNotFound)
 			}
 
@@ -287,22 +287,23 @@ func TestPoolNameChangeTriggersReplace(t *testing.T) {
 
 		case http.MethodGet:
 			// Read Pool resource
-			switch r.URL.Path {
-			case "/pools/" + poolNameTest:
+			poolid := r.URL.Query().Get("poolid")
+			switch poolid {
+			case poolNameTest:
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
-					"data": map[string]interface{}{
+					"data": []interface{}{map[string]interface{}{
 						"poolid":  poolNameTest,
 						"comment": commentInitial,
-					},
+					}},
 				})
-			case "/pools/" + poolName2Test:
+			case poolName2Test:
 				w.WriteHeader(http.StatusOK)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
-					"data": map[string]interface{}{
+					"data": []interface{}{map[string]interface{}{
 						"poolid":  poolName2Test,
 						"comment": commentInitial2,
-					},
+					}},
 				})
 			default:
 				w.WriteHeader(http.StatusNotFound)
