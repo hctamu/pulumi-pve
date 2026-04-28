@@ -23,6 +23,7 @@ import (
 	"context"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -138,4 +139,63 @@ func StringSliceChanged(a, b []string) bool {
 	copy(sortedB, b)
 	sort.Strings(sortedB)
 	return strings.Join(sortedA, ",") != strings.Join(sortedB, ",")
+}
+
+// JoinInts converts a slice of ints to a comma-separated string.
+func JoinInts(ints []int) string {
+	parts := make([]string, len(ints))
+	for i, v := range ints {
+		parts[i] = strconv.Itoa(v)
+	}
+	return strings.Join(parts, ",")
+}
+
+// IntSliceChanged returns true when the two int slices contain different sets of values,
+// ignoring order.
+func IntSliceChanged(a, b []int) bool {
+	if len(a) != len(b) {
+		return true
+	}
+	sortedA := make([]int, len(a))
+	copy(sortedA, a)
+	sort.Ints(sortedA)
+	sortedB := make([]int, len(b))
+	copy(sortedB, b)
+	sort.Ints(sortedB)
+	for i := range sortedA {
+		if sortedA[i] != sortedB[i] {
+			return true
+		}
+	}
+	return false
+}
+
+// IntSliceDiff returns elements present in a but not in b.
+func IntSliceDiff(a, b []int) []int {
+	bSet := make(map[int]struct{}, len(b))
+	for _, v := range b {
+		bSet[v] = struct{}{}
+	}
+	var diff []int
+	for _, v := range a {
+		if _, ok := bSet[v]; !ok {
+			diff = append(diff, v)
+		}
+	}
+	return diff
+}
+
+// StringSliceDiff returns elements present in a but not in b.
+func StringSliceDiff(a, b []string) []string {
+	bSet := make(map[string]struct{}, len(b))
+	for _, v := range b {
+		bSet[v] = struct{}{}
+	}
+	var diff []string
+	for _, v := range a {
+		if _, ok := bSet[v]; !ok {
+			diff = append(diff, v)
+		}
+	}
+	return diff
 }

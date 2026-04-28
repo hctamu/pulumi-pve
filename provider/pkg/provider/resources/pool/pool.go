@@ -24,6 +24,7 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // Ensure Pool implements the required interfaces
@@ -32,6 +33,7 @@ var (
 	_ = (infer.CustomDelete[proxmox.PoolOutputs])((*Pool)(nil))
 	_ = (infer.CustomUpdate[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
 	_ = (infer.CustomRead[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
+	_ = (infer.CustomDiff[proxmox.PoolInputs, proxmox.PoolOutputs])((*Pool)(nil))
 	_ = infer.Annotated((*Pool)(nil))
 )
 
@@ -151,7 +153,7 @@ func (pool *Pool) Update(
 
 	response.Output.PoolInputs = request.Inputs
 
-	if err := pool.PoolOps.Update(ctx, request.State.Name, request.Inputs); err != nil {
+	if err := pool.PoolOps.Update(ctx, request.State.Name, request.State.PoolInputs, request.Inputs); err != nil {
 		return response, err
 	}
 
@@ -166,4 +168,36 @@ func (pool *Pool) Annotate(a infer.Annotator) {
 		pool,
 		"A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.",
 	)
+}
+
+// Diff avoids phantom updates caused by ordering differences in list-like properties.
+func (pool *Pool) Diff(
+	ctx context.Context,
+	request infer.DiffRequest[proxmox.PoolInputs, proxmox.PoolOutputs],
+) (p.DiffResponse, error) {
+	logger := p.GetLogger(ctx)
+	logger.Debugf("Diff called for Pool with ID: %s", request.ID)
+
+	diff := map[string]p.PropertyDiff{}
+
+	if request.Inputs.Name != request.State.Name {
+		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+
+	if request.Inputs.Comment != request.State.Comment {
+		diff["comment"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	if utils.IntSliceChanged(request.Inputs.VMs, request.State.VMs) {
+		diff["vms"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	if utils.StringSliceChanged(request.Inputs.Storage, request.State.Storage) {
+		diff["storage"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	return p.DiffResponse{
+		HasChanges:   len(diff) > 0,
+		DetailedDiff: diff,
+	}, nil
 }

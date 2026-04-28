@@ -20,15 +20,23 @@ __all__ = ['PoolArgs', 'Pool']
 class PoolArgs:
     def __init__(__self__, *,
                  name: pulumi.Input[_builtins.str],
-                 comment: Optional[pulumi.Input[_builtins.str]] = None):
+                 comment: Optional[pulumi.Input[_builtins.str]] = None,
+                 storage: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 vms: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.int]]]] = None):
         """
         The set of arguments for constructing a Pool resource.
         :param pulumi.Input[_builtins.str] name: The name of the Proxmox pool.
-        :param pulumi.Input[_builtins.str] comment: An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+        :param pulumi.Input[_builtins.str] comment: An optional comment for the pool
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] storage: An optional list of storage names to assign to the pool.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.int]]] vms: An optional list of VM IDs to assign to the pool.
         """
         pulumi.set(__self__, "name", name)
         if comment is not None:
             pulumi.set(__self__, "comment", comment)
+        if storage is not None:
+            pulumi.set(__self__, "storage", storage)
+        if vms is not None:
+            pulumi.set(__self__, "vms", vms)
 
     @_builtins.property
     @pulumi.getter
@@ -46,13 +54,37 @@ class PoolArgs:
     @pulumi.getter
     def comment(self) -> Optional[pulumi.Input[_builtins.str]]:
         """
-        An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+        An optional comment for the pool
         """
         return pulumi.get(self, "comment")
 
     @comment.setter
     def comment(self, value: Optional[pulumi.Input[_builtins.str]]):
         pulumi.set(self, "comment", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def storage(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+        """
+        An optional list of storage names to assign to the pool.
+        """
+        return pulumi.get(self, "storage")
+
+    @storage.setter
+    def storage(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]):
+        pulumi.set(self, "storage", value)
+
+    @_builtins.property
+    @pulumi.getter
+    def vms(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.int]]]]:
+        """
+        An optional list of VM IDs to assign to the pool.
+        """
+        return pulumi.get(self, "vms")
+
+    @vms.setter
+    def vms(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.int]]]]):
+        pulumi.set(self, "vms", value)
 
 
 @pulumi.type_token("pve:pool:Pool")
@@ -63,14 +95,18 @@ class Pool(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  comment: Optional[pulumi.Input[_builtins.str]] = None,
                  name: Optional[pulumi.Input[_builtins.str]] = None,
+                 storage: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 vms: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.int]]]] = None,
                  __props__=None):
         """
         A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.
 
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
-        :param pulumi.Input[_builtins.str] comment: An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+        :param pulumi.Input[_builtins.str] comment: An optional comment for the pool
         :param pulumi.Input[_builtins.str] name: The name of the Proxmox pool.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] storage: An optional list of storage names to assign to the pool.
+        :param pulumi.Input[Sequence[pulumi.Input[_builtins.int]]] vms: An optional list of VM IDs to assign to the pool.
         """
         ...
     @overload
@@ -98,6 +134,8 @@ class Pool(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None,
                  comment: Optional[pulumi.Input[_builtins.str]] = None,
                  name: Optional[pulumi.Input[_builtins.str]] = None,
+                 storage: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 vms: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.int]]]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
         if not isinstance(opts, pulumi.ResourceOptions):
@@ -111,6 +149,8 @@ class Pool(pulumi.CustomResource):
             if name is None and not opts.urn:
                 raise TypeError("Missing required property 'name'")
             __props__.__dict__["name"] = name
+            __props__.__dict__["storage"] = storage
+            __props__.__dict__["vms"] = vms
         replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["name"])
         opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
         super(Pool, __self__).__init__(
@@ -137,13 +177,15 @@ class Pool(pulumi.CustomResource):
 
         __props__.__dict__["comment"] = None
         __props__.__dict__["name"] = None
+        __props__.__dict__["storage"] = None
+        __props__.__dict__["vms"] = None
         return Pool(resource_name, opts=opts, __props__=__props__)
 
     @_builtins.property
     @pulumi.getter
     def comment(self) -> pulumi.Output[Optional[_builtins.str]]:
         """
-        An optional comment for the pool. If not provided, defaults to 'Default pool comment'.
+        An optional comment for the pool
         """
         return pulumi.get(self, "comment")
 
@@ -154,4 +196,20 @@ class Pool(pulumi.CustomResource):
         The name of the Proxmox pool.
         """
         return pulumi.get(self, "name")
+
+    @_builtins.property
+    @pulumi.getter
+    def storage(self) -> pulumi.Output[Optional[Sequence[_builtins.str]]]:
+        """
+        An optional list of storage names to assign to the pool.
+        """
+        return pulumi.get(self, "storage")
+
+    @_builtins.property
+    @pulumi.getter
+    def vms(self) -> pulumi.Output[Optional[Sequence[_builtins.int]]]:
+        """
+        An optional list of VM IDs to assign to the pool.
+        """
+        return pulumi.get(self, "vms")
 

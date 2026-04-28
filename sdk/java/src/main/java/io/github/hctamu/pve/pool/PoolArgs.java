@@ -6,7 +6,9 @@ package io.github.hctamu.pve.pool;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import java.lang.Integer;
 import java.lang.String;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -17,14 +19,14 @@ public final class PoolArgs extends com.pulumi.resources.ResourceArgs {
     public static final PoolArgs Empty = new PoolArgs();
 
     /**
-     * An optional comment for the pool. If not provided, defaults to &#39;Default pool comment&#39;.
+     * An optional comment for the pool
      * 
      */
     @Import(name="comment")
     private @Nullable Output<String> comment;
 
     /**
-     * @return An optional comment for the pool. If not provided, defaults to &#39;Default pool comment&#39;.
+     * @return An optional comment for the pool
      * 
      */
     public Optional<Output<String>> comment() {
@@ -46,11 +48,43 @@ public final class PoolArgs extends com.pulumi.resources.ResourceArgs {
         return this.name;
     }
 
+    /**
+     * An optional list of storage names to assign to the pool.
+     * 
+     */
+    @Import(name="storage")
+    private @Nullable Output<List<String>> storage;
+
+    /**
+     * @return An optional list of storage names to assign to the pool.
+     * 
+     */
+    public Optional<Output<List<String>>> storage() {
+        return Optional.ofNullable(this.storage);
+    }
+
+    /**
+     * An optional list of VM IDs to assign to the pool.
+     * 
+     */
+    @Import(name="vms")
+    private @Nullable Output<List<Integer>> vms;
+
+    /**
+     * @return An optional list of VM IDs to assign to the pool.
+     * 
+     */
+    public Optional<Output<List<Integer>>> vms() {
+        return Optional.ofNullable(this.vms);
+    }
+
     private PoolArgs() {}
 
     private PoolArgs(PoolArgs $) {
         this.comment = $.comment;
         this.name = $.name;
+        this.storage = $.storage;
+        this.vms = $.vms;
     }
 
     public static Builder builder() {
@@ -72,7 +106,7 @@ public final class PoolArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param comment An optional comment for the pool. If not provided, defaults to &#39;Default pool comment&#39;.
+         * @param comment An optional comment for the pool
          * 
          * @return builder
          * 
@@ -83,7 +117,7 @@ public final class PoolArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param comment An optional comment for the pool. If not provided, defaults to &#39;Default pool comment&#39;.
+         * @param comment An optional comment for the pool
          * 
          * @return builder
          * 
@@ -111,6 +145,68 @@ public final class PoolArgs extends com.pulumi.resources.ResourceArgs {
          */
         public Builder name(String name) {
             return name(Output.of(name));
+        }
+
+        /**
+         * @param storage An optional list of storage names to assign to the pool.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder storage(@Nullable Output<List<String>> storage) {
+            $.storage = storage;
+            return this;
+        }
+
+        /**
+         * @param storage An optional list of storage names to assign to the pool.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder storage(List<String> storage) {
+            return storage(Output.of(storage));
+        }
+
+        /**
+         * @param storage An optional list of storage names to assign to the pool.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder storage(String... storage) {
+            return storage(List.of(storage));
+        }
+
+        /**
+         * @param vms An optional list of VM IDs to assign to the pool.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder vms(@Nullable Output<List<Integer>> vms) {
+            $.vms = vms;
+            return this;
+        }
+
+        /**
+         * @param vms An optional list of VM IDs to assign to the pool.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder vms(List<Integer> vms) {
+            return vms(Output.of(vms));
+        }
+
+        /**
+         * @param vms An optional list of VM IDs to assign to the pool.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder vms(Integer... vms) {
+            return vms(List.of(vms));
         }
 
         public PoolArgs build() {
