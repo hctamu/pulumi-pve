@@ -6,9 +6,6 @@
   "repository": "https://github.com/hctamu/pulumi-pve",
   "pluginDownloadURL": "github://api.github.com/hctamu/pulumi-pve",
   "namespace": "hctamu",
-  "meta": {
-    "moduleFormat": "(.*)"
-  },
   "language": {
     "csharp": {
       "packageReferences": {
@@ -59,11 +56,11 @@
       }
     },
     "defaults": [
-      "pveToken",
       "pveUrl",
       "pveUser",
-      "sshPass",
-      "sshUser"
+      "pveToken",
+      "sshUser",
+      "sshPass"
     ]
   },
   "types": {
@@ -191,9 +188,9 @@
       },
       "type": "object",
       "required": [
-        "interface",
+        "storage",
         "size",
-        "storage"
+        "interface"
       ]
     },
     "pve:proxmox:EfiDisk": {
@@ -218,8 +215,8 @@
       },
       "type": "object",
       "required": [
-        "efitype",
-        "storage"
+        "storage",
+        "efitype"
       ]
     },
     "pve:proxmox:FileSourceRaw": {
@@ -287,13 +284,12 @@
         "type": "string"
       }
     },
-    "type": "object",
     "required": [
-      "pveToken",
       "pveUrl",
       "pveUser",
-      "sshPass",
-      "sshUser"
+      "pveToken",
+      "sshUser",
+      "sshPass"
     ],
     "inputProperties": {
       "pveToken": {
@@ -315,11 +311,11 @@
       }
     },
     "requiredInputs": [
-      "pveToken",
       "pveUrl",
       "pveUser",
-      "sshPass",
-      "sshUser"
+      "pveToken",
+      "sshUser",
+      "sshPass"
     ]
   },
   "resources": {
@@ -352,7 +348,6 @@
           "replaceOnChanges": true
         }
       },
-      "type": "object",
       "required": [
         "path",
         "roleid",
@@ -412,10 +407,9 @@
           "replaceOnChanges": true
         }
       },
-      "type": "object",
       "required": [
-        "contentType",
         "datastoreId",
+        "contentType",
         "sourceRaw"
       ],
       "inputProperties": {
@@ -436,8 +430,8 @@
         }
       },
       "requiredInputs": [
-        "contentType",
         "datastoreId",
+        "contentType",
         "sourceRaw"
       ]
     },
@@ -455,7 +449,6 @@
           "replaceOnChanges": true
         }
       },
-      "type": "object",
       "required": [
         "name"
       ],
@@ -493,7 +486,6 @@
           "default": "started"
         }
       },
-      "type": "object",
       "required": [
         "resourceId"
       ],
@@ -544,7 +536,6 @@
           "description": "An optional list of VM IDs to assign to the pool."
         }
       },
-      "type": "object",
       "required": [
         "name"
       ],
@@ -593,7 +584,6 @@
           "description": "A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt')."
         }
       },
-      "type": "object",
       "required": [
         "name"
       ],
@@ -668,7 +658,6 @@
           "replaceOnChanges": true
         }
       },
-      "type": "object",
       "required": [
         "userid"
       ],
@@ -800,10 +789,9 @@
           "description": "Unique numeric identifier for the virtual machine (auto-assigned if omitted)."
         }
       },
-      "type": "object",
       "required": [
-        "disks",
-        "name"
+        "name",
+        "disks"
       ],
       "inputProperties": {
         "autostart": {
@@ -878,8 +866,8 @@
         }
       },
       "requiredInputs": [
-        "disks",
-        "name"
+        "name",
+        "disks"
       ]
     }
   }

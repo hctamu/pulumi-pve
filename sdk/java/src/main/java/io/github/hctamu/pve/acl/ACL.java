@@ -11,6 +11,7 @@ import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.acl.ACLArgs;
 import java.lang.Boolean;
 import java.lang.String;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -130,7 +131,17 @@ public class ACL extends com.pulumi.resources.CustomResource {
     private static com.pulumi.resources.CustomResourceOptions makeResourceOptions(@Nullable com.pulumi.resources.CustomResourceOptions options, @Nullable Output<java.lang.String> id) {
         var defaultOptions = com.pulumi.resources.CustomResourceOptions.builder()
             .version(Utilities.getVersion())
+<<<<<<< HEAD
             .pluginDownloadURL("github://api.github.com/hctamu/pulumi-pve")
+=======
+            .replaceOnChanges(List.of(
+                "path",
+                "propagate",
+                "roleid",
+                "type",
+                "ugid"
+            ))
+>>>>>>> 2937458 (chore: bump dependency versions)
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }
