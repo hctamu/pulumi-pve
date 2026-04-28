@@ -16,6 +16,16 @@ resources:
           hello world
         fileName: testfile011.yaml
 
+  myPool:
+    type: pve:pool:Pool
+    properties:
+      name: testpool
+      comment: "a test pool"
+      storage:
+        - cephfs
+      vms:
+        - 100
+
   myVM:
     type: pve:vm:VM
     properties:
