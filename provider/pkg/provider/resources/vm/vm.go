@@ -311,6 +311,13 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	}
 
 	preserved.Clone = userInputs.Clone // Clone info is not returned by API, always preserve from user inputs
+	// Preserve CPU.Numa field: user-specified numa setting is not derived from API response
+	if userInputs.CPU != nil && preserved.CPU != nil {
+		// If the user specified numa (true or false), preserve it
+		if userInputs.CPU.Numa != nil {
+			preserved.CPU.Numa = userInputs.CPU.Numa
+		}
+	}
 
 	return preserved
 }
