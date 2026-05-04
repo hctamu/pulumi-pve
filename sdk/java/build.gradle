@@ -70,6 +70,7 @@ def genPulumiResources = tasks.register('genPulumiResources') {
         builder {
             resource true
             name "pve"
+            server "github://api.github.com/hctamu/pulumi-pve"
             version resolvedVersion
         }
         def infoJson = builder.toPrettyString()

@@ -16,6 +16,7 @@
     "pulumi": {
         "resource": true,
         "name": "pve",
-        "version": "1.0.0-alpha.0+dev"
+        "version": "1.0.0-alpha.0+dev",
+        "server": "github://api.github.com/hctamu/pulumi-pve"
     }
 }

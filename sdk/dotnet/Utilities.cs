@@ -53,6 +53,7 @@ namespace Hctamu.Pve
         {
             var dst = src ?? new global::Pulumi.InvokeOptions{};
             dst.Version = src?.Version ?? Version;
+            dst.PluginDownloadURL = src?.PluginDownloadURL ?? "github://api.github.com/hctamu/pulumi-pve";
             return dst;
         }
 
@@ -60,6 +61,7 @@ namespace Hctamu.Pve
         {
             var dst = src ?? new global::Pulumi.InvokeOutputOptions{};
             dst.Version = src?.Version ?? Version;
+            dst.PluginDownloadURL = src?.PluginDownloadURL ?? "github://api.github.com/hctamu/pulumi-pve";
             return dst;
         }
 
