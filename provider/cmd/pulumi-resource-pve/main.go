@@ -18,17 +18,21 @@ package main
 
 import (
 	"context"
+	"strings"
 
 	p "github.com/pulumi/pulumi-go-provider"
 
 	pve "github.com/hctamu/pulumi-pve/provider/pkg/provider"
+	"github.com/hctamu/pulumi-pve/provider/pkg/version"
 )
 
 // Serve the provider against Pulumi's Provider protocol.a
 func main() {
+	version := strings.TrimPrefix(version.Version, "v")
+
 	provider := pve.NewProvider()
 
-	if err := p.RunProvider(context.Background(), pve.Name, pve.Version, provider); err != nil {
+	if err := p.RunProvider(context.Background(), pve.Name, version, provider); err != nil {
 		panic(err)
 	}
 }
