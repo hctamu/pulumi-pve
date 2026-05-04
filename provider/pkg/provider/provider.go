@@ -35,7 +35,7 @@ import (
 )
 
 // Version is initialized by the Go linker to contain the semver of this build.
-var Version = "0.0.6"
+var Version = "0.1.1"
 
 // Name is the name of the PVE provider.
 const Name = "pve"
@@ -158,10 +158,11 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			"provider": "index",
 		},
 		Metadata: schema.Metadata{
-			License:     "Apache-2.0",
-			DisplayName: "pve",
-			Description: "PVE Provider",
-			Namespace:   "hctamu",
+			License:           "Apache-2.0",
+			DisplayName:       "pve",
+			Description:       "PVE Provider",
+			Namespace:         "hctamu",
+			PluginDownloadURL: "github://api.github.com/hctamu/pulumi-pve",
 			LanguageMap: map[string]any{
 				"csharp": map[string]any{
 					"respectSchemaVersion": true,

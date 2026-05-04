@@ -51,6 +51,7 @@ namespace Hctamu.Pve.Pool
             var defaultOptions = new CustomResourceOptions
             {
                 Version = Utilities.Version,
+                PluginDownloadURL = "github://api.github.com/hctamu/pulumi-pve",
                 ReplaceOnChanges =
                 {
                     "name",

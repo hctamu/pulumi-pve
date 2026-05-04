@@ -4,6 +4,7 @@
   "description": "PVE Provider",
   "license": "Apache-2.0",
   "repository": "https://github.com/hctamu/pulumi-pve",
+  "pluginDownloadURL": "github://api.github.com/hctamu/pulumi-pve",
   "namespace": "hctamu",
   "meta": {
     "moduleFormat": "(.*)"

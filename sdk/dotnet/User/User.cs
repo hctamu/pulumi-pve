@@ -99,6 +99,7 @@ namespace Hctamu.Pve.User
             var defaultOptions = new CustomResourceOptions
             {
                 Version = Utilities.Version,
+                PluginDownloadURL = "github://api.github.com/hctamu/pulumi-pve",
                 AdditionalSecretOutputs =
                 {
                     "password",

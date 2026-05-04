@@ -325,7 +325,7 @@ def deprecated(message: str) -> typing.Callable[[C], C]:
     return decorator
 
 def get_plugin_download_url():
-	return None
+	return "github://api.github.com/hctamu/pulumi-pve"
 
 def get_version():
      return _version_str
