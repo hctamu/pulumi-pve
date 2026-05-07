@@ -34,9 +34,6 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 )
 
-// Version is initialized by the Go linker to contain the semver of this build.
-var Version = "0.1.2"
-
 // Name is the name of the PVE provider.
 const Name = "pve"
 
