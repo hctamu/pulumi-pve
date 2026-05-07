@@ -97,44 +97,6 @@ func (file *FileAdapter) Get(ctx context.Context, inputs proxmox.FileInputs) (*p
 	}, nil
 }
 
-// Update updates an existing file resource.
-func (file *FileAdapter) Update(
-	ctx context.Context,
-	state proxmox.FileInputs,
-	inputs proxmox.FileInputs,
-) error {
-	if err := file.proxmoxAdapter.Connect(ctx); err != nil {
-		return err
-	}
-
-	if err := file.sshClient.Connect(ctx); err != nil {
-		return fmt.Errorf("error connecting ssh client: %v", err)
-	}
-
-	// remove the file
-	filePath := fmt.Sprintf(
-		"/mnt/pve/%s/%s/%s",
-		state.DataStoreID,
-		state.ContentType,
-		state.SourceRaw.FileName,
-	)
-	if _, err := file.sshClient.Run(proxmox.SSHOperationDelete, filePath); err != nil {
-		return fmt.Errorf("error removing file via SSH: %v", err)
-	}
-
-	newFilePath := fmt.Sprintf(
-		"/mnt/pve/%s/%s/%s",
-		inputs.DataStoreID,
-		inputs.ContentType,
-		inputs.SourceRaw.FileName,
-	)
-	if _, err := file.sshClient.Run(proxmox.SSHOperationWrite, newFilePath, inputs.SourceRaw.FileData); err != nil {
-		return fmt.Errorf("error creating file via SSH: %v", err)
-	}
-
-	return nil
-}
-
 // Delete deletes an existing file resource.
 func (file *FileAdapter) Delete(ctx context.Context, outputs proxmox.FileOutputs) error {
 	if err := file.proxmoxAdapter.Connect(ctx); err != nil {

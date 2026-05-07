@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 
 	fileResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/file"
@@ -32,7 +33,6 @@ import (
 type mockFileOperations struct {
 	createFunc func(ctx context.Context, inputs proxmox.FileInputs) error
 	getFunc    func(ctx context.Context, inputs proxmox.FileInputs) (*proxmox.FileOutputs, error)
-	updateFunc func(ctx context.Context, state proxmox.FileInputs, inputs proxmox.FileInputs) error
 	deleteFunc func(ctx context.Context, outputs proxmox.FileOutputs) error
 }
 
@@ -51,17 +51,6 @@ func (m *mockFileOperations) Get(
 		return m.getFunc(ctx, inputs)
 	}
 	return &proxmox.FileOutputs{FileInputs: inputs}, nil
-}
-
-func (m *mockFileOperations) Update(
-	ctx context.Context,
-	state proxmox.FileInputs,
-	inputs proxmox.FileInputs,
-) error {
-	if m.updateFunc != nil {
-		return m.updateFunc(ctx, state, inputs)
-	}
-	return nil
 }
 
 func (m *mockFileOperations) Delete(ctx context.Context, outputs proxmox.FileOutputs) error {
@@ -85,12 +74,6 @@ func TestFileOperationsNotConfigured(t *testing.T) {
 	t.Run("Read", func(t *testing.T) {
 		t.Parallel()
 		_, err := file.Read(ctx, infer.ReadRequest[proxmox.FileInputs, proxmox.FileOutputs]{})
-		assert.EqualError(t, err, "FileOperations not configured")
-	})
-
-	t.Run("Update", func(t *testing.T) {
-		t.Parallel()
-		_, err := file.Update(ctx, infer.UpdateRequest[proxmox.FileInputs, proxmox.FileOutputs]{})
 		assert.EqualError(t, err, "FileOperations not configured")
 	})
 
@@ -246,94 +229,6 @@ func TestFileRead(t *testing.T) {
 	})
 }
 
-func TestFileUpdate(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	oldInputs := proxmox.FileInputs{
-		DataStoreID: "local",
-		ContentType: "iso",
-		SourceRaw: proxmox.FileSourceRaw{
-			FileName: "test.iso",
-			FileData: "old data",
-		},
-	}
-	newInputs := proxmox.FileInputs{
-		DataStoreID: "local",
-		ContentType: "iso",
-		SourceRaw: proxmox.FileSourceRaw{
-			FileName: "test.iso",
-			FileData: "new data",
-		},
-	}
-	state := proxmox.FileOutputs{FileInputs: oldInputs}
-
-	t.Run("Success", func(t *testing.T) {
-		t.Parallel()
-		called := false
-		file := &fileResource.File{
-			FileOps: &mockFileOperations{
-				updateFunc: func(ctx context.Context, s, i proxmox.FileInputs) error {
-					called = true
-					assert.Equal(t, oldInputs, s)
-					assert.Equal(t, newInputs, i)
-					return nil
-				},
-			},
-		}
-
-		resp, err := file.Update(
-			ctx,
-			infer.UpdateRequest[proxmox.FileInputs, proxmox.FileOutputs]{ID: "test", Inputs: newInputs, State: state},
-		)
-		require.NoError(t, err)
-		assert.True(t, called)
-		assert.Equal(t, newInputs, resp.Output.FileInputs)
-	})
-
-	t.Run("DryRun", func(t *testing.T) {
-		t.Parallel()
-		called := false
-		file := &fileResource.File{
-			FileOps: &mockFileOperations{
-				updateFunc: func(ctx context.Context, s, i proxmox.FileInputs) error {
-					called = true
-					return nil
-				},
-			},
-		}
-
-		_, err := file.Update(
-			ctx,
-			infer.UpdateRequest[proxmox.FileInputs, proxmox.FileOutputs]{
-				ID:     "test",
-				Inputs: newInputs,
-				State:  state,
-				DryRun: true,
-			},
-		)
-		require.NoError(t, err)
-		assert.False(t, called)
-	})
-
-	t.Run("AdapterError", func(t *testing.T) {
-		t.Parallel()
-		file := &fileResource.File{
-			FileOps: &mockFileOperations{
-				updateFunc: func(ctx context.Context, s, i proxmox.FileInputs) error {
-					return errors.New("adapter error")
-				},
-			},
-		}
-
-		_, err := file.Update(
-			ctx,
-			infer.UpdateRequest[proxmox.FileInputs, proxmox.FileOutputs]{ID: "test", Inputs: newInputs, State: state},
-		)
-		require.Error(t, err)
-		assert.EqualError(t, err, "adapter error")
-	})
-}
-
 func TestFileDelete(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -380,4 +275,109 @@ func TestFileDelete(t *testing.T) {
 		require.Error(t, err)
 		assert.EqualError(t, err, "adapter error")
 	})
+}
+
+func TestFileDiff(t *testing.T) {
+	t.Parallel()
+
+	baseInputs := proxmox.FileInputs{
+		DataStoreID: "local",
+		ContentType: "snippets",
+		SourceRaw: proxmox.FileSourceRaw{
+			FileName: "test.yaml",
+			FileData: "data",
+		},
+	}
+	baseState := proxmox.FileOutputs{FileInputs: baseInputs}
+
+	tests := []struct {
+		name             string
+		inputs           proxmox.FileInputs
+		state            proxmox.FileOutputs
+		wantChanges      bool
+		wantKeys         []string
+		wantDeleteBefore bool
+	}{
+		{
+			name:             "no changes",
+			inputs:           baseInputs,
+			state:            baseState,
+			wantChanges:      false,
+			wantDeleteBefore: true,
+		},
+		{
+			name: "datastoreId changed triggers replace",
+			inputs: proxmox.FileInputs{
+				DataStoreID: "ceph",
+				ContentType: baseInputs.ContentType,
+				SourceRaw:   baseInputs.SourceRaw,
+			},
+			state:            baseState,
+			wantChanges:      true,
+			wantKeys:         []string{"datastoreId"},
+			wantDeleteBefore: true,
+		},
+		{
+			name: "contentType changed triggers replace",
+			inputs: proxmox.FileInputs{
+				DataStoreID: baseInputs.DataStoreID,
+				ContentType: "iso",
+				SourceRaw:   baseInputs.SourceRaw,
+			},
+			state:            baseState,
+			wantChanges:      true,
+			wantKeys:         []string{"contentType"},
+			wantDeleteBefore: true,
+		},
+		{
+			name: "sourceRaw fileData changed triggers replace",
+			inputs: proxmox.FileInputs{
+				DataStoreID: baseInputs.DataStoreID,
+				ContentType: baseInputs.ContentType,
+				SourceRaw: proxmox.FileSourceRaw{
+					FileName: baseInputs.SourceRaw.FileName,
+					FileData: "new-data",
+				},
+			},
+			state:            baseState,
+			wantChanges:      true,
+			wantKeys:         []string{"sourceRaw"},
+			wantDeleteBefore: true,
+		},
+		{
+			name: "sourceRaw fileName changed triggers replace",
+			inputs: proxmox.FileInputs{
+				DataStoreID: baseInputs.DataStoreID,
+				ContentType: baseInputs.ContentType,
+				SourceRaw: proxmox.FileSourceRaw{
+					FileName: "renamed.yaml",
+					FileData: baseInputs.SourceRaw.FileData,
+				},
+			},
+			state:            baseState,
+			wantChanges:      true,
+			wantKeys:         []string{"sourceRaw"},
+			wantDeleteBefore: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			f := &fileResource.File{}
+			resp, err := f.Diff(context.Background(), infer.DiffRequest[proxmox.FileInputs, proxmox.FileOutputs]{
+				ID:     "test-file",
+				Inputs: tt.inputs,
+				State:  tt.state,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantChanges, resp.HasChanges)
+			assert.Equal(t, tt.wantDeleteBefore, resp.DeleteBeforeReplace)
+			for _, key := range tt.wantKeys {
+				assert.Contains(t, resp.DetailedDiff, key)
+				assert.Equal(t, p.UpdateReplace, resp.DetailedDiff[key].Kind)
+			}
+		})
+	}
 }

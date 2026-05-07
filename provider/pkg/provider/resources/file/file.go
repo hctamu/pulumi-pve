@@ -30,7 +30,7 @@ var (
 	_ = (infer.CustomResource[proxmox.FileInputs, proxmox.FileOutputs])((*File)(nil))
 	_ = (infer.CustomDelete[proxmox.FileOutputs])((*File)(nil))
 	_ = (infer.CustomRead[proxmox.FileInputs, proxmox.FileOutputs])((*File)(nil))
-	_ = (infer.CustomUpdate[proxmox.FileInputs, proxmox.FileOutputs])((*File)(nil))
+	_ = (infer.CustomDiff[proxmox.FileInputs, proxmox.FileOutputs])((*File)(nil))
 	_ = infer.Annotated((*File)(nil))
 )
 
@@ -128,52 +128,35 @@ func (file *File) Read(
 	return response, nil
 }
 
-// Update is used to update a file resource
-func (file *File) Update(
+// Diff computes a custom diff for the File resource. All fields are replace-on-change,
+// so any change triggers an UpdateReplace diff with DeleteBeforeReplace set to true.
+func (file *File) Diff(
 	ctx context.Context,
-	request infer.UpdateRequest[proxmox.FileInputs, proxmox.FileOutputs],
-) (infer.UpdateResponse[proxmox.FileOutputs], error) {
+	request infer.DiffRequest[proxmox.FileInputs, proxmox.FileOutputs],
+) (p.DiffResponse, error) {
 	logger := p.GetLogger(ctx)
-	logger.Debugf(
-		"Update called for File with ID: %s, Inputs: %+v, State: %+v",
-		request.ID,
-		request.Inputs,
-		request.State,
-	)
+	logger.Debugf("Diff called for File with ID: %s", request.ID)
 
-	response := infer.UpdateResponse[proxmox.FileOutputs]{
-		Output: request.State,
-	}
+	diff := map[string]p.PropertyDiff{}
 
-	if request.DryRun {
-		return response, nil
-	}
-
-	if file.FileOps == nil {
-		return response, errors.New("FileOperations not configured")
-	}
-
-	// log the differences between inputs and state
 	if request.Inputs.DataStoreID != request.State.DataStoreID {
-		logger.Infof("Updating DataStoreID from %q to %q", request.State.DataStoreID, request.Inputs.DataStoreID)
+		diff["datastoreId"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 	if request.Inputs.ContentType != request.State.ContentType {
-		logger.Infof("Updating ContentType from %q to %q", request.State.ContentType, request.Inputs.ContentType)
+		diff["contentType"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 	if request.Inputs.SourceRaw.FileData != request.State.SourceRaw.FileData {
-		logger.Infof("Updating FileData from %q to %q", request.State.SourceRaw.FileData, request.Inputs.SourceRaw.FileData)
+		diff["sourceRaw"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 	if request.Inputs.SourceRaw.FileName != request.State.SourceRaw.FileName {
-		logger.Infof("Updating FileName from %q to %q", request.State.SourceRaw.FileName, request.Inputs.SourceRaw.FileName)
+		diff["sourceRaw"] = p.PropertyDiff{Kind: p.UpdateReplace}
 	}
 
-	response.Output.FileInputs = request.Inputs
-
-	if err := file.FileOps.Update(ctx, request.State.FileInputs, request.Inputs); err != nil {
-		return response, err
-	}
-
-	return response, nil
+	return p.DiffResponse{
+		DeleteBeforeReplace: true,
+		HasChanges:          len(diff) > 0,
+		DetailedDiff:        diff,
+	}, nil
 }
 
 // Annotate is used to annotate the file resource

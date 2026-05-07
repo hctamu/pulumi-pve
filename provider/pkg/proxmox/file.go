@@ -29,9 +29,6 @@ type FileOperations interface {
 	// Get retrieves an existing File resource.
 	Get(ctx context.Context, inputs FileInputs) (*FileOutputs, error)
 
-	// Update updates an existing File resource.
-	Update(ctx context.Context, state FileInputs, inputs FileInputs) error
-
 	// Delete deletes an existing File resource.
 	Delete(ctx context.Context, FileOutputs FileOutputs) error
 }

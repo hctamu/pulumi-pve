@@ -45,34 +45,24 @@ const (
 type MockFileOperations struct {
 	CreateCalls []proxmox.FileInputs
 	GetCalls    []proxmox.FileInputs
-	UpdateCalls [][2]proxmox.FileInputs // 0: old, 1: new
 	DeleteCalls []proxmox.FileOutputs
 }
 
-func (m *MockFileOperations) Create(ctx context.Context, inputs proxmox.FileInputs) error {
-	m.CreateCalls = append(m.CreateCalls, inputs)
+func (mock *MockFileOperations) Create(ctx context.Context, inputs proxmox.FileInputs) error {
+	mock.CreateCalls = append(mock.CreateCalls, inputs)
 	return nil
 }
 
-func (m *MockFileOperations) Get(
+func (mock *MockFileOperations) Get(
 	ctx context.Context,
 	inputs proxmox.FileInputs,
 ) (*proxmox.FileOutputs, error) {
-	m.GetCalls = append(m.GetCalls, inputs)
+	mock.GetCalls = append(mock.GetCalls, inputs)
 	return &proxmox.FileOutputs{FileInputs: inputs}, nil
 }
 
-func (m *MockFileOperations) Update(
-	ctx context.Context,
-	state proxmox.FileInputs,
-	inputs proxmox.FileInputs,
-) error {
-	m.UpdateCalls = append(m.UpdateCalls, [2]proxmox.FileInputs{state, inputs})
-	return nil
-}
-
-func (m *MockFileOperations) Delete(ctx context.Context, outputs proxmox.FileOutputs) error {
-	m.DeleteCalls = append(m.DeleteCalls, outputs)
+func (mock *MockFileOperations) Delete(ctx context.Context, outputs proxmox.FileOutputs) error {
+	mock.DeleteCalls = append(mock.DeleteCalls, outputs)
 	return nil
 }
 
@@ -144,18 +134,20 @@ func TestFileHealthyLifeCycle(t *testing.T) {
 	}.Run(t, pulumiServer)
 
 	// Verify mock calls
-	require.Len(t, mockOps.CreateCalls, 1, "Create should be called once")
+	require.Len(t, mockOps.CreateCalls, 2, "Create should be called twice (initial + replace)")
 	createCall := mockOps.CreateCalls[0]
 	assert.Equal(t, dataStoreID, createCall.DataStoreID)
 	assert.Equal(t, contentType, createCall.ContentType)
 	assert.Equal(t, fileName, createCall.SourceRaw.FileName)
 	assert.Equal(t, fileData, createCall.SourceRaw.FileData)
 
-	require.Len(t, mockOps.UpdateCalls, 1, "Update should be called once")
-	updateCall := mockOps.UpdateCalls[0]
-	assert.Equal(t, updatedFileData, updateCall[1].SourceRaw.FileData)
+	replaceCreateCall := mockOps.CreateCalls[1]
+	assert.Equal(t, dataStoreID, replaceCreateCall.DataStoreID)
+	assert.Equal(t, contentType, replaceCreateCall.ContentType)
+	assert.Equal(t, fileName, replaceCreateCall.SourceRaw.FileName)
+	assert.Equal(t, updatedFileData, replaceCreateCall.SourceRaw.FileData)
 
-	require.Len(t, mockOps.DeleteCalls, 1, "Delete should be called once")
-	deleteCall := mockOps.DeleteCalls[0]
-	assert.Equal(t, dataStoreID, deleteCall.DataStoreID)
+	require.Len(t, mockOps.DeleteCalls, 2, "Delete should be called twice (replace + teardown)")
+	replaceDeleteCall := mockOps.DeleteCalls[0]
+	assert.Equal(t, dataStoreID, replaceDeleteCall.DataStoreID)
 }
