@@ -1014,3 +1014,164 @@ func TestPoolAdapterUpdateWithMembers(t *testing.T) {
 		})
 	}
 }
+
+func TestPoolAdapterDeleteWithMembers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		members      []map[string]interface{}
+		wantRequests int // GET + optional PUT + DELETE
+		wantPutBody  map[string]interface{}
+	}{
+		{
+			name: "delete pool with vm and storage members removes them first",
+			members: []map[string]interface{}{
+				{"id": "qemu/100", "type": "qemu", "vmid": 100, "node": "pve1", "status": "running"},
+				{"id": "storage/pve1/local", "type": "storage", "storage": "local", "node": "pve1"},
+			},
+			wantRequests: 3, // GET, PUT (remove), DELETE
+			wantPutBody: map[string]interface{}{
+				"delete":  true,
+				"vms":     "100",
+				"storage": "local",
+			},
+		},
+		{
+			name: "delete pool with only lxc members removes them first",
+			members: []map[string]interface{}{
+				{"id": "lxc/200", "type": "lxc", "vmid": 200, "node": "pve1", "status": "running"},
+				{"id": "lxc/201", "type": "lxc", "vmid": 201, "node": "pve1", "status": "stopped"},
+			},
+			wantRequests: 3, // GET, PUT (remove), DELETE
+			wantPutBody: map[string]interface{}{
+				"delete": true,
+			},
+		},
+		{
+			name:         "delete empty pool skips remove call",
+			members:      []map[string]interface{}{},
+			wantRequests: 2, // GET, DELETE only
+			wantPutBody:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			requestCount := 0
+			var capturedPutBody map[string]interface{}
+
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, req *testutils.MockRequest) {
+					requestCount++
+
+					switch {
+					case requestCount == 1:
+						// GET pool with members
+						w.Header().Set("Content-Type", "application/json")
+						w.WriteHeader(http.StatusOK)
+						err := json.NewEncoder(w).Encode(map[string]interface{}{
+							"data": []interface{}{map[string]interface{}{
+								"poolid":  "test-pool",
+								"comment": "Test",
+								"members": tt.members,
+							}},
+						})
+						require.NoError(t, err)
+
+					case r.Method == http.MethodPut:
+						// PUT to remove members
+						assert.Equal(t, "/pools/test-pool", r.URL.Path)
+						capturedPutBody = map[string]interface{}{}
+						err := json.NewDecoder(strings.NewReader(req.Body)).Decode(&capturedPutBody)
+						require.NoError(t, err)
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write([]byte(`{"data": null}`))
+
+					case r.Method == http.MethodDelete:
+						// DELETE pool
+						assert.Equal(t, "/pools/test-pool", r.URL.Path)
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write([]byte(`{"data": null}`))
+					}
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
+			err = poolAdapter.Delete(context.Background(), "test-pool")
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantRequests, requestCount)
+
+			if tt.wantPutBody != nil {
+				require.NotNil(t, capturedPutBody)
+				deleteVal, _ := capturedPutBody["delete"].(bool)
+				assert.True(t, deleteVal, "PUT should set delete=true")
+				for k, v := range tt.wantPutBody {
+					if k == "delete" {
+						continue
+					}
+					assert.Equal(t, v, capturedPutBody[k], "PUT body field %q", k)
+				}
+			} else {
+				assert.Nil(t, capturedPutBody, "no PUT call expected for empty pool")
+			}
+		})
+	}
+
+	t.Run("delete fails when member removal fails", func(t *testing.T) {
+		t.Parallel()
+
+		requestCount := 0
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+			requestCount++
+			if requestCount == 1 {
+				// GET succeeds with one VM member
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				err := json.NewEncoder(w).Encode(map[string]interface{}{
+					"data": []interface{}{map[string]interface{}{
+						"poolid": "test-pool",
+						"members": []map[string]interface{}{
+							{"id": "qemu/100", "type": "qemu", "vmid": 100, "node": "pve1", "status": "running"},
+						},
+					}},
+				})
+				require.NoError(t, err)
+			} else {
+				// PUT to remove members fails
+				w.WriteHeader(http.StatusInternalServerError)
+				_, _ = w.Write([]byte(`{"errors": "cannot remove member"}`))
+			}
+		})
+		defer server.Close()
+
+		cfg := &config.Config{
+			PveURL:   server.URL,
+			PveUser:  "test@pam",
+			PveToken: "test-token",
+		}
+
+		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+		err := proxmoxAdapter.Connect(context.Background())
+		require.NoError(t, err)
+
+		poolAdapter := adapters.NewPoolAdapter(proxmoxAdapter)
+		err = poolAdapter.Delete(context.Background(), "test-pool")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to remove members from Pool resource before deletion")
+	})
+}

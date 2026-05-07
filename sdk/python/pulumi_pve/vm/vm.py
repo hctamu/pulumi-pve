@@ -394,6 +394,8 @@ class VM(pulumi.CustomResource):
             __props__.__dict__["tags"] = tags
             __props__.__dict__["template"] = template
             __props__.__dict__["vm_id"] = vm_id
+        replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["vmId"])
+        opts = pulumi.ResourceOptions.merge(opts, replace_on_changes)
         super(VM, __self__).__init__(
             'pve:vm:VM',
             resource_name,

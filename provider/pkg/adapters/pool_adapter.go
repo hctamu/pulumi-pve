@@ -161,6 +161,31 @@ func (pool *PoolAdapter) Delete(ctx context.Context, name string) error {
 		return fmt.Errorf("failed to get Pool resource for deletion: %w", err)
 	}
 
+	// Proxmox requires the pool to be empty before deletion.
+	// Collect all current member VMs and storage and remove them first.
+	var vmIDs []int
+	var storageNames []string
+	for i := range apiPool.Members {
+		member := &apiPool.Members[i]
+		switch member.Type {
+		case "qemu", "lxc":
+			vmIDs = append(vmIDs, int(member.VMID)) //nolint:gosec // VMID values are always small positive integers
+		case "storage":
+			storageNames = append(storageNames, member.Storage)
+		}
+	}
+
+	if len(vmIDs) > 0 || len(storageNames) > 0 {
+		removeOption := &api.PoolUpdateOption{
+			Delete:          true,
+			VirtualMachines: utils.JoinInts(vmIDs),
+			Storage:         strings.Join(storageNames, ","),
+		}
+		if err := apiPool.Update(ctx, removeOption); err != nil {
+			return fmt.Errorf("failed to remove members from Pool resource before deletion: %w", err)
+		}
+	}
+
 	if err := apiPool.Delete(ctx); err != nil {
 		return fmt.Errorf("failed to delete Pool resource: %w", err)
 	}
