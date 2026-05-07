@@ -579,3 +579,83 @@ func TestPoolDiff(t *testing.T) {
 		})
 	}
 }
+
+// TestPoolReadImport tests Read behaviour during `pulumi import`, where Inputs.Name is
+// empty and the pool name must be derived from the resource ID.
+func TestPoolReadImport(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		id          string
+		inputsName  string
+		wantGetName string
+		wantName    string
+	}{
+		{
+			name:        "import: Inputs.Name empty — falls back to ID",
+			id:          poolName1,
+			inputsName:  "",
+			wantGetName: poolName1,
+			wantName:    poolName1,
+		},
+		{
+			name:        "normal read: Inputs.Name takes precedence over ID",
+			id:          resourceName,
+			inputsName:  poolName1,
+			wantGetName: poolName1,
+			wantName:    poolName1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var gotGetName string
+			mockOps := &mockPoolOperations{
+				getFunc: func(ctx context.Context, name string) (*proxmox.PoolOutputs, error) {
+					gotGetName = name
+					return &proxmox.PoolOutputs{
+						PoolInputs: proxmox.PoolInputs{
+							Name:    name,
+							Comment: comment1,
+						},
+					}, nil
+				},
+			}
+
+			p := &poolResource.Pool{PoolOps: mockOps}
+			req := infer.ReadRequest[proxmox.PoolInputs, proxmox.PoolOutputs]{
+				ID:     tt.id,
+				Inputs: proxmox.PoolInputs{Name: tt.inputsName},
+			}
+			resp, err := p.Read(context.Background(), req)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantGetName, gotGetName, "name passed to Get")
+			assert.Equal(t, tt.wantName, resp.State.Name)
+			assert.Equal(t, comment1, resp.State.Comment)
+		})
+	}
+}
+
+func TestPoolReadImportGetFailure(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("failed to get Pool resource: 404 Not Found")
+	mockOps := &mockPoolOperations{
+		getFunc: func(ctx context.Context, name string) (*proxmox.PoolOutputs, error) {
+			return nil, expectedErr
+		},
+	}
+
+	p := &poolResource.Pool{PoolOps: mockOps}
+	// Simulate import: Inputs.Name is empty, ID holds the pool name.
+	req := infer.ReadRequest[proxmox.PoolInputs, proxmox.PoolOutputs]{
+		ID:     poolName1,
+		Inputs: proxmox.PoolInputs{},
+	}
+	_, err := p.Read(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+}

@@ -150,6 +150,8 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["vmId"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
+        const replaceOnChanges = { replaceOnChanges: ["vmId"] };
+        opts = pulumi.mergeOptions(opts, replaceOnChanges);
         super(VM.__pulumiType, name, resourceInputs, opts);
     }
 }

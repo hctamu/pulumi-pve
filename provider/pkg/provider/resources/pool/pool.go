@@ -97,7 +97,13 @@ func (pool *Pool) Read(
 		return response, errors.New("missing pool ID")
 	}
 
-	outputs, err := pool.PoolOps.Get(ctx, request.Inputs.Name)
+	// During import, Inputs.Name is empty; fall back to the resource ID (the Proxmox pool name).
+	poolName := request.Inputs.Name
+	if poolName == "" {
+		poolName = request.ID
+	}
+
+	outputs, err := pool.PoolOps.Get(ctx, poolName)
 	if err != nil {
 		return response, err
 	}
@@ -197,7 +203,8 @@ func (pool *Pool) Diff(
 	}
 
 	return p.DiffResponse{
-		HasChanges:   len(diff) > 0,
-		DetailedDiff: diff,
+		HasChanges:          len(diff) > 0,
+		DetailedDiff:        diff,
+		DeleteBeforeReplace: true,
 	}, nil
 }

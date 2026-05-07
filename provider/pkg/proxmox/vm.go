@@ -214,7 +214,7 @@ type VMInputs struct {
 	Name        string   `pulumi:"name"`
 	Description *string  `pulumi:"description,optional"`
 	Node        *string  `pulumi:"node,optional"`
-	VMID        *int     `pulumi:"vmId,optional"`
+	VMID        *int     `pulumi:"vmId,optional"        provider:"replaceOnChanges"`
 	Hotplug     *string  `pulumi:"hotplug,optional"`
 	Template    *int     `pulumi:"template,optional"`
 	Autostart   *int     `pulumi:"autostart,optional"`
