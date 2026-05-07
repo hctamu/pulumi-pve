@@ -133,6 +133,10 @@ namespace Hctamu.Pve.Vm
             {
                 Version = Utilities.Version,
                 PluginDownloadURL = "github://api.github.com/hctamu/pulumi-pve",
+                ReplaceOnChanges =
+                {
+                    "vmId",
+                },
             };
             var merged = CustomResourceOptions.Merge(defaultOptions, options);
             // Override the ID if one was specified for consistency with other language SDKs.

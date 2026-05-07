@@ -400,7 +400,8 @@ func TestPoolNameChangeTriggersReplace(t *testing.T) {
 	// Verify that name change triggered a replace (new resource was created)
 	assert.Less(t, createPool1Idx, createPool2Idx, "Original resource should be created before replacement")
 
-	assert.Less(t, createPool2Idx, deletePool1Idx, "Old resource deleted before new one created")
+	// DeleteBeforeReplace: old pool is deleted before the new one is created
+	assert.Less(t, deletePool1Idx, createPool2Idx, "Old resource should be deleted before new one is created")
 
 	// Verify API request details
 	requests := capture.get()

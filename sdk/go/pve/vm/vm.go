@@ -66,6 +66,10 @@ func NewVM(ctx *pulumi.Context,
 	if args.Cpu != nil {
 		args.Cpu = args.Cpu.ToCPUPtrOutput().ApplyT(func(v *proxmox.CPU) *proxmox.CPU { return v.Defaults() }).(proxmox.CPUPtrOutput)
 	}
+	replaceOnChanges := pulumi.ReplaceOnChanges([]string{
+		"vmId",
+	})
+	opts = append(opts, replaceOnChanges)
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource VM
 	err := ctx.RegisterResource("pve:vm:VM", name, args, &resource, opts...)
