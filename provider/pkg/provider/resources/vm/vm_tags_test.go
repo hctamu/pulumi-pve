@@ -132,42 +132,34 @@ func TestVMDiffTags(t *testing.T) {
 	}
 }
 
-// TestVMCreatePassesTags verifies that Create stores the correct tags in output state.
-// The mock's Get return (mockReturnTags) simulates the normalised adapter response:
-// the real adapter returns nil for VMs with no tags (including when the user supplied
-// an empty slice and Proxmox echoes back a whitespace-only tags string).
+// TestVMCreatePassesTags verifies that Create preserves user-supplied tags in output state.
 func TestVMCreatePassesTags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name           string
-		inputTags      []string // tags supplied by the user in Create inputs
-		mockReturnTags []string // tags the mock Get returns (simulates normalised adapter)
-		expectedTags   []string // expected tags in the output state
+		name         string
+		inputTags    []string // tags supplied by the user in Create inputs
+		expectedTags []string // expected tags in the output state
 	}{
 		{
-			name:           "nil input - nil state",
-			inputTags:      nil,
-			mockReturnTags: nil,
-			expectedTags:   nil,
+			name:         "nil input - nil state",
+			inputTags:    nil,
+			expectedTags: nil,
 		},
 		{
-			name:           "empty slice input - nil state (adapter normalises whitespace response)",
-			inputTags:      []string{},
-			mockReturnTags: nil, // fixed adapter returns nil, not [" "], for no-tag VMs
-			expectedTags:   nil,
+			name:         "empty slice input remains empty",
+			inputTags:    []string{},
+			expectedTags: []string{},
 		},
 		{
-			name:           "single tag forwarded",
-			inputTags:      []string{"prod"},
-			mockReturnTags: []string{"prod"},
-			expectedTags:   []string{"prod"},
+			name:         "single tag forwarded",
+			inputTags:    []string{"prod"},
+			expectedTags: []string{"prod"},
 		},
 		{
-			name:           "multiple tags forwarded in order",
-			inputTags:      []string{"prod", "web", "frontend"},
-			mockReturnTags: []string{"prod", "web", "frontend"},
-			expectedTags:   []string{"prod", "web", "frontend"},
+			name:         "multiple tags forwarded in order",
+			inputTags:    []string{"prod", "web", "frontend"},
+			expectedTags: []string{"prod", "web", "frontend"},
 		},
 	}
 
@@ -183,14 +175,6 @@ func TestVMCreatePassesTags(t *testing.T) {
 				VMOps: &mockVMOperations{
 					createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 						return nil
-					},
-					getFunc: func(_ context.Context, vmID int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-						return proxmox.VMInputs{
-							VMID:  &vmID,
-							Node:  &node,
-							Tags:  tt.mockReturnTags,
-							Disks: []*proxmox.Disk{},
-						}, nil
 					},
 				},
 			}

@@ -116,10 +116,8 @@ func (vm *VM) Create(
 		}
 	}
 
-	if response.Output, err = readCurrentOutput(ctx, vm, &request, vmID); err != nil {
-		l.Errorf("error reading VM after creation: %v", err)
-		return response, err
-	}
+	// Keep Create output aligned with user intent plus computed values resolved during create.
+	response.Output = proxmox.VMOutputs{VMInputs: request.Inputs}
 
 	return response, nil
 }
@@ -181,36 +179,6 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 	}
 
 	return nil
-}
-
-// readCurrentOutput reads the current state of the VM after creation.
-func readCurrentOutput(
-	ctx context.Context,
-	vm *VM,
-	request *infer.CreateRequest[proxmox.VMInputs],
-	vmID int,
-) (proxmox.VMOutputs, error) {
-	state := proxmox.VMOutputs{VMInputs: request.Inputs}
-	state.VMID = &vmID
-	readRequest := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-		ID:     request.Name,
-		Inputs: request.Inputs,
-		State:  state,
-	}
-
-	readResponse, err := vm.Read(ctx, readRequest)
-	if err != nil {
-		return proxmox.VMOutputs{}, fmt.Errorf("failed to read VM after creation: %v", err)
-	}
-
-	currentOutput := readResponse.State
-
-	// Preserve clone configuration (not returned by Read) if user supplied it.
-	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
-		currentOutput.Clone = request.Inputs.Clone
-	}
-
-	return currentOutput, nil
 }
 
 // Read reads the state of the virtual machine.
@@ -315,7 +283,9 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	if userInputs.CPU != nil && preserved.CPU != nil {
 		// If the user specified numa (true or false), preserve it
 		if userInputs.CPU.Numa != nil {
-			preserved.CPU.Numa = userInputs.CPU.Numa
+			cpu := *preserved.CPU
+			cpu.Numa = userInputs.CPU.Numa
+			preserved.CPU = &cpu
 		}
 	}
 
