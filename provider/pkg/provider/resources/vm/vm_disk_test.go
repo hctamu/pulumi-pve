@@ -27,134 +27,137 @@ import (
 
 	vmResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestVMDiffDisksChange(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		inputDisks    []*proxmox.Disk
-		stateDisks    []*proxmox.Disk
-		expectChange  bool
-		expectDiffKey string
+		name           string
+		inputDisks     []*proxmox.Disk
+		stateDisks     []*proxmox.Disk
+		expectChange   bool
+		expectError    bool
+		expectDiffKeys map[string]p.DiffKind
 	}{
 		{
-			name: "disk size changed",
+			name: "disk resized",
 			inputDisks: []*proxmox.Disk{
-				{
-					Size:      50,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
 			},
 			stateDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
-			expectChange:  true,
-			expectDiffKey: "disks",
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks.scsi0": p.Update},
 		},
 		{
-			name: "disk interface changed",
+			name: "disk interface changed (remove old + add new)",
 			inputDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi1",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi1"},
 			},
 			stateDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
-			expectChange:  true,
-			expectDiffKey: "disks",
-		},
-		{
-			name: "disk storage changed",
-			inputDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+			expectChange: true,
+			expectDiffKeys: map[string]p.DiffKind{
+				"disks.scsi0": p.Delete,
+				"disks.scsi1": p.Add,
 			},
-			stateDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-			},
-			expectChange:  false, // Same size and interface
-			expectDiffKey: "",
 		},
 		{
 			name: "disk added",
 			inputDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-				{
-					Size:      50,
-					Interface: "scsi1",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi1"},
 			},
 			stateDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
-			expectChange:  true,
-			expectDiffKey: "disks",
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks.scsi1": p.Add},
 		},
 		{
 			name: "disk removed",
 			inputDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			stateDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
-				{
-					Size:      50,
-					Interface: "scsi1",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi1"},
 			},
-			expectChange:  true,
-			expectDiffKey: "disks",
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks.scsi1": p.Delete},
+		},
+		{
+			name: "file id changed",
+			inputDisks: []*proxmox.Disk{{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-1")},
+				Size:      40,
+				Interface: "scsi0",
+			}},
+			stateDisks: []*proxmox.Disk{{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+				Size:      40,
+				Interface: "scsi0",
+			}},
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks.scsi0": p.Update},
+		},
+		{
+			name: "nil fileID in input is not a change",
+			inputDisks: []*proxmox.Disk{{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      40,
+				Interface: "scsi0",
+			}},
+			stateDisks: []*proxmox.Disk{{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+				Size:      40,
+				Interface: "scsi0",
+			}},
+			expectChange: false,
 		},
 		{
 			name: "no disk changes",
 			inputDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			stateDisks: []*proxmox.Disk{
-				{
-					Size:      40,
-					Interface: "scsi0",
-				},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
-			expectChange:  false,
-			expectDiffKey: "",
+			expectChange: false,
 		},
 		{
-			name:          "both empty",
-			inputDisks:    []*proxmox.Disk{},
-			stateDisks:    []*proxmox.Disk{},
-			expectChange:  false,
-			expectDiffKey: "",
+			name:         "both empty",
+			inputDisks:   []*proxmox.Disk{},
+			stateDisks:   []*proxmox.Disk{},
+			expectChange: false,
+		},
+		{
+			name: "disk shrunk returns error at diff time",
+			inputDisks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			stateDisks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
+			},
+			expectError: true,
+		},
+		{
+			name: "disk storage changed returns error at diff time",
+			inputDisks: []*proxmox.Disk{{
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-pool"},
+				Size:      40,
+				Interface: "scsi0",
+			}},
+			stateDisks: []*proxmox.Disk{{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      40,
+				Interface: "scsi0",
+			}},
+			expectError: true,
 		},
 	}
 
@@ -178,14 +181,23 @@ func TestVMDiffDisksChange(t *testing.T) {
 			}
 
 			resp, err := vmInstance.Diff(context.Background(), req)
+			if tt.expectError {
+				require.Error(t, err)
+				return
+			}
+
 			require.NoError(t, err)
 
 			if tt.expectChange {
 				assert.True(t, resp.HasChanges, "Expected changes to be detected")
-				assert.Contains(t, resp.DetailedDiff, tt.expectDiffKey, "Expected diff key to be present")
-				assert.Equal(t, p.Update, resp.DetailedDiff[tt.expectDiffKey].Kind)
+				for key, kind := range tt.expectDiffKeys {
+					if assert.Contains(t, resp.DetailedDiff, key) {
+						assert.Equal(t, kind, resp.DetailedDiff[key].Kind)
+					}
+				}
 			} else {
 				assert.False(t, resp.HasChanges, "Expected no changes")
+				assert.Empty(t, resp.DetailedDiff, "Expected no diff entries")
 			}
 		})
 	}
