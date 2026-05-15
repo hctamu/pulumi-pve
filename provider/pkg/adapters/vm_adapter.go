@@ -524,6 +524,27 @@ func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmo
 			)
 		}
 	}
+
+	// Emit config options for disks that are new (present in desired inputs but absent
+	// from current state by interface name). Resize and removal are handled by direct
+	// API calls (ResizeDisk/RemoveDisk) before UpdateConfig is called; existing disks
+	// that are unchanged do not need to be re-sent to the config API.
+	currentByIface := make(map[string]struct{}, len(currentInputs.Disks))
+	for _, d := range currentInputs.Disks {
+		if d != nil {
+			currentByIface[d.Interface] = struct{}{}
+		}
+	}
+	for _, disk := range inputs.Disks {
+		if disk == nil {
+			continue
+		}
+		if _, exists := currentByIface[disk.Interface]; !exists {
+			diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
+			options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+		}
+	}
+
 	return options
 }
 

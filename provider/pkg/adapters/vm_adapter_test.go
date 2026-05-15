@@ -3831,3 +3831,113 @@ func TestVMReadTagsWhitespaceFromAPI(t *testing.T) {
 		})
 	}
 }
+
+// TestBuildVMOptionsDiffDisks verifies that BuildVMOptionsDiff emits config options
+// for disks that are new (absent from current state) and omits options for disks
+// that already exist in current state (unchanged, resized, or removed disks are
+// handled by direct API calls before UpdateConfig is invoked).
+func TestBuildVMOptionsDiffDisks(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		inputDisks     []*proxmox.Disk
+		currentDisks   []*proxmox.Disk
+		wantDiskKeys   []string // interfaces that should appear as options
+		wantNoDiskKeys []string // interfaces that must NOT appear as options
+	}{
+		{
+			name: "new disk emitted with storage:size format",
+			inputDisks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "sata1"},
+			},
+			currentDisks:   nil,
+			wantDiskKeys:   []string{"sata1"},
+			wantNoDiskKeys: nil,
+		},
+		{
+			name: "existing disk not re-emitted",
+			inputDisks: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			currentDisks: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantDiskKeys:   nil,
+			wantNoDiskKeys: []string{"scsi0"},
+		},
+		{
+			name: "mixed: new disk emitted, existing disk omitted",
+			inputDisks: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: testutils.Ptr("ceph-ha:vm-116-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+				{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 30, Interface: "sata1"},
+			},
+			currentDisks: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: testutils.Ptr("ceph-ha:vm-116-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantDiskKeys:   []string{"sata1"},
+			wantNoDiskKeys: []string{"scsi0"},
+		},
+		{
+			name:           "no disks in either inputs or current",
+			inputDisks:     nil,
+			currentDisks:   nil,
+			wantDiskKeys:   nil,
+			wantNoDiskKeys: nil,
+		},
+		{
+			name: "new disk config uses storage:size format when FileID is nil",
+			inputDisks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 50, Interface: "virtio0"},
+			},
+			currentDisks: nil,
+			wantDiskKeys: []string{"virtio0"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			inputs := proxmox.VMInputs{Disks: tt.inputDisks}
+			current := proxmox.VMInputs{Disks: tt.currentDisks}
+			options := adapters.BuildVMOptionsDiff(inputs, 100, &current)
+
+			// Index options by name for easy lookup.
+			optByName := make(map[string]api.VirtualMachineOption, len(options))
+			for _, opt := range options {
+				optByName[opt.Name] = opt
+			}
+
+			for _, iface := range tt.wantDiskKeys {
+				opt, ok := optByName[iface]
+				require.Truef(t, ok, "expected option for disk interface %q to be present", iface)
+				// Value must be a non-empty string in Proxmox disk config format.
+				strVal, isStr := opt.Value.(string)
+				require.Truef(t, isStr, "disk option value for %q should be a string", iface)
+				assert.NotEmpty(t, strVal, "disk option value for %q should not be empty", iface)
+			}
+
+			for _, iface := range tt.wantNoDiskKeys {
+				_, ok := optByName[iface]
+				assert.Falsef(t, ok, "unexpected option for existing disk interface %q", iface)
+			}
+		})
+	}
+}
