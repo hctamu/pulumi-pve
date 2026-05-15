@@ -42,4 +42,3 @@ provider/cmd/pulumi-resource-pve/__debug_*
 .claude
 PLAN.MD
 sessionfile
-PLAN.md

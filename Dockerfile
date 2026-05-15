@@ -1,4 +1,4 @@
-FROM pulumi/pulumi-provider-build-environment:3.232.0-amd64
+FROM pulumi/pulumi-provider-build-environment:3.239.0-amd64
 
 # The base image hard-codes XDG_CACHE_HOME and XDG_CONFIG_HOME to /root in
 # /etc/environment. Remove them so tools fall back to the running user's home
