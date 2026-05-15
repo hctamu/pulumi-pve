@@ -128,9 +128,7 @@ func (vm *VM) Create(
 }
 
 // reconcileDisksAfterClone adjusts the cloned VM's disks to match the desired inputs.
-// It resizes disks whose size differs, removes unwanted disks, and copies existing
-// file IDs into the inputs so that ApplyConfig uses the cloned disks rather than
-// creating new ones.
+// It delegates regular disk reconciliation to reconcileDisks and handles EFI disk separately.
 func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMInputs) error {
 	vmID := *inputs.VMID
 	node := inputs.Node
@@ -140,37 +138,8 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 		return fmt.Errorf("failed to get current disks after clone: %w", err)
 	}
 
-	// Build set of desired disk interfaces.
-	desiredInterfaces := make(map[string]struct{}, len(inputs.Disks))
-	for _, disk := range inputs.Disks {
-		if disk != nil {
-			desiredInterfaces[disk.Interface] = struct{}{}
-		}
-	}
-
-	// Reconcile each current disk.
-	for iface, currentDisk := range currentDisks {
-		if _, wanted := desiredInterfaces[iface]; wanted {
-			// Find the matching desired disk and reconcile.
-			for _, desired := range inputs.Disks {
-				if desired == nil || desired.Interface != iface {
-					continue
-				}
-				if desired.Size != currentDisk.Size {
-					if err := vm.VMOps.ResizeDisk(ctx, vmID, node, iface, desired.Size); err != nil {
-						return fmt.Errorf("failed to resize disk %s: %w", iface, err)
-					}
-				}
-				// Copy file ID so ApplyConfig uses the existing cloned disk.
-				desired.FileID = currentDisk.FileID
-				break
-			}
-		} else {
-			// Remove disk not present in desired inputs.
-			if err := vm.VMOps.RemoveDisk(ctx, vmID, node, iface); err != nil {
-				return fmt.Errorf("failed to remove unwanted disk %s: %w", iface, err)
-			}
-		}
+	if err := vm.reconcileDisks(ctx, vmID, node, inputs.Disks, currentDisks); err != nil {
+		return err
 	}
 
 	// Handle EFI disk reconciliation.
@@ -183,6 +152,65 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 		inputs.EfiDisk.FileID = currentEfi.FileID
 	}
 
+	return nil
+}
+
+// reconcileDisks reconciles the desired disk slice against the current live disk map.
+// It removes disks absent from desired, resizes disks that have grown, and propagates
+// current FileIDs into the desired pointers so that the subsequent config call uses
+// existing disk images instead of creating new ones.
+//
+// DiskShrunk and DiskStorageChanged return errors: Proxmox does not support these
+// operations. At Update time they are caught earlier by disksDiff during Diff.
+func (vm *VM) reconcileDisks(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	desired []*proxmox.Disk,
+	currentMap map[string]proxmox.Disk,
+) error {
+	// Convert value map to pointer slice for CompareDisksByInterface.
+	currentSlice := make([]*proxmox.Disk, 0, len(currentMap))
+	for iface := range currentMap {
+		d := currentMap[iface]
+		currentSlice = append(currentSlice, &d)
+	}
+
+	changes := proxmox.CompareDisksByInterface(desired, currentSlice)
+	for i := range changes {
+		change := &changes[i]
+		switch change.Type {
+		case proxmox.DiskRemoved:
+			if err := vm.VMOps.RemoveDisk(ctx, vmID, node, change.Interface); err != nil {
+				return fmt.Errorf("failed to remove disk %s: %w", change.Interface, err)
+			}
+		case proxmox.DiskResized:
+			if err := vm.VMOps.ResizeDisk(ctx, vmID, node, change.Interface, change.Desired.Size); err != nil {
+				return fmt.Errorf("failed to resize disk %s: %w", change.Interface, err)
+			}
+			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
+				change.Desired.FileID = change.Current.FileID
+			}
+		case proxmox.DiskUnchanged, proxmox.DiskFileIDChanged:
+			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
+				change.Desired.FileID = change.Current.FileID
+			}
+		case proxmox.DiskAdded:
+			// No pre-action; the subsequent config call provisions the new disk.
+		case proxmox.DiskShrunk:
+			return fmt.Errorf(
+				"disk %s: shrinking disks is not supported by Proxmox; "+
+					"increase the size or replace the resource",
+				change.Interface,
+			)
+		case proxmox.DiskStorageChanged:
+			return fmt.Errorf(
+				"disk %s: storage migration is not supported yet; "+
+					"recreate the disk on the target storage",
+				change.Interface,
+			)
+		}
+	}
 	return nil
 }
 
@@ -409,6 +437,16 @@ func (vm *VM) Update(
 		return response, errors.New("VMOperations not configured")
 	}
 
+	// Get current live disks and reconcile: remove deleted disks, resize grown disks,
+	// and propagate live FileIDs into inputs so UpdateConfig reuses existing disks.
+	currentDisks, _, err := vm.VMOps.GetCurrentDisks(ctx, *vmID, request.Inputs.Node)
+	if err != nil {
+		return response, fmt.Errorf("failed to get current disks: %w", err)
+	}
+	if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, currentDisks); err != nil {
+		return response, err
+	}
+
 	// Remove EFI disk if the user removed it from inputs but it exists in state.
 	if request.Inputs.EfiDisk == nil && request.State.EfiDisk != nil {
 		if err := vm.VMOps.RemoveEfiDisk(ctx, *vmID, request.Inputs.Node); err != nil {
@@ -416,8 +454,7 @@ func (vm *VM) Update(
 		}
 	}
 
-	err := vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs)
-	return response, err
+	return response, vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs)
 }
 
 // Delete deletes the virtual machine.
