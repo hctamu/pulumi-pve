@@ -31,6 +31,9 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
+// disksInputName is the pulumi property name used for disk diff tracking.
+const disksInputName = "disks"
+
 // VM represents a Proxmox virtual machine resource.
 type VM struct {
 	Client proxmox.Client
@@ -474,45 +477,42 @@ func (vm *VM) Delete(
 	return response, err
 }
 
-// disksChanged compares two disk slices and returns true if they have meaningful changes.
-// FileID differences are ignored when the input FileID is nil (computed field).
-func disksChanged(inputDisks, stateDisks []*proxmox.Disk) bool {
-	if len(inputDisks) != len(stateDisks) {
-		return true
+// disksDiff compares desired and current disk slices using interface-based identity.
+// It returns a map of property diffs keyed by "disks.<interface>", and returns an
+// error at Diff time for unsupported operations (shrink, storage migration).
+func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDiff, error) {
+	changes := proxmox.CompareDisksByInterface(inputDisks, stateDisks)
+	diffs := make(map[string]p.PropertyDiff)
+
+	for _, change := range changes {
+		key := disksInputName + "." + change.Interface
+		switch change.Type {
+		case proxmox.DiskAdded:
+			diffs[key] = p.PropertyDiff{Kind: p.Add}
+		case proxmox.DiskRemoved:
+			diffs[key] = p.PropertyDiff{Kind: p.Delete}
+		case proxmox.DiskResized:
+			diffs[key] = p.PropertyDiff{Kind: p.Update}
+		case proxmox.DiskFileIDChanged:
+			diffs[key] = p.PropertyDiff{Kind: p.Update}
+		case proxmox.DiskShrunk:
+			return nil, fmt.Errorf(
+				"disk %s: shrinking disks is not supported by Proxmox; "+
+					"increase the size or replace the resource",
+				change.Interface,
+			)
+		case proxmox.DiskStorageChanged:
+			return nil, fmt.Errorf(
+				"disk %s: storage migration is not supported yet; "+
+					"recreate the disk on the target storage",
+				change.Interface,
+			)
+		case proxmox.DiskUnchanged:
+			// no diff
+		}
 	}
 
-	for i := range inputDisks {
-		if i >= len(stateDisks) {
-			return true
-		}
-
-		input := inputDisks[i]
-		state := stateDisks[i]
-
-		// Compare non-FileID fields
-		if input.Storage != state.Storage {
-			return true
-		}
-		if input.Size != state.Size {
-			return true
-		}
-		if input.Interface != state.Interface {
-			return true
-		}
-
-		// Only compare FileID if input explicitly set it (not nil)
-		if input.FileID != nil && state.FileID != nil {
-			if *input.FileID != *state.FileID {
-				return true
-			}
-		} else if input.FileID != nil && state.FileID == nil {
-			// Input has FileID but state doesn't - this is a change
-			return true
-		}
-		// If input.FileID is nil but state.FileID has value, ignore it (computed field)
-	}
-
-	return false
+	return diffs, nil
 }
 
 // compareEfiDiskFields compares two EfiDisk instances and returns a map of property diffs
@@ -630,8 +630,18 @@ func (vm *VM) Diff(
 			}
 			// Handle EfiDisk with granular diff support
 			maps.Copy(diff, efiDiff)
+		case name == disksInputName:
+			inputDisks, okIn := inField.Interface().([]*proxmox.Disk)
+			stateDisks, okState := stateField.Interface().([]*proxmox.Disk)
+			if okIn && okState {
+				diskDiffs, err := disksDiff(inputDisks, stateDisks)
+				if err != nil {
+					return p.DiffResponse{}, err
+				}
+				maps.Copy(diff, diskDiffs)
+			}
 		case inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice:
-			// Handle slices (like Disks []*Disk)
+			// Handle remaining slices (e.g. Tags []string)
 			propertyDiff = compareSliceFields(name, inField, stateField)
 		case inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer:
 			// Handle pointer fields with special cases
@@ -695,20 +705,8 @@ func comparePointerFields(
 }
 
 // compareSliceFields compares slice fields and returns a PropertyDiff if they differ.
-// Returns nil if no difference found.
+// Disk slices are handled separately via disksDiff() in Diff(). Returns nil if no difference.
 func compareSliceFields(name string, inField, stateField reflect.Value) *p.PropertyDiff {
-	// Special handling for Disks slice - ignore FileID differences when input FileID is nil
-	if name == "disks" {
-		inputDisks, okIn := inField.Interface().([]*proxmox.Disk)
-		stateDisks, okState := stateField.Interface().([]*proxmox.Disk)
-		if okIn && okState && disksChanged(inputDisks, stateDisks) {
-			return &p.PropertyDiff{Kind: p.Update}
-		}
-		if okIn && okState {
-			return nil // No changes
-		}
-	}
-
 	// Compare tags order-insensitively: Proxmox returns tags sorted alphabetically regardless
 	// of the order the user specified, so ["web","prod"] and ["prod","web"] are the same set.
 	if name == "tags" {
