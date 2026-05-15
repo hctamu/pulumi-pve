@@ -1,4 +1,4 @@
-FROM pulumi/pulumi-provider-build-environment:3.232.0-amd64
+FROM pulumi/pulumi-provider-build-environment:3.239.0-amd64
 
 RUN apt-get update && apt-get install -y \
     zip \
