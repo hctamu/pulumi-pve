@@ -209,6 +209,134 @@ func (efiDisk EfiDisk) ValidateEfiType() error {
 	}
 }
 
+// DiskChangeType describes the kind of change detected between desired and current disk state.
+type DiskChangeType int
+
+const (
+	// DiskUnchanged means no change detected. It is the zero value so a zero-value DiskChange is safe by default.
+	DiskUnchanged DiskChangeType = iota
+	// DiskAdded means the disk is present in desired but absent from current.
+	DiskAdded
+	// DiskRemoved means the disk is present in current but absent from desired.
+	DiskRemoved
+	// DiskResized means the disk size increased.
+	DiskResized
+	// DiskShrunk means the disk size decreased. Proxmox does not support shrinking.
+	DiskShrunk
+	// DiskStorageChanged means the disk was moved to a different storage pool.
+	DiskStorageChanged
+	// DiskFileIDChanged means both desired and current have a non-nil FileID but they differ.
+	DiskFileIDChanged
+)
+
+// DiskChange describes a single detected change between desired and current disk state.
+type DiskChange struct {
+	// Interface is the Proxmox disk interface (e.g., "scsi0") — the stable identity key.
+	Interface string
+	// Type is the kind of change detected.
+	Type DiskChangeType
+	// Desired is the desired disk state (nil for DiskRemoved).
+	Desired *Disk
+	// Current is the current disk state (nil for DiskAdded).
+	Current *Disk
+}
+
+// CompareDisksByInterface compares desired and current disk lists keyed by Interface name
+// and returns a DiskChange entry for every interface seen in either list.
+//
+// Priority order when multiple fields change on the same disk:
+// StorageChanged > Resized/Shrunk > FileIDChanged > Unchanged
+//
+// FileID comparison rule: only compare FileID when desired.FileID != nil.
+// A nil desired FileID means the user did not set it (it is computed by Proxmox) — not a change.
+func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
+	desiredByIface := make(map[string]*Disk, len(desired))
+	for _, d := range desired {
+		if d != nil {
+			desiredByIface[d.Interface] = d
+		}
+	}
+
+	currentByIface := make(map[string]*Disk, len(current))
+	for _, d := range current {
+		if d != nil {
+			currentByIface[d.Interface] = d
+		}
+	}
+
+	var changes []DiskChange
+
+	// Disks present in current but absent from desired → removed.
+	for iface, cur := range currentByIface {
+		if _, ok := desiredByIface[iface]; !ok {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskRemoved,
+				Current:   cur,
+			})
+		}
+	}
+
+	// Disks present in desired — either added or compared against current.
+	for iface, des := range desiredByIface {
+		cur, exists := currentByIface[iface]
+		if !exists {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskAdded,
+				Desired:   des,
+			})
+			continue
+		}
+
+		// Storage change has highest priority.
+		if des.Storage != cur.Storage {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskStorageChanged,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		// Size change is next.
+		if des.Size != cur.Size {
+			changeType := DiskResized
+			if des.Size < cur.Size {
+				changeType = DiskShrunk
+			}
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      changeType,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		// Compare FileID only when desired is non-nil (nil means "let Proxmox assign it").
+		if des.FileID != nil && cur.FileID != nil && *des.FileID != *cur.FileID {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskFileIDChanged,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		changes = append(changes, DiskChange{
+			Interface: iface,
+			Type:      DiskUnchanged,
+			Desired:   des,
+			Current:   cur,
+		})
+	}
+
+	return changes
+}
+
 // VMInputs represents the input configuration for a virtual machine.
 type VMInputs struct {
 	Name        string   `pulumi:"name"`
