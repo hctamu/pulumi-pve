@@ -579,29 +579,14 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 
 	nodeName := "pve-node"
 	nextID := 500
-	diskFileID := "vm-500-disk-0"
-	efiFileID := "vm-500-efidisk"
 
 	ops := &mockVMOps{
-		createVMFunc: func(_ context.Context, inputs proxmox.VMInputs) error {
+		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
-		getFunc: func(
-			_ context.Context, id int, node *string, _ []*proxmox.Disk,
-		) (proxmox.VMInputs, error) {
-			return proxmox.VMInputs{
-				VMID: &id,
-				Node: testutils.Ptr(nodeName),
-				Disks: []*proxmox.Disk{{
-					Interface: "scsi0",
-					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
-					Size:      32,
-				}},
-				EfiDisk: &proxmox.EfiDisk{
-					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
-					EfiType:  proxmox.EfiType4M,
-				},
-			}, nil
+		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			t.Fatal("Create must not read VM state from API")
+			return proxmox.VMInputs{}, nil
 		},
 	}
 
@@ -624,11 +609,11 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "500", resp.ID)
 
-	// proxmox.VMOutputs contain computed VMID
+	// Outputs contain computed VMID resolved during create
 	require.NotNil(t, resp.Output.VMID)
 	assert.Equal(t, nextID, *resp.Output.VMID)
 
-	// proxmox.VMInputs should not contain computed VMID (user omitted it)
+	// Original request inputs should not have been mutated with computed VMID
 	assert.Nil(t, req.Inputs.VMID)
 }
 
@@ -786,4 +771,197 @@ func TestVMReadPreservesCloneFromInputs(t *testing.T) {
 			require.Equal(t, tt.wantClone, resp.State.Clone, "clone should be preserved in State")
 		})
 	}
+}
+
+func TestPreserveInputs_ZeroValueFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		state      proxmox.VMInputs
+		userInputs proxmox.VMInputs
+		check      func(t *testing.T, preserved proxmox.VMInputs)
+	}{
+		{
+			name: "balloon 0 preserved when API returns nil",
+			state: proxmox.VMInputs{
+				Balloon: nil, // API returned 0 → adapter returns nil
+			},
+			userInputs: proxmox.VMInputs{
+				Balloon: testutils.Ptr(0), // user explicitly disabled
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.Balloon)
+				assert.Equal(t, 0, *preserved.Balloon)
+			},
+		},
+		{
+			name: "balloon non-zero not overwritten",
+			state: proxmox.VMInputs{
+				Balloon: testutils.Ptr(256), // API returned 256
+			},
+			userInputs: proxmox.VMInputs{
+				Balloon: testutils.Ptr(512), // user wanted 512 (drift scenario)
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.Balloon)
+				assert.Equal(t, 256, *preserved.Balloon, "should keep API value for drift detection")
+			},
+		},
+		{
+			name: "autostart 0 preserved when API returns nil",
+			state: proxmox.VMInputs{
+				Autostart: nil,
+			},
+			userInputs: proxmox.VMInputs{
+				Autostart: testutils.Ptr(0),
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.Autostart)
+				assert.Equal(t, 0, *preserved.Autostart)
+			},
+		},
+		{
+			name: "autostart non-zero not overwritten",
+			state: proxmox.VMInputs{
+				Autostart: testutils.Ptr(1),
+			},
+			userInputs: proxmox.VMInputs{
+				Autostart: testutils.Ptr(0), // user wants disabled but API shows enabled
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.Autostart)
+				assert.Equal(t, 1, *preserved.Autostart, "should keep API value for drift detection")
+			},
+		},
+		{
+			name: "template 0 preserved when API returns nil",
+			state: proxmox.VMInputs{
+				Template: nil,
+			},
+			userInputs: proxmox.VMInputs{
+				Template: testutils.Ptr(0),
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.Template)
+				assert.Equal(t, 0, *preserved.Template)
+			},
+		},
+		{
+			name: "numa false preserved when API returns nil",
+			state: proxmox.VMInputs{
+				CPU: &proxmox.CPU{Cores: testutils.Ptr(2), Numa: nil},
+			},
+			userInputs: proxmox.VMInputs{
+				CPU: &proxmox.CPU{Cores: testutils.Ptr(2), Numa: testutils.Ptr(false)},
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.CPU)
+				require.NotNil(t, preserved.CPU.Numa)
+				assert.False(t, *preserved.CPU.Numa)
+			},
+		},
+		{
+			name: "numa not overwritten when API returns true",
+			state: proxmox.VMInputs{
+				CPU: &proxmox.CPU{Cores: testutils.Ptr(2), Numa: testutils.Ptr(true)},
+			},
+			userInputs: proxmox.VMInputs{
+				CPU: &proxmox.CPU{Cores: testutils.Ptr(2), Numa: testutils.Ptr(false)},
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				require.NotNil(t, preserved.CPU)
+				require.NotNil(t, preserved.CPU.Numa)
+				assert.True(t, *preserved.CPU.Numa, "should keep API value for drift detection")
+			},
+		},
+		{
+			name: "user nil fields stay nil",
+			state: proxmox.VMInputs{
+				Balloon:   nil,
+				Autostart: nil,
+				Template:  nil,
+			},
+			userInputs: proxmox.VMInputs{
+				Balloon:   nil, // user never set these
+				Autostart: nil,
+				Template:  nil,
+			},
+			check: func(t *testing.T, preserved proxmox.VMInputs) {
+				assert.Nil(t, preserved.Balloon)
+				assert.Nil(t, preserved.Autostart)
+				assert.Nil(t, preserved.Template)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			preserved := preserveInputs(tt.state, tt.userInputs)
+			tt.check(t, preserved)
+		})
+	}
+}
+
+func TestVMReadStatePreservesZeroValueFields(t *testing.T) {
+	t.Parallel()
+
+	vmID := 500
+	nodeName := "pve-node"
+
+	ops := &mockVMOps{
+		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			// Simulate API: returns nil for all zero-value fields
+			return proxmox.VMInputs{
+				VMID:      &id,
+				Node:      testutils.Ptr(nodeName),
+				Name:      "zero-val-vm",
+				Balloon:   nil, // API returned 0 → adapter intOrNil(0) = nil
+				Autostart: nil, // same
+				Template:  nil, // same
+				CPU:       &proxmox.CPU{Cores: testutils.Ptr(2), Numa: nil},
+			}, nil
+		},
+	}
+
+	vmRes := &VM{VMOps: ops, Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID}}
+	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID: "500",
+		Inputs: proxmox.VMInputs{
+			VMID:      testutils.Ptr(vmID),
+			Node:      &nodeName,
+			Balloon:   testutils.Ptr(0), // user explicitly disabled balloon
+			Autostart: testutils.Ptr(0), // user explicitly disabled autostart
+			Template:  testutils.Ptr(0), // user explicitly set not-template
+			CPU:       &proxmox.CPU{Cores: testutils.Ptr(2), Numa: testutils.Ptr(false)},
+		},
+		State: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{VMID: testutils.Ptr(vmID)}},
+	}
+
+	resp, err := vmRes.Read(context.Background(), req)
+	require.NoError(t, err)
+
+	// Inputs should have zero-value fields preserved
+	require.NotNil(t, resp.Inputs.Balloon)
+	assert.Equal(t, 0, *resp.Inputs.Balloon)
+	require.NotNil(t, resp.Inputs.Autostart)
+	assert.Equal(t, 0, *resp.Inputs.Autostart)
+	require.NotNil(t, resp.Inputs.Template)
+	assert.Equal(t, 0, *resp.Inputs.Template)
+	require.NotNil(t, resp.Inputs.CPU)
+	require.NotNil(t, resp.Inputs.CPU.Numa)
+	assert.False(t, *resp.Inputs.CPU.Numa)
+
+	// State (written to state file) must ALSO preserve these fields
+	// to prevent spurious diffs on next `pulumi up`
+	require.NotNil(t, resp.State.Balloon, "state file must record balloon=0")
+	assert.Equal(t, 0, *resp.State.Balloon)
+	require.NotNil(t, resp.State.Autostart, "state file must record autostart=0")
+	assert.Equal(t, 0, *resp.State.Autostart)
+	require.NotNil(t, resp.State.Template, "state file must record template=0")
+	assert.Equal(t, 0, *resp.State.Template)
+	require.NotNil(t, resp.State.CPU)
+	require.NotNil(t, resp.State.CPU.Numa, "state file must record numa=false")
+	assert.False(t, *resp.State.CPU.Numa)
 }
