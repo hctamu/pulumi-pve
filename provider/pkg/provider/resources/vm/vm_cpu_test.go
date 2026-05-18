@@ -687,24 +687,8 @@ func TestVMCreateWithCPU(t *testing.T) {
 			return nil
 		},
 		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-			return proxmox.VMInputs{
-				VMID: testutils.Ptr(vmID),
-				Name: "test-vm",
-				CPU: &proxmox.CPU{
-					Type:         testutils.Ptr("host"),
-					Cores:        testutils.Ptr(8),
-					Sockets:      testutils.Ptr(2),
-					Limit:        testutils.Ptr(4.0),
-					Units:        testutils.Ptr(2048),
-					Vcpus:        testutils.Ptr(16),
-					Numa:         testutils.Ptr(true),
-					FlagsEnabled: []string{"aes"},
-					NumaNodes: []proxmox.NumaNode{
-						{Cpus: "0-7", Memory: testutils.Ptr(2048)},
-						{Cpus: "8-15", Memory: testutils.Ptr(2048)},
-					},
-				},
-			}, nil
+			t.Fatal("Create must not read VM state from API")
+			return proxmox.VMInputs{}, nil
 		},
 	}
 

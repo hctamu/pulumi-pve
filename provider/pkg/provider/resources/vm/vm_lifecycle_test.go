@@ -1261,3 +1261,102 @@ func TestVMTemplateLifeCycle(t *testing.T) {
 	require.NotNil(t, createBody, "expected create POST to be captured")
 	assert.Equal(t, float64(1), createBody["template"], "create POST should include template=1")
 }
+
+// ---------------------------------------------------------------------------
+// CPU NUMA false lifecycle
+// ---------------------------------------------------------------------------
+
+// TestVMNumaFalseLifeCycle reproduces the reported bug where setting cpu.numa: false
+// causes a spurious diff on every subsequent `pulumi up`. The sequence is:
+//  1. Create VM with numa: false
+//  2. Update with identical inputs → must NOT trigger an update POST
+//
+// If the framework/provider drops *bool(false) during serialization round-trip,
+// this test will fail because Diff will see numa as "added".
+func TestVMNumaFalseLifeCycle(t *testing.T) {
+	t.Parallel()
+	if testing.Short() {
+		t.Skip("skipping lifecycle test in short mode")
+	}
+
+	var capture vmLifecycleCapture
+
+	// Proxmox API returns numa=0 (i.e. field absent or zero) when numa is disabled.
+	currentConfig := func() map[string]interface{} {
+		return map[string]interface{}{"cores": 2, "sockets": 1, "memory": 512}
+	}
+
+	var configPostCount int
+	var stateMu sync.Mutex
+	onPost := func(isCreate bool, body map[string]interface{}) {
+		stateMu.Lock()
+		defer stateMu.Unlock()
+		if !isCreate {
+			configPostCount++
+		}
+	}
+
+	server := newVMLifecycleServer(t, lifecycleNodeName, lifecycleVMIDStr,
+		currentConfig, onPost, &capture, "")
+	defer server.Close()
+
+	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
+
+	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	vmID := property.New(lifecycleVMID)
+	node := property.New(lifecycleNodeName)
+	name := property.New(lifecycleVMName)
+
+	cpuWithNumaFalse := property.New(property.NewMap(map[string]property.Value{
+		"cores":   property.New(float64(2)),
+		"sockets": property.New(float64(1)),
+		"numa":    property.New(false),
+	}))
+
+	integration.LifeCycleTest{
+		Resource: "pve:vm:VM",
+		Create: integration.Operation{
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":   name,
+				"vmId":   vmID,
+				"node":   node,
+				"memory": property.New(float64(512)),
+				"cpu":    cpuWithNumaFalse,
+				"disks":  emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outCPU := out.Get("cpu")
+				require.False(t, outCPU.IsNull(), "expected cpu in output after Create")
+				cpuMap := outCPU.AsMap()
+				numaVal := cpuMap.Get("numa")
+				require.False(t, numaVal.IsNull(), "numa: false must be preserved in Create output")
+				assert.False(t, numaVal.AsBool(), "numa should be false")
+			},
+		},
+		Updates: []integration.Operation{{
+			// Same inputs — no change expected
+			Inputs: property.NewMap(map[string]property.Value{
+				"name":   name,
+				"vmId":   vmID,
+				"node":   node,
+				"memory": property.New(float64(512)),
+				"cpu":    cpuWithNumaFalse,
+				"disks":  emptyDisks,
+			}),
+			Hook: func(_, out property.Map) {
+				outCPU := out.Get("cpu")
+				require.False(t, outCPU.IsNull(), "expected cpu in output after no-op Update")
+				cpuMap := outCPU.AsMap()
+				numaVal := cpuMap.Get("numa")
+				require.False(t, numaVal.IsNull(), "numa: false must be preserved after no-op Update")
+				assert.False(t, numaVal.AsBool(), "numa should still be false")
+			},
+		}},
+	}.Run(t, pulumiServer)
+
+	// The second operation should NOT have triggered a config POST because nothing changed.
+	stateMu.Lock()
+	posts := configPostCount
+	stateMu.Unlock()
+	assert.Equal(t, 0, posts, "no config POST expected when inputs are unchanged (numa: false round-trip)")
+}

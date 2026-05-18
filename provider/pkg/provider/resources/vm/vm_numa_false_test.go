@@ -40,14 +40,14 @@ func TestVMReadPreservesNumaFalse(t *testing.T) {
 
 	mockOps := &mockVMOperations{
 		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-			// Simulate what Proxmox returns: no numa nodes and numa=0 (or not set)
+			// Simulate what Proxmox returns: numa=0 means the field is nil in our domain model
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
 				Name: "numa-false-test",
 				CPU: &proxmox.CPU{
 					Cores:   testutils.Ptr(2),
 					Sockets: testutils.Ptr(1),
-					Numa:    nil, // API returns nil when numa is not set
+					Numa:    nil, // API returns nil when numa is 0 (disabled)
 				},
 			}, nil
 		},
@@ -58,7 +58,6 @@ func TestVMReadPreservesNumaFalse(t *testing.T) {
 		VMOps:  mockOps,
 	}
 
-	// User specified numa: false in their input
 	numaFalse := false
 	req := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
@@ -68,7 +67,7 @@ func TestVMReadPreservesNumaFalse(t *testing.T) {
 			CPU: &proxmox.CPU{
 				Cores:   testutils.Ptr(2),
 				Sockets: testutils.Ptr(1),
-				Numa:    &numaFalse,
+				Numa:    &numaFalse, // User specified numa: false
 			},
 		},
 	}
@@ -76,40 +75,32 @@ func TestVMReadPreservesNumaFalse(t *testing.T) {
 	resp, err := vmRes.Read(context.Background(), req)
 	require.NoError(t, err)
 
-	// Verify that numa: false is preserved in the Inputs (not changed to nil)
+	// preserveInputs must keep the user's explicit numa: false in Inputs
 	require.NotNil(t, resp.Inputs.CPU)
-	require.NotNil(t, resp.Inputs.CPU.Numa)
-	assert.False(t, *resp.Inputs.CPU.Numa, "numa should be preserved as false, not changed to nil")
+	require.NotNil(t, resp.Inputs.CPU.Numa, "numa: false must not be dropped to nil by preserveInputs")
+	assert.False(t, *resp.Inputs.CPU.Numa)
 
-	// Also verify in the State - since preserveInputs only affects Inputs,
-	// State will have what the API returned, but Inputs should match user intent
+	// State must also preserve user's numa: false so the state file records user intent
 	require.NotNil(t, resp.State.CPU)
+	require.NotNil(t, resp.State.CPU.Numa, "state must preserve numa: false for state file")
+	assert.False(t, *resp.State.CPU.Numa)
 }
 
-// TestVMCreatePreservesNumaFalseThenRead verifies the full lifecycle:
-// Create with numa: false, then read back and verify no spurious diff.
-func TestVMCreatePreservesNumaFalseThenRead(t *testing.T) {
+// TestVMCreatePreservesNumaFalse verifies that Create stores numa: false in the output
+// state without calling Get (the old readCurrentOutput behavior which masked user input).
+func TestVMCreatePreservesNumaFalse(t *testing.T) {
 	t.Parallel()
 
 	vmID := 100
 	nodeName := "pve-node"
 
 	mockOps := &mockVMOperations{
-		createVMFunc: func(_ context.Context, inputs proxmox.VMInputs) error {
+		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
 		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-			// After creation, Proxmox returns the VM state
-			// Numa field is nil because it was set to 0 (false) and there are no numa nodes
-			return proxmox.VMInputs{
-				VMID: testutils.Ptr(vmID),
-				Name: "numa-false-test",
-				CPU: &proxmox.CPU{
-					Cores:   testutils.Ptr(2),
-					Sockets: testutils.Ptr(1),
-					Numa:    nil, // This would previously be nil, not false
-				},
-			}, nil
+			t.Fatal("Create must not read VM state from API — that masked user inputs")
+			return proxmox.VMInputs{}, nil
 		},
 	}
 
@@ -118,7 +109,6 @@ func TestVMCreatePreservesNumaFalseThenRead(t *testing.T) {
 		VMOps:  mockOps,
 	}
 
-	// Create with numa: false
 	numaFalse := false
 	createReq := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "numa-false-test",
@@ -137,33 +127,8 @@ func TestVMCreatePreservesNumaFalseThenRead(t *testing.T) {
 	createResp, err := vmRes.Create(context.Background(), createReq)
 	require.NoError(t, err)
 
-	// Verify creation captured numa: false
+	// Output state must contain the user's numa: false, not nil
 	require.NotNil(t, createResp.Output.CPU)
-	require.NotNil(t, createResp.Output.CPU.Numa)
+	require.NotNil(t, createResp.Output.CPU.Numa, "Create output must preserve numa: false")
 	assert.False(t, *createResp.Output.CPU.Numa)
-
-	// Now do a read to simulate a subsequent pulumi up
-	readReq := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-		ID: "100",
-		Inputs: proxmox.VMInputs{
-			VMID: testutils.Ptr(vmID),
-			Node: &nodeName,
-			CPU: &proxmox.CPU{
-				Cores:   testutils.Ptr(2),
-				Sockets: testutils.Ptr(1),
-				Numa:    &numaFalse, // User still has numa: false
-			},
-		},
-		State: createResp.Output,
-	}
-
-	readResp, err := vmRes.Read(context.Background(), readReq)
-	require.NoError(t, err)
-
-	// Key verification: numa: false should be preserved
-	require.NotNil(t, readResp.Inputs.CPU)
-	require.NotNil(t, readResp.Inputs.CPU.Numa)
-	assert.False(t, *readResp.Inputs.CPU.Numa, "numa: false should be preserved through Read, not become nil")
-
-	// This ensures that a subsequent Update/Diff won't detect a spurious change
 }

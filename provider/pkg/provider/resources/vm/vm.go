@@ -226,6 +226,24 @@ func (vm *VM) Read(
 		response.State.Clone = request.State.Clone
 	}
 
+	// Preserve user-specified zero-value fields in state output so the state file
+	// records user intent for fields the API cannot distinguish from "not set".
+	if request.Inputs.Balloon != nil && response.State.Balloon == nil {
+		response.State.Balloon = request.Inputs.Balloon
+	}
+	if request.Inputs.Autostart != nil && response.State.Autostart == nil {
+		response.State.Autostart = request.Inputs.Autostart
+	}
+	if request.Inputs.Template != nil && response.State.Template == nil {
+		response.State.Template = request.Inputs.Template
+	}
+	if request.Inputs.CPU != nil && response.State.CPU != nil &&
+		request.Inputs.CPU.Numa != nil && response.State.CPU.Numa == nil {
+		cpu := *response.State.CPU
+		cpu.Numa = request.Inputs.CPU.Numa
+		response.State.CPU = &cpu
+	}
+
 	l.Debugf("VM read complete: %v", stateInputs.VMID)
 	return response, nil
 }
@@ -279,10 +297,24 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	}
 
 	preserved.Clone = userInputs.Clone // Clone info is not returned by API, always preserve from user inputs
-	// Preserve CPU.Numa field: user-specified numa setting is not derived from API response
+
+	// Preserve user-specified values for fields where the Proxmox API cannot
+	// distinguish "explicitly set to zero/false" from "not set at all" (fields use
+	// int with omitempty or the adapter's intOrNil/> 0 checks return nil for zero).
+	// We only fill in the user's value when the API returned nil, so that non-zero
+	// drift (e.g. someone changed balloon from 512→256) is still detected.
+	if userInputs.Balloon != nil && preserved.Balloon == nil {
+		preserved.Balloon = userInputs.Balloon
+	}
+	if userInputs.Autostart != nil && preserved.Autostart == nil {
+		preserved.Autostart = userInputs.Autostart
+	}
+	if userInputs.Template != nil && preserved.Template == nil {
+		preserved.Template = userInputs.Template
+	}
+
 	if userInputs.CPU != nil && preserved.CPU != nil {
-		// If the user specified numa (true or false), preserve it
-		if userInputs.CPU.Numa != nil {
+		if userInputs.CPU.Numa != nil && preserved.CPU.Numa == nil {
 			cpu := *preserved.CPU
 			cpu.Numa = userInputs.CPU.Numa
 			preserved.CPU = &cpu
