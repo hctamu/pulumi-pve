@@ -116,10 +116,12 @@ func (vm *VM) Create(
 		}
 	}
 
-	if response.Output, err = readCurrentOutput(ctx, vm, &request, vmID); err != nil {
-		l.Errorf("error reading VM after creation: %v", err)
-		return response, err
+	// Keep Create output aligned with user intent plus computed values resolved during create.
+	// Normalize empty tags to nil so state matches what the API reports.
+	if len(request.Inputs.Tags) == 0 {
+		request.Inputs.Tags = nil
 	}
+	response.Output = proxmox.VMOutputs{VMInputs: request.Inputs}
 
 	return response, nil
 }
@@ -183,36 +185,6 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 	return nil
 }
 
-// readCurrentOutput reads the current state of the VM after creation.
-func readCurrentOutput(
-	ctx context.Context,
-	vm *VM,
-	request *infer.CreateRequest[proxmox.VMInputs],
-	vmID int,
-) (proxmox.VMOutputs, error) {
-	state := proxmox.VMOutputs{VMInputs: request.Inputs}
-	state.VMID = &vmID
-	readRequest := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-		ID:     request.Name,
-		Inputs: request.Inputs,
-		State:  state,
-	}
-
-	readResponse, err := vm.Read(ctx, readRequest)
-	if err != nil {
-		return proxmox.VMOutputs{}, fmt.Errorf("failed to read VM after creation: %v", err)
-	}
-
-	currentOutput := readResponse.State
-
-	// Preserve clone configuration (not returned by Read) if user supplied it.
-	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
-		currentOutput.Clone = request.Inputs.Clone
-	}
-
-	return currentOutput, nil
-}
-
 // Read reads the state of the virtual machine.
 func (vm *VM) Read(
 	ctx context.Context,
@@ -256,6 +228,24 @@ func (vm *VM) Read(
 	// Preserve clone info from prior state (not derivable from VM config).
 	if request.State.Clone != nil && response.State.Clone == nil {
 		response.State.Clone = request.State.Clone
+	}
+
+	// Preserve user-specified zero-value fields in state output so the state file
+	// records user intent for fields the API cannot distinguish from "not set".
+	if request.Inputs.Balloon != nil && response.State.Balloon == nil {
+		response.State.Balloon = request.Inputs.Balloon
+	}
+	if request.Inputs.Autostart != nil && response.State.Autostart == nil {
+		response.State.Autostart = request.Inputs.Autostart
+	}
+	if request.Inputs.Template != nil && response.State.Template == nil {
+		response.State.Template = request.Inputs.Template
+	}
+	if request.Inputs.CPU != nil && response.State.CPU != nil &&
+		request.Inputs.CPU.Numa != nil && response.State.CPU.Numa == nil {
+		cpu := *response.State.CPU
+		cpu.Numa = request.Inputs.CPU.Numa
+		response.State.CPU = &cpu
 	}
 
 	l.Debugf("VM read complete: %v", stateInputs.VMID)
@@ -311,6 +301,29 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	}
 
 	preserved.Clone = userInputs.Clone // Clone info is not returned by API, always preserve from user inputs
+
+	// Preserve user-specified values for fields where the Proxmox API cannot
+	// distinguish "explicitly set to zero/false" from "not set at all" (fields use
+	// int with omitempty or the adapter's intOrNil/> 0 checks return nil for zero).
+	// We only fill in the user's value when the API returned nil, so that non-zero
+	// drift (e.g. someone changed balloon from 512→256) is still detected.
+	if userInputs.Balloon != nil && preserved.Balloon == nil {
+		preserved.Balloon = userInputs.Balloon
+	}
+	if userInputs.Autostart != nil && preserved.Autostart == nil {
+		preserved.Autostart = userInputs.Autostart
+	}
+	if userInputs.Template != nil && preserved.Template == nil {
+		preserved.Template = userInputs.Template
+	}
+
+	if userInputs.CPU != nil && preserved.CPU != nil {
+		if userInputs.CPU.Numa != nil && preserved.CPU.Numa == nil {
+			cpu := *preserved.CPU
+			cpu.Numa = userInputs.CPU.Numa
+			preserved.CPU = &cpu
+		}
+	}
 
 	return preserved
 }
