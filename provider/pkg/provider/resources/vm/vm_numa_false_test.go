@@ -87,7 +87,7 @@ func TestVMReadPreservesNumaFalse(t *testing.T) {
 }
 
 // TestVMCreatePreservesNumaFalse verifies that Create stores numa: false in the output
-// state without calling Get (the old readCurrentOutput behavior which masked user input).
+// state by reading back the VM and applying preserveInputs.
 func TestVMCreatePreservesNumaFalse(t *testing.T) {
 	t.Parallel()
 
@@ -98,9 +98,19 @@ func TestVMCreatePreservesNumaFalse(t *testing.T) {
 		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-			t.Fatal("Create must not read VM state from API — that masked user inputs")
-			return proxmox.VMInputs{}, nil
+		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			// Simulate what Proxmox returns: numa=0 means the field is nil in our domain model
+			return proxmox.VMInputs{
+				VMID: &id,
+				Name: "numa-false-test",
+				Node: testutils.Ptr(nodeName),
+				CPU: &proxmox.CPU{
+					Cores:   testutils.Ptr(2),
+					Sockets: testutils.Ptr(1),
+					Numa:    nil, // API returns nil when numa is 0 (disabled)
+				},
+				Disks: []*proxmox.Disk{},
+			}, nil
 		},
 	}
 

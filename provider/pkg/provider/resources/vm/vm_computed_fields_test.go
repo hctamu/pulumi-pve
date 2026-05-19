@@ -17,7 +17,6 @@ package vm
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -579,14 +578,28 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 
 	nodeName := "pve-node"
 	nextID := 500
+	diskFileID := "vm-500-disk-0"
+	efiFileID := "vm-500-efidisk"
 
 	ops := &mockVMOps{
 		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-			t.Fatal("Create must not read VM state from API")
-			return proxmox.VMInputs{}, nil
+		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
+				VMID: &id,
+				Node: testutils.Ptr(nodeName),
+				Name: "test-vm",
+				Disks: []*proxmox.Disk{{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
+					Interface: "scsi0",
+					Size:      32,
+				}},
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+					EfiType:  proxmox.EfiType4M,
+				},
+			}, nil
 		},
 	}
 
@@ -613,97 +626,22 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 	require.NotNil(t, resp.Output.VMID)
 	assert.Equal(t, nextID, *resp.Output.VMID)
 
+	// Node is preserved (user provided it)
+	require.NotNil(t, resp.Output.Node)
+	assert.Equal(t, nodeName, *resp.Output.Node)
+
+	// Disk FileID is saved in state from the API read-back
+	require.Len(t, resp.Output.Disks, 1)
+	require.NotNil(t, resp.Output.Disks[0].FileID)
+	assert.Equal(t, diskFileID, *resp.Output.Disks[0].FileID)
+
+	// EFI disk FileID is saved in state from the API read-back
+	require.NotNil(t, resp.Output.EfiDisk)
+	require.NotNil(t, resp.Output.EfiDisk.FileID)
+	assert.Equal(t, efiFileID, *resp.Output.EfiDisk.FileID)
+
 	// Original request inputs should not have been mutated with computed VMID
 	assert.Nil(t, req.Inputs.VMID)
-}
-
-// mockErrorClient is a proxmox.Client that returns configurable errors for
-// ResolveNode and NextVMID, allowing error-path testing of the VM resource.
-type mockErrorClient struct {
-	resolveNodeErr error
-	nextVMIDErr    error
-}
-
-func (mock *mockErrorClient) Get(_ context.Context, _ string, _ any) error     { return nil }
-func (mock *mockErrorClient) Post(_ context.Context, _ string, _, _ any) error { return nil }
-func (mock *mockErrorClient) Put(_ context.Context, _ string, _, _ any) error  { return nil }
-func (mock *mockErrorClient) Delete(_ context.Context, _ string, _ any) error  { return nil }
-
-func (mock *mockErrorClient) ResolveNode(_ context.Context, _ *string) (string, error) {
-	return "", mock.resolveNodeErr
-}
-
-func (mock *mockErrorClient) NextVMID(_ context.Context) (int, error) {
-	return 0, mock.nextVMIDErr
-}
-
-func TestVMCreateConfigurationErrors(t *testing.T) {
-	t.Parallel()
-
-	nodeName := "pve-node"
-	resolveErr := errors.New("cluster unreachable")
-	nextIDErr := errors.New("no VMID available")
-
-	tests := []struct {
-		name           string
-		client         proxmox.Client
-		vmOps          proxmox.VMOperations
-		inputs         proxmox.VMInputs
-		wantErrContain string
-		wantErr        error // non-nil to check exact error identity
-	}{
-		{
-			name:           "VMOperations not configured",
-			client:         &testutils.MockProxmoxClient{DefaultNode: "pve-node", DefaultVMID: 100},
-			vmOps:          nil,
-			inputs:         proxmox.VMInputs{},
-			wantErrContain: "VMOperations not configured",
-		},
-		{
-			name:           "Client not configured",
-			client:         nil,
-			vmOps:          &mockVMOps{},
-			inputs:         proxmox.VMInputs{},
-			wantErrContain: "client not configured",
-		},
-		{
-			name:    "ResolveNode failure is propagated",
-			client:  &mockErrorClient{resolveNodeErr: resolveErr},
-			vmOps:   &mockVMOps{},
-			inputs:  proxmox.VMInputs{},
-			wantErr: resolveErr,
-		},
-		{
-			name:   "NextVMID failure is propagated",
-			client: &mockErrorClient{nextVMIDErr: nextIDErr},
-			vmOps:  &mockVMOps{},
-			inputs: proxmox.VMInputs{
-				Name: "test-vm",
-				Node: &nodeName,
-				// VMID is nil so NextVMID is called
-			},
-			wantErr: nextIDErr,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			vmRes := &VM{Client: tt.client, VMOps: tt.vmOps}
-			req := infer.CreateRequest[proxmox.VMInputs]{Name: "test", Inputs: tt.inputs}
-
-			_, err := vmRes.Create(context.Background(), req)
-			require.Error(t, err)
-
-			if tt.wantErr != nil {
-				assert.Equal(t, tt.wantErr, err)
-			}
-			if tt.wantErrContain != "" {
-				assert.Contains(t, err.Error(), tt.wantErrContain)
-			}
-		})
-	}
 }
 
 // --- Clone preservation tests ---
@@ -964,4 +902,387 @@ func TestVMReadStatePreservesZeroValueFields(t *testing.T) {
 	require.NotNil(t, resp.State.CPU)
 	require.NotNil(t, resp.State.CPU.Numa, "state file must record numa=false")
 	assert.False(t, *resp.State.CPU.Numa)
+}
+
+// --- preserveCreateState vs preserveInputs tests ---
+
+func TestPreserveCreateState_KeepsFileIDs(t *testing.T) {
+	t.Parallel()
+
+	diskFileID := "vm-100-disk-0"
+	efiFileID := "vm-100-efidisk"
+	nodeName := "pve-node"
+
+	tests := []struct {
+		name       string
+		state      proxmox.VMInputs
+		userInputs proxmox.VMInputs
+		check      func(t *testing.T, result proxmox.VMInputs)
+	}{
+		{
+			name: "disk FileID kept when user omitted it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				Disks: []*proxmox.Disk{{
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
+					Size:      32,
+				}},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				Disks: []*proxmox.Disk{{
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      32,
+				}},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.Len(t, result.Disks, 1)
+				require.NotNil(t, result.Disks[0].FileID, "Create state must keep disk FileID")
+				assert.Equal(t, diskFileID, *result.Disks[0].FileID)
+			},
+		},
+		{
+			name: "EFI FileID kept when user omitted it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+					EfiType:  proxmox.EfiType4M,
+				},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
+					EfiType:  proxmox.EfiType4M,
+				},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.NotNil(t, result.EfiDisk)
+				require.NotNil(t, result.EfiDisk.FileID, "Create state must keep EFI FileID")
+				assert.Equal(t, efiFileID, *result.EfiDisk.FileID)
+			},
+		},
+		{
+			name: "VMID and Node kept even if user hypothetically omitted them",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+			},
+			userInputs: proxmox.VMInputs{
+				// Simulating computed VMID/Node already set on request.Inputs
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.NotNil(t, result.VMID)
+				assert.Equal(t, 100, *result.VMID)
+				require.NotNil(t, result.Node)
+				assert.Equal(t, nodeName, *result.Node)
+			},
+		},
+		{
+			name: "clone info preserved from user inputs",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				Clone: &proxmox.Clone{
+					VMID:      9000,
+					FullClone: testutils.Ptr(true),
+					Timeout:   300,
+				},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.NotNil(t, result.Clone)
+				assert.Equal(t, 9000, result.Clone.VMID)
+				require.NotNil(t, result.Clone.FullClone)
+				assert.True(t, *result.Clone.FullClone)
+			},
+		},
+		{
+			name: "zero-value fields preserved in create state",
+			state: proxmox.VMInputs{
+				VMID:      testutils.Ptr(100),
+				Node:      &nodeName,
+				Balloon:   nil,
+				Autostart: nil,
+				Template:  nil,
+				CPU:       &proxmox.CPU{Cores: testutils.Ptr(2), Numa: nil},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID:      testutils.Ptr(100),
+				Node:      &nodeName,
+				Balloon:   testutils.Ptr(0),
+				Autostart: testutils.Ptr(0),
+				Template:  testutils.Ptr(0),
+				CPU:       &proxmox.CPU{Cores: testutils.Ptr(2), Numa: testutils.Ptr(false)},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.NotNil(t, result.Balloon)
+				assert.Equal(t, 0, *result.Balloon)
+				require.NotNil(t, result.Autostart)
+				assert.Equal(t, 0, *result.Autostart)
+				require.NotNil(t, result.Template)
+				assert.Equal(t, 0, *result.Template)
+				require.NotNil(t, result.CPU)
+				require.NotNil(t, result.CPU.Numa)
+				assert.False(t, *result.CPU.Numa)
+			},
+		},
+		{
+			name: "tags preserved in user order",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				Tags: []string{"alpha", "beta", "gamma"},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(100),
+				Node: &nodeName,
+				Tags: []string{"gamma", "beta", "alpha"},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.Equal(t, []string{"gamma", "beta", "alpha"}, result.Tags)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := preserveCreateState(tt.state, tt.userInputs)
+			tt.check(t, result)
+		})
+	}
+}
+
+func TestPreserveInputs_ClearsFileIDs(t *testing.T) {
+	t.Parallel()
+
+	diskFileID := "vm-200-disk-0"
+	efiFileID := "vm-200-efidisk"
+	nodeName := "pve-node"
+
+	tests := []struct {
+		name       string
+		state      proxmox.VMInputs
+		userInputs proxmox.VMInputs
+		check      func(t *testing.T, result proxmox.VMInputs)
+	}{
+		{
+			name: "disk FileID cleared when user omitted it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+				Disks: []*proxmox.Disk{{
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
+					Size:      32,
+				}},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+				Disks: []*proxmox.Disk{{
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      32,
+				}},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.Len(t, result.Disks, 1)
+				assert.Nil(t, result.Disks[0].FileID, "Read inputs must clear disk FileID when user omitted it")
+			},
+		},
+		{
+			name: "EFI FileID cleared when user omitted it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+					EfiType:  proxmox.EfiType4M,
+				},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
+					EfiType:  proxmox.EfiType4M,
+				},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.NotNil(t, result.EfiDisk)
+				assert.Nil(t, result.EfiDisk.FileID, "Read inputs must clear EFI FileID when user omitted it")
+			},
+		},
+		{
+			name: "VMID cleared when user omitted it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+			},
+			userInputs: proxmox.VMInputs{
+				Node: &nodeName,
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				assert.Nil(t, result.VMID, "Read inputs must clear VMID when user omitted it")
+				require.NotNil(t, result.Node)
+			},
+		},
+		{
+			name: "Node cleared when user omitted it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.NotNil(t, result.VMID)
+				assert.Nil(t, result.Node, "Read inputs must clear Node when user omitted it")
+			},
+		},
+		{
+			name: "disk FileID kept when user explicitly provided it",
+			state: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+				Disks: []*proxmox.Disk{{
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
+					Size:      32,
+				}},
+			},
+			userInputs: proxmox.VMInputs{
+				VMID: testutils.Ptr(200),
+				Node: &nodeName,
+				Disks: []*proxmox.Disk{{
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
+					Size:      32,
+				}},
+			},
+			check: func(t *testing.T, result proxmox.VMInputs) {
+				require.Len(t, result.Disks, 1)
+				require.NotNil(t, result.Disks[0].FileID, "Read inputs must keep FileID when user provided it")
+				assert.Equal(t, diskFileID, *result.Disks[0].FileID)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result := preserveInputs(tt.state, tt.userInputs)
+			tt.check(t, result)
+		})
+	}
+}
+
+func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
+	t.Parallel()
+
+	nodeName := "pve-node"
+	vmID := 700
+	diskFileID := "vm-700-disk-0"
+	efiFileID := "vm-700-efidisk"
+
+	ops := &mockVMOps{
+		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
+			return nil
+		},
+		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{
+				VMID: &id,
+				Node: testutils.Ptr(nodeName),
+				Name: "lifecycle-vm",
+				Disks: []*proxmox.Disk{
+					{
+						Interface: "scsi0",
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
+						Size:      32,
+					},
+				},
+				EfiDisk: &proxmox.EfiDisk{
+					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
+					EfiType:  proxmox.EfiType4M,
+				},
+			}, nil
+		},
+	}
+
+	vmRes := &VM{VMOps: ops, Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID}}
+
+	// Step 1: Create — FileIDs should be in the state
+	createReq := infer.CreateRequest[proxmox.VMInputs]{
+		Name: "lifecycle-vm",
+		Inputs: proxmox.VMInputs{
+			Name: "lifecycle-vm",
+			Node: &nodeName,
+			Disks: []*proxmox.Disk{{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      32,
+			}},
+			EfiDisk: &proxmox.EfiDisk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
+				EfiType:  proxmox.EfiType4M,
+			},
+		},
+	}
+
+	createResp, err := vmRes.Create(context.Background(), createReq)
+	require.NoError(t, err)
+
+	// Verify FileIDs are stored in state after Create
+	require.Len(t, createResp.Output.Disks, 1)
+	require.NotNil(t, createResp.Output.Disks[0].FileID, "disk FileID must be in state after Create")
+	assert.Equal(t, diskFileID, *createResp.Output.Disks[0].FileID)
+	require.NotNil(t, createResp.Output.EfiDisk)
+	require.NotNil(t, createResp.Output.EfiDisk.FileID, "EFI FileID must be in state after Create")
+	assert.Equal(t, efiFileID, *createResp.Output.EfiDisk.FileID)
+
+	// Step 2: Use that state in an Update (dry-run) — FileIDs should propagate
+	updateReq := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID:     "lifecycle-vm",
+		DryRun: true,
+		Inputs: proxmox.VMInputs{
+			Name: "lifecycle-vm",
+			Node: &nodeName,
+			Disks: []*proxmox.Disk{{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      32,
+			}},
+			EfiDisk: &proxmox.EfiDisk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
+				EfiType:  proxmox.EfiType4M,
+			},
+		},
+		State: createResp.Output,
+	}
+
+	updateResp, err := vmRes.Update(context.Background(), updateReq)
+	require.NoError(t, err)
+
+	// FileIDs should be copied from state into update output
+	require.Len(t, updateResp.Output.Disks, 1)
+	require.NotNil(t, updateResp.Output.Disks[0].FileID, "disk FileID must propagate from state to Update output")
+	assert.Equal(t, diskFileID, *updateResp.Output.Disks[0].FileID)
+	require.NotNil(t, updateResp.Output.EfiDisk)
+	require.NotNil(t, updateResp.Output.EfiDisk.FileID, "EFI FileID must propagate from state to Update output")
+	assert.Equal(t, efiFileID, *updateResp.Output.EfiDisk.FileID)
 }

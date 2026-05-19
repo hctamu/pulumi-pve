@@ -116,12 +116,15 @@ func (vm *VM) Create(
 		}
 	}
 
-	// Keep Create output aligned with user intent plus computed values resolved during create.
-	// Normalize empty tags to nil so state matches what the API reports.
-	if len(request.Inputs.Tags) == 0 {
-		request.Inputs.Tags = nil
+	// Read back the VM from the API to capture computed fields (disk FileIDs, etc.)
+	stateInputs, err := vm.VMOps.Get(ctx, *request.Inputs.VMID, request.Inputs.Node, request.Inputs.Disks)
+	if err != nil {
+		l.Errorf("error reading VM %v after creation: %v", *request.Inputs.VMID, err)
+		return response, err
 	}
-	response.Output = proxmox.VMOutputs{VMInputs: request.Inputs}
+
+	// Build Create output from full API state, preserving computed FileIDs in the stack.
+	response.Output = proxmox.VMOutputs{VMInputs: preserveCreateState(stateInputs, request.Inputs)}
 
 	return response, nil
 }
@@ -260,13 +263,29 @@ func (vm *VM) Read(
 //   - EFI disk FileID is cleared when the user supplied an EFI disk without a FileID.
 //   - Newly discovered disks/EFI (not present in userInputs) retain their FileIDs.
 func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+	return applyPreservation(state, userInputs, true)
+}
+
+// preserveCreateState builds the output state for Create by keeping the full API state
+// (including computed disk/EFI FileIDs) while applying user-intent corrections for
+// fields the API cannot represent (clone info, zero-value fields, tag ordering).
+func preserveCreateState(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+	return applyPreservation(state, userInputs, false)
+}
+
+// applyPreservation is the shared implementation for preserveInputs and preserveCreateState.
+// When clearComputed is true, VMID/Node and disk FileIDs are cleared for fields the user
+// did not explicitly provide (Read path). When false, all computed values are kept (Create path).
+func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) proxmox.VMInputs {
 	preserved := state
 
-	if userInputs.VMID == nil {
-		preserved.VMID = nil
-	}
-	if userInputs.Node == nil {
-		preserved.Node = nil
+	if clearComputed {
+		if userInputs.VMID == nil {
+			preserved.VMID = nil
+		}
+		if userInputs.Node == nil {
+			preserved.Node = nil
+		}
 	}
 
 	userByInterface := make(map[string]*proxmox.Disk, len(userInputs.Disks))
@@ -281,14 +300,16 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 			continue
 		}
 		preservedDisk := *disk
-		if userDisk, ok := userByInterface[disk.Interface]; ok && userDisk.FileID == nil {
-			preservedDisk.FileID = nil
+		if clearComputed {
+			if userDisk, ok := userByInterface[disk.Interface]; ok && userDisk.FileID == nil {
+				preservedDisk.FileID = nil
+			}
 		}
 		preservedDisks = append(preservedDisks, &preservedDisk)
 	}
 	preserved.Disks = preservedDisks
 
-	if preserved.EfiDisk != nil && userInputs.EfiDisk != nil && userInputs.EfiDisk.FileID == nil {
+	if clearComputed && preserved.EfiDisk != nil && userInputs.EfiDisk != nil && userInputs.EfiDisk.FileID == nil {
 		efi := *preserved.EfiDisk
 		efi.FileID = nil
 		preserved.EfiDisk = &efi
@@ -298,6 +319,11 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	// preserve the user's original ordering so that refreshes don't trigger phantom diffs.
 	if !utils.StringSliceChanged(state.Tags, userInputs.Tags) {
 		preserved.Tags = userInputs.Tags
+	}
+
+	// Normalize empty tags to nil so state matches what the API reports.
+	if len(preserved.Tags) == 0 {
+		preserved.Tags = nil
 	}
 
 	preserved.Clone = userInputs.Clone // Clone info is not returned by API, always preserve from user inputs
