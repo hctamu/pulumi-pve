@@ -218,6 +218,7 @@ func (vm *VM) reconcileDisks(
 	}
 	return nil
 }
+
 // Read reads the state of the virtual machine.
 func (vm *VM) Read(
 	ctx context.Context,
@@ -492,7 +493,18 @@ func (vm *VM) Update(
 		}
 	}
 
-	return response, vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs)
+	if err := vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs); err != nil {
+		return response, err
+	}
+
+	// Re-read live state to capture computed fields (e.g. filenames for newly-added disks).
+	liveOutput, err := vm.readCurrentState(ctx, request.ID, request.Inputs)
+	if err != nil {
+		l.Errorf("error reading VM after update: %v", err)
+		return response, err
+	}
+	response.Output = liveOutput
+	return response, nil
 }
 
 // Delete deletes the virtual machine.
