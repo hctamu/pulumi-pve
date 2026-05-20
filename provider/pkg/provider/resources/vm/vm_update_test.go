@@ -343,3 +343,143 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 		})
 	}
 }
+
+// TestVMUpdateCapturesLiveStateAfterUpdate verifies that after a successful Update(),
+// the response output reflects the live state read from Proxmox, including computed
+// fields such as filenames for newly-added disks.
+func TestVMUpdateCapturesLiveStateAfterUpdate(t *testing.T) {
+	t.Parallel()
+
+	const testVMID = 100
+	testNode := testutils.Ptr("pve-node")
+	liveFileID0 := "local-lvm:vm-100-disk-0"
+	liveFileID1 := "local-lvm:vm-100-disk-1"
+
+	ops := &mockVMOperations{
+		getCurrentDisksFunc: func(
+			_ context.Context, _ int, _ *string,
+		) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+			// Only scsi0 exists before the update; scsi1 is being added.
+			return map[string]proxmox.Disk{
+				"scsi0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &liveFileID0},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			}, nil, nil
+		},
+		getFunc: func(
+			_ context.Context, vmID int, _ *string, _ []*proxmox.Disk,
+		) (proxmox.VMInputs, error) {
+			// After UpdateConfig, Proxmox reports both disks with their filenames.
+			return proxmox.VMInputs{
+				VMID: &vmID,
+				Name: "test-vm",
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &liveFileID0},
+						Size:      20,
+						Interface: "scsi0",
+					},
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &liveFileID1},
+						Size:      30,
+						Interface: "scsi1",
+					},
+				},
+			}, nil
+		},
+	}
+
+	vmID := testVMID
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID: "test-vm",
+		Inputs: proxmox.VMInputs{
+			Name: "test-vm",
+			Node: testNode,
+			VMID: &vmID,
+			Disks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "scsi1"},
+			},
+		},
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
+				Name: "test-vm",
+				Node: testNode,
+				VMID: &vmID,
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &liveFileID0},
+						Size:      20,
+						Interface: "scsi0",
+					},
+				},
+			},
+		},
+	}
+
+	vmInstance := &vmResource.VM{VMOps: ops}
+	resp, err := vmInstance.Update(context.Background(), req)
+	require.NoError(t, err)
+
+	// Build a lookup map from interface name to disk.
+	disksByIface := make(map[string]*proxmox.Disk, len(resp.Output.Disks))
+	for _, d := range resp.Output.Disks {
+		if d != nil {
+			disksByIface[d.Interface] = d
+		}
+	}
+
+	// The newly added scsi1 must have the live filename captured from Proxmox.
+	scsi1 := disksByIface["scsi1"]
+	require.NotNil(t, scsi1, "scsi1 should be present in resp.Output after re-read")
+	require.NotNil(t, scsi1.FileID, "scsi1 FileID should be set after re-read")
+	assert.Equal(t, liveFileID1, *scsi1.FileID)
+}
+
+// TestVMUpdateRereadErrorPropagates verifies that if the re-read after UpdateConfig
+// fails, Update() returns the error rather than silently swallowing it.
+func TestVMUpdateRereadErrorPropagates(t *testing.T) {
+	t.Parallel()
+
+	const testVMID = 100
+	testNode := testutils.Ptr("pve-node")
+
+	ops := &mockVMOperations{
+		getCurrentDisksFunc: func(
+			_ context.Context, _ int, _ *string,
+		) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+			return map[string]proxmox.Disk{}, nil, nil
+		},
+		getFunc: func(
+			_ context.Context, _ int, _ *string, _ []*proxmox.Disk,
+		) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{}, errors.New("proxmox unavailable")
+		},
+	}
+
+	vmID := testVMID
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID: "test-vm",
+		Inputs: proxmox.VMInputs{
+			Name:  "test-vm",
+			Node:  testNode,
+			VMID:  &vmID,
+			Disks: []*proxmox.Disk{},
+		},
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
+				Name:  "test-vm",
+				Node:  testNode,
+				VMID:  &vmID,
+				Disks: []*proxmox.Disk{},
+			},
+		},
+	}
+
+	vmInstance := &vmResource.VM{VMOps: ops}
+	_, err := vmInstance.Update(context.Background(), req)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "proxmox unavailable")
+}
