@@ -68,9 +68,9 @@ resources:
           interface: "scsi0"
         - storage: "ceph-ha"
           size: 17
-          interface: "scsi1"
+          interface: "scsi2"
         - storage: "ceph-ha"
-          size: 21
+          size: 22
           interface: "sata0"
       clone:
         vmId: 102
