@@ -483,3 +483,124 @@ func TestVMUpdateRereadErrorPropagates(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "proxmox unavailable")
 }
+
+// TestVMUpdateSkipsGetCurrentDisksWhenDisksUnchanged verifies that when the desired
+// disk list is identical to the prior state, GetCurrentDisks is never called.
+// This avoids a redundant Proxmox API round-trip on non-disk-related updates.
+func TestVMUpdateSkipsGetCurrentDisksWhenDisksUnchanged(t *testing.T) {
+	t.Parallel()
+
+	const testVMID = 100
+	testNode := testutils.Ptr("pve-node")
+	fileID := "local-lvm:vm-100-disk-0"
+
+	// getCurrentDisksFunc returns an error — if it is called the test will fail.
+	ops := &mockVMOperations{
+		getCurrentDisksFunc: func(
+			_ context.Context, _ int, _ *string,
+		) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+			return nil, nil, errors.New("GetCurrentDisks must not be called when disks are unchanged")
+		},
+		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{VMID: &id}, nil
+		},
+	}
+
+	vmID := testVMID
+	disk := &proxmox.Disk{
+		DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+		Size:      20,
+		Interface: "scsi0",
+	}
+	stateDisk := &proxmox.Disk{
+		DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
+		Size:      20,
+		Interface: "scsi0",
+	}
+
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID: "test-vm",
+		Inputs: proxmox.VMInputs{
+			Name:   "test-vm",
+			Node:   testNode,
+			VMID:   &vmID,
+			Disks:  []*proxmox.Disk{disk},
+			Memory: testutils.Ptr(4096), // only memory changed
+		},
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
+				Name:   "test-vm",
+				Node:   testNode,
+				VMID:   &vmID,
+				Disks:  []*proxmox.Disk{stateDisk},
+				Memory: testutils.Ptr(2048),
+			},
+		},
+	}
+
+	vmInstance := &vmResource.VM{VMOps: ops}
+	_, err := vmInstance.Update(context.Background(), req)
+	require.NoError(t, err, "Update must succeed without calling GetCurrentDisks")
+}
+
+// TestVMUpdateCallsGetCurrentDisksWhenDisksChanged verifies that GetCurrentDisks IS
+// called when the desired disk list differs from the prior state (disk added here).
+func TestVMUpdateCallsGetCurrentDisksWhenDisksChanged(t *testing.T) {
+	t.Parallel()
+
+	const testVMID = 100
+	testNode := testutils.Ptr("pve-node")
+	fileID := "local-lvm:vm-100-disk-0"
+
+	var getCurrentDisksCalled bool
+	ops := &mockVMOperations{
+		getCurrentDisksFunc: func(
+			_ context.Context, _ int, _ *string,
+		) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
+			getCurrentDisksCalled = true
+			return map[string]proxmox.Disk{
+				"scsi0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			}, nil, nil
+		},
+		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			return proxmox.VMInputs{VMID: &id}, nil
+		},
+	}
+
+	vmID := testVMID
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID: "test-vm",
+		Inputs: proxmox.VMInputs{
+			Name: "test-vm",
+			Node: testNode,
+			VMID: &vmID,
+			Disks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "scsi1"}, // new
+			},
+		},
+		State: proxmox.VMOutputs{
+			VMInputs: proxmox.VMInputs{
+				Name: "test-vm",
+				Node: testNode,
+				VMID: &vmID,
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
+						Size:      20,
+						Interface: "scsi0",
+					},
+				},
+			},
+		},
+	}
+
+	vmInstance := &vmResource.VM{VMOps: ops}
+	_, err := vmInstance.Update(context.Background(), req)
+	require.NoError(t, err)
+	assert.True(t, getCurrentDisksCalled, "GetCurrentDisks must be called when a disk is added")
+}
