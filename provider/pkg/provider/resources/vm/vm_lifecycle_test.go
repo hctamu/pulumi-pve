@@ -891,9 +891,10 @@ func TestVMAutostartLifeCycle(t *testing.T) {
 				"disks":     emptyDisks,
 			}),
 			Hook: func(_, out property.Map) {
-				// Update builds output from user inputs directly, so explicit 0 is preserved.
+				// After update, output comes from re-reading Proxmox. Proxmox omits
+				// autostart=0 in GET responses (json:",omitempty"), so the field is null.
 				outAutostart := out.Get("autostart")
-				assert.Equal(t, float64(0), outAutostart.AsNumber(), "expected autostart=0 in update output")
+				assert.True(t, outAutostart.IsNull(), "expected autostart to be null in update output (Proxmox omits 0)")
 			},
 		}},
 	}.Run(t, pulumiServer)
