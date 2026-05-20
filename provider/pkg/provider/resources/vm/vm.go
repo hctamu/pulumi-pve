@@ -476,14 +476,18 @@ func (vm *VM) Update(
 		return response, errors.New("VMOperations not configured")
 	}
 
-	// Get current live disks and reconcile: remove deleted disks, resize grown disks,
-	// and propagate live FileIDs into inputs so UpdateConfig reuses existing disks.
-	currentDisks, _, err := vm.VMOps.GetCurrentDisks(ctx, *vmID, request.Inputs.Node)
-	if err != nil {
-		return response, fmt.Errorf("failed to get current disks: %w", err)
-	}
-	if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, currentDisks); err != nil {
-		return response, err
+	// Only fetch live disk state and reconcile when the desired disk list actually
+	// differs from the last-known state. This avoids an unnecessary Proxmox API
+	// round-trip on every update that only touches non-disk properties (memory,
+	// CPU, tags, etc.).
+	if disksNeedReconciliation(request.Inputs, request.State.VMInputs) {
+		currentDisks, _, err := vm.VMOps.GetCurrentDisks(ctx, *vmID, request.Inputs.Node)
+		if err != nil {
+			return response, fmt.Errorf("failed to get current disks: %w", err)
+		}
+		if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, currentDisks); err != nil {
+			return response, err
+		}
 	}
 
 	// Remove EFI disk if the user removed it from inputs but it exists in state.
@@ -523,6 +527,20 @@ func (vm *VM) Delete(
 
 	err := vm.VMOps.Delete(ctx, *request.State.VMID, request.State.Node)
 	return response, err
+}
+
+// disksNeedReconciliation reports whether the desired disk list differs from the
+// prior state in any way that requires live Proxmox API calls (add, remove, resize,
+// storage change, shrink, or FileID change). When it returns false, GetCurrentDisks
+// and reconcileDisks can be skipped safely during Update.
+func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
+	changes := proxmox.CompareDisksByInterface(inputs.Disks, state.Disks)
+	for _, change := range changes {
+		if change.Type != proxmox.DiskUnchanged {
+			return true
+		}
+	}
+	return false
 }
 
 // disksDiff compares desired and current disk slices using interface-based identity.
