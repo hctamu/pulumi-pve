@@ -171,7 +171,13 @@ func (disk *Disk) Annotate(a infer.Annotator) {
 	a.Describe(&disk.Storage, "Target storage pool for the disk (e.g., local-lvm, ceph-pool).")
 	a.Describe(&disk.FileID, "File name of the disk image (computed by Proxmox if not provided).")
 	a.Describe(&disk.Size, "Disk size in gigabytes.")
-	a.Describe(&disk.Interface, "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).")
+	a.Describe(
+		&disk.Interface,
+		"Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). "+
+			"This field is the stable identity key for the disk: changing it is treated as "+
+			"removing the old disk (permanently deleting the image) and adding a new empty disk. "+
+			"To move data between slots, perform the migration manually in Proxmox.",
+	)
 }
 
 // EfiType represents the EFI type for an EFI disk.
@@ -374,7 +380,14 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.CPU, "CPU configuration including type, topology, and feature flags.")
 	a.Describe(&inputs.Memory, "Memory size in megabytes.")
 	a.Describe(&inputs.Balloon, "Minimum memory for ballooning in megabytes (0 disables the balloon device).")
-	a.Describe(&inputs.Disks, "List of disk configurations attached to the virtual machine.")
+	a.Describe(
+		&inputs.Disks,
+		"List of disk configurations attached to the virtual machine. "+
+			"Each disk is identified by its interface slot (e.g., scsi0). "+
+			"Disks can be added or removed freely, and sizes can only be increased. "+
+			"Changing the interface field of an existing disk is data-destructive: "+
+			"the old disk image is permanently deleted and a new empty disk is provisioned.",
+	)
 	a.Describe(&inputs.Clone, "Clone configuration for creating the VM from a source template or VM.")
 }
 

@@ -165,6 +165,10 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 // current FileIDs into the desired pointers so that the subsequent config call uses
 // existing disk images instead of creating new ones.
 //
+// Matching is keyed by Interface. Changing a disk's Interface field therefore results in
+// RemoveDisk (permanently deletes the image) followed by a new empty disk being provisioned
+// by UpdateConfig. See the Disk.Interface annotation for the user-facing description.
+//
 // DiskShrunk and DiskStorageChanged return errors: Proxmox does not support these
 // operations. At Update time they are caught earlier by disksDiff during Diff.
 func (vm *VM) reconcileDisks(
@@ -546,6 +550,7 @@ func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
 // disksDiff compares desired and current disk slices using interface-based identity.
 // It returns a map of property diffs keyed by "disks.<interface>", and returns an
 // error at Diff time for unsupported operations (shrink, storage migration).
+// See the Disk.Interface annotation for the user-facing data-loss warning on interface renames.
 func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDiff, error) {
 	changes := proxmox.CompareDisksByInterface(inputDisks, stateDisks)
 	diffs := make(map[string]p.PropertyDiff)
