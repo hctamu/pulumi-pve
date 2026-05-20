@@ -214,6 +214,30 @@ func (vm *VM) reconcileDisks(
 	return nil
 }
 
+// readCurrentState fetches the live VM state by performing a Read operation.
+// inputs must have VMID populated; Node is forwarded when set.
+// Clone is preserved from inputs since it is never returned by the Proxmox API.
+func (vm *VM) readCurrentState(
+	ctx context.Context,
+	id string,
+	inputs proxmox.VMInputs,
+) (proxmox.VMOutputs, error) {
+	readReq := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID:     id,
+		Inputs: inputs,
+		State:  proxmox.VMOutputs{VMInputs: inputs},
+	}
+	readResp, err := vm.Read(ctx, readReq)
+	if err != nil {
+		return proxmox.VMOutputs{}, fmt.Errorf("failed to read VM state: %w", err)
+	}
+	output := readResp.State
+	if inputs.Clone != nil && output.Clone == nil {
+		output.Clone = inputs.Clone
+	}
+	return output, nil
+}
+
 // readCurrentOutput reads the current state of the VM after creation.
 func readCurrentOutput(
 	ctx context.Context,
@@ -221,27 +245,9 @@ func readCurrentOutput(
 	request *infer.CreateRequest[proxmox.VMInputs],
 	vmID int,
 ) (proxmox.VMOutputs, error) {
-	state := proxmox.VMOutputs{VMInputs: request.Inputs}
-	state.VMID = &vmID
-	readRequest := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-		ID:     request.Name,
-		Inputs: request.Inputs,
-		State:  state,
-	}
-
-	readResponse, err := vm.Read(ctx, readRequest)
-	if err != nil {
-		return proxmox.VMOutputs{}, fmt.Errorf("failed to read VM after creation: %v", err)
-	}
-
-	currentOutput := readResponse.State
-
-	// Preserve clone configuration (not returned by Read) if user supplied it.
-	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
-		currentOutput.Clone = request.Inputs.Clone
-	}
-
-	return currentOutput, nil
+	inputs := request.Inputs
+	inputs.VMID = &vmID
+	return vm.readCurrentState(ctx, request.Name, inputs)
 }
 
 // Read reads the state of the virtual machine.
@@ -454,7 +460,18 @@ func (vm *VM) Update(
 		}
 	}
 
-	return response, vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs)
+	if err := vm.VMOps.UpdateConfig(ctx, *vmID, request.Inputs.Node, request.Inputs, request.State.VMInputs); err != nil {
+		return response, err
+	}
+
+	// Re-read live state to capture computed fields (e.g. filenames for newly-added disks).
+	liveOutput, err := vm.readCurrentState(ctx, request.ID, request.Inputs)
+	if err != nil {
+		l.Errorf("error reading VM after update: %v", err)
+		return response, err
+	}
+	response.Output = liveOutput
+	return response, nil
 }
 
 // Delete deletes the virtual machine.
