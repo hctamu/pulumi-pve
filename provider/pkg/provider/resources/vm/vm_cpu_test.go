@@ -590,6 +590,13 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 				updateConfigCalled = true
 				return nil
 			},
+			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				return proxmox.VMInputs{
+					VMID: &id,
+					Name: "test-vm",
+					CPU:  &proxmox.CPU{Type: testutils.Ptr("host"), Cores: testutils.Ptr(4)},
+				}, nil
+			},
 		},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
@@ -632,7 +639,23 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 	nodeName := "pve-node"
 
 	vmRes := &vm.VM{
-		VMOps: &mockVMOperations{},
+		VMOps: &mockVMOperations{
+			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				return proxmox.VMInputs{
+					VMID: &id,
+					Name: "test-vm",
+					CPU: &proxmox.CPU{
+						Type:  testutils.Ptr("host"),
+						Cores: testutils.Ptr(4),
+						Numa:  testutils.Ptr(true),
+						NumaNodes: []proxmox.NumaNode{
+							{Cpus: "0-1", Memory: testutils.Ptr(2048)},
+							{Cpus: "2-3", Memory: testutils.Ptr(2048)},
+						},
+					},
+				}, nil
+			},
+		},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",

@@ -254,6 +254,16 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 				updateConfigCalled = true
 				return nil
 			},
+			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				return proxmox.VMInputs{
+					VMID: &id,
+					Name: "test-vm",
+					EfiDisk: &proxmox.EfiDisk{
+						DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+						EfiType:  proxmox.EfiType4M,
+					},
+				}, nil
+			},
 		},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
@@ -296,7 +306,19 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 	nodeName := "pve-node"
 
 	vmRes := &vmResource.VM{
-		VMOps: &mockVMOperations{},
+		VMOps: &mockVMOperations{
+			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				return proxmox.VMInputs{
+					VMID: &id,
+					Name: "test-vm",
+					EfiDisk: &proxmox.EfiDisk{
+						DiskBase:        proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+						EfiType:         proxmox.EfiType4M,
+						PreEnrolledKeys: testutils.Ptr(true),
+					},
+				}, nil
+			},
+		},
 	}
 	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID: "100",
