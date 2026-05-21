@@ -92,6 +92,13 @@ func (vm *VM) Create(
 
 	vmID := *request.Inputs.VMID
 
+	// Validate disk flag / interface compatibility before any API calls.
+	for _, d := range request.Inputs.Disks {
+		if err := proxmox.ValidateDiskFlags(d); err != nil {
+			return response, err
+		}
+	}
+
 	if request.Inputs.Clone != nil {
 		// Clone flow: clone source VM, reconcile disks, then apply config.
 		if err := vm.VMOps.CloneVM(ctx, request.Inputs); err != nil {
@@ -201,6 +208,12 @@ func (vm *VM) reconcileDisks(
 				change.Desired.FileID = change.Current.FileID
 			}
 		case proxmox.DiskUnchanged, proxmox.DiskFileIDChanged:
+			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
+				change.Desired.FileID = change.Current.FileID
+			}
+		case proxmox.DiskFlagsChanged:
+			// No direct API call needed; BuildVMOptionsDiff re-emits the updated config string.
+			// Propagate the current FileID so the config call targets the existing disk image.
 			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
 				change.Desired.FileID = change.Current.FileID
 			}
@@ -467,6 +480,13 @@ func (vm *VM) Update(
 	// Propagate missing FileIDs from state to inputs to avoid recreating disks/efi disk
 	copyMissingDiskFileIDs(&request.Inputs, request.State.VMInputs)
 
+	// Validate disk flag / interface compatibility before doing any API work.
+	for _, d := range request.Inputs.Disks {
+		if err := proxmox.ValidateDiskFlags(d); err != nil {
+			return infer.UpdateResponse[proxmox.VMOutputs]{}, err
+		}
+	}
+
 	// Build outputs by copying computed fields from prior state where inputs omit them
 	response := infer.UpdateResponse[proxmox.VMOutputs]{
 		Output: buildOutputWithComputedFromState(request.Inputs, request.State.VMInputs),
@@ -552,6 +572,13 @@ func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
 // error at Diff time for unsupported operations (shrink, storage migration).
 // See the Disk.Interface annotation for the user-facing data-loss warning on interface renames.
 func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDiff, error) {
+	// Validate interface-type compatibility for all desired disks up front.
+	for _, d := range inputDisks {
+		if err := proxmox.ValidateDiskFlags(d); err != nil {
+			return nil, err
+		}
+	}
+
 	changes := proxmox.CompareDisksByInterface(inputDisks, stateDisks)
 	diffs := make(map[string]p.PropertyDiff)
 
@@ -563,6 +590,8 @@ func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDif
 		case proxmox.DiskRemoved:
 			diffs[key] = p.PropertyDiff{Kind: p.Delete}
 		case proxmox.DiskResized:
+			diffs[key] = p.PropertyDiff{Kind: p.Update}
+		case proxmox.DiskFlagsChanged:
 			diffs[key] = p.PropertyDiff{Kind: p.Update}
 		case proxmox.DiskFileIDChanged:
 			diffs[key] = p.PropertyDiff{Kind: p.Update}
