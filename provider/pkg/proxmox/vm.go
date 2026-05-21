@@ -161,8 +161,16 @@ type DiskBase struct {
 // Disk represents a virtual machine disk configuration.
 type Disk struct {
 	DiskBase
-	Size      int    `pulumi:"size"`      // Size in Gigabytes (required for regular disks).
-	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
+	Size      int     `pulumi:"size"`               // Size in Gigabytes (required for regular disks).
+	Interface string  `pulumi:"interface"`          // Disk interface: "scsi0", "ide1", "virtio", etc.
+	Cache     *string `pulumi:"cache,optional"`     // Cache mode: none, writethrough, writeback, unsafe, directsync.
+	Aio       *string `pulumi:"aio,optional"`       // Async I/O mode: native, threads, io_uring.
+	Discard   *string `pulumi:"discard,optional"`   // Discard/TRIM: ignore, on.
+	IOThread  *bool   `pulumi:"iothread,optional"`  // Enable per-disk I/O thread (virtio/scsi only).
+	SSD       *bool   `pulumi:"ssd,optional"`       // Emulate SSD for the guest OS.
+	Backup    *bool   `pulumi:"backup,optional"`    // Include disk in backups (Proxmox default: true).
+	Replicate *bool   `pulumi:"replicate,optional"` // Include disk in replication (Proxmox default: true).
+	ReadOnly  *bool   `pulumi:"ro,optional"`        // Mount disk read-only.
 }
 
 // Annotate provides documentation for the Disk type.
@@ -178,6 +186,22 @@ func (disk *Disk) Annotate(a infer.Annotator) {
 			"removing the old disk (permanently deleting the image) and adding a new empty disk. "+
 			"To move data between slots, perform the migration manually in Proxmox.",
 	)
+	a.Describe(&disk.Cache, "Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. "+
+		"Omit to use the Proxmox default (no explicit cache setting).")
+	a.Describe(&disk.Aio, "Asynchronous I/O mode: native, threads, or io_uring. "+
+		"Omit to use the Proxmox default.")
+	a.Describe(&disk.Discard, "Discard/TRIM support: ignore (default) or on. "+
+		"Enable for thin-provisioned storage and SSDs to reclaim freed blocks.")
+	a.Describe(&disk.IOThread, "Enable a dedicated I/O thread for this disk. "+
+		"Only supported on scsi and virtio interfaces.")
+	a.Describe(&disk.SSD, "Emulate a solid-state drive for the guest OS (affects rotation rate hints). "+
+		"Supported on ide, sata, and scsi interfaces; not valid for virtio.")
+	a.Describe(&disk.Backup, "Include this disk in Proxmox backups. "+
+		"Defaults to true when omitted; set to false to exclude the disk from backups.")
+	a.Describe(&disk.Replicate, "Include this disk in Proxmox storage replication. "+
+		"Defaults to true when omitted; set to false to exclude the disk from replication.")
+	a.Describe(&disk.ReadOnly, "Mount this disk as read-only inside the guest. "+
+		"Only supported on scsi and virtio interfaces.")
 }
 
 // EfiType represents the EFI type for an EFI disk.
@@ -231,6 +255,11 @@ const (
 	DiskShrunk
 	// DiskStorageChanged means the disk was moved to a different storage pool.
 	DiskStorageChanged
+	// DiskFlagsChanged means one or more performance/management flag fields changed
+	// (cache, aio, discard, iothread, ssd, backup, replicate, ro).
+	// No direct Proxmox API call is required before UpdateConfig; the updated config
+	// string is re-emitted by BuildVMOptionsDiff.
+	DiskFlagsChanged
 	// DiskFileIDChanged means both desired and current have a non-nil FileID but they differ.
 	DiskFileIDChanged
 )
@@ -245,6 +274,57 @@ type DiskChange struct {
 	Desired *Disk
 	// Current is the current disk state (nil for DiskAdded).
 	Current *Disk
+}
+
+// diskIfaceType returns the bus prefix of a Proxmox disk interface string.
+// For example "scsi0" → "scsi", "virtio2" → "virtio", "ide3" → "ide", "sata1" → "sata".
+// Returns an empty string for unrecognised values.
+func diskIfaceType(iface string) string {
+	for _, prefix := range []string{"scsi", "virtio", "sata", "ide"} {
+		if len(iface) > len(prefix) && iface[:len(prefix)] == prefix {
+			return prefix
+		}
+	}
+	return ""
+}
+
+// ValidateDiskFlags returns an error if any flag on disk is incompatible with its
+// interface type according to the Proxmox API schema:
+//
+//   - iothread: scsi and virtio only
+//   - ro:       scsi and virtio only
+//   - ssd:      ide, sata, and scsi only (not virtio)
+func ValidateDiskFlags(disk *Disk) error {
+	if disk == nil {
+		return nil
+	}
+	iface := diskIfaceType(disk.Interface)
+
+	if disk.IOThread != nil {
+		if iface != "scsi" && iface != "virtio" {
+			return fmt.Errorf(
+				"disk %s: iothread is only supported on scsi and virtio interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	if disk.ReadOnly != nil {
+		if iface != "scsi" && iface != "virtio" {
+			return fmt.Errorf(
+				"disk %s: ro (read-only) is only supported on scsi and virtio interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	if disk.SSD != nil {
+		if iface == "virtio" {
+			return fmt.Errorf(
+				"disk %s: ssd emulation is not supported on virtio interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	return nil
 }
 
 // CompareDisksByInterface compares desired and current disk lists keyed by Interface name
@@ -321,6 +401,17 @@ func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
 			continue
 		}
 
+		// Flag fields (cache, aio, discard, iothread, ssd, backup, replicate, ro).
+		if diskFlagsChanged(des, cur) {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskFlagsChanged,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
 		// Compare FileID only when desired is non-nil (nil means "let Proxmox assign it").
 		if des.FileID != nil && cur.FileID != nil && *des.FileID != *cur.FileID {
 			changes = append(changes, DiskChange{
@@ -341,6 +432,38 @@ func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
 	}
 
 	return changes
+}
+
+// diskFlagsChanged reports whether any performance or data-management flag field
+// differs between desired and current. nil is treated as "not set" (Proxmox default);
+// a non-nil value means the user explicitly configured the option.
+func diskFlagsChanged(des, cur *Disk) bool {
+	boolDiff := func(a, b *bool) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	strDiff := func(a, b *string) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	return strDiff(des.Cache, cur.Cache) ||
+		strDiff(des.Aio, cur.Aio) ||
+		strDiff(des.Discard, cur.Discard) ||
+		boolDiff(des.IOThread, cur.IOThread) ||
+		boolDiff(des.SSD, cur.SSD) ||
+		boolDiff(des.Backup, cur.Backup) ||
+		boolDiff(des.Replicate, cur.Replicate) ||
+		boolDiff(des.ReadOnly, cur.ReadOnly)
 }
 
 // VMInputs represents the input configuration for a virtual machine.

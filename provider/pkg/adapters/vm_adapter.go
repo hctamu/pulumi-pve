@@ -525,22 +525,33 @@ func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmo
 		}
 	}
 
-	// Emit config options for disks that are new (present in desired inputs but absent
-	// from current state by interface name). Resize and removal are handled by direct
-	// API calls (ResizeDisk/RemoveDisk) before UpdateConfig is called; existing disks
-	// that are unchanged do not need to be re-sent to the config API.
-	currentByIface := make(map[string]struct{}, len(currentInputs.Disks))
+	// Emit config options for disk changes:
+	//   - New disks (in desired, absent from current): provision via storage:size format.
+	//   - Existing disks where the config string changed (flag edits): re-emit the full
+	//     config so Proxmox updates cache, aio, discard, iothread, ssd, backup, replicate, ro.
+	//   - Unchanged existing disks: skipped (no-op).
+	// Resize and removal are handled by direct API calls (ResizeDisk/RemoveDisk) before
+	// UpdateConfig is called and do not need to be re-emitted here.
+	currentByIface := make(map[string]*proxmox.Disk, len(currentInputs.Disks))
 	for _, d := range currentInputs.Disks {
 		if d != nil {
-			currentByIface[d.Interface] = struct{}{}
+			currentByIface[d.Interface] = d
 		}
 	}
 	for _, disk := range inputs.Disks {
 		if disk == nil {
 			continue
 		}
-		if _, exists := currentByIface[disk.Interface]; !exists {
-			diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
+		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
+		currentDisk, exists := currentByIface[disk.Interface]
+		if !exists {
+			// New disk: provision it.
+			options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+			continue
+		}
+		// Existing disk: re-emit only when the config string changed (e.g. flag edits).
+		_, currentConfig := ToProxmoxDiskKeyConfig(*currentDisk)
+		if diskConfig != currentConfig {
 			options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
 		}
 	}
@@ -752,6 +763,14 @@ func addOption[T comparable](name string, options *[]api.VirtualMachineOption, v
 	}
 }
 
+// boolToInt converts a bool to the Proxmox integer representation (1=true, 0=false).
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 // parsedDiskBase holds the common result of parsing a Proxmox disk config string.
 type parsedDiskBase struct {
 	proxmox.DiskBase
@@ -840,6 +859,37 @@ func ParseDiskConfig(disk *proxmox.Disk, diskConfig string) error {
 	}
 	disk.DiskBase = parsed.DiskBase
 	disk.Size = *parsed.Size
+
+	if v, ok := parsed.Extras["cache"]; ok {
+		disk.Cache = &v
+	}
+	if v, ok := parsed.Extras["aio"]; ok {
+		disk.Aio = &v
+	}
+	if v, ok := parsed.Extras["discard"]; ok {
+		disk.Discard = &v
+	}
+	if v, ok := parsed.Extras["iothread"]; ok {
+		b := v == "1"
+		disk.IOThread = &b
+	}
+	if v, ok := parsed.Extras["ssd"]; ok {
+		b := v == "1"
+		disk.SSD = &b
+	}
+	if v, ok := parsed.Extras["backup"]; ok {
+		b := v != "0"
+		disk.Backup = &b
+	}
+	if v, ok := parsed.Extras["replicate"]; ok {
+		b := v != "0"
+		disk.Replicate = &b
+	}
+	if v, ok := parsed.Extras["ro"]; ok {
+		b := v == "1"
+		disk.ReadOnly = &b
+	}
+
 	return nil
 }
 
@@ -1081,5 +1131,31 @@ func ToProxmoxDiskKeyConfig(disk proxmox.Disk) (diskKey, diskConfig string) {
 
 	diskKey = disk.Interface
 	diskConfig = fmt.Sprintf("file=%v,size=%v", fullDiskPath, disk.Size)
+
+	if disk.Cache != nil {
+		diskConfig += ",cache=" + *disk.Cache
+	}
+	if disk.Aio != nil {
+		diskConfig += ",aio=" + *disk.Aio
+	}
+	if disk.Discard != nil {
+		diskConfig += ",discard=" + *disk.Discard
+	}
+	if disk.IOThread != nil {
+		diskConfig += fmt.Sprintf(",iothread=%d", boolToInt(*disk.IOThread))
+	}
+	if disk.SSD != nil {
+		diskConfig += fmt.Sprintf(",ssd=%d", boolToInt(*disk.SSD))
+	}
+	if disk.Backup != nil {
+		diskConfig += fmt.Sprintf(",backup=%d", boolToInt(*disk.Backup))
+	}
+	if disk.Replicate != nil {
+		diskConfig += fmt.Sprintf(",replicate=%d", boolToInt(*disk.Replicate))
+	}
+	if disk.ReadOnly != nil {
+		diskConfig += fmt.Sprintf(",ro=%d", boolToInt(*disk.ReadOnly))
+	}
+
 	return
 }

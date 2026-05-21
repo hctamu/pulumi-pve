@@ -189,3 +189,75 @@ func TestCompareDisksByInterface(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateDiskFlags(t *testing.T) {
+	t.Parallel()
+
+	boolPtr := func(b bool) *bool { return &b }
+
+	tests := []struct {
+		name    string
+		disk    proxmox.Disk
+		wantErr string // empty means no error expected
+	}{
+		// iothread: allowed on scsi and virtio only
+		{name: "iothread on scsi0 ok", disk: proxmox.Disk{Interface: "scsi0", IOThread: boolPtr(true)}},
+		{name: "iothread on virtio0 ok", disk: proxmox.Disk{Interface: "virtio0", IOThread: boolPtr(true)}},
+		{
+			name:    "iothread on sata0 rejected",
+			disk:    proxmox.Disk{Interface: "sata0", IOThread: boolPtr(true)},
+			wantErr: "iothread is only supported on scsi and virtio interfaces",
+		},
+		{
+			name:    "iothread on ide1 rejected",
+			disk:    proxmox.Disk{Interface: "ide1", IOThread: boolPtr(false)},
+			wantErr: "iothread is only supported on scsi and virtio interfaces",
+		},
+
+		// ro: allowed on scsi and virtio only
+		{name: "ro on scsi1 ok", disk: proxmox.Disk{Interface: "scsi1", ReadOnly: boolPtr(true)}},
+		{name: "ro on virtio1 ok", disk: proxmox.Disk{Interface: "virtio1", ReadOnly: boolPtr(false)}},
+		{
+			name:    "ro on sata0 rejected",
+			disk:    proxmox.Disk{Interface: "sata0", ReadOnly: boolPtr(true)},
+			wantErr: "ro (read-only) is only supported on scsi and virtio interfaces",
+		},
+		{
+			name:    "ro on ide0 rejected",
+			disk:    proxmox.Disk{Interface: "ide0", ReadOnly: boolPtr(true)},
+			wantErr: "ro (read-only) is only supported on scsi and virtio interfaces",
+		},
+
+		// ssd: not allowed on virtio
+		{name: "ssd on scsi0 ok", disk: proxmox.Disk{Interface: "scsi0", SSD: boolPtr(true)}},
+		{name: "ssd on sata1 ok", disk: proxmox.Disk{Interface: "sata1", SSD: boolPtr(true)}},
+		{name: "ssd on ide0 ok", disk: proxmox.Disk{Interface: "ide0", SSD: boolPtr(false)}},
+		{
+			name:    "ssd on virtio0 rejected",
+			disk:    proxmox.Disk{Interface: "virtio0", SSD: boolPtr(true)},
+			wantErr: "ssd emulation is not supported on virtio interfaces",
+		},
+
+		// nil flags are always fine
+		{name: "nil flags on any interface ok", disk: proxmox.Disk{Interface: "sata0"}},
+
+		// nil disk is fine
+		{name: "nil disk ok"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var d *proxmox.Disk
+			if tt.disk.Interface != "" || tt.disk.IOThread != nil || tt.disk.ReadOnly != nil || tt.disk.SSD != nil {
+				d = &tt.disk
+			}
+			err := proxmox.ValidateDiskFlags(d)
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, tt.wantErr)
+			}
+		})
+	}
+}

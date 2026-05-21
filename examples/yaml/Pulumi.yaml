@@ -63,15 +63,35 @@ resources:
         efitype: "4m"
         preEnrolledKeys: false
       disks:
-        - storage: "ceph-ha"
-          size: 20
-          interface: "scsi0"
+        # scsi0: flip cache, remove discard, iothread=false, backup=true (remove→nil), replicate=true (remove→nil)
         - storage: "ceph-ha"
           size: 17
-          interface: "scsi2"
+          interface: "scsi0"
+          cache: "none"
+          iothread: false
+        # scsi1: change aio, ssd=false, ro=false, add backup=false
         - storage: "ceph-ha"
-          size: 22
+          size: 17
+          interface: "scsi1"
+          aio: "native"
+          ssd: false
+          ro: false
+          backup: false
+        # sata0: change cache, change aio, ssd=false, remove discard, restore backup (nil)
+        - storage: "ceph-ha"
+          size: 10
           interface: "sata0"
+          cache: "writeback"
+          aio: "io_uring"
+          ssd: false
+        # virtio0: change cache, remove discard, iothread=false, ro=false, add backup=false
+        - storage: "ceph-ha"
+          size: 10
+          interface: "virtio0"
+          cache: "writeback"
+          iothread: false
+          ro: false
+          backup: false
       clone:
         vmId: 102
         timeout: 360

@@ -3941,3 +3941,377 @@ func TestBuildVMOptionsDiffDisks(t *testing.T) {
 		})
 	}
 }
+
+// TestToProxmoxDiskKeyConfigFlags verifies that Group A and B flag fields are
+// correctly serialized into the Proxmox disk config string.
+func TestToProxmoxDiskKeyConfigFlags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		disk    proxmox.Disk
+		wantKey string
+		wantCfg string
+	}{
+		{
+			name: "cache=writeback",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      20,
+				Cache:     testutils.Ptr("writeback"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:20,size=20,cache=writeback",
+		},
+		{
+			name: "aio=io_uring",
+			disk: proxmox.Disk{
+				Interface: "virtio0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      32,
+				Aio:       testutils.Ptr("io_uring"),
+			},
+			wantKey: "virtio0",
+			wantCfg: "file=local-lvm:32,size=32,aio=io_uring",
+		},
+		{
+			name: "discard=on",
+			disk: proxmox.Disk{
+				Interface: "scsi1",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      50,
+				Discard:   testutils.Ptr("on"),
+			},
+			wantKey: "scsi1",
+			wantCfg: "file=local-lvm:50,size=50,discard=on",
+		},
+		{
+			name: "iothread=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				IOThread:  testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,iothread=1",
+		},
+		{
+			name: "ssd=true",
+			disk: proxmox.Disk{
+				Interface: "sata0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				SSD:       testutils.Ptr(true),
+			},
+			wantKey: "sata0",
+			wantCfg: "file=local-lvm:10,size=10,ssd=1",
+		},
+		{
+			name: "backup=false",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Backup:    testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,backup=0",
+		},
+		{
+			name: "replicate=false",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Replicate: testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,replicate=0",
+		},
+		{
+			name: "ro=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				ReadOnly:  testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,ro=1",
+		},
+		{
+			name: "multiple flags combined",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:      20,
+				Cache:     testutils.Ptr("writeback"),
+				Discard:   testutils.Ptr("on"),
+				IOThread:  testutils.Ptr(true),
+				Backup:    testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=ceph-ha:vm-100-disk-0,size=20,cache=writeback,discard=on,iothread=1,backup=0",
+		},
+		{
+			name: "nil flags produce no extra tokens",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotKey, gotCfg := adapters.ToProxmoxDiskKeyConfig(tt.disk)
+			require.Equal(t, tt.wantKey, gotKey)
+			require.Equal(t, tt.wantCfg, gotCfg)
+		})
+	}
+}
+
+// TestParseDiskConfigFlags verifies that Group A and B flag fields are correctly
+// deserialized from Proxmox disk config strings.
+func TestParseDiskConfigFlags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		diskConfig string
+		want       proxmox.Disk
+	}{
+		{
+			name:       "cache=writeback",
+			diskConfig: "local-lvm:vm-100-disk-0,size=20G,cache=writeback",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     20,
+				Cache:    testutils.Ptr("writeback"),
+			},
+		},
+		{
+			name:       "aio=io_uring",
+			diskConfig: "local-lvm:vm-100-disk-0,size=32G,aio=io_uring",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     32,
+				Aio:      testutils.Ptr("io_uring"),
+			},
+		},
+		{
+			name:       "discard=on",
+			diskConfig: "local-lvm:vm-100-disk-0,size=50G,discard=on",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     50,
+				Discard:  testutils.Ptr("on"),
+			},
+		},
+		{
+			name:       "iothread=1",
+			diskConfig: "local-lvm:vm-100-disk-0,size=10G,iothread=1",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     10,
+				IOThread: testutils.Ptr(true),
+			},
+		},
+		{
+			name:       "ssd=1",
+			diskConfig: "local-lvm:vm-100-disk-0,size=10G,ssd=1",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     10,
+				SSD:      testutils.Ptr(true),
+			},
+		},
+		{
+			name:       "backup=0",
+			diskConfig: "local-lvm:vm-100-disk-0,size=10G,backup=0",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     10,
+				Backup:   testutils.Ptr(false),
+			},
+		},
+		{
+			name:       "replicate=0",
+			diskConfig: "local-lvm:vm-100-disk-0,size=10G,replicate=0",
+			want: proxmox.Disk{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:      10,
+				Replicate: testutils.Ptr(false),
+			},
+		},
+		{
+			name:       "ro=1",
+			diskConfig: "local-lvm:vm-100-disk-0,size=10G,ro=1",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     10,
+				ReadOnly: testutils.Ptr(true),
+			},
+		},
+		{
+			name:       "multiple flags combined",
+			diskConfig: "ceph-ha:vm-116-disk-0,size=20G,cache=writeback,discard=on,iothread=1,backup=0",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "ceph-ha", FileID: testutils.Ptr("vm-116-disk-0")},
+				Size:     20,
+				Cache:    testutils.Ptr("writeback"),
+				Discard:  testutils.Ptr("on"),
+				IOThread: testutils.Ptr(true),
+				Backup:   testutils.Ptr(false),
+			},
+		},
+		{
+			name:       "no flags yields nil fields",
+			diskConfig: "local-lvm:vm-100-disk-0,size=20G",
+			want: proxmox.Disk{
+				DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:     20,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var got proxmox.Disk
+			require.NoError(t, adapters.ParseDiskConfig(&got, tt.diskConfig))
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestBuildVMOptionsDiffDiskFlagsChanged verifies that BuildVMOptionsDiff re-emits
+// the disk config when flag fields change on an existing disk, and does not emit
+// anything when flags are unchanged.
+func TestBuildVMOptionsDiffDiskFlagsChanged(t *testing.T) {
+	t.Parallel()
+
+	fileID := testutils.Ptr("ceph-ha:vm-100-disk-0")
+
+	tests := []struct {
+		name        string
+		inputDisk   proxmox.Disk
+		currentDisk proxmox.Disk
+		wantEmit    bool   // whether a config option should be emitted for scsi0
+		wantContain string // substring the emitted config must contain (when wantEmit=true)
+	}{
+		{
+			name: "cache added to existing disk",
+			inputDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+				Cache:     testutils.Ptr("writeback"),
+			},
+			currentDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+			},
+			wantEmit:    true,
+			wantContain: "cache=writeback",
+		},
+		{
+			name: "discard enabled on existing disk",
+			inputDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+				Discard:   testutils.Ptr("on"),
+			},
+			currentDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+			},
+			wantEmit:    true,
+			wantContain: "discard=on",
+		},
+		{
+			name: "backup disabled on existing disk",
+			inputDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+				Backup:    testutils.Ptr(false),
+			},
+			currentDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+			},
+			wantEmit:    true,
+			wantContain: "backup=0",
+		},
+		{
+			name: "no flag change — not re-emitted",
+			inputDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+				Cache:     testutils.Ptr("writeback"),
+			},
+			currentDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+				Cache:     testutils.Ptr("writeback"),
+			},
+			wantEmit: false,
+		},
+		{
+			name: "iothread added to existing disk",
+			inputDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+				IOThread:  testutils.Ptr(true),
+			},
+			currentDisk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: fileID},
+				Size:      20,
+			},
+			wantEmit:    true,
+			wantContain: "iothread=1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			inputs := proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.inputDisk}}
+			current := proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.currentDisk}}
+			options := adapters.BuildVMOptionsDiff(inputs, 100, &current)
+
+			var diskOpt *api.VirtualMachineOption
+			for i := range options {
+				if options[i].Name == "scsi0" {
+					diskOpt = &options[i]
+					break
+				}
+			}
+
+			if tt.wantEmit {
+				require.NotNil(t, diskOpt, "expected a config option for scsi0 to be emitted")
+				strVal, ok := diskOpt.Value.(string)
+				require.True(t, ok)
+				require.Contains(t, strVal, tt.wantContain)
+			} else {
+				require.Nil(t, diskOpt, "expected no config option for scsi0 (unchanged)")
+			}
+		})
+	}
+}
