@@ -116,10 +116,15 @@ func (vm *VM) Create(
 		}
 	}
 
-	if response.Output, err = readCurrentOutput(ctx, vm, &request, vmID); err != nil {
-		l.Errorf("error reading VM after creation: %v", err)
+	// Read back the VM from the API to capture computed fields (disk FileIDs, etc.)
+	stateInputs, err := vm.VMOps.Get(ctx, *request.Inputs.VMID, request.Inputs.Node, request.Inputs.Disks)
+	if err != nil {
+		l.Errorf("error reading VM %v after creation: %v", *request.Inputs.VMID, err)
 		return response, err
 	}
+
+	// Build Create output from full API state, preserving computed FileIDs in the stack.
+	response.Output = proxmox.VMOutputs{VMInputs: preserveCreateState(stateInputs, request.Inputs)}
 
 	return response, nil
 }
@@ -183,36 +188,6 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 	return nil
 }
 
-// readCurrentOutput reads the current state of the VM after creation.
-func readCurrentOutput(
-	ctx context.Context,
-	vm *VM,
-	request *infer.CreateRequest[proxmox.VMInputs],
-	vmID int,
-) (proxmox.VMOutputs, error) {
-	state := proxmox.VMOutputs{VMInputs: request.Inputs}
-	state.VMID = &vmID
-	readRequest := infer.ReadRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-		ID:     request.Name,
-		Inputs: request.Inputs,
-		State:  state,
-	}
-
-	readResponse, err := vm.Read(ctx, readRequest)
-	if err != nil {
-		return proxmox.VMOutputs{}, fmt.Errorf("failed to read VM after creation: %v", err)
-	}
-
-	currentOutput := readResponse.State
-
-	// Preserve clone configuration (not returned by Read) if user supplied it.
-	if request.Inputs.Clone != nil && currentOutput.Clone == nil {
-		currentOutput.Clone = request.Inputs.Clone
-	}
-
-	return currentOutput, nil
-}
-
 // Read reads the state of the virtual machine.
 func (vm *VM) Read(
 	ctx context.Context,
@@ -258,6 +233,24 @@ func (vm *VM) Read(
 		response.State.Clone = request.State.Clone
 	}
 
+	// Preserve user-specified zero-value fields in state output so the state file
+	// records user intent for fields the API cannot distinguish from "not set".
+	if request.Inputs.Balloon != nil && response.State.Balloon == nil {
+		response.State.Balloon = request.Inputs.Balloon
+	}
+	if request.Inputs.Autostart != nil && response.State.Autostart == nil {
+		response.State.Autostart = request.Inputs.Autostart
+	}
+	if request.Inputs.Template != nil && response.State.Template == nil {
+		response.State.Template = request.Inputs.Template
+	}
+	if request.Inputs.CPU != nil && response.State.CPU != nil &&
+		request.Inputs.CPU.Numa != nil && response.State.CPU.Numa == nil {
+		cpu := *response.State.CPU
+		cpu.Numa = request.Inputs.CPU.Numa
+		response.State.CPU = &cpu
+	}
+
 	l.Debugf("VM read complete: %v", stateInputs.VMID)
 	return response, nil
 }
@@ -270,13 +263,29 @@ func (vm *VM) Read(
 //   - EFI disk FileID is cleared when the user supplied an EFI disk without a FileID.
 //   - Newly discovered disks/EFI (not present in userInputs) retain their FileIDs.
 func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+	return applyPreservation(state, userInputs, true)
+}
+
+// preserveCreateState builds the output state for Create by keeping the full API state
+// (including computed disk/EFI FileIDs) while applying user-intent corrections for
+// fields the API cannot represent (clone info, zero-value fields, tag ordering).
+func preserveCreateState(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+	return applyPreservation(state, userInputs, false)
+}
+
+// applyPreservation is the shared implementation for preserveInputs and preserveCreateState.
+// When clearComputed is true, VMID/Node and disk FileIDs are cleared for fields the user
+// did not explicitly provide (Read path). When false, all computed values are kept (Create path).
+func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) proxmox.VMInputs {
 	preserved := state
 
-	if userInputs.VMID == nil {
-		preserved.VMID = nil
-	}
-	if userInputs.Node == nil {
-		preserved.Node = nil
+	if clearComputed {
+		if userInputs.VMID == nil {
+			preserved.VMID = nil
+		}
+		if userInputs.Node == nil {
+			preserved.Node = nil
+		}
 	}
 
 	userByInterface := make(map[string]*proxmox.Disk, len(userInputs.Disks))
@@ -291,14 +300,16 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 			continue
 		}
 		preservedDisk := *disk
-		if userDisk, ok := userByInterface[disk.Interface]; ok && userDisk.FileID == nil {
-			preservedDisk.FileID = nil
+		if clearComputed {
+			if userDisk, ok := userByInterface[disk.Interface]; ok && userDisk.FileID == nil {
+				preservedDisk.FileID = nil
+			}
 		}
 		preservedDisks = append(preservedDisks, &preservedDisk)
 	}
 	preserved.Disks = preservedDisks
 
-	if preserved.EfiDisk != nil && userInputs.EfiDisk != nil && userInputs.EfiDisk.FileID == nil {
+	if clearComputed && preserved.EfiDisk != nil && userInputs.EfiDisk != nil && userInputs.EfiDisk.FileID == nil {
 		efi := *preserved.EfiDisk
 		efi.FileID = nil
 		preserved.EfiDisk = &efi
@@ -310,7 +321,35 @@ func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 		preserved.Tags = userInputs.Tags
 	}
 
+	// Normalize empty tags to nil so state matches what the API reports.
+	if len(preserved.Tags) == 0 {
+		preserved.Tags = nil
+	}
+
 	preserved.Clone = userInputs.Clone // Clone info is not returned by API, always preserve from user inputs
+
+	// Preserve user-specified values for fields where the Proxmox API cannot
+	// distinguish "explicitly set to zero/false" from "not set at all" (fields use
+	// int with omitempty or the adapter's intOrNil/> 0 checks return nil for zero).
+	// We only fill in the user's value when the API returned nil, so that non-zero
+	// drift (e.g. someone changed balloon from 512→256) is still detected.
+	if userInputs.Balloon != nil && preserved.Balloon == nil {
+		preserved.Balloon = userInputs.Balloon
+	}
+	if userInputs.Autostart != nil && preserved.Autostart == nil {
+		preserved.Autostart = userInputs.Autostart
+	}
+	if userInputs.Template != nil && preserved.Template == nil {
+		preserved.Template = userInputs.Template
+	}
+
+	if userInputs.CPU != nil && preserved.CPU != nil {
+		if userInputs.CPU.Numa != nil && preserved.CPU.Numa == nil {
+			cpu := *preserved.CPU
+			cpu.Numa = userInputs.CPU.Numa
+			preserved.CPU = &cpu
+		}
+	}
 
 	return preserved
 }
