@@ -890,6 +890,39 @@ func ParseDiskConfig(disk *proxmox.Disk, diskConfig string) error {
 		disk.ReadOnly = &b
 	}
 
+	// Bandwidth (I/O throttle) fields.
+	var bw proxmox.DiskBandwidth
+	hasBW := false
+	parseMBps := func(key string, dst **float64) {
+		if v, ok := parsed.Extras[key]; ok {
+			f, err := strconv.ParseFloat(v, 64)
+			if err == nil {
+				*dst = &f
+				hasBW = true
+			}
+		}
+	}
+	parseIOPS := func(key string, dst **int) {
+		if v, ok := parsed.Extras[key]; ok {
+			n, err := strconv.Atoi(v)
+			if err == nil {
+				*dst = &n
+				hasBW = true
+			}
+		}
+	}
+	parseMBps("mbps_rd", &bw.MBpsRd)
+	parseMBps("mbps_rd_max", &bw.MBpsRdMax)
+	parseMBps("mbps_wr", &bw.MBpsWr)
+	parseMBps("mbps_wr_max", &bw.MBpsWrMax)
+	parseIOPS("iops_rd", &bw.IOPSRd)
+	parseIOPS("iops_rd_max", &bw.IOPSRdMax)
+	parseIOPS("iops_wr", &bw.IOPSWr)
+	parseIOPS("iops_wr_max", &bw.IOPSWrMax)
+	if hasBW {
+		disk.Bandwidth = &bw
+	}
+
 	return nil
 }
 
@@ -1156,6 +1189,32 @@ func ToProxmoxDiskKeyConfig(disk proxmox.Disk) (diskKey, diskConfig string) {
 	if disk.ReadOnly != nil {
 		diskConfig += fmt.Sprintf(",ro=%d", boolToInt(*disk.ReadOnly))
 	}
+	if bw := disk.Bandwidth; bw != nil {
+		if bw.MBpsRd != nil {
+			diskConfig += fmt.Sprintf(",mbps_rd=%g", *bw.MBpsRd)
+		}
+		if bw.MBpsRdMax != nil {
+			diskConfig += fmt.Sprintf(",mbps_rd_max=%g", *bw.MBpsRdMax)
+		}
+		if bw.MBpsWr != nil {
+			diskConfig += fmt.Sprintf(",mbps_wr=%g", *bw.MBpsWr)
+		}
+		if bw.MBpsWrMax != nil {
+			diskConfig += fmt.Sprintf(",mbps_wr_max=%g", *bw.MBpsWrMax)
+		}
+		if bw.IOPSRd != nil {
+			diskConfig += fmt.Sprintf(",iops_rd=%d", *bw.IOPSRd)
+		}
+		if bw.IOPSRdMax != nil {
+			diskConfig += fmt.Sprintf(",iops_rd_max=%d", *bw.IOPSRdMax)
+		}
+		if bw.IOPSWr != nil {
+			diskConfig += fmt.Sprintf(",iops_wr=%d", *bw.IOPSWr)
+		}
+		if bw.IOPSWrMax != nil {
+			diskConfig += fmt.Sprintf(",iops_wr_max=%d", *bw.IOPSWrMax)
+		}
+	}
 
-	return
+	return diskKey, diskConfig
 }

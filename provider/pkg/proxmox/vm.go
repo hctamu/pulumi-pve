@@ -152,6 +152,32 @@ func (clone *Clone) Annotate(a infer.Annotator) {
 	a.Describe(&clone.Timeout, "Timeout in seconds for the clone operation.")
 }
 
+// DiskBandwidth holds the I/O throttle limits.
+// All fields are optional; omitting a field leaves the Proxmox default (no limit).
+type DiskBandwidth struct {
+	MBpsRd    *float64 `pulumi:"mbpsRd,optional"`    // Read limit in MB/s.
+	MBpsRdMax *float64 `pulumi:"mbpsRdMax,optional"` // Read burst limit in MB/s.
+	MBpsWr    *float64 `pulumi:"mbpsWr,optional"`    // Write limit in MB/s.
+	MBpsWrMax *float64 `pulumi:"mbpsWrMax,optional"` // Write burst limit in MB/s.
+	IOPSRd    *int     `pulumi:"iopsRd,optional"`    // Read limit in operations/s.
+	IOPSRdMax *int     `pulumi:"iopsRdMax,optional"` // Read burst limit in operations/s.
+	IOPSWr    *int     `pulumi:"iopsWr,optional"`    // Write limit in operations/s.
+	IOPSWrMax *int     `pulumi:"iopsWrMax,optional"` // Write burst limit in operations/s.
+}
+
+// Annotate provides documentation for the DiskBandwidth type.
+func (bw *DiskBandwidth) Annotate(a infer.Annotator) {
+	a.Describe(&bw, "I/O throttle limits for the disk")
+	a.Describe(&bw.MBpsRd, "Read throughput limit in MB/s (0 = unlimited).")
+	a.Describe(&bw.MBpsRdMax, "Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.")
+	a.Describe(&bw.MBpsWr, "Write throughput limit in MB/s (0 = unlimited).")
+	a.Describe(&bw.MBpsWrMax, "Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.")
+	a.Describe(&bw.IOPSRd, "Read I/O operations per second limit (0 = unlimited).")
+	a.Describe(&bw.IOPSRdMax, "Read burst I/O operations per second limit.")
+	a.Describe(&bw.IOPSWr, "Write I/O operations per second limit (0 = unlimited).")
+	a.Describe(&bw.IOPSWrMax, "Write burst I/O operations per second limit.")
+}
+
 // DiskBase contains common fields shared between Disk and EfiDisk.
 type DiskBase struct {
 	Storage string  `pulumi:"storage"`
@@ -161,16 +187,17 @@ type DiskBase struct {
 // Disk represents a virtual machine disk configuration.
 type Disk struct {
 	DiskBase
-	Size      int     `pulumi:"size"`               // Size in Gigabytes (required for regular disks).
-	Interface string  `pulumi:"interface"`          // Disk interface: "scsi0", "ide1", "virtio", etc.
-	Cache     *string `pulumi:"cache,optional"`     // Cache mode: none, writethrough, writeback, unsafe, directsync.
-	Aio       *string `pulumi:"aio,optional"`       // Async I/O mode: native, threads, io_uring.
-	Discard   *string `pulumi:"discard,optional"`   // Discard/TRIM: ignore, on.
-	IOThread  *bool   `pulumi:"iothread,optional"`  // Enable per-disk I/O thread (virtio/scsi only).
-	SSD       *bool   `pulumi:"ssd,optional"`       // Emulate SSD for the guest OS.
-	Backup    *bool   `pulumi:"backup,optional"`    // Include disk in backups (Proxmox default: true).
-	Replicate *bool   `pulumi:"replicate,optional"` // Include disk in replication (Proxmox default: true).
-	ReadOnly  *bool   `pulumi:"ro,optional"`        // Mount disk read-only.
+	Size      int            `pulumi:"size"`               // Size in Gigabytes (required for regular disks).
+	Interface string         `pulumi:"interface"`          // Disk interface: "scsi0", "ide1", "virtio", etc.
+	Cache     *string        `pulumi:"cache,optional"`     // Cache mode: none, writethrough, writeback, unsafe, directsync
+	Aio       *string        `pulumi:"aio,optional"`       // Async I/O mode: native, threads, io_uring.
+	Discard   *string        `pulumi:"discard,optional"`   // Discard/TRIM: ignore, on.
+	IOThread  *bool          `pulumi:"iothread,optional"`  // Enable per-disk I/O thread (virtio/scsi only).
+	SSD       *bool          `pulumi:"ssd,optional"`       // Emulate SSD for the guest OS.
+	Backup    *bool          `pulumi:"backup,optional"`    // Include disk in backups (Proxmox default: true).
+	Replicate *bool          `pulumi:"replicate,optional"` // Include disk in replication (Proxmox default: true).
+	ReadOnly  *bool          `pulumi:"ro,optional"`        // Mount disk read-only.
+	Bandwidth *DiskBandwidth `pulumi:"bandwidth,optional"` // I/O throttle limits (Proxmox GUI "Bandwidth" section).
 }
 
 // Annotate provides documentation for the Disk type.
@@ -202,6 +229,8 @@ func (disk *Disk) Annotate(a infer.Annotator) {
 		"Defaults to true when omitted; set to false to exclude the disk from replication.")
 	a.Describe(&disk.ReadOnly, "Mount this disk as read-only inside the guest. "+
 		"Only supported on scsi and virtio interfaces.")
+	a.Describe(&disk.Bandwidth, "I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). "+
+		"Omit to apply no throttling.")
 }
 
 // EfiType represents the EFI type for an EFI disk.
@@ -463,7 +492,47 @@ func diskFlagsChanged(des, cur *Disk) bool {
 		boolDiff(des.SSD, cur.SSD) ||
 		boolDiff(des.Backup, cur.Backup) ||
 		boolDiff(des.Replicate, cur.Replicate) ||
-		boolDiff(des.ReadOnly, cur.ReadOnly)
+		boolDiff(des.ReadOnly, cur.ReadOnly) ||
+		bandwidthChanged(des.Bandwidth, cur.Bandwidth)
+}
+
+// bandwidthChanged reports whether any DiskBandwidth field differs between desired and current.
+// nil bandwidth and a zero-value DiskBandwidth (all fields nil) are treated as equivalent.
+func bandwidthChanged(des, cur *DiskBandwidth) bool {
+	f64Diff := func(a, b *float64) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	intDiff := func(a, b *int) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	// Treat nil as empty struct for comparison purposes.
+	var d, c DiskBandwidth
+	if des != nil {
+		d = *des
+	}
+	if cur != nil {
+		c = *cur
+	}
+	return f64Diff(d.MBpsRd, c.MBpsRd) ||
+		f64Diff(d.MBpsRdMax, c.MBpsRdMax) ||
+		f64Diff(d.MBpsWr, c.MBpsWr) ||
+		f64Diff(d.MBpsWrMax, c.MBpsWrMax) ||
+		intDiff(d.IOPSRd, c.IOPSRd) ||
+		intDiff(d.IOPSRdMax, c.IOPSRdMax) ||
+		intDiff(d.IOPSWr, c.IOPSWr) ||
+		intDiff(d.IOPSWrMax, c.IOPSWrMax)
 }
 
 // VMInputs represents the input configuration for a virtual machine.
