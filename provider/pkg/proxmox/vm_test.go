@@ -261,3 +261,110 @@ func TestValidateDiskFlags(t *testing.T) {
 		})
 	}
 }
+
+func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
+	t.Parallel()
+
+	f64 := func(v float64) *float64 { return &v }
+	intPtr := func(v int) *int { return &v }
+
+	tests := []struct {
+		name     string
+		desired  []*proxmox.Disk
+		current  []*proxmox.Disk
+		expected map[string]proxmox.DiskChangeType
+	}{
+		{
+			name: "bandwidth added to existing disk",
+			desired: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					Size:      10,
+					DiskBase:  proxmox.DiskBase{Storage: "local"},
+					Bandwidth: &proxmox.DiskBandwidth{MBpsRd: f64(100)},
+				},
+			},
+			current: []*proxmox.Disk{
+				{Interface: "scsi0", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local"}},
+			},
+			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFlagsChanged},
+		},
+		{
+			name: "bandwidth removed from existing disk",
+			desired: []*proxmox.Disk{
+				{Interface: "scsi0", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local"}},
+			},
+			current: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					Size:      10,
+					DiskBase:  proxmox.DiskBase{Storage: "local"},
+					Bandwidth: &proxmox.DiskBandwidth{MBpsRd: f64(100)},
+				},
+			},
+			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFlagsChanged},
+		},
+		{
+			name: "bandwidth value changed",
+			desired: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					Size:      10,
+					DiskBase:  proxmox.DiskBase{Storage: "local"},
+					Bandwidth: &proxmox.DiskBandwidth{IOPSRd: intPtr(500)},
+				},
+			},
+			current: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					Size:      10,
+					DiskBase:  proxmox.DiskBase{Storage: "local"},
+					Bandwidth: &proxmox.DiskBandwidth{IOPSRd: intPtr(1000)},
+				},
+			},
+			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFlagsChanged},
+		},
+		{
+			name: "bandwidth identical",
+			desired: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					Size:      10,
+					DiskBase:  proxmox.DiskBase{Storage: "local"},
+					Bandwidth: &proxmox.DiskBandwidth{MBpsRd: f64(100), IOPSWr: intPtr(200)},
+				},
+			},
+			current: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					Size:      10,
+					DiskBase:  proxmox.DiskBase{Storage: "local"},
+					Bandwidth: &proxmox.DiskBandwidth{MBpsRd: f64(100), IOPSWr: intPtr(200)},
+				},
+			},
+			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+		},
+		{
+			name: "both nil bandwidth",
+			desired: []*proxmox.Disk{
+				{Interface: "scsi0", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local"}},
+			},
+			current: []*proxmox.Disk{
+				{Interface: "scsi0", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local"}},
+			},
+			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			changes := proxmox.CompareDisksByInterface(tt.desired, tt.current)
+			byInterface := make(map[string]proxmox.DiskChangeType, len(changes))
+			for _, c := range changes {
+				byInterface[c.Interface] = c.Type
+			}
+			assert.Equal(t, tt.expected, byInterface)
+		})
+	}
+}

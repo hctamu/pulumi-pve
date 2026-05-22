@@ -4315,3 +4315,143 @@ func TestBuildVMOptionsDiffDiskFlagsChanged(t *testing.T) {
 		})
 	}
 }
+
+func TestToProxmoxDiskKeyConfigBandwidth(t *testing.T) {
+	t.Parallel()
+
+	f64 := func(v float64) *float64 { return &v }
+	intPtr := func(v int) *int { return &v }
+
+	tests := []struct {
+		name     string
+		bw       *proxmox.DiskBandwidth
+		wantKeys []string
+		wantNot  []string
+	}{
+		{
+			name:    "nil bandwidth emits nothing",
+			bw:      nil,
+			wantNot: []string{"mbps_rd", "mbps_wr", "iops_rd", "iops_wr"},
+		},
+		{
+			name: "all fields set",
+			bw: &proxmox.DiskBandwidth{
+				MBpsRd:    f64(100.5),
+				MBpsRdMax: f64(200),
+				MBpsWr:    f64(50),
+				MBpsWrMax: f64(75.25),
+				IOPSRd:    intPtr(1000),
+				IOPSRdMax: intPtr(2000),
+				IOPSWr:    intPtr(500),
+				IOPSWrMax: intPtr(750),
+			},
+			wantKeys: []string{
+				"mbps_rd=100.5", "mbps_rd_max=200", "mbps_wr=50", "mbps_wr_max=75.25",
+				"iops_rd=1000", "iops_rd_max=2000", "iops_wr=500", "iops_wr_max=750",
+			},
+		},
+		{
+			name: "only mbps read fields",
+			bw: &proxmox.DiskBandwidth{
+				MBpsRd:    f64(100),
+				MBpsRdMax: f64(150),
+			},
+			wantKeys: []string{"mbps_rd=100", "mbps_rd_max=150"},
+			wantNot:  []string{"mbps_wr", "iops_rd", "iops_wr"},
+		},
+		{
+			name: "only iops write fields",
+			bw: &proxmox.DiskBandwidth{
+				IOPSWr:    intPtr(200),
+				IOPSWrMax: intPtr(400),
+			},
+			wantKeys: []string{"iops_wr=200", "iops_wr_max=400"},
+			wantNot:  []string{"mbps_rd", "mbps_wr", "iops_rd"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			disk := proxmox.Disk{
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-100-disk-0")},
+				Size:      10,
+				Interface: "scsi0",
+				Bandwidth: tt.bw,
+			}
+			_, config := adapters.ToProxmoxDiskKeyConfig(disk)
+			for _, want := range tt.wantKeys {
+				require.Contains(t, config, want)
+			}
+			for _, notWant := range tt.wantNot {
+				require.NotContains(t, config, notWant)
+			}
+		})
+	}
+}
+
+func TestParseDiskConfigBandwidth(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		config string
+		wantBW *proxmox.DiskBandwidth
+	}{
+		{
+			name:   "no bandwidth fields → nil Bandwidth",
+			config: "local-lvm:vm-100-disk-0,size=10G,cache=none",
+			wantBW: nil,
+		},
+		{
+			name: "all bandwidth fields",
+			config: "local-lvm:vm-100-disk-0,size=10G," +
+				"mbps_rd=100.5,mbps_rd_max=200,mbps_wr=50,mbps_wr_max=75.25," +
+				"iops_rd=1000,iops_rd_max=2000,iops_wr=500,iops_wr_max=750",
+			wantBW: &proxmox.DiskBandwidth{
+				MBpsRd:    proxmoxPtr(100.5),
+				MBpsRdMax: proxmoxPtr(200.0),
+				MBpsWr:    proxmoxPtr(50.0),
+				MBpsWrMax: proxmoxPtr(75.25),
+				IOPSRd:    testutils.Ptr(1000),
+				IOPSRdMax: testutils.Ptr(2000),
+				IOPSWr:    testutils.Ptr(500),
+				IOPSWrMax: testutils.Ptr(750),
+			},
+		},
+		{
+			name:   "only mbps read",
+			config: "local-lvm:vm-100-disk-0,size=10G,mbps_rd=50,mbps_rd_max=100",
+			wantBW: &proxmox.DiskBandwidth{
+				MBpsRd:    proxmoxPtr(50.0),
+				MBpsRdMax: proxmoxPtr(100.0),
+			},
+		},
+		{
+			name:   "only iops write",
+			config: "local-lvm:vm-100-disk-0,size=10G,iops_wr=300,iops_wr_max=600",
+			wantBW: &proxmox.DiskBandwidth{
+				IOPSWr:    testutils.Ptr(300),
+				IOPSWrMax: testutils.Ptr(600),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var disk proxmox.Disk
+			err := adapters.ParseDiskConfig(&disk, tt.config)
+			require.NoError(t, err)
+			if tt.wantBW == nil {
+				require.Nil(t, disk.Bandwidth)
+			} else {
+				require.NotNil(t, disk.Bandwidth)
+				require.Equal(t, tt.wantBW, disk.Bandwidth)
+			}
+		})
+	}
+}
+
+// proxmoxPtr is a local helper to take a pointer to a float64 literal.
+func proxmoxPtr(v float64) *float64 { return &v }

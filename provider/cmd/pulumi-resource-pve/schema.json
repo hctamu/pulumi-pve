@@ -177,6 +177,10 @@
           "type": "boolean",
           "description": "Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups."
         },
+        "bandwidth": {
+          "$ref": "#/types/pve:proxmox:DiskBandwidth",
+          "description": "I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling."
+        },
         "cache": {
           "type": "string",
           "description": "Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting)."
@@ -195,7 +199,7 @@
         },
         "iothread": {
           "type": "boolean",
-          "description": "Enable a dedicated I/O thread for this disk. Supported on virtio and scsi interfaces when the SCSI controller supports it."
+          "description": "Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces."
         },
         "replicate": {
           "type": "boolean",
@@ -203,7 +207,7 @@
         },
         "ro": {
           "type": "boolean",
-          "description": "Mount this disk as read-only inside the guest."
+          "description": "Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces."
         },
         "size": {
           "type": "integer",
@@ -211,7 +215,7 @@
         },
         "ssd": {
           "type": "boolean",
-          "description": "Emulate a solid-state drive for the guest OS (affects rotation rate hints)."
+          "description": "Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio."
         },
         "storage": {
           "type": "string",
@@ -224,6 +228,44 @@
         "size",
         "interface"
       ]
+    },
+    "pve:proxmox:DiskBandwidth": {
+      "description": "I/O throttle limits for the disk",
+      "properties": {
+        "iopsRd": {
+          "type": "integer",
+          "description": "Read I/O operations per second limit (0 = unlimited)."
+        },
+        "iopsRdMax": {
+          "type": "integer",
+          "description": "Read burst I/O operations per second limit."
+        },
+        "iopsWr": {
+          "type": "integer",
+          "description": "Write I/O operations per second limit (0 = unlimited)."
+        },
+        "iopsWrMax": {
+          "type": "integer",
+          "description": "Write burst I/O operations per second limit."
+        },
+        "mbpsRd": {
+          "type": "number",
+          "description": "Read throughput limit in MB/s (0 = unlimited)."
+        },
+        "mbpsRdMax": {
+          "type": "number",
+          "description": "Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd."
+        },
+        "mbpsWr": {
+          "type": "number",
+          "description": "Write throughput limit in MB/s (0 = unlimited)."
+        },
+        "mbpsWrMax": {
+          "type": "number",
+          "description": "Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr."
+        }
+      },
+      "type": "object"
     },
     "pve:proxmox:EfiDisk": {
       "description": "EFI disk configuration for the virtual machine.",
