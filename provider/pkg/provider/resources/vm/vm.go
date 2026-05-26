@@ -525,13 +525,6 @@ func (vm *VM) Update(
 		return response, err
 	}
 
-	// Re-read live state to capture computed fields (e.g. filenames for newly-added disks).
-	liveOutput, err := vm.readCurrentState(ctx, request.ID, request.Inputs)
-	if err != nil {
-		l.Errorf("error reading VM after update: %v", err)
-		return response, err
-	}
-	response.Output = liveOutput
 	return response, nil
 }
 
