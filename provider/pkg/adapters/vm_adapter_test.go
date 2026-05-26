@@ -17,7 +17,9 @@ package adapters_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
@@ -795,21 +797,17 @@ func TestCPURoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Step 1: Parse the input string
 			parsed1, err := adapters.ParseCPU(tt.input)
 			require.NoError(t, err, "First parse should not error")
 			require.NotNil(t, parsed1, "First parse should return non-nil CPU")
 
-			// Step 2: Convert back to string
 			serialized := adapters.CPUToProxmoxString(parsed1)
 			require.NotEmpty(t, serialized, "Serialization should produce non-empty string")
 
-			// Step 3: Parse the serialized string again
 			parsed2, err := adapters.ParseCPU(serialized)
 			require.NoError(t, err, "Second parse should not error")
 			require.NotNil(t, parsed2, "Second parse should return non-nil CPU")
 
-			// Step 4: Verify both parsed structs are identical
 			assert.Equal(t, parsed1.Type, parsed2.Type, "CPU Type should match after round-trip")
 			assert.Equal(t, parsed1.FlagsEnabled, parsed2.FlagsEnabled, "FlagsEnabled should match after round-trip")
 			assert.Equal(t, parsed1.FlagsDisabled, parsed2.FlagsDisabled, "FlagsDisabled should match after round-trip")
@@ -817,7 +815,6 @@ func TestCPURoundTrip(t *testing.T) {
 			assert.Equal(t, parsed1.HVVendorID, parsed2.HVVendorID, "HVVendorID should match after round-trip")
 			assert.Equal(t, parsed1.PhysBits, parsed2.PhysBits, "PhysBits should match after round-trip")
 
-			// Step 5: Convert second parsed struct to string and verify it matches
 			serialized2 := adapters.CPUToProxmoxString(parsed2)
 			assert.Equal(t, serialized, serialized2, "Second serialization should match first serialization")
 		})
@@ -891,27 +888,22 @@ func TestNumaNodeRoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Step 1: Parse the input string
 			parsed1, err := adapters.ParseNumaNode(tt.input)
 			require.NoError(t, err, "First parse should not error")
 			require.NotNil(t, parsed1, "First parse should return non-nil NumaNode")
 
-			// Step 2: Convert back to string
 			serialized := adapters.ToProxmoxNumaString(*parsed1)
 			require.NotEmpty(t, serialized, "Serialization should produce non-empty string")
 
-			// Step 3: Parse the serialized string again
 			parsed2, err := adapters.ParseNumaNode(serialized)
 			require.NoError(t, err, "Second parse should not error")
 			require.NotNil(t, parsed2, "Second parse should return non-nil NumaNode")
 
-			// Step 4: Verify both parsed structs are identical
 			assert.Equal(t, parsed1.Cpus, parsed2.Cpus, "Cpus should match after round-trip")
 			assert.Equal(t, parsed1.HostNodes, parsed2.HostNodes, "HostNodes should match after round-trip")
 			assert.Equal(t, parsed1.Memory, parsed2.Memory, "Memory should match after round-trip")
 			assert.Equal(t, parsed1.Policy, parsed2.Policy, "Policy should match after round-trip")
 
-			// Step 5: Convert second parsed struct to string and verify it matches
 			serialized2 := adapters.ToProxmoxNumaString(*parsed2)
 			assert.Equal(t, serialized, serialized2, "Second serialization should match first serialization")
 		})
@@ -919,6 +911,1444 @@ func TestNumaNodeRoundTrip(t *testing.T) {
 }
 
 // TestParseCPUFromVMConfig verifies that CPU parsing from VirtualMachineConfig works correctly
+func TestParseCPUFromVMConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		vmConfig    *api.VirtualMachineConfig
+		expected    *proxmox.CPU
+		expectError bool
+	}{
+		{
+			name: "empty config returns empty CPU",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU:      "",
+				Cores:    0,
+				Sockets:  0,
+				CPULimit: 0,
+				CPUUnits: 0,
+				Vcpus:    0,
+				Numa:     0,
+			},
+			expected: &proxmox.CPU{},
+		},
+		{
+			name: "CPU string only - simple type",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU: "host",
+			},
+			expected: cpuBase("host"),
+		},
+		{
+			name: "CPU string with flags",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU: "host,flags=+aes;-pcid",
+			},
+			expected: cpuWith("host", map[string]interface{}{
+				"flags+": []string{"aes"},
+				"flags-": []string{"pcid"},
+			}),
+		},
+		{
+			name: "cores field only",
+			vmConfig: &api.VirtualMachineConfig{
+				Cores: 4,
+			},
+			expected: &proxmox.CPU{
+				Cores: testutils.Ptr(4),
+			},
+		},
+		{
+			name: "sockets field only",
+			vmConfig: &api.VirtualMachineConfig{
+				Sockets: 2,
+			},
+			expected: &proxmox.CPU{
+				Sockets: testutils.Ptr(2),
+			},
+		},
+		{
+			name: "CPULimit field",
+			vmConfig: &api.VirtualMachineConfig{
+				CPULimit: 2,
+			},
+			expected: &proxmox.CPU{
+				Limit: testutils.Ptr(2.0),
+			},
+		},
+		{
+			name: "CPUUnits field",
+			vmConfig: &api.VirtualMachineConfig{
+				CPUUnits: 1024,
+			},
+			expected: &proxmox.CPU{
+				Units: testutils.Ptr(1024),
+			},
+		},
+		{
+			name: "Vcpus field",
+			vmConfig: &api.VirtualMachineConfig{
+				Vcpus: 8,
+			},
+			expected: &proxmox.CPU{
+				Vcpus: testutils.Ptr(8),
+			},
+		},
+		{
+			name: "NUMA enabled",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa: 1,
+			},
+			expected: &proxmox.CPU{
+				Numa: testutils.Ptr(true),
+			},
+		},
+		{
+			name: "single NUMA node",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "cpus=0-3,memory=2048,policy=bind",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []proxmox.NumaNode{
+					{
+						Cpus:   "0-3",
+						Memory: testutils.Ptr(2048),
+						Policy: testutils.Ptr("bind"),
+					},
+				},
+			}),
+		},
+		{
+			name: "multiple NUMA nodes",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "cpus=0-3,memory=2048",
+				Numa1: "cpus=4-7,memory=4096",
+				Numa2: "cpus=8-11,hostnodes=2",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []proxmox.NumaNode{
+					{
+						Cpus:   "0-3",
+						Memory: testutils.Ptr(2048),
+					},
+					{
+						Cpus:   "4-7",
+						Memory: testutils.Ptr(4096),
+					},
+					{
+						Cpus:      "8-11",
+						HostNodes: testutils.Ptr("2"),
+					},
+				},
+			}),
+		},
+		{
+			name: "comprehensive config",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU:      "host,flags=+aes;-pcid,hidden=1,hv-vendor-id=GenuineIntel,phys-bits=42",
+				Cores:    8,
+				Sockets:  2,
+				CPULimit: 4,
+				CPUUnits: 2048,
+				Vcpus:    16,
+				Numa:     1,
+				Numa0:    "cpus=0-7,hostnodes=0,memory=4096,policy=bind",
+				Numa1:    "cpus=8-15,hostnodes=1,memory=4096,policy=bind",
+			},
+			expected: cpuWith("host", map[string]interface{}{
+				"cores":        8,
+				"sockets":      2,
+				"limit":        4.0,
+				"units":        2048,
+				"vcpus":        16,
+				"numa":         true,
+				"flags+":       []string{"aes"},
+				"flags-":       []string{"pcid"},
+				"hidden":       true,
+				"hv-vendor-id": "GenuineIntel",
+				"phys-bits":    "42",
+				"numa-nodes": []proxmox.NumaNode{
+					{
+						Cpus:      "0-7",
+						HostNodes: testutils.Ptr("0"),
+						Memory:    testutils.Ptr(4096),
+						Policy:    testutils.Ptr("bind"),
+					},
+					{
+						Cpus:      "8-15",
+						HostNodes: testutils.Ptr("1"),
+						Memory:    testutils.Ptr(4096),
+						Policy:    testutils.Ptr("bind"),
+					},
+				},
+			}),
+		},
+		{
+			name: "zero values should not set fields",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU:      "",
+				Cores:    0,
+				Sockets:  0,
+				CPULimit: 0,
+				CPUUnits: 0,
+				Vcpus:    0,
+				Numa:     0,
+			},
+			expected: &proxmox.CPU{},
+		},
+		{
+			name: "NUMA disabled (0) should not set numa field",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa: 0,
+			},
+			expected: &proxmox.CPU{},
+		},
+		{
+			name: "empty NUMA node strings are skipped",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "",
+				Numa1: "cpus=0-3",
+				Numa2: "",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []proxmox.NumaNode{
+					{Cpus: "0-3"},
+				},
+			}),
+		},
+		{
+			name: "all NUMA node slots (0-9)",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "cpus=0",
+				Numa1: "cpus=1",
+				Numa2: "cpus=2",
+				Numa3: "cpus=3",
+				Numa4: "cpus=4",
+				Numa5: "cpus=5",
+				Numa6: "cpus=6",
+				Numa7: "cpus=7",
+				Numa8: "cpus=8",
+				Numa9: "cpus=9",
+			},
+			expected: cpuWith("", map[string]interface{}{
+				"numa": true,
+				"numa-nodes": []proxmox.NumaNode{
+					{Cpus: "0"},
+					{Cpus: "1"},
+					{Cpus: "2"},
+					{Cpus: "3"},
+					{Cpus: "4"},
+					{Cpus: "5"},
+					{Cpus: "6"},
+					{Cpus: "7"},
+					{Cpus: "8"},
+					{Cpus: "9"},
+				},
+			}),
+		},
+		{
+			name: "unusual CPU string - ParseCPU is lenient",
+			vmConfig: &api.VirtualMachineConfig{
+				CPU: "host,flags=invalid[syntax",
+			},
+			expected: cpuWith("host", map[string]interface{}{
+				"flags+": []string{"invalid[syntax"},
+			}),
+		},
+		{
+			name: "invalid NUMA node string",
+			vmConfig: &api.VirtualMachineConfig{
+				Numa:  1,
+				Numa0: "memory=invalid",
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create a minimal VirtualMachine to test CPU parsing
+			testVM := &api.VirtualMachine{
+				VirtualMachineConfig: tt.vmConfig,
+			}
+
+			// ConvertVMConfigToInputs calls parseCPUFromVMConfig internally
+			inputs, err := adapters.ConvertVMConfigToInputs(testVM, nil)
+
+			if tt.expectError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Compare CPU fields
+			if tt.expected.Type != nil {
+				require.NotNil(t, inputs.CPU, "CPU should not be nil when Type is expected")
+				assert.Equal(t, *tt.expected.Type, *inputs.CPU.Type)
+			}
+
+			if inputs.CPU != nil {
+				assert.Equal(t, tt.expected.Cores, inputs.CPU.Cores)
+				assert.Equal(t, tt.expected.Sockets, inputs.CPU.Sockets)
+				assert.Equal(t, tt.expected.Limit, inputs.CPU.Limit)
+				assert.Equal(t, tt.expected.Units, inputs.CPU.Units)
+				assert.Equal(t, tt.expected.Vcpus, inputs.CPU.Vcpus)
+				assert.Equal(t, tt.expected.Numa, inputs.CPU.Numa)
+				assert.Equal(t, tt.expected.FlagsEnabled, inputs.CPU.FlagsEnabled)
+				assert.Equal(t, tt.expected.FlagsDisabled, inputs.CPU.FlagsDisabled)
+				assert.Equal(t, tt.expected.Hidden, inputs.CPU.Hidden)
+				assert.Equal(t, tt.expected.HVVendorID, inputs.CPU.HVVendorID)
+				assert.Equal(t, tt.expected.PhysBits, inputs.CPU.PhysBits)
+				assert.Equal(t, tt.expected.NumaNodes, inputs.CPU.NumaNodes)
+			}
+		})
+	}
+}
+
+// TestCPUAnnotate verifies that CPU.Annotate method exists and has the correct signature
+func TestBuildOptionsDiskOrdering(t *testing.T) {
+	t.Parallel()
+
+	// Test case with multiple disks in specific order
+	testCases := []struct {
+		name          string
+		disks         []*proxmox.Disk
+		expectedOrder []string
+		description   string
+	}{
+		{
+			name: "SATA and IDE disks mixed order",
+			disks: []*proxmox.Disk{
+				createTestDisk("sata0", "local-lvm", 20),
+				createTestDisk("ide0", "local-lvm", 10),
+				createTestDisk("sata1", "local-lvm", 30),
+				createTestDisk("ide2", "local-lvm", 15),
+			},
+			expectedOrder: []string{"sata0", "ide0", "sata1", "ide2"},
+			description:   "Mixed SATA and IDE interfaces should preserve input order",
+		},
+		{
+			name: "SCSI disks with gaps",
+			disks: []*proxmox.Disk{
+				createTestDisk("scsi0", "local-lvm", 20),
+				createTestDisk("scsi2", "local-lvm", 30), // Gap at scsi1
+				createTestDisk("scsi5", "local-lvm", 40),
+				createTestDisk("scsi1", "local-lvm", 25), // Fill the gap
+			},
+			expectedOrder: []string{"scsi0", "scsi2", "scsi5", "scsi1"},
+			description:   "SCSI disks with non-sequential numbers should preserve input order",
+		},
+		{
+			name: "VirtIO disks with different sizes",
+			disks: []*proxmox.Disk{
+				createTestDisk("virtio0", "local-lvm", 100),
+				createTestDisk("virtio1", "local-lvm", 50),
+				createTestDisk("virtio2", "local-lvm", 200),
+			},
+			expectedOrder: []string{"virtio0", "virtio1", "virtio2"},
+			description:   "VirtIO disks should maintain input order regardless of size",
+		},
+		{
+			name: "Single disk",
+			disks: []*proxmox.Disk{
+				createTestDisk("sata0", "local-lvm", 20),
+			},
+			expectedOrder: []string{"sata0"},
+			description:   "Single disk should be handled correctly",
+		},
+		{
+			name: "All interface types mixed",
+			disks: []*proxmox.Disk{
+				createTestDisk("virtio0", "local-lvm", 40),
+				createTestDisk("scsi1", "local-lvm", 30),
+				createTestDisk("ide2", "local-lvm", 20),
+				createTestDisk("sata3", "local-lvm", 50),
+				createTestDisk("virtio1", "local-lvm", 60),
+			},
+			expectedOrder: []string{"virtio0", "scsi1", "ide2", "sata3", "virtio1"},
+			description:   "All interface types mixed should preserve exact input order",
+		},
+		{
+			name: "CD-ROM and data disks mixed",
+			disks: []*proxmox.Disk{
+				createTestDisk("scsi0", "local-lvm", 40),
+				createTestCDROMDisk("ide2", "none"),
+				createTestDisk("scsi1", "local-lvm", 30),
+			},
+			expectedOrder: []string{"scsi0", "ide2", "scsi1"},
+			description:   "CD-ROM disks mixed with data disks should preserve order",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create VM inputs with the test disks
+			inputs := proxmox.VMInputs{
+				Disks: tc.disks,
+			}
+			vmID := 100
+
+			// Build options
+			options := adapters.BuildVMOptions(inputs, vmID)
+
+			// Extract disk options in the order they appear
+			var actualOrder []string
+			for _, opt := range options {
+				// Check if this is a disk option (matches disk interface patterns)
+				if isDiskInterface(opt.Name) {
+					actualOrder = append(actualOrder, opt.Name)
+				}
+			}
+
+			// Verify the order matches expected
+			require.Equal(t, len(tc.expectedOrder), len(actualOrder),
+				"Number of disk options should match input disks")
+			assert.Equal(t, tc.expectedOrder, actualOrder,
+				"Disk order in BuildOptions should match input order: %s", tc.description)
+
+			// Verify each disk option has correct content
+			diskOptionMap := make(map[string]string)
+			for _, opt := range options {
+				if isDiskInterface(opt.Name) {
+					diskOptionMap[opt.Name] = opt.Value.(string)
+				}
+			}
+
+			for i, expectedInterface := range tc.expectedOrder {
+				actualValue, found := diskOptionMap[expectedInterface]
+				require.True(t, found, "Disk interface %s should be found in options", expectedInterface)
+
+				// Verify the disk configuration matches the input disk
+				inputDisk := tc.disks[i]
+				expectedKey, expectedValue := adapters.ToProxmoxDiskKeyConfig(*inputDisk)
+				assert.Equal(t, expectedInterface, expectedKey, "Disk interface should match")
+				assert.Equal(t, expectedValue, actualValue, "Disk configuration should match")
+			}
+		})
+	}
+}
+
+// TestBuildOptionsConsistentOrdering verifies that multiple calls to BuildOptions
+func TestBuildOptionsConsistentOrdering(t *testing.T) {
+	t.Parallel()
+
+	// Create a complex disk configuration
+	disks := []*proxmox.Disk{
+		createTestDisk("virtio2", "local-lvm", 40),
+		createTestDisk("scsi0", "local-lvm", 30),
+		createTestDisk("ide1", "local-lvm", 20),
+		createTestDisk("sata5", "local-lvm", 50),
+		createTestCDROMDisk("ide2", "none"),
+		createTestDisk("virtio0", "local-lvm", 60),
+	}
+
+	inputs := proxmox.VMInputs{
+		Disks: disks,
+	}
+	vmID := 200
+
+	// Build options multiple times
+	const numIterations = 10
+	var allOrders [][]string
+
+	for i := 0; i < numIterations; i++ {
+		options := adapters.BuildVMOptions(inputs, vmID)
+
+		var order []string
+		for _, opt := range options {
+			if isDiskInterface(opt.Name) {
+				order = append(order, opt.Name)
+			}
+		}
+		allOrders = append(allOrders, order)
+	}
+
+	// Verify all orders are identical
+	expectedOrder := allOrders[0]
+	for i := 1; i < numIterations; i++ {
+		assert.Equal(t, expectedOrder, allOrders[i],
+			"BuildOptions should produce consistent ordering across multiple calls (iteration %d)", i)
+	}
+
+	// Verify the order matches the input disk order
+	expectedInterfaces := make([]string, len(disks))
+	for i, disk := range disks {
+		expectedInterfaces[i], _ = adapters.ToProxmoxDiskKeyConfig(*disk)
+	}
+	assert.Equal(t, expectedInterfaces, expectedOrder,
+		"Consistent order should match input disk order")
+}
+
+// TestBuildOptionsEmptyDisks verifies behavior with no disks
+func TestBuildOptionsEmptyDisks(t *testing.T) {
+	t.Parallel()
+
+	inputs := proxmox.VMInputs{
+		Disks: nil, // No disks
+	}
+	vmID := 300
+
+	options := adapters.BuildVMOptions(inputs, vmID)
+
+	// Should not contain any disk options
+	for _, opt := range options {
+		assert.False(t, isDiskInterface(opt.Name),
+			"Should not contain disk options when no disks are specified, but found: %s", opt.Name)
+	}
+}
+
+// TestBuildOptionsDiskConfiguration verifies that disk configurations are correctly built
+func TestBuildOptionsDiskConfiguration(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		disk          *proxmox.Disk
+		expectedKey   string
+		expectedValue string
+	}{
+		{
+			name:          "Basic SCSI disk",
+			disk:          createTestDisk("scsi0", "local-lvm", 32),
+			expectedKey:   "scsi0",
+			expectedValue: "file=local-lvm:32,size=32",
+		},
+		{
+			name: "VirtIO disk with FileID",
+			disk: &proxmox.Disk{
+				Interface: "virtio1",
+				DiskBase: proxmox.DiskBase{
+					Storage: "local-lvm",
+					FileID:  testutils.Ptr("vm-100-disk-1"),
+				},
+				Size: 64,
+			},
+			expectedKey:   "virtio1",
+			expectedValue: "file=local-lvm:vm-100-disk-1,size=64",
+		},
+		{
+			name: "CD-ROM disk",
+			disk: &proxmox.Disk{
+				Interface: "ide2",
+				DiskBase: proxmox.DiskBase{
+					Storage: "none",
+				},
+				Size: 0,
+			},
+			expectedKey:   "ide2",
+			expectedValue: "file=none:0,size=0",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			actualKey, actualValue := adapters.ToProxmoxDiskKeyConfig(*tc.disk)
+			assert.Equal(t, tc.expectedKey, actualKey, "Disk key should match expected")
+			assert.Equal(t, tc.expectedValue, actualValue, "Disk configuration should match expected")
+		})
+	}
+}
+
+// Helper functions
+func TestVMCreateDiskOrderingIntegration(t *testing.T) {
+	t.Parallel()
+
+	// Test that simulates how Create function processes disk ordering
+	testCases := []struct {
+		name          string
+		disks         []*proxmox.Disk
+		expectedOrder []string
+		description   string
+	}{
+		{
+			name: "Mixed interface types during create",
+			disks: []*proxmox.Disk{
+				createTestDisk("virtio0", "local-lvm", 40),
+				createTestDisk("scsi2", "local-lvm", 30),
+				createTestDisk("ide0", "local-lvm", 20),
+				createTestCDROMDisk("ide1", "none"),
+				createTestDisk("sata0", "local-lvm", 50),
+			},
+			expectedOrder: []string{"virtio0", "scsi2", "ide0", "ide1", "sata0"},
+			description:   "Create should preserve complex disk ordering",
+		},
+		{
+			name: "Real-world scenario",
+			disks: []*proxmox.Disk{
+				createTestDisk("scsi0", "local-lvm", 32),  // Boot disk
+				createTestDisk("scsi1", "local-lvm", 100), // Data disk 1
+				createTestDisk("scsi2", "local-lvm", 200), // Data disk 2
+				createTestCDROMDisk("ide2", "none"),       // CD-ROM
+			},
+			expectedOrder: []string{"scsi0", "scsi1", "scsi2", "ide2"},
+			description:   "Typical VM setup with boot, data disks and CD-ROM",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create inputs similar to what Create function receives
+			name := "test-vm"
+			vmid := 100
+			inputs := proxmox.VMInputs{
+				Name:  name,
+				VMID:  &vmid,
+				Disks: tc.disks,
+			}
+
+			// Call BuildOptions just like the Create function does (line 90 in vm.go)
+			options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+
+			// Extract disk options in the order they appear
+			var actualOrder []string
+			var diskOptions []string
+			for _, opt := range options {
+				if isDiskInterface(opt.Name) {
+					actualOrder = append(actualOrder, opt.Name)
+					diskOptions = append(diskOptions, fmt.Sprintf("%s=%s", opt.Name, opt.Value))
+				}
+			}
+
+			// Verify the order matches expected
+			require.Equal(t, len(tc.expectedOrder), len(actualOrder),
+				"Number of disk options should match input disks")
+			assert.Equal(t, tc.expectedOrder, actualOrder,
+				"Create disk ordering should match input order: %s", tc.description)
+
+			// Log the actual disk options for debugging
+			t.Logf("Generated disk options (in order): %v", diskOptions)
+
+			// Verify that the ordering is deterministic by calling multiple times
+			for i := 0; i < 3; i++ {
+				options2 := adapters.BuildVMOptions(inputs, *inputs.VMID)
+				var order2 []string
+				for _, opt := range options2 {
+					if isDiskInterface(opt.Name) {
+						order2 = append(order2, opt.Name)
+					}
+				}
+				assert.Equal(t, actualOrder, order2,
+					"BuildOptions should be deterministic (iteration %d)", i)
+			}
+		})
+	}
+}
+
+// TestVMCreateDiskOptionsConsistency verifies that disk options are consistently
+func TestVMCreateDiskOptionsConsistency(t *testing.T) {
+	t.Parallel()
+
+	// Complex disk configuration similar to real-world scenarios
+	disks := []*proxmox.Disk{
+		createTestDisk("virtio0", "local-lvm", 32),     // Primary disk
+		createTestDisk("virtio1", "local-ssd", 64),     // Secondary SSD
+		createTestDisk("scsi0", "local-hdd", 500),      // Large storage
+		createTestCDROMDisk("ide2", "none"),            // CD-ROM
+		createTestDisk("sata0", "backup-storage", 100), // Backup disk
+	}
+
+	name := "test-vm-consistency"
+	vmid := 200
+	inputs := proxmox.VMInputs{
+		Name:  name,
+		VMID:  &vmid,
+		Disks: disks,
+	}
+
+	// Multiple calls should produce identical ordering
+	const iterations = 50
+	var allOrders [][]string
+
+	for i := 0; i < iterations; i++ {
+		options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+		var order []string
+		for _, opt := range options {
+			if isDiskInterface(opt.Name) {
+				order = append(order, opt.Name)
+			}
+		}
+		allOrders = append(allOrders, order)
+	}
+
+	// All orders should be identical
+	expectedOrder := allOrders[0]
+	for i := 1; i < iterations; i++ {
+		assert.Equal(t, expectedOrder, allOrders[i],
+			"VM create disk ordering should be consistent (iteration %d)", i)
+	}
+
+	// Expected order should match input order
+	expectedInterfaces := make([]string, len(disks))
+	for i, disk := range disks {
+		expectedInterfaces[i] = disk.Interface
+	}
+	assert.Equal(t, expectedInterfaces, expectedOrder,
+		"VM create should preserve input disk order")
+}
+
+// Benchmark tests for VM creation disk ordering
+
+// BenchmarkBuildOptionsDiskOrdering benchmarks the BuildOptions method with various disk counts
+func BenchmarkBuildOptionsDiskOrdering(b *testing.B) {
+	benchmarks := []struct {
+		name      string
+		diskCount int
+	}{
+		{"1_disk", 1},
+		{"5_disks", 5},
+		{"10_disks", 10},
+		{"20_disks", 20},
+		{"50_disks", 50},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			disks := make([]*proxmox.Disk, bm.diskCount)
+			for i := 0; i < bm.diskCount; i++ {
+				// Alternate between different interface types
+				var iface string
+				switch i % 4 {
+				case 0:
+					iface = fmt.Sprintf("scsi%d", i)
+				case 1:
+					iface = fmt.Sprintf("virtio%d", i)
+				case 2:
+					iface = fmt.Sprintf("ide%d", i)
+				case 3:
+					iface = fmt.Sprintf("sata%d", i)
+				}
+				disks[i] = createTestDisk(iface, "local-lvm", 32)
+			}
+
+			name := "benchmark-vm"
+			vmid := 1000 + bm.diskCount
+			inputs := proxmox.VMInputs{
+				Name:  name,
+				VMID:  &vmid,
+				Disks: disks,
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = adapters.BuildVMOptions(inputs, *inputs.VMID)
+			}
+		})
+	}
+}
+
+// BenchmarkBuildOptionsConsistency benchmarks multiple BuildOptions calls for consistency
+func BenchmarkBuildOptionsConsistency(b *testing.B) {
+	// Create a realistic disk configuration
+	disks := []*proxmox.Disk{
+		createTestDisk("virtio0", "local-lvm", 32),
+		createTestDisk("virtio1", "local-ssd", 64),
+		createTestDisk("scsi0", "local-hdd", 500),
+		createTestCDROMDisk("ide2", "none"),
+		createTestDisk("sata0", "backup-storage", 100),
+		createTestDisk("scsi1", "local-lvm", 200),
+		createTestDisk("virtio2", "local-ssd", 128),
+		createTestDisk("ide0", "local-lvm", 16),
+	}
+
+	name := "benchmark-consistency-vm"
+	vmid := 2000
+	inputs := proxmox.VMInputs{
+		Name:  name,
+		VMID:  &vmid,
+		Disks: disks,
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+
+		// Extract disk options to simulate real usage
+		var diskOrder []string
+		for _, opt := range options {
+			if isDiskInterface(opt.Name) {
+				diskOrder = append(diskOrder, opt.Name)
+			}
+		}
+
+		// Use the result to prevent optimization
+		_ = len(diskOrder)
+	}
+}
+
+// TestVMCreateDiskOrderingEndToEnd provides a comprehensive test of disk ordering
+func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
+	t.Parallel()
+
+	// This test simulates a real-world VM configuration that would be used
+	// in production environments to ensure disk ordering is preserved correctly
+	testCase := struct {
+		name        string
+		description string
+		disks       []*proxmox.Disk
+		expected    []string
+	}{
+		name:        "Production VM with complex disk setup",
+		description: "Boot disk, data disks, CD-ROM, and backup storage in specific order",
+		disks: []*proxmox.Disk{
+			// Boot disk - always first
+			createTestDisk("scsi0", "local-ssd", 32),
+			// Application data - high performance storage
+			createTestDisk("scsi1", "local-ssd", 100),
+			// Database storage - separate disk for reliability
+			createTestDisk("scsi2", "local-ssd", 200),
+			// CD-ROM for installations
+			createTestCDROMDisk("ide2", "none"),
+			// Backup storage - lower tier storage
+			createTestDisk("sata0", "local-hdd", 500),
+			// Log storage - separate from main data
+			createTestDisk("virtio0", "local-lvm", 50),
+			// Temp storage - high performance for temp files
+			createTestDisk("virtio1", "local-ssd", 64),
+		},
+		expected: []string{"scsi0", "scsi1", "scsi2", "ide2", "sata0", "virtio0", "virtio1"},
+	}
+
+	t.Run(testCase.name, func(t *testing.T) {
+		t.Parallel()
+
+		// Create VM inputs as they would be in real usage
+		name := "production-vm"
+		vmid := 500
+		inputs := proxmox.VMInputs{
+			Name:  name,
+			VMID:  &vmid,
+			Disks: testCase.disks,
+		}
+
+		t.Logf("Test case: %s", testCase.description)
+		t.Logf("Input disk order: %v", testCase.expected)
+
+		// Call BuildOptions multiple times to verify deterministic ordering.
+		// This simulates what would happen during VM creation, updates, etc.
+		const numCalls = 10
+		var allOrders [][]string
+
+		for i := 0; i < numCalls; i++ {
+			options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+
+			var diskOrder []string
+			var diskDetails []string
+			for _, opt := range options {
+				if isDiskInterface(opt.Name) {
+					diskOrder = append(diskOrder, opt.Name)
+					diskDetails = append(diskDetails, fmt.Sprintf("%s=%s", opt.Name, opt.Value))
+				}
+			}
+			allOrders = append(allOrders, diskOrder)
+
+			if i == 0 {
+				t.Logf("Generated disk options: %v", diskDetails)
+			}
+		}
+
+		// Verify all calls produce identical ordering.
+		firstOrder := allOrders[0]
+		for i := 1; i < numCalls; i++ {
+			assert.Equal(t, firstOrder, allOrders[i],
+				"BuildOptions call %d should produce consistent ordering", i)
+		}
+
+		// Verify the order matches the expected input order.
+		assert.Equal(t, testCase.expected, firstOrder,
+			"Disk ordering should exactly match input order")
+
+		// Verify each disk configuration string matches the input disk.
+		options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+		diskOptionMap := make(map[string]string)
+		for _, opt := range options {
+			if isDiskInterface(opt.Name) {
+				diskOptionMap[opt.Name] = opt.Value.(string)
+			}
+		}
+
+		for i, expectedInterface := range testCase.expected {
+			actualValue, found := diskOptionMap[expectedInterface]
+			require.True(t, found, "Disk interface %s should be found", expectedInterface)
+
+			// Verify the disk configuration matches the input disk
+			inputDisk := testCase.disks[i]
+			expectedKey, expectedValue := adapters.ToProxmoxDiskKeyConfig(*inputDisk)
+			assert.Equal(t, expectedInterface, expectedKey,
+				"Disk %d interface should match", i)
+			assert.Equal(t, expectedValue, actualValue,
+				"Disk %d configuration should match", i)
+		}
+
+		// Ensure ordering logic doesn't introduce measurable overhead at scale.
+		start := time.Now()
+		for i := 0; i < 1000; i++ {
+			_ = adapters.BuildVMOptions(inputs, *inputs.VMID)
+		}
+		duration := time.Since(start)
+
+		t.Logf("1000 BuildOptions calls took %v (avg: %v per call)",
+			duration, duration/1000)
+
+		// Should complete 1000 calls in under 100ms (very generous threshold)
+		assert.Less(t, duration.Milliseconds(), int64(100),
+			"Disk ordering should not significantly impact performance")
+	})
+}
+
+func TestVMCreateDiskOrderPreservation(t *testing.T) {
+	t.Parallel()
+
+	// Test cases with various disk ordering scenarios
+	testCases := []struct {
+		name                string
+		inputDisks          []*proxmox.Disk
+		expectedDiskOrder   []string
+		description         string
+		shouldPreserveOrder bool
+	}{
+		{
+			name: "Mixed interface types preserve order",
+			inputDisks: []*proxmox.Disk{
+				{
+					Interface: "virtio0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+				{
+					Interface: "ide0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 8,
+				},
+				{
+					Interface: "sata2",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 128,
+				},
+			},
+			expectedDiskOrder:   []string{"virtio0", "scsi1", "ide0", "sata2"},
+			description:         "Mixed interface types should preserve input order",
+			shouldPreserveOrder: true,
+		},
+		{
+			name: "Production VM layout",
+			inputDisks: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					DiskBase: proxmox.DiskBase{
+						Storage: ssdStorage,
+					},
+					Size: 32,
+				}, // Boot disk
+				{
+					Interface: "scsi1",
+					DiskBase: proxmox.DiskBase{
+						Storage: ssdStorage,
+					},
+					Size: 100,
+				}, // Data disk
+				{
+					Interface: "scsi2",
+					DiskBase: proxmox.DiskBase{
+						Storage: hddStorage,
+					},
+					Size: 500,
+				}, // Backup storage
+				{
+					Interface: "ide2",
+					DiskBase: proxmox.DiskBase{
+						Storage: "none",
+					},
+					Size: 0,
+				}, // CD-ROM
+			},
+			expectedDiskOrder:   []string{"scsi0", "scsi1", "scsi2", "ide2"},
+			description:         "Production VM should maintain boot disk first, then data disks",
+			shouldPreserveOrder: true,
+		},
+		{
+			name: "Complex numbering with gaps",
+			inputDisks: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 20,
+				},
+				{
+					Interface: "scsi3",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 40,
+				}, // Gap at scsi1, scsi2
+				{
+					Interface: "virtio1",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 30,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 25,
+				}, // Fill gap later
+			},
+			expectedDiskOrder:   []string{"scsi0", "scsi3", "virtio1", "scsi1"},
+			description:         "Non-sequential interface numbers should preserve input order",
+			shouldPreserveOrder: true,
+		},
+		{
+			name: "Single disk",
+			inputDisks: []*proxmox.Disk{
+				{
+					Interface: "virtio0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+			},
+			expectedDiskOrder:   []string{"virtio0"},
+			description:         "Single disk should be handled correctly",
+			shouldPreserveOrder: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Setup VM inputs as would be passed to Create
+			name := "test-vm-" + tc.name
+			vmid := 100
+			inputs := proxmox.VMInputs{
+				Name:  name,
+				VMID:  &vmid,
+				Disks: tc.inputDisks,
+			}
+
+			// Test BuildVMOptions which is called during VM creation
+			options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+
+			// Extract disk options in order
+			var actualDiskOrder []string
+			var diskConfigs []string
+
+			for _, opt := range options {
+				if isDiskInterface(opt.Name) {
+					actualDiskOrder = append(actualDiskOrder, opt.Name)
+					diskConfigs = append(diskConfigs, opt.Value.(string))
+				}
+			}
+
+			t.Logf("Test case: %s", tc.description)
+			t.Logf("Input disk order: %v", tc.expectedDiskOrder)
+			t.Logf("Actual disk order: %v", actualDiskOrder)
+			t.Logf("Disk configurations: %v", diskConfigs)
+
+			if tc.shouldPreserveOrder {
+				// Verify order is preserved
+				require.Equal(t, len(tc.expectedDiskOrder), len(actualDiskOrder),
+					"Number of disk options should match input")
+				assert.Equal(t, tc.expectedDiskOrder, actualDiskOrder,
+					"Disk order should be preserved: %s", tc.description)
+
+				// Verify each disk configuration is correct
+				for i, expectedInterface := range tc.expectedDiskOrder {
+					inputDisk := tc.inputDisks[i]
+					expectedKey, expectedConfig := adapters.ToProxmoxDiskKeyConfig(*inputDisk)
+
+					assert.Equal(t, expectedInterface, expectedKey,
+						"Disk %d interface should match input", i)
+
+					// Find the matching option in the BuildOptions output
+					var foundConfig string
+					for _, opt := range options {
+						if opt.Name == expectedInterface {
+							foundConfig = opt.Value.(string)
+							break
+						}
+					}
+
+					assert.Equal(t, expectedConfig, foundConfig,
+						"Disk %d configuration should match expected", i)
+				}
+
+				// Test consistency across multiple calls (like the group tests)
+				for i := 0; i < 5; i++ {
+					options2 := adapters.BuildVMOptions(inputs, *inputs.VMID)
+					var order2 []string
+					for _, opt := range options2 {
+						if isDiskInterface(opt.Name) {
+							order2 = append(order2, opt.Name)
+						}
+					}
+					assert.Equal(t, actualDiskOrder, order2,
+						"BuildOptions should be consistent across calls (iteration %d)", i)
+				}
+			}
+		})
+	}
+}
+
+// TestVMCreateDiskOrderWithSeam tests disk ordering consistency
+// following the pattern from group_test.go but focused on BuildOptions method
+//
+//nolint:paralleltest // mutates seam
+func TestVMCreateDiskOrderWithSeam(t *testing.T) {
+	// Test BuildOptions method directly to avoid provider context issues
+	t.Run("build_options_preserves_order", func(t *testing.T) {
+		t.Parallel()
+
+		// Create complex disk ordering
+		orderedDisks := []*proxmox.Disk{
+			{
+				Interface: "virtio0",
+				DiskBase: proxmox.DiskBase{
+					Storage: ssdStorage,
+				},
+				Size: 32,
+			},
+			{
+				Interface: "scsi1",
+				DiskBase: proxmox.DiskBase{
+					Storage: lvmStorage,
+				},
+				Size: 64,
+			},
+			{
+				Interface: "ide2",
+				DiskBase: proxmox.DiskBase{
+					Storage: "none",
+				},
+				Size: 0,
+			},
+			{
+				Interface: "sata0",
+				DiskBase: proxmox.DiskBase{
+					Storage: hddStorage,
+				},
+				Size: 128,
+			},
+		}
+
+		name := "build-options-test-vm"
+		vmid := 200
+		inputs := proxmox.VMInputs{
+			Name:  name,
+			VMID:  &vmid,
+			Disks: orderedDisks,
+		}
+
+		// Call BuildVMOptions multiple times to ensure consistency
+		const iterations = 10
+		var allOrders [][]string
+
+		for i := 0; i < iterations; i++ {
+			options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+
+			var diskOrder []string
+			var diskConfigs []string
+			for _, opt := range options {
+				if isDiskInterface(opt.Name) {
+					diskOrder = append(diskOrder, opt.Name)
+					diskConfigs = append(diskConfigs, opt.Value.(string))
+				}
+			}
+
+			if i == 0 {
+				t.Logf("Generated disk options: %v", diskConfigs)
+			}
+
+			allOrders = append(allOrders, diskOrder)
+		}
+
+		// Verify all calls produce identical ordering
+		expectedOrder := []string{"virtio0", "scsi1", "ide2", "sata0"}
+		for i, actualOrder := range allOrders {
+			assert.Equal(t, expectedOrder, actualOrder,
+				"BuildOptions iteration %d should produce consistent ordering", i)
+		}
+
+		// Verify that disk order matches input order
+		for i, expectedInterface := range expectedOrder {
+			inputDisk := orderedDisks[i]
+			assert.Equal(t, inputDisk.Interface, expectedInterface,
+				"BuildOptions should preserve input disk order at position %d", i)
+		}
+	})
+
+	// Test disk ordering preservation across different scenarios
+	t.Run("different_disk_scenarios", func(t *testing.T) {
+		t.Parallel()
+
+		scenarios := []struct {
+			name     string
+			disks    []*proxmox.Disk
+			expected []string
+		}{
+			{
+				name: "reverse_numerical_order",
+				disks: []*proxmox.Disk{
+					{
+						Interface: "scsi3",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 30,
+					},
+					{
+						Interface: "scsi1",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 20,
+					},
+					{
+						Interface: "scsi0",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 10,
+					},
+				},
+				expected: []string{"scsi3", "scsi1", "scsi0"},
+			},
+			{
+				name: "mixed_types_non_alphabetical",
+				disks: []*proxmox.Disk{
+					{
+						Interface: "virtio5",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 50,
+					},
+					{
+						Interface: "ide0",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 5,
+					},
+					{
+						Interface: "scsi2",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 25,
+					},
+					{
+						Interface: "sata10",
+						DiskBase: proxmox.DiskBase{
+							Storage: lvmStorage,
+						},
+						Size: 100,
+					},
+				},
+				expected: []string{"virtio5", "ide0", "scsi2", "sata10"},
+			},
+		}
+
+		for _, scenario := range scenarios {
+			t.Run(scenario.name, func(t *testing.T) {
+				vmid := 300
+				inputs := proxmox.VMInputs{
+					VMID:  &vmid,
+					Disks: scenario.disks,
+				}
+
+				options := adapters.BuildVMOptions(inputs, *inputs.VMID)
+
+				var actualOrder []string
+				for _, opt := range options {
+					if isDiskInterface(opt.Name) {
+						actualOrder = append(actualOrder, opt.Name)
+					}
+				}
+
+				assert.Equal(t, scenario.expected, actualOrder,
+					"Scenario %s should preserve disk order", scenario.name)
+			})
+		}
+	})
+}
+
+// TestVMReadDiskOrderPreservation tests that VM Read operation preserves disk ordering
+// when calling ConvertVMConfigToInputs with currentInput parameter
+func TestVMReadDiskOrderPreservation(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		currentInputDisks []*proxmox.Disk
+		vmConfigDisks     map[string]string // Interface -> Config
+		expectedDiskOrder []string
+		description       string
+	}{
+		{
+			name: "Preserve existing disk order during read",
+			currentInputDisks: []*proxmox.Disk{
+				{
+					Interface: "virtio0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+				{
+					Interface: "ide2",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 8,
+				},
+			},
+			vmConfigDisks: map[string]string{
+				"virtio0": "local-lvm:vm-100-disk-0,size=32G",
+				"scsi1":   "local-lvm:vm-100-disk-1,size=64G",
+				"ide2":    "local-lvm:vm-100-disk-2,size=8G",
+			},
+			expectedDiskOrder: []string{"virtio0", "scsi1", "ide2"},
+			description:       "Read should preserve current input disk order",
+		},
+		{
+			name: "Handle new disks added to VM config",
+			currentInputDisks: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+			},
+			vmConfigDisks: map[string]string{
+				"scsi0": "local-lvm:vm-100-disk-0,size=32G",
+				"scsi1": "local-lvm:vm-100-disk-1,size=64G", // New disk
+			},
+			expectedDiskOrder: []string{"scsi0", "scsi1"},
+			description:       "Read should preserve existing order and append new disks",
+		},
+		{
+			name: "Handle missing disks from VM config",
+			currentInputDisks: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 32,
+				},
+				{
+					Interface: "scsi1",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 64,
+				},
+				{
+					Interface: "scsi2",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+					},
+					Size: 128,
+				},
+			},
+			vmConfigDisks: map[string]string{
+				"scsi0": "local-lvm:vm-100-disk-0,size=32G",
+				"scsi2": "local-lvm:vm-100-disk-2,size=128G",
+				// scsi1 missing from VM config
+			},
+			expectedDiskOrder: []string{"scsi0", "scsi2"},
+			description:       "Read should only include disks that exist in VM config",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create mock VM with the specified disk configuration
+			mockVM := createMockVM(tc.vmConfigDisks)
+
+			// Create current input with the ordered disks
+			currentInput := proxmox.VMInputs{
+				Disks: tc.currentInputDisks,
+			}
+
+			// Call ConvertVMConfigToInputs with current input to preserve order
+			result, err := adapters.ConvertVMConfigToInputs(mockVM, currentInput.Disks)
+			require.NoError(t, err)
+
+			t.Logf("Test case: %s", tc.description)
+			t.Logf("Current input order: %v", getDiskInterfaces(tc.currentInputDisks))
+			t.Logf("VM config disks: %v", getMapKeys(tc.vmConfigDisks))
+			t.Logf("Result disk order: %v", getDiskInterfaces(result.Disks))
+
+			// Verify the disk order matches expected
+			actualOrder := getDiskInterfaces(result.Disks)
+			assert.Equal(t, tc.expectedDiskOrder, actualOrder,
+				"ConvertVMConfigToInputs should preserve disk order: %s", tc.description)
+
+			// Verify each disk has correct configuration
+			for i, expectedInterface := range tc.expectedDiskOrder {
+				if i < len(result.Disks) {
+					assert.Equal(t, expectedInterface, result.Disks[i].Interface,
+						"Disk %d interface should match expected", i)
+
+					// Check that disk was properly parsed from config
+					expectedConfig, exists := tc.vmConfigDisks[expectedInterface]
+					assert.True(t, exists, "Expected interface %s should exist in VM config", expectedInterface)
+					assert.NotEmpty(t, result.Disks[i].Storage,
+						"Disk %d storage should be parsed from config: %s", i, expectedConfig)
+				}
+			}
+		})
+	}
+}
+
 func TestCPUToProxmoxString(t *testing.T) {
 	t.Parallel()
 
@@ -1688,8 +3118,9 @@ func TestBuildVMOptionsDiffDisks(t *testing.T) {
 	}
 }
 
-// TestToProxmoxDiskKeyConfigFlags verifies that Group A and B flag fields are
-// correctly serialized into the Proxmox disk config string.
+// TestToProxmoxDiskKeyConfigFlags verifies that boolean disk flag fields
+// (cache, aio, discard, iothread, ssd, backup, replicate, ro) are correctly
+// serialized into the Proxmox disk config string.
 func TestToProxmoxDiskKeyConfigFlags(t *testing.T) {
 	t.Parallel()
 
@@ -1823,7 +3254,8 @@ func TestToProxmoxDiskKeyConfigFlags(t *testing.T) {
 	}
 }
 
-// TestParseDiskConfigFlags verifies that Group A and B flag fields are correctly
+// TestParseDiskConfigFlags verifies that boolean disk flag fields
+// (cache, aio, discard, iothread, ssd, backup, replicate, ro) are correctly
 // deserialized from Proxmox disk config strings.
 func TestParseDiskConfigFlags(t *testing.T) {
 	t.Parallel()
@@ -2201,3 +3633,388 @@ func TestParseDiskConfigBandwidth(t *testing.T) {
 
 // proxmoxPtr is a local helper to take a pointer to a float64 literal.
 func proxmoxPtr(v float64) *float64 { return &v }
+
+// TestToProxmoxDiskKeyConfigMiscFields verifies that miscellaneous disk fields
+// (format, serial, wwn, media, queues, snapshot, shared, rerror, werror, scsiblock)
+// are correctly serialized into the Proxmox disk config string.
+func TestToProxmoxDiskKeyConfigMiscFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		disk    proxmox.Disk
+		wantKey string
+		wantCfg string
+	}{
+		{
+			name: "format=qcow2",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local"},
+				Size:      20,
+				Format:    testutils.Ptr("qcow2"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local:20,size=20,format=qcow2",
+		},
+		{
+			name: "serial",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Serial:    testutils.Ptr("SN12345678"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,serial=SN12345678",
+		},
+		{
+			name: "wwn",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				WWN:       testutils.Ptr("0x500a0000deadbeef"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,wwn=0x500a0000deadbeef",
+		},
+		{
+			name: "media=cdrom",
+			disk: proxmox.Disk{
+				Interface: "ide2",
+				DiskBase:  proxmox.DiskBase{Storage: "local"},
+				Size:      0,
+				Media:     testutils.Ptr("cdrom"),
+			},
+			wantKey: "ide2",
+			wantCfg: "file=local:0,size=0,media=cdrom",
+		},
+		{
+			name: "queues=4",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Queues:    testutils.Ptr(4),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,queues=4",
+		},
+		{
+			name: "snapshot=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Snapshot:  testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,snapshot=1",
+		},
+		{
+			name: "snapshot=false",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Snapshot:  testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,snapshot=0",
+		},
+		{
+			name: "shared=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha"},
+				Size:      50,
+				Shared:    testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=ceph-ha:50,size=50,shared=1",
+		},
+		{
+			name: "rerror=ignore",
+			disk: proxmox.Disk{
+				Interface: "ide0",
+				DiskBase:  proxmox.DiskBase{Storage: "local"},
+				Size:      10,
+				RError:    testutils.Ptr("ignore"),
+			},
+			wantKey: "ide0",
+			wantCfg: "file=local:10,size=10,rerror=ignore",
+		},
+		{
+			name: "werror=enospc",
+			disk: proxmox.Disk{
+				Interface: "virtio0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      20,
+				WError:    testutils.Ptr("enospc"),
+			},
+			wantKey: "virtio0",
+			wantCfg: "file=local-lvm:20,size=20,werror=enospc",
+		},
+		{
+			name: "scsiblock=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				ScsiBlock: testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,scsiblock=1",
+		},
+		{
+			name: "scsiblock=false",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				ScsiBlock: testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,scsiblock=0",
+		},
+		{
+			name: "all miscellaneous fields combined",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local", FileID: testutils.Ptr("vm-100-disk-0.qcow2")},
+				Size:      50,
+				Format:    testutils.Ptr("qcow2"),
+				Serial:    testutils.Ptr("DISK001"),
+				WWN:       testutils.Ptr("0x5000000000000001"),
+				Queues:    testutils.Ptr(8),
+				Shared:    testutils.Ptr(false),
+				ScsiBlock: testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local:vm-100-disk-0.qcow2,size=50," +
+				"format=qcow2,serial=DISK001,wwn=0x5000000000000001,queues=8,shared=0,scsiblock=0",
+		},
+		{
+			name: "nil miscellaneous fields produce no extra tokens",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotKey, gotCfg := adapters.ToProxmoxDiskKeyConfig(tt.disk)
+			require.Equal(t, tt.wantKey, gotKey)
+			require.Equal(t, tt.wantCfg, gotCfg)
+		})
+	}
+}
+
+// TestParseDiskConfigMiscFields verifies that miscellaneous disk fields
+// (format, serial, wwn, media, queues, snapshot, shared, rerror, werror, scsiblock)
+// are correctly deserialized from Proxmox disk config strings.
+func TestParseDiskConfigMiscFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		config string
+		want   func(disk proxmox.Disk) // assertions on the parsed disk
+	}{
+		{
+			name:   "format=raw",
+			config: "local:vm-100-disk-0.raw,size=10G,format=raw",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Format)
+				require.Equal(t, "raw", *disk.Format)
+			},
+		},
+		{
+			name:   "format=qcow2",
+			config: "local:vm-100-disk-0.qcow2,size=10G,format=qcow2",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Format)
+				require.Equal(t, "qcow2", *disk.Format)
+			},
+		},
+		{
+			name:   "serial",
+			config: "local-lvm:vm-100-disk-0,size=20G,serial=SN12345678",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Serial)
+				require.Equal(t, "SN12345678", *disk.Serial)
+			},
+		},
+		{
+			name:   "wwn",
+			config: "local-lvm:vm-100-disk-0,size=20G,wwn=0x500a0000deadbeef",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.WWN)
+				require.Equal(t, "0x500a0000deadbeef", *disk.WWN)
+			},
+		},
+		{
+			name:   "media=cdrom",
+			config: "local:iso/debian.iso,size=1G,media=cdrom",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Media)
+				require.Equal(t, "cdrom", *disk.Media)
+			},
+		},
+		{
+			name:   "media=disk",
+			config: "local-lvm:vm-100-disk-0,size=10G,media=disk",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Media)
+				require.Equal(t, "disk", *disk.Media)
+			},
+		},
+		{
+			name:   "queues=4",
+			config: "local-lvm:vm-100-disk-0,size=10G,queues=4",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Queues)
+				require.Equal(t, 4, *disk.Queues)
+			},
+		},
+		{
+			name:   "snapshot=1",
+			config: "local-lvm:vm-100-disk-0,size=10G,snapshot=1",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Snapshot)
+				require.True(t, *disk.Snapshot)
+			},
+		},
+		{
+			name:   "snapshot=0",
+			config: "local-lvm:vm-100-disk-0,size=10G,snapshot=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Snapshot)
+				require.False(t, *disk.Snapshot)
+			},
+		},
+		{
+			name:   "shared=1",
+			config: "ceph-ha:vm-100-disk-0,size=50G,shared=1",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Shared)
+				require.True(t, *disk.Shared)
+			},
+		},
+		{
+			name:   "shared=0",
+			config: "local-lvm:vm-100-disk-0,size=10G,shared=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Shared)
+				require.False(t, *disk.Shared)
+			},
+		},
+		{
+			name:   "rerror=ignore",
+			config: "local:vm-100-disk-0,size=10G,rerror=ignore",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.RError)
+				require.Equal(t, "ignore", *disk.RError)
+			},
+		},
+		{
+			name:   "rerror=stop",
+			config: "local:vm-100-disk-0,size=10G,rerror=stop",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.RError)
+				require.Equal(t, "stop", *disk.RError)
+			},
+		},
+		{
+			name:   "werror=enospc",
+			config: "local-lvm:vm-100-disk-0,size=20G,werror=enospc",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.WError)
+				require.Equal(t, "enospc", *disk.WError)
+			},
+		},
+		{
+			name:   "werror=report",
+			config: "local-lvm:vm-100-disk-0,size=20G,werror=report",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.WError)
+				require.Equal(t, "report", *disk.WError)
+			},
+		},
+		{
+			name:   "scsiblock=1",
+			config: "local-lvm:vm-100-disk-0,size=10G,scsiblock=1",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.ScsiBlock)
+				require.True(t, *disk.ScsiBlock)
+			},
+		},
+		{
+			name:   "scsiblock=0",
+			config: "local-lvm:vm-100-disk-0,size=10G,scsiblock=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.ScsiBlock)
+				require.False(t, *disk.ScsiBlock)
+			},
+		},
+		{
+			name: "all miscellaneous fields combined",
+			config: "local:vm-100-disk-0.qcow2,size=50G," +
+				"format=qcow2,serial=DISK001,wwn=0x5000000000000001," +
+				"queues=8,snapshot=0,shared=1,rerror=report,werror=enospc,scsiblock=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Format)
+				require.Equal(t, "qcow2", *disk.Format)
+				require.NotNil(t, disk.Serial)
+				require.Equal(t, "DISK001", *disk.Serial)
+				require.NotNil(t, disk.WWN)
+				require.Equal(t, "0x5000000000000001", *disk.WWN)
+				require.NotNil(t, disk.Queues)
+				require.Equal(t, 8, *disk.Queues)
+				require.NotNil(t, disk.Snapshot)
+				require.False(t, *disk.Snapshot)
+				require.NotNil(t, disk.Shared)
+				require.True(t, *disk.Shared)
+				require.NotNil(t, disk.RError)
+				require.Equal(t, "report", *disk.RError)
+				require.NotNil(t, disk.WError)
+				require.Equal(t, "enospc", *disk.WError)
+				require.NotNil(t, disk.ScsiBlock)
+				require.False(t, *disk.ScsiBlock)
+			},
+		},
+		{
+			name:   "no miscellaneous fields → all nil",
+			config: "local-lvm:vm-100-disk-0,size=10G,cache=none",
+			want: func(disk proxmox.Disk) {
+				require.Nil(t, disk.Format)
+				require.Nil(t, disk.Serial)
+				require.Nil(t, disk.WWN)
+				require.Nil(t, disk.Media)
+				require.Nil(t, disk.Queues)
+				require.Nil(t, disk.Snapshot)
+				require.Nil(t, disk.Shared)
+				require.Nil(t, disk.RError)
+				require.Nil(t, disk.WError)
+				require.Nil(t, disk.ScsiBlock)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var disk proxmox.Disk
+			err := adapters.ParseDiskConfig(&disk, tt.config)
+			require.NoError(t, err)
+			tt.want(disk)
+		})
+	}
+}
