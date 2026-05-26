@@ -923,6 +923,43 @@ func ParseDiskConfig(disk *proxmox.Disk, diskConfig string) error {
 		disk.Bandwidth = &bw
 	}
 
+	if v, ok := parsed.Extras["format"]; ok {
+		disk.Format = &v
+	}
+	if v, ok := parsed.Extras["serial"]; ok {
+		disk.Serial = &v
+	}
+	if v, ok := parsed.Extras["wwn"]; ok {
+		disk.WWN = &v
+	}
+	if v, ok := parsed.Extras["media"]; ok {
+		disk.Media = &v
+	}
+	if v, ok := parsed.Extras["queues"]; ok {
+		n, err := strconv.Atoi(v)
+		if err == nil {
+			disk.Queues = &n
+		}
+	}
+	if v, ok := parsed.Extras["snapshot"]; ok {
+		b := v == "1"
+		disk.Snapshot = &b
+	}
+	if v, ok := parsed.Extras["shared"]; ok {
+		b := v == "1"
+		disk.Shared = &b
+	}
+	if v, ok := parsed.Extras["rerror"]; ok {
+		disk.RError = &v
+	}
+	if v, ok := parsed.Extras["werror"]; ok {
+		disk.WError = &v
+	}
+	if v, ok := parsed.Extras["scsiblock"]; ok {
+		b := v == "1"
+		disk.ScsiBlock = &b
+	}
+
 	return nil
 }
 
@@ -1214,6 +1251,36 @@ func ToProxmoxDiskKeyConfig(disk proxmox.Disk) (diskKey, diskConfig string) {
 		if bw.IOPSWrMax != nil {
 			diskConfig += fmt.Sprintf(",iops_wr_max=%d", *bw.IOPSWrMax)
 		}
+	}
+	if disk.Format != nil {
+		diskConfig += ",format=" + *disk.Format
+	}
+	if disk.Serial != nil {
+		diskConfig += ",serial=" + *disk.Serial
+	}
+	if disk.WWN != nil {
+		diskConfig += ",wwn=" + *disk.WWN
+	}
+	if disk.Media != nil {
+		diskConfig += ",media=" + *disk.Media
+	}
+	if disk.Queues != nil {
+		diskConfig += fmt.Sprintf(",queues=%d", *disk.Queues)
+	}
+	if disk.Snapshot != nil {
+		diskConfig += fmt.Sprintf(",snapshot=%d", boolToInt(*disk.Snapshot))
+	}
+	if disk.Shared != nil {
+		diskConfig += fmt.Sprintf(",shared=%d", boolToInt(*disk.Shared))
+	}
+	if disk.RError != nil {
+		diskConfig += ",rerror=" + *disk.RError
+	}
+	if disk.WError != nil {
+		diskConfig += ",werror=" + *disk.WError
+	}
+	if disk.ScsiBlock != nil {
+		diskConfig += fmt.Sprintf(",scsiblock=%d", boolToInt(*disk.ScsiBlock))
 	}
 
 	return diskKey, diskConfig

@@ -353,6 +353,13 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 				preservedDisk.FileID = nil
 			}
 		}
+		// Preserve format when the API didn't return it (block-based storage such as
+		// LVM and Ceph omits the format key from the disk config string). Without this
+		// a user who sets format=raw on local-lvm would see a phantom diff on every plan.
+		if userDisk, ok := userByInterface[disk.Interface]; ok &&
+			userDisk.Format != nil && preservedDisk.Format == nil {
+			preservedDisk.Format = userDisk.Format
+		}
 		preservedDisks = append(preservedDisks, &preservedDisk)
 	}
 	preserved.Disks = preservedDisks

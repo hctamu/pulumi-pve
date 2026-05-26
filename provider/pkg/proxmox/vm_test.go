@@ -16,6 +16,7 @@ limitations under the License.
 package proxmox_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -194,6 +195,8 @@ func TestValidateDiskFlags(t *testing.T) {
 	t.Parallel()
 
 	boolPtr := func(b bool) *bool { return &b }
+	intPtr := func(v int) *int { return &v }
+	strPtr := func(s string) *string { return &s }
 
 	tests := []struct {
 		name    string
@@ -238,6 +241,62 @@ func TestValidateDiskFlags(t *testing.T) {
 			wantErr: "ssd emulation is not supported on virtio interfaces",
 		},
 
+		// queues: allowed on scsi and virtio only; minimum value 2
+		{name: "queues on scsi0 ok", disk: proxmox.Disk{Interface: "scsi0", Queues: intPtr(4)}},
+		{name: "queues on virtio0 ok", disk: proxmox.Disk{Interface: "virtio0", Queues: intPtr(2)}},
+		{
+			name:    "queues on sata0 rejected",
+			disk:    proxmox.Disk{Interface: "sata0", Queues: intPtr(4)},
+			wantErr: "queues is only supported on scsi and virtio interfaces",
+		},
+		{
+			name:    "queues on ide0 rejected",
+			disk:    proxmox.Disk{Interface: "ide0", Queues: intPtr(4)},
+			wantErr: "queues is only supported on scsi and virtio interfaces",
+		},
+		{
+			name:    "queues=1 on scsi rejected (min 2)",
+			disk:    proxmox.Disk{Interface: "scsi0", Queues: intPtr(1)},
+			wantErr: "queues must be at least 2 (got 1)",
+		},
+		{
+			name:    "queues=0 on scsi rejected (min 2)",
+			disk:    proxmox.Disk{Interface: "scsi0", Queues: intPtr(0)},
+			wantErr: "queues must be at least 2 (got 0)",
+		},
+		{
+			name:    "queues negative on scsi rejected (min 2)",
+			disk:    proxmox.Disk{Interface: "scsi0", Queues: intPtr(-1)},
+			wantErr: "queues must be at least 2 (got -1)",
+		},
+
+		// scsiblock: scsi only
+		{name: "scsiblock on scsi0 ok", disk: proxmox.Disk{Interface: "scsi0", ScsiBlock: boolPtr(true)}},
+		{
+			name:    "scsiblock on sata0 rejected",
+			disk:    proxmox.Disk{Interface: "sata0", ScsiBlock: boolPtr(true)},
+			wantErr: "scsiblock is only supported on scsi interfaces",
+		},
+		{
+			name:    "scsiblock on virtio0 rejected",
+			disk:    proxmox.Disk{Interface: "virtio0", ScsiBlock: boolPtr(true)},
+			wantErr: "scsiblock is only supported on scsi interfaces",
+		},
+
+		// serial: max 60 chars
+		{name: "serial 60 chars ok", disk: proxmox.Disk{Interface: "scsi0", Serial: strPtr(strings.Repeat("A", 60))}},
+		{name: "serial 1 char ok", disk: proxmox.Disk{Interface: "scsi0", Serial: strPtr("X")}},
+		{
+			name:    "serial 61 chars rejected",
+			disk:    proxmox.Disk{Interface: "scsi0", Serial: strPtr(strings.Repeat("A", 61))},
+			wantErr: "serial must be at most 60 characters (got 61)",
+		},
+		{
+			name:    "serial 100 chars rejected",
+			disk:    proxmox.Disk{Interface: "scsi0", Serial: strPtr(strings.Repeat("A", 100))},
+			wantErr: "serial must be at most 60 characters (got 100)",
+		},
+
 		// nil flags are always fine
 		{name: "nil flags on any interface ok", disk: proxmox.Disk{Interface: "sata0"}},
 
@@ -249,7 +308,7 @@ func TestValidateDiskFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var d *proxmox.Disk
-			if tt.disk.Interface != "" || tt.disk.IOThread != nil || tt.disk.ReadOnly != nil || tt.disk.SSD != nil {
+			if tt.disk.Interface != "" {
 				d = &tt.disk
 			}
 			err := proxmox.ValidateDiskFlags(d)

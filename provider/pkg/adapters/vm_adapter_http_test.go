@@ -513,7 +513,7 @@ func newConnectedVMAdapter(t *testing.T, serverURL string) *adapters.VMAdapter {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 2: CreateVM full field tests
+// CreateVM HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterCreateVMSendsAllFields verifies that CreateVM sends all scalar
@@ -750,7 +750,7 @@ func TestVMAdapterCreateVMSendsEfiDisk(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 3: Get/Read HTTP tests
+// Get/Read HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterGetReadsConfig verifies that Get returns the correct VMInputs
@@ -920,7 +920,7 @@ func TestVMAdapterGetReadsTags(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4: Delete HTTP test
+// Delete HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterDeleteSendsCorrectRequest verifies that Delete sends
@@ -950,7 +950,7 @@ func TestVMAdapterDeleteSendsCorrectRequest(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 5: ApplyConfig HTTP tests
+// ApplyConfig HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterApplyConfigSendsOptions verifies that ApplyConfig sends the
@@ -1019,7 +1019,7 @@ func TestVMAdapterApplyConfigMinimalInputs(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 6: CloneVM HTTP tests
+// CloneVM HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterCloneVMSendsRequest verifies that CloneVM sends
@@ -1143,7 +1143,7 @@ func TestVMAdapterCloneVMValidation(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 7: Disk operation HTTP tests
+// Disk operation HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterResizeDisk verifies that ResizeDisk sends
@@ -1230,7 +1230,7 @@ func TestVMAdapterRemoveEfiDisk(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 8: GetCurrentDisks HTTP test
+// GetCurrentDisks HTTP tests
 // ---------------------------------------------------------------------------
 
 // TestVMAdapterGetCurrentDisks verifies that GetCurrentDisks parses the
