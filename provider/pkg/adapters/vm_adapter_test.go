@@ -979,21 +979,17 @@ func TestCPURoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Step 1: Parse the input string
 			parsed1, err := adapters.ParseCPU(tt.input)
 			require.NoError(t, err, "First parse should not error")
 			require.NotNil(t, parsed1, "First parse should return non-nil CPU")
 
-			// Step 2: Convert back to string
 			serialized := adapters.CPUToProxmoxString(parsed1)
 			require.NotEmpty(t, serialized, "Serialization should produce non-empty string")
 
-			// Step 3: Parse the serialized string again
 			parsed2, err := adapters.ParseCPU(serialized)
 			require.NoError(t, err, "Second parse should not error")
 			require.NotNil(t, parsed2, "Second parse should return non-nil CPU")
 
-			// Step 4: Verify both parsed structs are identical
 			assert.Equal(t, parsed1.Type, parsed2.Type, "CPU Type should match after round-trip")
 			assert.Equal(t, parsed1.FlagsEnabled, parsed2.FlagsEnabled, "FlagsEnabled should match after round-trip")
 			assert.Equal(t, parsed1.FlagsDisabled, parsed2.FlagsDisabled, "FlagsDisabled should match after round-trip")
@@ -1001,7 +997,6 @@ func TestCPURoundTrip(t *testing.T) {
 			assert.Equal(t, parsed1.HVVendorID, parsed2.HVVendorID, "HVVendorID should match after round-trip")
 			assert.Equal(t, parsed1.PhysBits, parsed2.PhysBits, "PhysBits should match after round-trip")
 
-			// Step 5: Convert second parsed struct to string and verify it matches
 			serialized2 := adapters.CPUToProxmoxString(parsed2)
 			assert.Equal(t, serialized, serialized2, "Second serialization should match first serialization")
 		})
@@ -1707,27 +1702,22 @@ func TestNumaNodeRoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Step 1: Parse the input string
 			parsed1, err := adapters.ParseNumaNode(tt.input)
 			require.NoError(t, err, "First parse should not error")
 			require.NotNil(t, parsed1, "First parse should return non-nil NumaNode")
 
-			// Step 2: Convert back to string
 			serialized := adapters.ToProxmoxNumaString(*parsed1)
 			require.NotEmpty(t, serialized, "Serialization should produce non-empty string")
 
-			// Step 3: Parse the serialized string again
 			parsed2, err := adapters.ParseNumaNode(serialized)
 			require.NoError(t, err, "Second parse should not error")
 			require.NotNil(t, parsed2, "Second parse should return non-nil NumaNode")
 
-			// Step 4: Verify both parsed structs are identical
 			assert.Equal(t, parsed1.Cpus, parsed2.Cpus, "Cpus should match after round-trip")
 			assert.Equal(t, parsed1.HostNodes, parsed2.HostNodes, "HostNodes should match after round-trip")
 			assert.Equal(t, parsed1.Memory, parsed2.Memory, "Memory should match after round-trip")
 			assert.Equal(t, parsed1.Policy, parsed2.Policy, "Policy should match after round-trip")
 
-			// Step 5: Convert second parsed struct to string and verify it matches
 			serialized2 := adapters.ToProxmoxNumaString(*parsed2)
 			assert.Equal(t, serialized, serialized2, "Second serialization should match first serialization")
 		})
@@ -2552,7 +2542,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 	t.Run(testCase.name, func(t *testing.T) {
 		t.Parallel()
 
-		// Step 1: Create VM inputs as they would be in real usage
+		// Create VM inputs as they would be in real usage
 		name := "production-vm"
 		vmid := 500
 		inputs := proxmox.VMInputs{
@@ -2564,7 +2554,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 		t.Logf("Test case: %s", testCase.description)
 		t.Logf("Input disk order: %v", testCase.expected)
 
-		// Step 2: Call BuildOptions multiple times to ensure consistency
+		// Call BuildOptions multiple times to verify deterministic ordering.
 		// This simulates what would happen during VM creation, updates, etc.
 		const numCalls = 10
 		var allOrders [][]string
@@ -2587,18 +2577,18 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 			}
 		}
 
-		// Step 3: Verify all calls produce identical ordering
+		// Verify all calls produce identical ordering.
 		firstOrder := allOrders[0]
 		for i := 1; i < numCalls; i++ {
 			assert.Equal(t, firstOrder, allOrders[i],
 				"BuildOptions call %d should produce consistent ordering", i)
 		}
 
-		// Step 4: Verify the order matches the expected input order
+		// Verify the order matches the expected input order.
 		assert.Equal(t, testCase.expected, firstOrder,
 			"Disk ordering should exactly match input order")
 
-		// Step 5: Verify each disk configuration is correct
+		// Verify each disk configuration string matches the input disk.
 		options := adapters.BuildVMOptions(inputs, *inputs.VMID)
 		diskOptionMap := make(map[string]string)
 		for _, opt := range options {
@@ -2620,7 +2610,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 				"Disk %d configuration should match", i)
 		}
 
-		// Step 6: Performance verification - ensure ordering doesn't impact performance
+		// Ensure ordering logic doesn't introduce measurable overhead at scale.
 		start := time.Now()
 		for i := 0; i < 1000; i++ {
 			_ = adapters.BuildVMOptions(inputs, *inputs.VMID)
@@ -3942,8 +3932,9 @@ func TestBuildVMOptionsDiffDisks(t *testing.T) {
 	}
 }
 
-// TestToProxmoxDiskKeyConfigFlags verifies that Group A and B flag fields are
-// correctly serialized into the Proxmox disk config string.
+// TestToProxmoxDiskKeyConfigFlags verifies that boolean disk flag fields
+// (cache, aio, discard, iothread, ssd, backup, replicate, ro) are correctly
+// serialized into the Proxmox disk config string.
 func TestToProxmoxDiskKeyConfigFlags(t *testing.T) {
 	t.Parallel()
 
@@ -4077,7 +4068,8 @@ func TestToProxmoxDiskKeyConfigFlags(t *testing.T) {
 	}
 }
 
-// TestParseDiskConfigFlags verifies that Group A and B flag fields are correctly
+// TestParseDiskConfigFlags verifies that boolean disk flag fields
+// (cache, aio, discard, iothread, ssd, backup, replicate, ro) are correctly
 // deserialized from Proxmox disk config strings.
 func TestParseDiskConfigFlags(t *testing.T) {
 	t.Parallel()
@@ -4455,3 +4447,388 @@ func TestParseDiskConfigBandwidth(t *testing.T) {
 
 // proxmoxPtr is a local helper to take a pointer to a float64 literal.
 func proxmoxPtr(v float64) *float64 { return &v }
+
+// TestToProxmoxDiskKeyConfigMiscFields verifies that miscellaneous disk fields
+// (format, serial, wwn, media, queues, snapshot, shared, rerror, werror, scsiblock)
+// are correctly serialized into the Proxmox disk config string.
+func TestToProxmoxDiskKeyConfigMiscFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		disk    proxmox.Disk
+		wantKey string
+		wantCfg string
+	}{
+		{
+			name: "format=qcow2",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local"},
+				Size:      20,
+				Format:    testutils.Ptr("qcow2"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local:20,size=20,format=qcow2",
+		},
+		{
+			name: "serial",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Serial:    testutils.Ptr("SN12345678"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,serial=SN12345678",
+		},
+		{
+			name: "wwn",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				WWN:       testutils.Ptr("0x500a0000deadbeef"),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,wwn=0x500a0000deadbeef",
+		},
+		{
+			name: "media=cdrom",
+			disk: proxmox.Disk{
+				Interface: "ide2",
+				DiskBase:  proxmox.DiskBase{Storage: "local"},
+				Size:      0,
+				Media:     testutils.Ptr("cdrom"),
+			},
+			wantKey: "ide2",
+			wantCfg: "file=local:0,size=0,media=cdrom",
+		},
+		{
+			name: "queues=4",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Queues:    testutils.Ptr(4),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,queues=4",
+		},
+		{
+			name: "snapshot=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Snapshot:  testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,snapshot=1",
+		},
+		{
+			name: "snapshot=false",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				Snapshot:  testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,snapshot=0",
+		},
+		{
+			name: "shared=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "ceph-ha"},
+				Size:      50,
+				Shared:    testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=ceph-ha:50,size=50,shared=1",
+		},
+		{
+			name: "rerror=ignore",
+			disk: proxmox.Disk{
+				Interface: "ide0",
+				DiskBase:  proxmox.DiskBase{Storage: "local"},
+				Size:      10,
+				RError:    testutils.Ptr("ignore"),
+			},
+			wantKey: "ide0",
+			wantCfg: "file=local:10,size=10,rerror=ignore",
+		},
+		{
+			name: "werror=enospc",
+			disk: proxmox.Disk{
+				Interface: "virtio0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      20,
+				WError:    testutils.Ptr("enospc"),
+			},
+			wantKey: "virtio0",
+			wantCfg: "file=local-lvm:20,size=20,werror=enospc",
+		},
+		{
+			name: "scsiblock=true",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				ScsiBlock: testutils.Ptr(true),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,scsiblock=1",
+		},
+		{
+			name: "scsiblock=false",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+				ScsiBlock: testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10,scsiblock=0",
+		},
+		{
+			name: "all miscellaneous fields combined",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local", FileID: testutils.Ptr("vm-100-disk-0.qcow2")},
+				Size:      50,
+				Format:    testutils.Ptr("qcow2"),
+				Serial:    testutils.Ptr("DISK001"),
+				WWN:       testutils.Ptr("0x5000000000000001"),
+				Queues:    testutils.Ptr(8),
+				Shared:    testutils.Ptr(false),
+				ScsiBlock: testutils.Ptr(false),
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local:vm-100-disk-0.qcow2,size=50," +
+				"format=qcow2,serial=DISK001,wwn=0x5000000000000001,queues=8,shared=0,scsiblock=0",
+		},
+		{
+			name: "nil miscellaneous fields produce no extra tokens",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      10,
+			},
+			wantKey: "scsi0",
+			wantCfg: "file=local-lvm:10,size=10",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotKey, gotCfg := adapters.ToProxmoxDiskKeyConfig(tt.disk)
+			require.Equal(t, tt.wantKey, gotKey)
+			require.Equal(t, tt.wantCfg, gotCfg)
+		})
+	}
+}
+
+// TestParseDiskConfigMiscFields verifies that miscellaneous disk fields
+// (format, serial, wwn, media, queues, snapshot, shared, rerror, werror, scsiblock)
+// are correctly deserialized from Proxmox disk config strings.
+func TestParseDiskConfigMiscFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		config string
+		want   func(disk proxmox.Disk) // assertions on the parsed disk
+	}{
+		{
+			name:   "format=raw",
+			config: "local:vm-100-disk-0.raw,size=10G,format=raw",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Format)
+				require.Equal(t, "raw", *disk.Format)
+			},
+		},
+		{
+			name:   "format=qcow2",
+			config: "local:vm-100-disk-0.qcow2,size=10G,format=qcow2",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Format)
+				require.Equal(t, "qcow2", *disk.Format)
+			},
+		},
+		{
+			name:   "serial",
+			config: "local-lvm:vm-100-disk-0,size=20G,serial=SN12345678",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Serial)
+				require.Equal(t, "SN12345678", *disk.Serial)
+			},
+		},
+		{
+			name:   "wwn",
+			config: "local-lvm:vm-100-disk-0,size=20G,wwn=0x500a0000deadbeef",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.WWN)
+				require.Equal(t, "0x500a0000deadbeef", *disk.WWN)
+			},
+		},
+		{
+			name:   "media=cdrom",
+			config: "local:iso/debian.iso,size=1G,media=cdrom",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Media)
+				require.Equal(t, "cdrom", *disk.Media)
+			},
+		},
+		{
+			name:   "media=disk",
+			config: "local-lvm:vm-100-disk-0,size=10G,media=disk",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Media)
+				require.Equal(t, "disk", *disk.Media)
+			},
+		},
+		{
+			name:   "queues=4",
+			config: "local-lvm:vm-100-disk-0,size=10G,queues=4",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Queues)
+				require.Equal(t, 4, *disk.Queues)
+			},
+		},
+		{
+			name:   "snapshot=1",
+			config: "local-lvm:vm-100-disk-0,size=10G,snapshot=1",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Snapshot)
+				require.True(t, *disk.Snapshot)
+			},
+		},
+		{
+			name:   "snapshot=0",
+			config: "local-lvm:vm-100-disk-0,size=10G,snapshot=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Snapshot)
+				require.False(t, *disk.Snapshot)
+			},
+		},
+		{
+			name:   "shared=1",
+			config: "ceph-ha:vm-100-disk-0,size=50G,shared=1",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Shared)
+				require.True(t, *disk.Shared)
+			},
+		},
+		{
+			name:   "shared=0",
+			config: "local-lvm:vm-100-disk-0,size=10G,shared=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Shared)
+				require.False(t, *disk.Shared)
+			},
+		},
+		{
+			name:   "rerror=ignore",
+			config: "local:vm-100-disk-0,size=10G,rerror=ignore",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.RError)
+				require.Equal(t, "ignore", *disk.RError)
+			},
+		},
+		{
+			name:   "rerror=stop",
+			config: "local:vm-100-disk-0,size=10G,rerror=stop",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.RError)
+				require.Equal(t, "stop", *disk.RError)
+			},
+		},
+		{
+			name:   "werror=enospc",
+			config: "local-lvm:vm-100-disk-0,size=20G,werror=enospc",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.WError)
+				require.Equal(t, "enospc", *disk.WError)
+			},
+		},
+		{
+			name:   "werror=report",
+			config: "local-lvm:vm-100-disk-0,size=20G,werror=report",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.WError)
+				require.Equal(t, "report", *disk.WError)
+			},
+		},
+		{
+			name:   "scsiblock=1",
+			config: "local-lvm:vm-100-disk-0,size=10G,scsiblock=1",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.ScsiBlock)
+				require.True(t, *disk.ScsiBlock)
+			},
+		},
+		{
+			name:   "scsiblock=0",
+			config: "local-lvm:vm-100-disk-0,size=10G,scsiblock=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.ScsiBlock)
+				require.False(t, *disk.ScsiBlock)
+			},
+		},
+		{
+			name: "all miscellaneous fields combined",
+			config: "local:vm-100-disk-0.qcow2,size=50G," +
+				"format=qcow2,serial=DISK001,wwn=0x5000000000000001," +
+				"queues=8,snapshot=0,shared=1,rerror=report,werror=enospc,scsiblock=0",
+			want: func(disk proxmox.Disk) {
+				require.NotNil(t, disk.Format)
+				require.Equal(t, "qcow2", *disk.Format)
+				require.NotNil(t, disk.Serial)
+				require.Equal(t, "DISK001", *disk.Serial)
+				require.NotNil(t, disk.WWN)
+				require.Equal(t, "0x5000000000000001", *disk.WWN)
+				require.NotNil(t, disk.Queues)
+				require.Equal(t, 8, *disk.Queues)
+				require.NotNil(t, disk.Snapshot)
+				require.False(t, *disk.Snapshot)
+				require.NotNil(t, disk.Shared)
+				require.True(t, *disk.Shared)
+				require.NotNil(t, disk.RError)
+				require.Equal(t, "report", *disk.RError)
+				require.NotNil(t, disk.WError)
+				require.Equal(t, "enospc", *disk.WError)
+				require.NotNil(t, disk.ScsiBlock)
+				require.False(t, *disk.ScsiBlock)
+			},
+		},
+		{
+			name:   "no miscellaneous fields → all nil",
+			config: "local-lvm:vm-100-disk-0,size=10G,cache=none",
+			want: func(disk proxmox.Disk) {
+				require.Nil(t, disk.Format)
+				require.Nil(t, disk.Serial)
+				require.Nil(t, disk.WWN)
+				require.Nil(t, disk.Media)
+				require.Nil(t, disk.Queues)
+				require.Nil(t, disk.Snapshot)
+				require.Nil(t, disk.Shared)
+				require.Nil(t, disk.RError)
+				require.Nil(t, disk.WError)
+				require.Nil(t, disk.ScsiBlock)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var disk proxmox.Disk
+			err := adapters.ParseDiskConfig(&disk, tt.config)
+			require.NoError(t, err)
+			tt.want(disk)
+		})
+	}
+}
