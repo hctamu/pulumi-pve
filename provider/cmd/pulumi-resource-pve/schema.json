@@ -169,17 +169,53 @@
     "pve:proxmox:Disk": {
       "description": "Disk configuration for the virtual machine.",
       "properties": {
+        "aio": {
+          "type": "string",
+          "description": "Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default."
+        },
+        "backup": {
+          "type": "boolean",
+          "description": "Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups."
+        },
+        "bandwidth": {
+          "$ref": "#/types/pve:proxmox:DiskBandwidth",
+          "description": "I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling."
+        },
+        "cache": {
+          "type": "string",
+          "description": "Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting)."
+        },
+        "discard": {
+          "type": "string",
+          "description": "Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks."
+        },
         "filename": {
           "type": "string",
           "description": "File name of the disk image (computed by Proxmox if not provided)."
         },
         "interface": {
           "type": "string",
-          "description": "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2)."
+          "description": "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox."
+        },
+        "iothread": {
+          "type": "boolean",
+          "description": "Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces."
+        },
+        "replicate": {
+          "type": "boolean",
+          "description": "Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication."
+        },
+        "ro": {
+          "type": "boolean",
+          "description": "Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces."
         },
         "size": {
           "type": "integer",
           "description": "Disk size in gigabytes."
+        },
+        "ssd": {
+          "type": "boolean",
+          "description": "Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio."
         },
         "storage": {
           "type": "string",
@@ -192,6 +228,44 @@
         "size",
         "interface"
       ]
+    },
+    "pve:proxmox:DiskBandwidth": {
+      "description": "I/O throttle limits for the disk",
+      "properties": {
+        "iopsRd": {
+          "type": "integer",
+          "description": "Read I/O operations per second limit (0 = unlimited)."
+        },
+        "iopsRdMax": {
+          "type": "integer",
+          "description": "Read burst I/O operations per second limit."
+        },
+        "iopsWr": {
+          "type": "integer",
+          "description": "Write I/O operations per second limit (0 = unlimited)."
+        },
+        "iopsWrMax": {
+          "type": "integer",
+          "description": "Write burst I/O operations per second limit."
+        },
+        "mbpsRd": {
+          "type": "number",
+          "description": "Read throughput limit in MB/s (0 = unlimited)."
+        },
+        "mbpsRdMax": {
+          "type": "number",
+          "description": "Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd."
+        },
+        "mbpsWr": {
+          "type": "number",
+          "description": "Write throughput limit in MB/s (0 = unlimited)."
+        },
+        "mbpsWrMax": {
+          "type": "number",
+          "description": "Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr."
+        }
+      },
+      "type": "object"
     },
     "pve:proxmox:EfiDisk": {
       "description": "EFI disk configuration for the virtual machine.",
@@ -743,7 +817,7 @@
           "items": {
             "$ref": "#/types/pve:proxmox:Disk"
           },
-          "description": "List of disk configurations attached to the virtual machine."
+          "description": "List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned."
         },
         "efidisk": {
           "$ref": "#/types/pve:proxmox:EfiDisk",
@@ -820,7 +894,7 @@
           "items": {
             "$ref": "#/types/pve:proxmox:Disk"
           },
-          "description": "List of disk configurations attached to the virtual machine."
+          "description": "List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned."
         },
         "efidisk": {
           "$ref": "#/types/pve:proxmox:EfiDisk",

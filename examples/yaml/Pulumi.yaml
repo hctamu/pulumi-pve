@@ -6,71 +6,55 @@ plugins:
       path: ../../bin
 
 resources:
-  myFile:
-    type: pve:file:File
-    properties:
-      datastoreId: cephfs
-      contentType: snippets
-      sourceRaw:
-        fileData: |
-          hello world
-        fileName: testfile011.yaml
+  # myFile:
+  #   type: pve:file:File
+  #   properties:
+  #     datastoreId: cephfs
+  #     contentType: snippets
+  #     sourceRaw:
+  #       fileData: |
+  #         hello world
+  #       fileName: testfile011.yaml
 
-  myPool:
-    type: pve:pool:Pool
-    properties:
-      name: testpool
-      comment: "a test pool"
-      storage:
-        - cephfs
-      vms:
-        - 100
-
+  # myPool:
+  #   type: pve:pool:Pool
+  #   properties:
+  #     name: testpool
+  #     comment: "a test pool"
+  #     storage:
+  #       - cephfs
+  #     vms:
+  #       - 100
   myVM:
     type: pve:vm:VM
     properties:
       name: "aTestVM"
-      tags:
-        - "tag2"
-        - "tag1"
-      description: "test VM"
-      cpu:
-        type: EPYC-v3
-        flagsEnabled:
-          - virt-ssbd
-        flagsDisabled:
-          - spec-ctrl
-        hidden: true
-        hvVendorId: AuthenticAMD
-        physBits: "48"
-        cores: 4
-        sockets: 2
-        limit: 3.0
-        units: 2048
-        vcpus: 3
-        numa: true
-        numaNodes:
-          - cpus: "0-1"
-            hostNodes: "0"
-            memory: 2048
-            policy: "preferred"
-          - cpus: "2-3"
-            hostNodes: "1"
-            policy: "interleave"
-      memory: 27875
-      efidisk:
-        storage: "ceph-ha"
-        efitype: "4m"
-        preEnrolledKeys: false
+      description: "flags + bandwidth integration test"
+      node: "stage-devops-proxmox01"
+      vmId: 119
+      memory: 2048
       disks:
+        # scsi0: changed flags + bandwidth
         - storage: "ceph-ha"
-          size: 20
+          size: 17
           interface: "scsi0"
+          cache: "none"
+          iothread: true
+          bandwidth:
+            mbpsRd: 200.0
+            mbpsWr: 100.0
+            mbpsRdMax: 400.0
+        # scsi1: updated iops
         - storage: "ceph-ha"
           size: 17
           interface: "scsi1"
+          bandwidth:
+            iopsRd: 2000
+            iopsWr: 1000
+            iopsRdMax: 4000
+        # sata0: remove ssd, restore backup
         - storage: "ceph-ha"
-          size: 21
+          size: 10
           interface: "sata0"
       clone:
         vmId: 102

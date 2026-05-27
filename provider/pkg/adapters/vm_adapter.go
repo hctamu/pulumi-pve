@@ -524,6 +524,38 @@ func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmo
 			)
 		}
 	}
+
+	// Emit config options for disk changes:
+	//   - New disks (in desired, absent from current): provision via storage:size format.
+	//   - Existing disks where the config string changed (flag edits): re-emit the full
+	//     config so Proxmox updates cache, aio, discard, iothread, ssd, backup, replicate, ro.
+	//   - Unchanged existing disks: skipped (no-op).
+	// Resize and removal are handled by direct API calls (ResizeDisk/RemoveDisk) before
+	// UpdateConfig is called and do not need to be re-emitted here.
+	currentByIface := make(map[string]*proxmox.Disk, len(currentInputs.Disks))
+	for _, d := range currentInputs.Disks {
+		if d != nil {
+			currentByIface[d.Interface] = d
+		}
+	}
+	for _, disk := range inputs.Disks {
+		if disk == nil {
+			continue
+		}
+		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
+		currentDisk, exists := currentByIface[disk.Interface]
+		if !exists {
+			// New disk: provision it.
+			options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+			continue
+		}
+		// Existing disk: re-emit only when the config string changed (e.g. flag edits).
+		_, currentConfig := ToProxmoxDiskKeyConfig(*currentDisk)
+		if diskConfig != currentConfig {
+			options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+		}
+	}
+
 	return options
 }
 
@@ -731,6 +763,14 @@ func addOption[T comparable](name string, options *[]api.VirtualMachineOption, v
 	}
 }
 
+// boolToInt converts a bool to the Proxmox integer representation (1=true, 0=false).
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
 // parsedDiskBase holds the common result of parsing a Proxmox disk config string.
 type parsedDiskBase struct {
 	proxmox.DiskBase
@@ -819,6 +859,107 @@ func ParseDiskConfig(disk *proxmox.Disk, diskConfig string) error {
 	}
 	disk.DiskBase = parsed.DiskBase
 	disk.Size = *parsed.Size
+
+	if v, ok := parsed.Extras["cache"]; ok {
+		disk.Cache = &v
+	}
+	if v, ok := parsed.Extras["aio"]; ok {
+		disk.Aio = &v
+	}
+	if v, ok := parsed.Extras["discard"]; ok {
+		disk.Discard = &v
+	}
+	if v, ok := parsed.Extras["iothread"]; ok {
+		b := v == "1"
+		disk.IOThread = &b
+	}
+	if v, ok := parsed.Extras["ssd"]; ok {
+		b := v == "1"
+		disk.SSD = &b
+	}
+	if v, ok := parsed.Extras["backup"]; ok {
+		b := v != "0"
+		disk.Backup = &b
+	}
+	if v, ok := parsed.Extras["replicate"]; ok {
+		b := v != "0"
+		disk.Replicate = &b
+	}
+	if v, ok := parsed.Extras["ro"]; ok {
+		b := v == "1"
+		disk.ReadOnly = &b
+	}
+
+	// Bandwidth (I/O throttle) fields.
+	var bw proxmox.DiskBandwidth
+	hasBW := false
+	parseMBps := func(key string, dst **float64) {
+		if v, ok := parsed.Extras[key]; ok {
+			f, err := strconv.ParseFloat(v, 64)
+			if err == nil {
+				*dst = &f
+				hasBW = true
+			}
+		}
+	}
+	parseIOPS := func(key string, dst **int) {
+		if v, ok := parsed.Extras[key]; ok {
+			n, err := strconv.Atoi(v)
+			if err == nil {
+				*dst = &n
+				hasBW = true
+			}
+		}
+	}
+	parseMBps("mbps_rd", &bw.MBpsRd)
+	parseMBps("mbps_rd_max", &bw.MBpsRdMax)
+	parseMBps("mbps_wr", &bw.MBpsWr)
+	parseMBps("mbps_wr_max", &bw.MBpsWrMax)
+	parseIOPS("iops_rd", &bw.IOPSRd)
+	parseIOPS("iops_rd_max", &bw.IOPSRdMax)
+	parseIOPS("iops_wr", &bw.IOPSWr)
+	parseIOPS("iops_wr_max", &bw.IOPSWrMax)
+	if hasBW {
+		disk.Bandwidth = &bw
+	}
+
+	if v, ok := parsed.Extras["format"]; ok {
+		disk.Format = &v
+	}
+	if v, ok := parsed.Extras["serial"]; ok {
+		disk.Serial = &v
+	}
+	if v, ok := parsed.Extras["wwn"]; ok {
+		disk.WWN = &v
+	}
+	if v, ok := parsed.Extras["media"]; ok {
+		disk.Media = &v
+	}
+	if v, ok := parsed.Extras["queues"]; ok {
+		n, err := strconv.Atoi(v)
+		if err == nil {
+			disk.Queues = &n
+		}
+	}
+	if v, ok := parsed.Extras["snapshot"]; ok {
+		b := v == "1"
+		disk.Snapshot = &b
+	}
+	if v, ok := parsed.Extras["shared"]; ok {
+		b := v == "1"
+		disk.Shared = &b
+	}
+	if v, ok := parsed.Extras["rerror"]; ok {
+		disk.RError = &v
+	}
+	if v, ok := parsed.Extras["werror"]; ok {
+		disk.WError = &v
+	}
+	if v, ok := parsed.Extras["scsiblock"]; ok {
+		b := v == "1"
+		disk.ScsiBlock = &b
+	}
+
 	return nil
 }
 
@@ -1060,5 +1201,87 @@ func ToProxmoxDiskKeyConfig(disk proxmox.Disk) (diskKey, diskConfig string) {
 
 	diskKey = disk.Interface
 	diskConfig = fmt.Sprintf("file=%v,size=%v", fullDiskPath, disk.Size)
-	return
+
+	if disk.Cache != nil {
+		diskConfig += ",cache=" + *disk.Cache
+	}
+	if disk.Aio != nil {
+		diskConfig += ",aio=" + *disk.Aio
+	}
+	if disk.Discard != nil {
+		diskConfig += ",discard=" + *disk.Discard
+	}
+	if disk.IOThread != nil {
+		diskConfig += fmt.Sprintf(",iothread=%d", boolToInt(*disk.IOThread))
+	}
+	if disk.SSD != nil {
+		diskConfig += fmt.Sprintf(",ssd=%d", boolToInt(*disk.SSD))
+	}
+	if disk.Backup != nil {
+		diskConfig += fmt.Sprintf(",backup=%d", boolToInt(*disk.Backup))
+	}
+	if disk.Replicate != nil {
+		diskConfig += fmt.Sprintf(",replicate=%d", boolToInt(*disk.Replicate))
+	}
+	if disk.ReadOnly != nil {
+		diskConfig += fmt.Sprintf(",ro=%d", boolToInt(*disk.ReadOnly))
+	}
+	if bw := disk.Bandwidth; bw != nil {
+		if bw.MBpsRd != nil {
+			diskConfig += fmt.Sprintf(",mbps_rd=%g", *bw.MBpsRd)
+		}
+		if bw.MBpsRdMax != nil {
+			diskConfig += fmt.Sprintf(",mbps_rd_max=%g", *bw.MBpsRdMax)
+		}
+		if bw.MBpsWr != nil {
+			diskConfig += fmt.Sprintf(",mbps_wr=%g", *bw.MBpsWr)
+		}
+		if bw.MBpsWrMax != nil {
+			diskConfig += fmt.Sprintf(",mbps_wr_max=%g", *bw.MBpsWrMax)
+		}
+		if bw.IOPSRd != nil {
+			diskConfig += fmt.Sprintf(",iops_rd=%d", *bw.IOPSRd)
+		}
+		if bw.IOPSRdMax != nil {
+			diskConfig += fmt.Sprintf(",iops_rd_max=%d", *bw.IOPSRdMax)
+		}
+		if bw.IOPSWr != nil {
+			diskConfig += fmt.Sprintf(",iops_wr=%d", *bw.IOPSWr)
+		}
+		if bw.IOPSWrMax != nil {
+			diskConfig += fmt.Sprintf(",iops_wr_max=%d", *bw.IOPSWrMax)
+		}
+	}
+	if disk.Format != nil {
+		diskConfig += ",format=" + *disk.Format
+	}
+	if disk.Serial != nil {
+		diskConfig += ",serial=" + *disk.Serial
+	}
+	if disk.WWN != nil {
+		diskConfig += ",wwn=" + *disk.WWN
+	}
+	if disk.Media != nil {
+		diskConfig += ",media=" + *disk.Media
+	}
+	if disk.Queues != nil {
+		diskConfig += fmt.Sprintf(",queues=%d", *disk.Queues)
+	}
+	if disk.Snapshot != nil {
+		diskConfig += fmt.Sprintf(",snapshot=%d", boolToInt(*disk.Snapshot))
+	}
+	if disk.Shared != nil {
+		diskConfig += fmt.Sprintf(",shared=%d", boolToInt(*disk.Shared))
+	}
+	if disk.RError != nil {
+		diskConfig += ",rerror=" + *disk.RError
+	}
+	if disk.WError != nil {
+		diskConfig += ",werror=" + *disk.WError
+	}
+	if disk.ScsiBlock != nil {
+		diskConfig += fmt.Sprintf(",scsiblock=%d", boolToInt(*disk.ScsiBlock))
+	}
+
+	return diskKey, diskConfig
 }

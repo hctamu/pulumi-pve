@@ -1226,7 +1226,7 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 
 	vmRes := &VM{VMOps: ops, Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID}}
 
-	// Step 1: Create — FileIDs should be in the state
+	// Create — FileIDs should be in the state
 	createReq := infer.CreateRequest[proxmox.VMInputs]{
 		Name: "lifecycle-vm",
 		Inputs: proxmox.VMInputs{
@@ -1255,7 +1255,7 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 	require.NotNil(t, createResp.Output.EfiDisk.FileID, "EFI FileID must be in state after Create")
 	assert.Equal(t, efiFileID, *createResp.Output.EfiDisk.FileID)
 
-	// Step 2: Use that state in an Update (dry-run) — FileIDs should propagate
+	// Update (dry-run) — FileIDs should propagate from prior state
 	updateReq := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID:     "lifecycle-vm",
 		DryRun: true,

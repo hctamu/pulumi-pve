@@ -152,6 +152,32 @@ func (clone *Clone) Annotate(a infer.Annotator) {
 	a.Describe(&clone.Timeout, "Timeout in seconds for the clone operation.")
 }
 
+// DiskBandwidth holds the I/O throttle limits.
+// All fields are optional; omitting a field leaves the Proxmox default (no limit).
+type DiskBandwidth struct {
+	MBpsRd    *float64 `pulumi:"mbpsRd,optional"`    // Read limit in MB/s.
+	MBpsRdMax *float64 `pulumi:"mbpsRdMax,optional"` // Read burst limit in MB/s.
+	MBpsWr    *float64 `pulumi:"mbpsWr,optional"`    // Write limit in MB/s.
+	MBpsWrMax *float64 `pulumi:"mbpsWrMax,optional"` // Write burst limit in MB/s.
+	IOPSRd    *int     `pulumi:"iopsRd,optional"`    // Read limit in operations/s.
+	IOPSRdMax *int     `pulumi:"iopsRdMax,optional"` // Read burst limit in operations/s.
+	IOPSWr    *int     `pulumi:"iopsWr,optional"`    // Write limit in operations/s.
+	IOPSWrMax *int     `pulumi:"iopsWrMax,optional"` // Write burst limit in operations/s.
+}
+
+// Annotate provides documentation for the DiskBandwidth type.
+func (bw *DiskBandwidth) Annotate(a infer.Annotator) {
+	a.Describe(&bw, "I/O throttle limits for the disk")
+	a.Describe(&bw.MBpsRd, "Read throughput limit in MB/s (0 = unlimited).")
+	a.Describe(&bw.MBpsRdMax, "Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.")
+	a.Describe(&bw.MBpsWr, "Write throughput limit in MB/s (0 = unlimited).")
+	a.Describe(&bw.MBpsWrMax, "Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.")
+	a.Describe(&bw.IOPSRd, "Read I/O operations per second limit (0 = unlimited).")
+	a.Describe(&bw.IOPSRdMax, "Read burst I/O operations per second limit.")
+	a.Describe(&bw.IOPSWr, "Write I/O operations per second limit (0 = unlimited).")
+	a.Describe(&bw.IOPSWrMax, "Write burst I/O operations per second limit.")
+}
+
 // DiskBase contains common fields shared between Disk and EfiDisk.
 type DiskBase struct {
 	Storage string  `pulumi:"storage"`
@@ -161,8 +187,27 @@ type DiskBase struct {
 // Disk represents a virtual machine disk configuration.
 type Disk struct {
 	DiskBase
-	Size      int    `pulumi:"size"`      // Size in Gigabytes (required for regular disks).
-	Interface string `pulumi:"interface"` // Disk interface: "scsi0", "ide1", "virtio", etc.
+	Size      int            `pulumi:"size"`               // Size in Gigabytes (required for regular disks).
+	Interface string         `pulumi:"interface"`          // Disk interface: "scsi0", "ide1", "virtio", etc.
+	Cache     *string        `pulumi:"cache,optional"`     // Cache mode: none, writethrough, writeback, unsafe, directsync
+	Aio       *string        `pulumi:"aio,optional"`       // Async I/O mode: native, threads, io_uring.
+	Discard   *string        `pulumi:"discard,optional"`   // Discard/TRIM: ignore, on.
+	IOThread  *bool          `pulumi:"iothread,optional"`  // Enable per-disk I/O thread (virtio/scsi only).
+	SSD       *bool          `pulumi:"ssd,optional"`       // Emulate SSD for the guest OS.
+	Backup    *bool          `pulumi:"backup,optional"`    // Include disk in backups (Proxmox default: true).
+	Replicate *bool          `pulumi:"replicate,optional"` // Include disk in replication (Proxmox default: true).
+	ReadOnly  *bool          `pulumi:"ro,optional"`        // Mount disk read-only.
+	Bandwidth *DiskBandwidth `pulumi:"bandwidth,optional"` // I/O throttle limits (Proxmox GUI "Bandwidth" section).
+	Format    *string        `pulumi:"format,optional"`    // Disk image format: raw, qcow2, vmdk, etc.
+	Serial    *string        `pulumi:"serial,optional"`    // Disk serial number exposed to the guest.
+	WWN       *string        `pulumi:"wwn,optional"`       // World Wide Name (16 hex digits, e.g. 0x500a0000deadbeef).
+	Media     *string        `pulumi:"media,optional"`     // Media type: disk or cdrom.
+	Queues    *int           `pulumi:"queues,optional"`    // Number of I/O queues (virtio/scsi only).
+	Snapshot  *bool          `pulumi:"snapshot,optional"`  // Disk is part of a snapshot chain (managed by Proxmox).
+	Shared    *bool          `pulumi:"shared,optional"`    // Mark disk as shared across cluster nodes.
+	RError    *string        `pulumi:"rerror,optional"`    // Read error policy: ignore, report, or stop.
+	WError    *string        `pulumi:"werror,optional"`    // Write error policy: enospc, ignore, report, or stop.
+	ScsiBlock *bool          `pulumi:"scsiblock,optional"` // Use scsi-block I/O path instead of virtio-scsi (scsi only).
 }
 
 // Annotate provides documentation for the Disk type.
@@ -171,7 +216,57 @@ func (disk *Disk) Annotate(a infer.Annotator) {
 	a.Describe(&disk.Storage, "Target storage pool for the disk (e.g., local-lvm, ceph-pool).")
 	a.Describe(&disk.FileID, "File name of the disk image (computed by Proxmox if not provided).")
 	a.Describe(&disk.Size, "Disk size in gigabytes.")
-	a.Describe(&disk.Interface, "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).")
+	a.Describe(
+		&disk.Interface,
+		"Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). "+
+			"This field is the stable identity key for the disk: changing it is treated as "+
+			"removing the old disk (permanently deleting the image) and adding a new empty disk. "+
+			"To move data between slots, perform the migration manually in Proxmox.",
+	)
+	a.Describe(&disk.Cache, "Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. "+
+		"Omit to use the Proxmox default (no explicit cache setting).")
+	a.Describe(&disk.Aio, "Asynchronous I/O mode: native, threads, or io_uring. "+
+		"Omit to use the Proxmox default.")
+	a.Describe(&disk.Discard, "Discard/TRIM support: ignore (default) or on. "+
+		"Enable for thin-provisioned storage and SSDs to reclaim freed blocks.")
+	a.Describe(&disk.IOThread, "Enable a dedicated I/O thread for this disk. "+
+		"Only supported on scsi and virtio interfaces.")
+	a.Describe(&disk.SSD, "Emulate a solid-state drive for the guest OS (affects rotation rate hints). "+
+		"Supported on ide, sata, and scsi interfaces; not valid for virtio.")
+	a.Describe(&disk.Backup, "Include this disk in Proxmox backups. "+
+		"Defaults to true when omitted; set to false to exclude the disk from backups.")
+	a.Describe(&disk.Replicate, "Include this disk in Proxmox storage replication. "+
+		"Defaults to true when omitted; set to false to exclude the disk from replication.")
+	a.Describe(&disk.ReadOnly, "Mount this disk as read-only inside the guest. "+
+		"Only supported on scsi and virtio interfaces.")
+	a.Describe(&disk.Bandwidth, "I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). "+
+		"Omit to apply no throttling.")
+	a.Describe(&disk.Format, "Disk image format: raw, qcow2, vmdk, etc. "+
+		"Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) "+
+		"ignores this field and may not return it on read. "+
+		"Changing the format of an existing disk is not supported by Proxmox.")
+	a.Describe(&disk.Serial, "Serial number string exposed to the guest OS. "+
+		"Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. "+
+		"Commas and equals signs are rejected by Proxmox. "+
+		"Validated and enforced by the provider.")
+	a.Describe(&disk.WWN, "World Wide Name (unique disk identifier). "+
+		"Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. "+
+		"Proxmox enforces the format with a regex; invalid values are rejected at apply time.")
+	a.Describe(&disk.Media, "Media type: 'disk' (default) or 'cdrom'. "+
+		"Supported on all disk interfaces.")
+	a.Describe(&disk.Queues, "Number of I/O queues for this disk. "+
+		"Only supported on scsi and virtio interfaces. "+
+		"Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.")
+	a.Describe(&disk.Snapshot, "Disk is part of a Proxmox snapshot chain. "+
+		"This field is normally managed by Proxmox and should not be set manually.")
+	a.Describe(&disk.Shared, "Mark this disk as shared across cluster nodes. "+
+		"Required for live migration with local storage.")
+	a.Describe(&disk.RError, "Action on read I/O errors: 'ignore', 'report', or 'stop'. "+
+		"Proxmox default is 'report'. Supported on all disk interfaces.")
+	a.Describe(&disk.WError, "Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. "+
+		"Proxmox default is 'enospc'. Supported on all disk interfaces.")
+	a.Describe(&disk.ScsiBlock, "Use the scsi-block I/O path instead of virtio-scsi. "+
+		"Only supported on scsi interfaces. May improve performance for some workloads.")
 }
 
 // EfiType represents the EFI type for an EFI disk.
@@ -207,6 +302,335 @@ func (efiDisk EfiDisk) ValidateEfiType() error {
 	default:
 		return fmt.Errorf("invalid EFI type: %v", efiDisk.EfiType)
 	}
+}
+
+// DiskChangeType describes the kind of change detected between desired and current disk state.
+type DiskChangeType int
+
+const (
+	// DiskUnchanged means no change detected. It is the zero value so a zero-value DiskChange is safe by default.
+	DiskUnchanged DiskChangeType = iota
+	// DiskAdded means the disk is present in desired but absent from current.
+	DiskAdded
+	// DiskRemoved means the disk is present in current but absent from desired.
+	DiskRemoved
+	// DiskResized means the disk size increased.
+	DiskResized
+	// DiskShrunk means the disk size decreased. Proxmox does not support shrinking.
+	DiskShrunk
+	// DiskStorageChanged means the disk was moved to a different storage pool.
+	DiskStorageChanged
+	// DiskFlagsChanged means one or more performance/management flag fields changed
+	// (cache, aio, discard, iothread, ssd, backup, replicate, ro, bandwidth,
+	// format, serial, wwn, media, queues, snapshot, shared, rerror, werror, scsiblock).
+	// No direct Proxmox API call is required before UpdateConfig; the updated config
+	// string is re-emitted by BuildVMOptionsDiff.
+	DiskFlagsChanged
+	// DiskFileIDChanged means both desired and current have a non-nil FileID but they differ.
+	DiskFileIDChanged
+)
+
+// DiskChange describes a single detected change between desired and current disk state.
+type DiskChange struct {
+	// Interface is the Proxmox disk interface (e.g., "scsi0") — the stable identity key.
+	Interface string
+	// Type is the kind of change detected.
+	Type DiskChangeType
+	// Desired is the desired disk state (nil for DiskRemoved).
+	Desired *Disk
+	// Current is the current disk state (nil for DiskAdded).
+	Current *Disk
+}
+
+// diskIfaceType returns the bus prefix of a Proxmox disk interface string.
+// For example "scsi0" → "scsi", "virtio2" → "virtio", "ide3" → "ide", "sata1" → "sata".
+// Returns an empty string for unrecognised values.
+func diskIfaceType(iface string) string {
+	for _, prefix := range []string{"scsi", "virtio", "sata", "ide"} {
+		if len(iface) > len(prefix) && iface[:len(prefix)] == prefix {
+			return prefix
+		}
+	}
+	return ""
+}
+
+// ValidateDiskFlags returns an error if any flag on disk is incompatible with its
+// interface type or violates a known Proxmox API constraint. Validated here so
+// that `pulumi preview` fails fast rather than propagating to the API call.
+//
+// Interface constraints (Proxmox schema):
+//   - iothread:   scsi and virtio only
+//   - ro:         scsi and virtio only
+//   - ssd:        ide, sata, and scsi only (not virtio)
+//   - queues:     scsi and virtio only; minimum value 2
+//   - scsiblock:  scsi only
+//
+// Field constraints (confirmed by Proxmox API integration tests):
+//   - serial:     max 60 characters
+func ValidateDiskFlags(disk *Disk) error {
+	if disk == nil {
+		return nil
+	}
+	iface := diskIfaceType(disk.Interface)
+
+	if disk.IOThread != nil {
+		if iface != "scsi" && iface != "virtio" {
+			return fmt.Errorf(
+				"disk %s: iothread is only supported on scsi and virtio interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	if disk.ReadOnly != nil {
+		if iface != "scsi" && iface != "virtio" {
+			return fmt.Errorf(
+				"disk %s: ro (read-only) is only supported on scsi and virtio interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	if disk.SSD != nil {
+		if iface == "virtio" {
+			return fmt.Errorf(
+				"disk %s: ssd emulation is not supported on virtio interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	if disk.Queues != nil {
+		if iface != "scsi" && iface != "virtio" {
+			return fmt.Errorf(
+				"disk %s: queues is only supported on scsi and virtio interfaces",
+				disk.Interface,
+			)
+		}
+		if *disk.Queues < 2 {
+			return fmt.Errorf(
+				"disk %s: queues must be at least 2 (got %d)",
+				disk.Interface, *disk.Queues,
+			)
+		}
+	}
+	if disk.ScsiBlock != nil {
+		if iface != "scsi" {
+			return fmt.Errorf(
+				"disk %s: scsiblock is only supported on scsi interfaces",
+				disk.Interface,
+			)
+		}
+	}
+	if disk.Serial != nil && len(*disk.Serial) > 60 {
+		return fmt.Errorf(
+			"disk %s: serial must be at most 60 characters (got %d)",
+			disk.Interface, len(*disk.Serial),
+		)
+	}
+	return nil
+}
+
+// CompareDisksByInterface compares desired and current disk lists keyed by Interface name
+// and returns a DiskChange entry for every interface seen in either list.
+//
+// Priority order when multiple fields change on the same disk:
+// StorageChanged > Resized/Shrunk > FileIDChanged > Unchanged
+//
+// FileID comparison rule: only compare FileID when desired.FileID != nil.
+// A nil desired FileID means the user did not set it (it is computed by Proxmox) — not a change.
+func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
+	desiredByIface := make(map[string]*Disk, len(desired))
+	for _, d := range desired {
+		if d != nil {
+			desiredByIface[d.Interface] = d
+		}
+	}
+
+	currentByIface := make(map[string]*Disk, len(current))
+	for _, d := range current {
+		if d != nil {
+			currentByIface[d.Interface] = d
+		}
+	}
+
+	var changes []DiskChange
+
+	// Disks present in current but absent from desired → removed.
+	for iface, cur := range currentByIface {
+		if _, ok := desiredByIface[iface]; !ok {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskRemoved,
+				Current:   cur,
+			})
+		}
+	}
+
+	// Disks present in desired — either added or compared against current.
+	for iface, des := range desiredByIface {
+		cur, exists := currentByIface[iface]
+		if !exists {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskAdded,
+				Desired:   des,
+			})
+			continue
+		}
+
+		// Storage change has highest priority.
+		if des.Storage != cur.Storage {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskStorageChanged,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		// Size change is next.
+		if des.Size != cur.Size {
+			changeType := DiskResized
+			if des.Size < cur.Size {
+				changeType = DiskShrunk
+			}
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      changeType,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		// Flag fields (cache, aio, discard, iothread, ssd, backup, replicate, ro).
+		if diskFlagsChanged(des, cur) {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskFlagsChanged,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		// Compare FileID only when desired is non-nil (nil means "let Proxmox assign it").
+		if des.FileID != nil && cur.FileID != nil && *des.FileID != *cur.FileID {
+			changes = append(changes, DiskChange{
+				Interface: iface,
+				Type:      DiskFileIDChanged,
+				Desired:   des,
+				Current:   cur,
+			})
+			continue
+		}
+
+		changes = append(changes, DiskChange{
+			Interface: iface,
+			Type:      DiskUnchanged,
+			Desired:   des,
+			Current:   cur,
+		})
+	}
+
+	return changes
+}
+
+// diskFlagsChanged reports whether any performance or data-management flag field
+// differs between desired and current. nil is treated as "not set" (Proxmox default);
+// a non-nil value means the user explicitly configured the option.
+//
+// Format is compared only when both sides are non-nil: Proxmox omits the format
+// field for block-based storage (LVM, Ceph), so a nil current value means
+// "not returned", not "changed to nil".
+func diskFlagsChanged(des, cur *Disk) bool {
+	boolDiff := func(a, b *bool) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	strDiff := func(a, b *string) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	intDiff := func(a, b *int) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	// Format: only compare when both sides are non-nil to avoid false diffs on
+	// block storage that omits the format key in its config string.
+	formatChanged := des.Format != nil && cur.Format != nil && *des.Format != *cur.Format
+	return strDiff(des.Cache, cur.Cache) ||
+		strDiff(des.Aio, cur.Aio) ||
+		strDiff(des.Discard, cur.Discard) ||
+		boolDiff(des.IOThread, cur.IOThread) ||
+		boolDiff(des.SSD, cur.SSD) ||
+		boolDiff(des.Backup, cur.Backup) ||
+		boolDiff(des.Replicate, cur.Replicate) ||
+		boolDiff(des.ReadOnly, cur.ReadOnly) ||
+		formatChanged ||
+		strDiff(des.Serial, cur.Serial) ||
+		strDiff(des.WWN, cur.WWN) ||
+		strDiff(des.Media, cur.Media) ||
+		intDiff(des.Queues, cur.Queues) ||
+		boolDiff(des.Snapshot, cur.Snapshot) ||
+		boolDiff(des.Shared, cur.Shared) ||
+		strDiff(des.RError, cur.RError) ||
+		strDiff(des.WError, cur.WError) ||
+		boolDiff(des.ScsiBlock, cur.ScsiBlock) ||
+		bandwidthChanged(des.Bandwidth, cur.Bandwidth)
+}
+
+// bandwidthChanged reports whether any DiskBandwidth field differs between desired and current.
+// nil bandwidth and a zero-value DiskBandwidth (all fields nil) are treated as equivalent.
+func bandwidthChanged(des, cur *DiskBandwidth) bool {
+	f64Diff := func(a, b *float64) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	intDiff := func(a, b *int) bool {
+		if a == nil && b == nil {
+			return false
+		}
+		if a == nil || b == nil {
+			return true
+		}
+		return *a != *b
+	}
+	// Treat nil as empty struct for comparison purposes.
+	var d, c DiskBandwidth
+	if des != nil {
+		d = *des
+	}
+	if cur != nil {
+		c = *cur
+	}
+	return f64Diff(d.MBpsRd, c.MBpsRd) ||
+		f64Diff(d.MBpsRdMax, c.MBpsRdMax) ||
+		f64Diff(d.MBpsWr, c.MBpsWr) ||
+		f64Diff(d.MBpsWrMax, c.MBpsWrMax) ||
+		intDiff(d.IOPSRd, c.IOPSRd) ||
+		intDiff(d.IOPSRdMax, c.IOPSRdMax) ||
+		intDiff(d.IOPSWr, c.IOPSWr) ||
+		intDiff(d.IOPSWrMax, c.IOPSWrMax)
 }
 
 // VMInputs represents the input configuration for a virtual machine.
@@ -246,7 +670,14 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.CPU, "CPU configuration including type, topology, and feature flags.")
 	a.Describe(&inputs.Memory, "Memory size in megabytes.")
 	a.Describe(&inputs.Balloon, "Minimum memory for ballooning in megabytes (0 disables the balloon device).")
-	a.Describe(&inputs.Disks, "List of disk configurations attached to the virtual machine.")
+	a.Describe(
+		&inputs.Disks,
+		"List of disk configurations attached to the virtual machine. "+
+			"Each disk is identified by its interface slot (e.g., scsi0). "+
+			"Disks can be added or removed freely, and sizes can only be increased. "+
+			"Changing the interface field of an existing disk is data-destructive: "+
+			"the old disk image is permanently deleted and a new empty disk is provisioned.",
+	)
 	a.Describe(&inputs.Clone, "Clone configuration for creating the VM from a source template or VM.")
 }
 
