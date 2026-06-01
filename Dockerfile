@@ -1,5 +1,10 @@
 FROM pulumi/pulumi-provider-build-environment:3.232.0-amd64
 
+# The base image hard-codes XDG_CACHE_HOME and XDG_CONFIG_HOME to /root in
+# /etc/environment. Remove them so tools fall back to the running user's home
+# directory — required when VS Code connects as the non-root vscode user.
+RUN sed -i '/^XDG_CACHE_HOME=/d; /^XDG_CONFIG_HOME=/d' /etc/environment
+
 RUN apt-get update && apt-get install -y \
     zip \
     vim \
