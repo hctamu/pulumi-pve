@@ -2,13 +2,15 @@ FROM pulumi/pulumi-provider-build-environment:3.232.0-amd64
 
 RUN apt-get update && apt-get install -y \
     zip \
-    vim
+    vim \
+    sudo
 
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 RUN go install mvdan.cc/gofumpt@latest
 RUN go install github.com/segmentio/golines@latest
 RUN go install golang.org/x/tools/gopls@latest
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+RUN chmod -R a+rwX /go/pkg
 
 RUN curl -s "https://get.sdkman.io" | bash
 
@@ -21,7 +23,6 @@ RUN ["/bin/bash", "-c", "source $HOME/.sdkman/bin/sdkman-init.sh && \
 
 RUN groupadd --gid 1000 vscode \
     && useradd --uid 1000 --gid 1000 -m vscode \
-    && apt-get install -y sudo \
     && echo 'vscode ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 ENV GOCACHE=/tmp/go-build
