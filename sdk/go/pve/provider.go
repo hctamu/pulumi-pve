@@ -65,20 +65,22 @@ func NewProvider(ctx *pulumi.Context,
 }
 
 type providerArgs struct {
-	PveToken string `pulumi:"pveToken"`
-	PveUrl   string `pulumi:"pveUrl"`
-	PveUser  string `pulumi:"pveUser"`
-	SshPass  string `pulumi:"sshPass"`
-	SshUser  string `pulumi:"sshUser"`
+	InsecureSkipVerify *bool  `pulumi:"insecureSkipVerify"`
+	PveToken           string `pulumi:"pveToken"`
+	PveUrl             string `pulumi:"pveUrl"`
+	PveUser            string `pulumi:"pveUser"`
+	SshPass            string `pulumi:"sshPass"`
+	SshUser            string `pulumi:"sshUser"`
 }
 
 // The set of arguments for constructing a Provider resource.
 type ProviderArgs struct {
-	PveToken pulumi.StringInput
-	PveUrl   pulumi.StringInput
-	PveUser  pulumi.StringInput
-	SshPass  pulumi.StringInput
-	SshUser  pulumi.StringInput
+	InsecureSkipVerify pulumi.BoolPtrInput
+	PveToken           pulumi.StringInput
+	PveUrl             pulumi.StringInput
+	PveUser            pulumi.StringInput
+	SshPass            pulumi.StringInput
+	SshUser            pulumi.StringInput
 }
 
 func (ProviderArgs) ElementType() reflect.Type {

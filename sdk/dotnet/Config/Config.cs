@@ -32,6 +32,13 @@ namespace Hctamu.Pve
 
         private static readonly global::Pulumi.Config __config = new global::Pulumi.Config("pve");
 
+        private static readonly __Value<bool?> _insecureSkipVerify = new __Value<bool?>(() => __config.GetBoolean("insecureSkipVerify"));
+        public static bool? InsecureSkipVerify
+        {
+            get => _insecureSkipVerify.Get();
+            set => _insecureSkipVerify.Set(value);
+        }
+
         private static readonly __Value<string?> _pveToken = new __Value<string?>(() => __config.Get("pveToken"));
         public static string? PveToken
         {

@@ -6,13 +6,23 @@ package io.github.hctamu.pve;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import java.lang.Boolean;
 import java.lang.String;
 import java.util.Objects;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
 
 public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final ProviderArgs Empty = new ProviderArgs();
+
+    @Import(name="insecureSkipVerify", json=true)
+    private @Nullable Output<Boolean> insecureSkipVerify;
+
+    public Optional<Output<Boolean>> insecureSkipVerify() {
+        return Optional.ofNullable(this.insecureSkipVerify);
+    }
 
     @Import(name="pveToken", required=true)
     private Output<String> pveToken;
@@ -52,6 +62,7 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
     private ProviderArgs() {}
 
     private ProviderArgs(ProviderArgs $) {
+        this.insecureSkipVerify = $.insecureSkipVerify;
         this.pveToken = $.pveToken;
         this.pveUrl = $.pveUrl;
         this.pveUser = $.pveUser;
@@ -75,6 +86,15 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder(ProviderArgs defaults) {
             $ = new ProviderArgs(Objects.requireNonNull(defaults));
+        }
+
+        public Builder insecureSkipVerify(@Nullable Output<Boolean> insecureSkipVerify) {
+            $.insecureSkipVerify = insecureSkipVerify;
+            return this;
+        }
+
+        public Builder insecureSkipVerify(Boolean insecureSkipVerify) {
+            return insecureSkipVerify(Output.of(insecureSkipVerify));
         }
 
         public Builder pveToken(Output<String> pveToken) {

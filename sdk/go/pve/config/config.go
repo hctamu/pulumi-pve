@@ -11,6 +11,9 @@ import (
 
 var _ = internal.GetEnvOrDefault
 
+func GetInsecureSkipVerify(ctx *pulumi.Context) bool {
+	return config.GetBool(ctx, "pve:insecureSkipVerify")
+}
 func GetPveToken(ctx *pulumi.Context) string {
 	return config.Get(ctx, "pve:pveToken")
 }

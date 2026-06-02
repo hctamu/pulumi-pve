@@ -66,7 +66,12 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 			pveConfig = *proxmoxAdapter.PVEConfig
 		}
 
-		proxmoxAdapter.client, proxmoxAdapter.initErr = newClient(pveConfig.PveURL, pveConfig.PveUser, pveConfig.PveToken)
+		proxmoxAdapter.client, proxmoxAdapter.initErr = newClient(
+			pveConfig.PveURL,
+			pveConfig.PveUser,
+			pveConfig.PveToken,
+			pveConfig.InsecureSkipVerify,
+		)
 	})
 
 	if proxmoxAdapter.initErr != nil {
@@ -78,15 +83,16 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 }
 
 // newClient creates a new Proxmox client
-func newClient(pveURL, pveUser, pveToken string) (*api.Client, error) {
+func newClient(pveURL, pveUser, pveToken string, insecureSkipVerify bool) (*api.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport)
-	//nolint:gosec // Required for Proxmox API self-signed certificates
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//nolint:gosec // InsecureSkipVerify is controlled by the user via provider config
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 
 	httpClient := http.DefaultClient
 	httpClient.Transport = transport
 
-	apiClient := api.NewClient(pveURL,
+	apiClient := api.NewClient(
+		pveURL,
 		api.WithAPIToken(pveUser, pveToken),
 		api.WithHTTPClient(httpClient),
 	)

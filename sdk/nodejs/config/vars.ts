@@ -7,6 +7,14 @@ import * as utilities from "../utilities";
 declare var exports: any;
 const __config = new pulumi.Config("pve");
 
+export declare const insecureSkipVerify: boolean | undefined;
+Object.defineProperty(exports, "insecureSkipVerify", {
+    get() {
+        return __config.getObject<boolean>("insecureSkipVerify");
+    },
+    enumerable: true,
+});
+
 export declare const pveToken: string | undefined;
 Object.defineProperty(exports, "pveToken", {
     get() {

@@ -21,6 +21,10 @@ __config__ = pulumi.Config('pve')
 
 class _ExportableConfig(types.ModuleType):
     @_builtins.property
+    def insecure_skip_verify(self) -> Optional[bool]:
+        return __config__.get_bool('insecureSkipVerify')
+
+    @_builtins.property
     def pve_token(self) -> Optional[str]:
         return __config__.get('pveToken')
 

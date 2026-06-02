@@ -17,6 +17,10 @@ limitations under the License.
 package provider
 
 import (
+	"context"
+	"reflect"
+	"strings"
+
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/pulumi/pulumi-go-provider/middleware/schema"
@@ -139,7 +143,7 @@ func NewProvider() p.Provider {
 // NewProviderWithConfig returns a new instance of the PVE provider with a specific config (for testing).
 func NewProviderWithConfig(cfg *config.Config) p.Provider {
 	// We tell the provider what resources it needs to support.
-	return infer.Provider(infer.Options{
+	prov := infer.Provider(infer.Options{
 		Resources: []infer.InferredResource{
 			infer.Resource(newPoolResourceWithConfig(cfg)),
 			infer.Resource(newFileWithConfig(cfg)),
@@ -192,4 +196,41 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			Repository: "https://github.com/hctamu/pulumi-pve",
 		},
 	})
+	prov.DiffConfig = diffConfig
+	return prov
+}
+
+// diffConfig reports which provider config properties changed without triggering resource
+// replacement. The infer framework's default marks every config change as UpdateReplace,
+// which would force replacement of all managed resources on any config update.
+func diffConfig(_ context.Context, req p.DiffRequest) (p.DiffResponse, error) {
+	inputs := req.Inputs
+	for _, key := range req.IgnoreChanges {
+		if v, ok := req.State.GetOk(key); ok {
+			inputs = inputs.Set(key, v)
+		}
+	}
+
+	diff := map[string]p.PropertyDiff{}
+	for key, newVal := range inputs.All {
+		if key == "version" || strings.HasPrefix(key, "__") {
+			continue
+		}
+		oldVal, exists := req.State.GetOk(key)
+		if !exists {
+			diff[key] = p.PropertyDiff{Kind: p.Add}
+		} else if !reflect.DeepEqual(oldVal, newVal) {
+			diff[key] = p.PropertyDiff{Kind: p.Update}
+		}
+	}
+	for key := range req.State.All {
+		if _, exists := inputs.GetOk(key); !exists {
+			diff[key] = p.PropertyDiff{Kind: p.Delete}
+		}
+	}
+
+	return p.DiffResponse{
+		HasChanges:   len(diff) > 0,
+		DetailedDiff: diff,
+	}, nil
 }

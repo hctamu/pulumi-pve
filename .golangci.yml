@@ -53,6 +53,10 @@ linters:
         - sortslice
         # Detect write to struct/arrays by-value that aren't read again.
         - unusedwrite
+      disable:
+        # False positive with generic functions like slices.Contains — type parameter
+        # inference prevents inlining but the code is correct.
+        - inline
     nakedret:
       # Make an issue if func has more lines of code than this setting, and it has naked returns.
       # Default: 30
