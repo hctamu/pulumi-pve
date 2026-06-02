@@ -172,6 +172,10 @@ import (
 - **Formatter**: `gofumpt` (stricter than `gofmt`). Line length limit: 120 chars (`lll` linter). The devcontainer runs `golines ${file} -w -m 120 -t 2` on every `.go` save; outside VS Code run `golines -w -m 120 -t 2 <file>` manually.
 - **`gocritic`**: enable-all except `hugeParam` and `importShadow`. Extra `govet` checks enabled: `nilness`, `reflectvaluecompare`, `sortslice`, `unusedwrite`.
 - **Method receivers**: Use meaningful names derived from the type name (e.g., `adapter` for `*VMAdapter`). Single-letter receivers (`a`, `r`, `p`, `m`, `s`, etc.) are rejected by the linter.
+- **Variable names**: Use meaningful, descriptive names throughout the codebase
+  - **No single-letter variables** in range loops (except `i`, `j` in traditional index loops). `for _, d := range disks` → `for _, disk := range disks`
+  - **Loop variables**: use the singular of the slice name (`for _, disk := range vm.Disks`, `for _, option := range options`)
+  - **Short-lived temporaries**: acceptable but prefer clarity (`iface` over `i` for interface type, `idx` over `i` for position when not a traditional index loop)
 
 ---
 

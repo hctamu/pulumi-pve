@@ -46,8 +46,32 @@ var (
 	_ = (infer.CustomRead[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
 	_ = (infer.CustomUpdate[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
 	_ = (infer.CustomDiff[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
+	_ = (infer.CustomCheck[proxmox.VMInputs])((*VM)(nil))
 	_ = infer.Annotated((*proxmox.VMInputs)(nil))
 )
+
+// Check validates VM inputs before any API calls are made. It runs on both
+// `pulumi preview` and `pulumi up`, so invalid inputs are rejected early.
+func (vm *VM) Check(
+	ctx context.Context,
+	req infer.CheckRequest,
+) (infer.CheckResponse[proxmox.VMInputs], error) {
+	inputs, failures, err := infer.DefaultCheck[proxmox.VMInputs](ctx, req.NewInputs)
+	if err != nil || len(failures) > 0 {
+		return infer.CheckResponse[proxmox.VMInputs]{Inputs: inputs, Failures: failures}, err
+	}
+
+	for _, disk := range inputs.Disks {
+		if validationErr := proxmox.ValidateDiskFlags(disk); validationErr != nil {
+			failures = append(failures, p.CheckFailure{
+				Property: "disks",
+				Reason:   validationErr.Error(),
+			})
+		}
+	}
+
+	return infer.CheckResponse[proxmox.VMInputs]{Inputs: inputs, Failures: failures}, nil
+}
 
 // Create creates a new virtual machine based on the provided inputs.
 func (vm *VM) Create(
@@ -91,13 +115,6 @@ func (vm *VM) Create(
 	}
 
 	vmID := *request.Inputs.VMID
-
-	// Validate disk flag / interface compatibility before any API calls.
-	for _, d := range request.Inputs.Disks {
-		if err := proxmox.ValidateDiskFlags(d); err != nil {
-			return response, err
-		}
-	}
 
 	if request.Inputs.Clone != nil {
 		// Clone flow: clone source VM, reconcile disks, then apply config.
@@ -167,17 +184,28 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 	return nil
 }
 
-// reconcileDisks reconciles the desired disk slice against the current live disk map.
-// It removes disks absent from desired, resizes disks that have grown, and propagates
-// current FileIDs into the desired pointers so that the subsequent config call uses
-// existing disk images instead of creating new ones.
-//
-// Matching is keyed by Interface. Changing a disk's Interface field therefore results in
-// RemoveDisk (permanently deletes the image) followed by a new empty disk being provisioned
-// by UpdateConfig. See the Disk.Interface annotation for the user-facing description.
-//
-// DiskShrunk and DiskStorageChanged return errors: Proxmox does not support these
-// operations. At Update time they are caught earlier by disksDiff during Diff.
+// propagateFileID copies current FileID when desired.FileID is nil.
+// Returns an error if the user tries to modify an existing FileID binding.
+func propagateFileID(change *proxmox.DiskChange) error {
+	if change.Current == nil || change.Current.FileID == nil || change.Desired == nil {
+		return nil
+	}
+	if change.Desired.FileID == nil {
+		change.Desired.FileID = change.Current.FileID
+		return nil
+	}
+	if *change.Desired.FileID != *change.Current.FileID {
+		return fmt.Errorf(
+			"disk %s: changing the volume binding (fileID) is not supported; "+
+				"remove the fileId field or recreate the disk",
+			change.Interface,
+		)
+	}
+	return nil
+}
+
+// reconcileDisks reconciles desired disks against current state: removes absent disks,
+// resizes grown disks, and propagates FileIDs. Matching is keyed by disk Interface.
 func (vm *VM) reconcileDisks(
 	ctx context.Context,
 	vmID int,
@@ -188,13 +216,13 @@ func (vm *VM) reconcileDisks(
 	// Convert value map to pointer slice for CompareDisksByInterface.
 	currentSlice := make([]*proxmox.Disk, 0, len(currentMap))
 	for iface := range currentMap {
-		d := currentMap[iface]
-		currentSlice = append(currentSlice, &d)
+		diskValue := currentMap[iface]
+		currentSlice = append(currentSlice, &diskValue)
 	}
 
 	changes := proxmox.CompareDisksByInterface(desired, currentSlice)
-	for i := range changes {
-		change := &changes[i]
+	for idx := range changes {
+		change := &changes[idx]
 		switch change.Type {
 		case proxmox.DiskRemoved:
 			if err := vm.VMOps.RemoveDisk(ctx, vmID, node, change.Interface); err != nil {
@@ -204,18 +232,18 @@ func (vm *VM) reconcileDisks(
 			if err := vm.VMOps.ResizeDisk(ctx, vmID, node, change.Interface, change.Desired.Size); err != nil {
 				return fmt.Errorf("failed to resize disk %s: %w", change.Interface, err)
 			}
-			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
-				change.Desired.FileID = change.Current.FileID
+			if err := propagateFileID(change); err != nil {
+				return err
 			}
 		case proxmox.DiskUnchanged, proxmox.DiskFileIDChanged:
-			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
-				change.Desired.FileID = change.Current.FileID
+			if err := propagateFileID(change); err != nil {
+				return err
 			}
 		case proxmox.DiskFlagsChanged:
 			// No direct API call needed; BuildVMOptionsDiff re-emits the updated config string.
 			// Propagate the current FileID so the config call targets the existing disk image.
-			if change.Current != nil && change.Current.FileID != nil && change.Desired != nil {
-				change.Desired.FileID = change.Current.FileID
+			if err := propagateFileID(change); err != nil {
+				return err
 			}
 		case proxmox.DiskAdded:
 			// No pre-action; the subsequent config call provisions the new disk.
@@ -303,27 +331,17 @@ func (vm *VM) Read(
 	return response, nil
 }
 
-// preserveInputs computes user-visible inputs from API state by clearing computed
-// fields that the user did not explicitly supply.
-//
-//   - VMID and Node are cleared when the user omitted them (they are computed by Proxmox).
-//   - Disk FileIDs are cleared for disks the user already had without a FileID.
-//   - EFI disk FileID is cleared when the user supplied an EFI disk without a FileID.
-//   - Newly discovered disks/EFI (not present in userInputs) retain their FileIDs.
+// preserveInputs clears computed fields (VMID, Node, FileIDs) that the user omitted.
 func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	return applyPreservation(state, userInputs, true)
 }
 
-// preserveCreateState builds the output state for Create by keeping the full API state
-// (including computed disk/EFI FileIDs) while applying user-intent corrections for
-// fields the API cannot represent (clone info, zero-value fields, tag ordering).
+// preserveCreateState keeps full API state including computed FileIDs.
 func preserveCreateState(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	return applyPreservation(state, userInputs, false)
 }
 
-// applyPreservation is the shared implementation for preserveInputs and preserveCreateState.
-// When clearComputed is true, VMID/Node and disk FileIDs are cleared for fields the user
-// did not explicitly provide (Read path). When false, all computed values are kept (Create path).
+// applyPreservation is shared by preserveInputs (clearComputed=true) and preserveCreateState (false).
 func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) proxmox.VMInputs {
 	preserved := state
 
@@ -337,9 +355,9 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 	}
 
 	userByInterface := make(map[string]*proxmox.Disk, len(userInputs.Disks))
-	for _, d := range userInputs.Disks {
-		if d != nil && d.Interface != "" {
-			userByInterface[d.Interface] = d
+	for _, disk := range userInputs.Disks {
+		if disk != nil && disk.Interface != "" {
+			userByInterface[disk.Interface] = disk
 		}
 	}
 	preservedDisks := make([]*proxmox.Disk, 0, len(state.Disks))
@@ -409,10 +427,8 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 	return preserved
 }
 
-// copyMissingDiskFileIDs propagates FileID values from the current state into the
-// user inputs when the user omitted them. This prevents unnecessary disk recreation
-// during Update operations when the intention is to keep existing disks.
-// Matching is done by disk Interface. EFI disk handled separately.
+// copyMissingDiskFileIDs copies FileIDs from state to inputs when user omitted them,
+// preventing unnecessary disk recreation during Update. Matching by disk Interface.
 func copyMissingDiskFileIDs(inputs *proxmox.VMInputs, state proxmox.VMInputs) {
 	// Regular disks
 	if len(inputs.Disks) > 0 && len(state.Disks) > 0 {
@@ -444,13 +460,11 @@ func copyMissingDiskFileIDs(inputs *proxmox.VMInputs, state proxmox.VMInputs) {
 	}
 }
 
-// buildOutputWithComputedFromState constructs proxmox.VMOutputs for Update by starting from new inputs
-// and copying computed values (VMID, Node, disk and EFI FileIDs) from the prior state when
-// the user omitted them. proxmox.VMInputs remain as provided by the user; proxmox.VMOutputs carry computed values.
+// buildOutputWithComputedFromState constructs VMOutputs by copying computed values (VMID, Node, FileIDs)
+// from prior state when omitted by user, and normalizing zero-valued fields to nil.
 func buildOutputWithComputedFromState(newInputs, oldState proxmox.VMInputs) proxmox.VMOutputs {
 	out := proxmox.VMOutputs{VMInputs: newInputs}
 
-	// VMID and Node: copy from state if user did not provide
 	if out.VMID == nil && oldState.VMID != nil {
 		out.VMID = oldState.VMID
 	}
@@ -458,10 +472,20 @@ func buildOutputWithComputedFromState(newInputs, oldState proxmox.VMInputs) prox
 		out.Node = oldState.Node
 	}
 
-	// Disks and EFI FileIDs: copy from state when omitted in inputs
 	merged := out.VMInputs
 	copyMissingDiskFileIDs(&merged, oldState)
 	out.VMInputs = merged
+
+	// Normalize zero-valued fields to nil (Proxmox omits them in GET responses).
+	if out.Autostart != nil && *out.Autostart == 0 {
+		out.Autostart = nil
+	}
+	if out.Balloon != nil && *out.Balloon == 0 {
+		out.Balloon = nil
+	}
+	if out.Template != nil && *out.Template == 0 {
+		out.Template = nil
+	}
 
 	return out
 }
@@ -487,13 +511,6 @@ func (vm *VM) Update(
 	// Propagate missing FileIDs from state to inputs to avoid recreating disks/efi disk
 	copyMissingDiskFileIDs(&request.Inputs, request.State.VMInputs)
 
-	// Validate disk flag / interface compatibility before doing any API work.
-	for _, d := range request.Inputs.Disks {
-		if err := proxmox.ValidateDiskFlags(d); err != nil {
-			return infer.UpdateResponse[proxmox.VMOutputs]{}, err
-		}
-	}
-
 	// Build outputs by copying computed fields from prior state where inputs omit them
 	response := infer.UpdateResponse[proxmox.VMOutputs]{
 		Output: buildOutputWithComputedFromState(request.Inputs, request.State.VMInputs),
@@ -507,16 +524,16 @@ func (vm *VM) Update(
 		return response, errors.New("VMOperations not configured")
 	}
 
-	// Only fetch live disk state and reconcile when the desired disk list actually
-	// differs from the last-known state. This avoids an unnecessary Proxmox API
-	// round-trip on every update that only touches non-disk properties (memory,
-	// CPU, tags, etc.).
+	// Only reconcile disks if they changed; use state disks as baseline to avoid re-fetching.
 	if disksNeedReconciliation(request.Inputs, request.State.VMInputs) {
-		currentDisks, _, err := vm.VMOps.GetCurrentDisks(ctx, *vmID, request.Inputs.Node)
-		if err != nil {
-			return response, fmt.Errorf("failed to get current disks: %w", err)
+		// Build currentMap from state disks for reconciliation.
+		currentMap := make(map[string]proxmox.Disk, len(request.State.Disks))
+		for _, disk := range request.State.Disks {
+			if disk != nil {
+				currentMap[disk.Interface] = *disk
+			}
 		}
-		if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, currentDisks); err != nil {
+		if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, currentMap); err != nil {
 			return response, err
 		}
 	}
@@ -568,14 +585,23 @@ func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
 }
 
 // disksDiff compares desired and current disk slices using interface-based identity.
-// It returns a map of property diffs keyed by "disks.<interface>", and returns an
-// error at Diff time for unsupported operations (shrink, storage migration).
-// See the Disk.Interface annotation for the user-facing data-loss warning on interface renames.
+// It returns a map of property diffs keyed by "disks[N]" or "disks[N].property",
+// and returns an error for unsupported operations (shrink, storage migration).
+//
+// Per-property diffs are emitted for changed disks so that Pulumi does not treat
+// computed fields (e.g. filename) as removed when the user omits them from inputs.
 func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDiff, error) {
-	// Validate interface-type compatibility for all desired disks up front.
-	for _, d := range inputDisks {
-		if err := proxmox.ValidateDiskFlags(d); err != nil {
-			return nil, err
+	// Build interface → index maps for both slices so we can emit "disks[N]" keys.
+	inputIdxByIface := make(map[string]int, len(inputDisks))
+	for idx, disk := range inputDisks {
+		if disk != nil {
+			inputIdxByIface[disk.Interface] = idx
+		}
+	}
+	stateIdxByIface := make(map[string]int, len(stateDisks))
+	for idx, disk := range stateDisks {
+		if disk != nil {
+			stateIdxByIface[disk.Interface] = idx
 		}
 	}
 
@@ -583,18 +609,19 @@ func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDif
 	diffs := make(map[string]p.PropertyDiff)
 
 	for _, change := range changes {
-		key := disksInputName + "." + change.Interface
 		switch change.Type {
 		case proxmox.DiskAdded:
-			diffs[key] = p.PropertyDiff{Kind: p.Add}
+			idx := inputIdxByIface[change.Interface]
+			diffs[fmt.Sprintf("%s[%d]", disksInputName, idx)] = p.PropertyDiff{Kind: p.Add}
 		case proxmox.DiskRemoved:
-			diffs[key] = p.PropertyDiff{Kind: p.Delete}
-		case proxmox.DiskResized:
-			diffs[key] = p.PropertyDiff{Kind: p.Update}
-		case proxmox.DiskFlagsChanged:
-			diffs[key] = p.PropertyDiff{Kind: p.Update}
-		case proxmox.DiskFileIDChanged:
-			diffs[key] = p.PropertyDiff{Kind: p.Update}
+			idx := stateIdxByIface[change.Interface]
+			diffs[fmt.Sprintf("%s[%d]", disksInputName, idx)] = p.PropertyDiff{Kind: p.Delete}
+		case proxmox.DiskResized, proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged:
+			idx := inputIdxByIface[change.Interface]
+			prefix := fmt.Sprintf("%s[%d]", disksInputName, idx)
+			for propKey, propDiff := range diskPropertyDiffs(prefix, change.Desired, change.Current) {
+				diffs[propKey] = propDiff
+			}
 		case proxmox.DiskShrunk:
 			return nil, fmt.Errorf(
 				"disk %s: shrinking disks is not supported by Proxmox; "+
@@ -608,11 +635,99 @@ func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDif
 				change.Interface,
 			)
 		case proxmox.DiskUnchanged:
-			// no diff
+			// Emit nothing. Omitting an entry for this disk means Pulumi will not
+			// compare old state vs new inputs for it, preventing false positives on
+			// computed fields like filename that the user is not expected to provide.
 		}
 	}
 
 	return diffs, nil
+}
+
+// diskPropertyDiffs returns per-property diff entries for a disk that has changed.
+// prefix is the base path, e.g. "disks[0]". Only fields that actually differ are
+// included. filename (fileId) is only emitted when both sides are non-nil and
+// different, matching the "computed if absent" semantics of that field.
+func diskPropertyDiffs(prefix string, des, cur *proxmox.Disk) map[string]p.PropertyDiff {
+	diffs := make(map[string]p.PropertyDiff)
+	changed := func(key string) {
+		diffs[prefix+"."+key] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	if des == nil || cur == nil {
+		return diffs
+	}
+
+	if des.Size != cur.Size {
+		changed("size")
+	}
+	if des.Storage != cur.Storage {
+		changed("storage")
+	}
+	// filename is computed by Proxmox when absent in inputs; only flag it when
+	// the user explicitly provided a value and it differs from the current one.
+	if des.FileID != nil && cur.FileID != nil && *des.FileID != *cur.FileID {
+		changed("filename")
+	}
+	if !utils.PtrEqual(des.Cache, cur.Cache) {
+		changed("cache")
+	}
+	if !utils.PtrEqual(des.Aio, cur.Aio) {
+		changed("aio")
+	}
+	if !utils.PtrEqual(des.Discard, cur.Discard) {
+		changed("discard")
+	}
+	if !utils.PtrEqual(des.IOThread, cur.IOThread) {
+		changed("iothread")
+	}
+	if !utils.PtrEqual(des.SSD, cur.SSD) {
+		changed("ssd")
+	}
+	if !utils.PtrEqual(des.Backup, cur.Backup) {
+		changed("backup")
+	}
+	if !utils.PtrEqual(des.Replicate, cur.Replicate) {
+		changed("replicate")
+	}
+	if !utils.PtrEqual(des.ReadOnly, cur.ReadOnly) {
+		changed("ro")
+	}
+	if des.Format != nil && cur.Format != nil && *des.Format != *cur.Format {
+		changed("format")
+	}
+	if !utils.PtrEqual(des.Serial, cur.Serial) {
+		changed("serial")
+	}
+	if !utils.PtrEqual(des.WWN, cur.WWN) {
+		changed("wwn")
+	}
+	if !utils.PtrEqual(des.Media, cur.Media) {
+		changed("media")
+	}
+	if !utils.PtrEqual(des.Queues, cur.Queues) {
+		changed("queues")
+	}
+	if !utils.PtrEqual(des.Snapshot, cur.Snapshot) {
+		changed("snapshot")
+	}
+	if !utils.PtrEqual(des.Shared, cur.Shared) {
+		changed("shared")
+	}
+	if !utils.PtrEqual(des.RError, cur.RError) {
+		changed("rerror")
+	}
+	if !utils.PtrEqual(des.WError, cur.WError) {
+		changed("werror")
+	}
+	if !utils.PtrEqual(des.ScsiBlock, cur.ScsiBlock) {
+		changed("scsiblock")
+	}
+	if proxmox.BandwidthChanged(des.Bandwidth, cur.Bandwidth) {
+		changed("bandwidth")
+	}
+
+	return diffs
 }
 
 // compareEfiDiskFields compares two EfiDisk instances and returns a map of property diffs

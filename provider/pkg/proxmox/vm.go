@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // VMOperations defines the interface for interacting with Proxmox VM resources.
@@ -344,14 +346,14 @@ type DiskChange struct {
 
 // diskIfaceType returns the bus prefix of a Proxmox disk interface string.
 // For example "scsi0" → "scsi", "virtio2" → "virtio", "ide3" → "ide", "sata1" → "sata".
-// Returns an empty string for unrecognised values.
-func diskIfaceType(iface string) string {
+// Returns an error for unrecognised values.
+func diskIfaceType(iface string) (string, error) {
 	for _, prefix := range []string{"scsi", "virtio", "sata", "ide"} {
 		if len(iface) > len(prefix) && iface[:len(prefix)] == prefix {
-			return prefix
+			return prefix, nil
 		}
 	}
-	return ""
+	return "", fmt.Errorf("unsupported disk interface: %q", iface)
 }
 
 // ValidateDiskFlags returns an error if any flag on disk is incompatible with its
@@ -371,7 +373,10 @@ func ValidateDiskFlags(disk *Disk) error {
 	if disk == nil {
 		return nil
 	}
-	iface := diskIfaceType(disk.Interface)
+	iface, err := diskIfaceType(disk.Interface)
+	if err != nil {
+		return fmt.Errorf("disk %s: %w", disk.Interface, err)
+	}
 
 	if disk.IOThread != nil {
 		if iface != "scsi" && iface != "virtio" {
@@ -438,16 +443,16 @@ func ValidateDiskFlags(disk *Disk) error {
 // A nil desired FileID means the user did not set it (it is computed by Proxmox) — not a change.
 func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
 	desiredByIface := make(map[string]*Disk, len(desired))
-	for _, d := range desired {
-		if d != nil {
-			desiredByIface[d.Interface] = d
+	for _, disk := range desired {
+		if disk != nil {
+			desiredByIface[disk.Interface] = disk
 		}
 	}
 
 	currentByIface := make(map[string]*Disk, len(current))
-	for _, d := range current {
-		if d != nil {
-			currentByIface[d.Interface] = d
+	for _, disk := range current {
+		if disk != nil {
+			currentByIface[disk.Interface] = disk
 		}
 	}
 
@@ -543,78 +548,33 @@ func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
 // field for block-based storage (LVM, Ceph), so a nil current value means
 // "not returned", not "changed to nil".
 func diskFlagsChanged(des, cur *Disk) bool {
-	boolDiff := func(a, b *bool) bool {
-		if a == nil && b == nil {
-			return false
-		}
-		if a == nil || b == nil {
-			return true
-		}
-		return *a != *b
-	}
-	strDiff := func(a, b *string) bool {
-		if a == nil && b == nil {
-			return false
-		}
-		if a == nil || b == nil {
-			return true
-		}
-		return *a != *b
-	}
-	intDiff := func(a, b *int) bool {
-		if a == nil && b == nil {
-			return false
-		}
-		if a == nil || b == nil {
-			return true
-		}
-		return *a != *b
-	}
 	// Format: only compare when both sides are non-nil to avoid false diffs on
 	// block storage that omits the format key in its config string.
 	formatChanged := des.Format != nil && cur.Format != nil && *des.Format != *cur.Format
-	return strDiff(des.Cache, cur.Cache) ||
-		strDiff(des.Aio, cur.Aio) ||
-		strDiff(des.Discard, cur.Discard) ||
-		boolDiff(des.IOThread, cur.IOThread) ||
-		boolDiff(des.SSD, cur.SSD) ||
-		boolDiff(des.Backup, cur.Backup) ||
-		boolDiff(des.Replicate, cur.Replicate) ||
-		boolDiff(des.ReadOnly, cur.ReadOnly) ||
+	return !utils.PtrEqual(des.Cache, cur.Cache) ||
+		!utils.PtrEqual(des.Aio, cur.Aio) ||
+		!utils.PtrEqual(des.Discard, cur.Discard) ||
+		!utils.PtrEqual(des.IOThread, cur.IOThread) ||
+		!utils.PtrEqual(des.SSD, cur.SSD) ||
+		!utils.PtrEqual(des.Backup, cur.Backup) ||
+		!utils.PtrEqual(des.Replicate, cur.Replicate) ||
+		!utils.PtrEqual(des.ReadOnly, cur.ReadOnly) ||
 		formatChanged ||
-		strDiff(des.Serial, cur.Serial) ||
-		strDiff(des.WWN, cur.WWN) ||
-		strDiff(des.Media, cur.Media) ||
-		intDiff(des.Queues, cur.Queues) ||
-		boolDiff(des.Snapshot, cur.Snapshot) ||
-		boolDiff(des.Shared, cur.Shared) ||
-		strDiff(des.RError, cur.RError) ||
-		strDiff(des.WError, cur.WError) ||
-		boolDiff(des.ScsiBlock, cur.ScsiBlock) ||
-		bandwidthChanged(des.Bandwidth, cur.Bandwidth)
+		!utils.PtrEqual(des.Serial, cur.Serial) ||
+		!utils.PtrEqual(des.WWN, cur.WWN) ||
+		!utils.PtrEqual(des.Media, cur.Media) ||
+		!utils.PtrEqual(des.Queues, cur.Queues) ||
+		!utils.PtrEqual(des.Snapshot, cur.Snapshot) ||
+		!utils.PtrEqual(des.Shared, cur.Shared) ||
+		!utils.PtrEqual(des.RError, cur.RError) ||
+		!utils.PtrEqual(des.WError, cur.WError) ||
+		!utils.PtrEqual(des.ScsiBlock, cur.ScsiBlock) ||
+		BandwidthChanged(des.Bandwidth, cur.Bandwidth)
 }
 
-// bandwidthChanged reports whether any DiskBandwidth field differs between desired and current.
+// BandwidthChanged reports whether any DiskBandwidth field differs between desired and current.
 // nil bandwidth and a zero-value DiskBandwidth (all fields nil) are treated as equivalent.
-func bandwidthChanged(des, cur *DiskBandwidth) bool {
-	f64Diff := func(a, b *float64) bool {
-		if a == nil && b == nil {
-			return false
-		}
-		if a == nil || b == nil {
-			return true
-		}
-		return *a != *b
-	}
-	intDiff := func(a, b *int) bool {
-		if a == nil && b == nil {
-			return false
-		}
-		if a == nil || b == nil {
-			return true
-		}
-		return *a != *b
-	}
+func BandwidthChanged(des, cur *DiskBandwidth) bool {
 	// Treat nil as empty struct for comparison purposes.
 	var d, c DiskBandwidth
 	if des != nil {
@@ -623,14 +583,14 @@ func bandwidthChanged(des, cur *DiskBandwidth) bool {
 	if cur != nil {
 		c = *cur
 	}
-	return f64Diff(d.MBpsRd, c.MBpsRd) ||
-		f64Diff(d.MBpsRdMax, c.MBpsRdMax) ||
-		f64Diff(d.MBpsWr, c.MBpsWr) ||
-		f64Diff(d.MBpsWrMax, c.MBpsWrMax) ||
-		intDiff(d.IOPSRd, c.IOPSRd) ||
-		intDiff(d.IOPSRdMax, c.IOPSRdMax) ||
-		intDiff(d.IOPSWr, c.IOPSWr) ||
-		intDiff(d.IOPSWrMax, c.IOPSWrMax)
+	return !utils.PtrEqual(d.MBpsRd, c.MBpsRd) ||
+		!utils.PtrEqual(d.MBpsRdMax, c.MBpsRdMax) ||
+		!utils.PtrEqual(d.MBpsWr, c.MBpsWr) ||
+		!utils.PtrEqual(d.MBpsWrMax, c.MBpsWrMax) ||
+		!utils.PtrEqual(d.IOPSRd, c.IOPSRd) ||
+		!utils.PtrEqual(d.IOPSRdMax, c.IOPSRdMax) ||
+		!utils.PtrEqual(d.IOPSWr, c.IOPSWr) ||
+		!utils.PtrEqual(d.IOPSWrMax, c.IOPSWrMax)
 }
 
 // VMInputs represents the input configuration for a virtual machine.

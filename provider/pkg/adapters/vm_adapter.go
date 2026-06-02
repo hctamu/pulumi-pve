@@ -533,9 +533,9 @@ func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmo
 	// Resize and removal are handled by direct API calls (ResizeDisk/RemoveDisk) before
 	// UpdateConfig is called and do not need to be re-emitted here.
 	currentByIface := make(map[string]*proxmox.Disk, len(currentInputs.Disks))
-	for _, d := range currentInputs.Disks {
-		if d != nil {
-			currentByIface[d.Interface] = d
+	for _, disk := range currentInputs.Disks {
+		if disk != nil {
+			currentByIface[disk.Interface] = disk
 		}
 	}
 	for _, disk := range inputs.Disks {

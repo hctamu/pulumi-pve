@@ -50,9 +50,11 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks.scsi0": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[0].size": p.Update},
 		},
 		{
+			// Interface rename: scsi0 → scsi1 appears as a Remove + Add, both at index 0
+			// since the input and state each have one disk. The diff map ends with the Add.
 			name: "disk interface changed (remove old + add new)",
 			inputDisks: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi1"},
@@ -60,11 +62,8 @@ func TestVMDiffDisksChange(t *testing.T) {
 			stateDisks: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
-			expectChange: true,
-			expectDiffKeys: map[string]p.DiffKind{
-				"disks.scsi0": p.Delete,
-				"disks.scsi1": p.Add,
-			},
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks[0]": p.Add},
 		},
 		{
 			name: "disk added",
@@ -76,7 +75,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks.scsi1": p.Add},
+			expectDiffKeys: map[string]p.DiffKind{"disks[1]": p.Add},
 		},
 		{
 			name: "disk removed",
@@ -88,7 +87,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi1"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks.scsi1": p.Delete},
+			expectDiffKeys: map[string]p.DiffKind{"disks[1]": p.Delete},
 		},
 		{
 			name: "file id changed",
@@ -103,7 +102,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				Interface: "scsi0",
 			}},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks.scsi0": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[0].filename": p.Update},
 		},
 		{
 			name: "nil fileID in input is not a change",
