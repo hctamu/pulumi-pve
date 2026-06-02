@@ -62,6 +62,9 @@ namespace Hctamu.Pve
 
     public sealed class ProviderArgs : global::Pulumi.ResourceArgs
     {
+        [Input("insecureSkipVerify", json: true)]
+        public Input<bool>? InsecureSkipVerify { get; set; }
+
         [Input("pveToken", required: true)]
         private Input<string>? _pveToken;
         public Input<string>? PveToken

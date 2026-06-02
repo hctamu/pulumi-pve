@@ -51,6 +51,7 @@ export class Provider extends pulumi.ProviderResource {
             if (args?.sshUser === undefined && !opts.urn) {
                 throw new Error("Missing required property 'sshUser'");
             }
+            resourceInputs["insecureSkipVerify"] = pulumi.output(args?.insecureSkipVerify).apply(JSON.stringify);
             resourceInputs["pveToken"] = args?.pveToken ? pulumi.secret(args.pveToken) : undefined;
             resourceInputs["pveUrl"] = args?.pveUrl;
             resourceInputs["pveUser"] = args?.pveUser;
@@ -68,6 +69,7 @@ export class Provider extends pulumi.ProviderResource {
  * The set of arguments for constructing a Provider resource.
  */
 export interface ProviderArgs {
+    insecureSkipVerify?: pulumi.Input<boolean>;
     pveToken: pulumi.Input<string>;
     pveUrl: pulumi.Input<string>;
     pveUser: pulumi.Input<string>;

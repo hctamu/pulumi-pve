@@ -4,11 +4,16 @@
 package io.github.hctamu.pve;
 
 import com.pulumi.core.internal.Codegen;
+import java.lang.Boolean;
 import java.lang.String;
+import java.util.Optional;
 
 public final class Config {
 
     private static final com.pulumi.Config config = com.pulumi.Config.of("pve");
+    public Optional<Boolean> insecureSkipVerify() {
+        return Codegen.booleanProp("insecureSkipVerify").config(config).get();
+    }
     public String pveToken() {
         return Codegen.stringProp("pveToken").config(config).require();
     }

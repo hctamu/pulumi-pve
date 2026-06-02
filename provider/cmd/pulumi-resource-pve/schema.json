@@ -37,6 +37,9 @@
   },
   "config": {
     "variables": {
+      "insecureSkipVerify": {
+        "type": "boolean"
+      },
       "pveToken": {
         "type": "string",
         "secret": true
@@ -266,6 +269,9 @@
   },
   "provider": {
     "properties": {
+      "insecureSkipVerify": {
+        "type": "boolean"
+      },
       "pveToken": {
         "type": "string",
         "secret": true
@@ -292,6 +298,9 @@
       "sshPass"
     ],
     "inputProperties": {
+      "insecureSkipVerify": {
+        "type": "boolean"
+      },
       "pveToken": {
         "type": "string",
         "secret": true

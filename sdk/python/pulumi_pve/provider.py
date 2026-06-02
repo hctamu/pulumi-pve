@@ -23,7 +23,8 @@ class ProviderArgs:
                  pve_url: pulumi.Input[_builtins.str],
                  pve_user: pulumi.Input[_builtins.str],
                  ssh_pass: pulumi.Input[_builtins.str],
-                 ssh_user: pulumi.Input[_builtins.str]):
+                 ssh_user: pulumi.Input[_builtins.str],
+                 insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None):
         """
         The set of arguments for constructing a Provider resource.
         """
@@ -32,6 +33,8 @@ class ProviderArgs:
         pulumi.set(__self__, "pve_user", pve_user)
         pulumi.set(__self__, "ssh_pass", ssh_pass)
         pulumi.set(__self__, "ssh_user", ssh_user)
+        if insecure_skip_verify is not None:
+            pulumi.set(__self__, "insecure_skip_verify", insecure_skip_verify)
 
     @_builtins.property
     @pulumi.getter(name="pveToken")
@@ -78,6 +81,15 @@ class ProviderArgs:
     def ssh_user(self, value: pulumi.Input[_builtins.str]):
         pulumi.set(self, "ssh_user", value)
 
+    @_builtins.property
+    @pulumi.getter(name="insecureSkipVerify")
+    def insecure_skip_verify(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        return pulumi.get(self, "insecure_skip_verify")
+
+    @insecure_skip_verify.setter
+    def insecure_skip_verify(self, value: Optional[pulumi.Input[_builtins.bool]]):
+        pulumi.set(self, "insecure_skip_verify", value)
+
 
 @pulumi.type_token("pulumi:providers:pve")
 class Provider(pulumi.ProviderResource):
@@ -85,6 +97,7 @@ class Provider(pulumi.ProviderResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
+                 insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None,
                  pve_token: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_url: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_user: Optional[pulumi.Input[_builtins.str]] = None,
@@ -121,6 +134,7 @@ class Provider(pulumi.ProviderResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
+                 insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None,
                  pve_token: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_url: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_user: Optional[pulumi.Input[_builtins.str]] = None,
@@ -135,6 +149,7 @@ class Provider(pulumi.ProviderResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = ProviderArgs.__new__(ProviderArgs)
 
+            __props__.__dict__["insecure_skip_verify"] = pulumi.Output.from_input(insecure_skip_verify).apply(pulumi.runtime.to_json) if insecure_skip_verify is not None else None
             if pve_token is None and not opts.urn:
                 raise TypeError("Missing required property 'pve_token'")
             __props__.__dict__["pve_token"] = None if pve_token is None else pulumi.Output.secret(pve_token)

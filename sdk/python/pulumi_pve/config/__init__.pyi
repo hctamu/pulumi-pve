@@ -14,6 +14,8 @@ else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
 
+insecureSkipVerify: Optional[bool]
+
 pveToken: Optional[str]
 
 pveUrl: Optional[str]
