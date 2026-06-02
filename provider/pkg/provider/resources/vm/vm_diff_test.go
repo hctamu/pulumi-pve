@@ -236,7 +236,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	assert.Contains(t, resp.DetailedDiff, "name")
 	assert.Contains(t, resp.DetailedDiff, "memory")
 	assert.Contains(t, resp.DetailedDiff, "cpu")
-	assert.Contains(t, resp.DetailedDiff, "disks.scsi0") // granular per-interface key
+	assert.Contains(t, resp.DetailedDiff, "disks[0].size") // granular per-index, per-property key
 	// EfiDisk now produces granular diffs
 	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
 
