@@ -1,6 +1,12 @@
 # Copilot Instructions
 
-## Repository Summary
+## General Guidelines
+
+**🌐 Prefix every response with the 🌐 emoji when answering questions about general guidelines, conventions, or project principles.**
+
+- **Be critical:** Question assumptions, challenge vague requirements, and flag inconsistencies. Don't just accept a task at face value — if the ask is unclear, the scope is ambiguous, or the approach seems wrong, say so.
+- **Ask for clarification:** If a request is incomplete, contradicts the guidelines, or lacks context, ask back instead of guessing. Examples: "Is this a bug fix or a refactor?", "Which resource does this apply to?", "What's the success criterion?"
+- **Single source of truth:** This file (copilot-instructions.md) is the authoritative reference. All other documentation should defer to it.
 
 This is a **Pulumi provider for Proxmox VE (PVE)** written in Go. It enables infrastructure-as-code management of Proxmox resources (VMs, storage, pools, HA groups, users, groups, roles, ACLs) using the [pulumi-go-provider](https://github.com/pulumi/pulumi-go-provider) infer framework. Multi-language SDKs (Go, Python, Node.js, .NET, Java) are **generated** from a JSON schema — never edit files under `sdk/` directly.
 
@@ -10,34 +16,57 @@ Development must be done inside the devcontainer (VSCode → "Reopen in Containe
 
 ## Languages & Frameworks
 
-- **Go 1.24** — provider source lives entirely under `provider/`
+- **Go 1.26** — provider source lives entirely under `provider/`
 - **pulumi-go-provider** — infer-based Pulumi resource framework (schema auto-generated from Go struct tags)
 - **luthermonson/go-proxmox** — Proxmox HTTP API client
 - **testify** — test assertions (`assert`/`require`)
 - **mocha/v3** — HTTP mock server for adapter tests
 - **golangci-lint v2** — enforced via `.golangci.yml`
+- **gofumpt** — stricter Go formatter (used by `make lint`)
+- **golines** — enforces 120-char line limit (used by `make lint`)
 
 ---
 
 ## Build & Validate Commands
 
+**Pre-commit checklist** (all must pass locally before pushing):
+```bash
+make lint              # golangci-lint with golines (120-char limit)
+make test_provider     # all unit tests
+make provider          # build provider binary
+```
+
+**Full commands:**
 ```bash
 # Build provider binary
 make provider
 
 # Run provider unit tests (fast — no Proxmox needed)
 make test_provider
-# or directly:
-cd provider && go test -v -count=1 -cover -timeout 2h -parallel 4 ./...
+# or single package:
+cd provider && go test -v -count=1 -cover -timeout 2h -parallel 4 ./pkg/provider/resources/vm
+# or single test:
+cd provider && go test -v -count=1 -cover -timeout 2h ./pkg/provider/resources/vm -run TestParseCPU
 
 # Lint (must pass before committing)
+# IMPORTANT: use 'make lint' not 'golangci-lint' directly — it sets --path-prefix provider
 make lint
 
 # Tidy modules (run after adding/removing dependencies)
 make tidy
 
-# Generate schema + all SDKs (slow, only needed when schema changes)
+# Regenerate schema.json (fast — after changing struct tags)
+make generate_schema
+
+# Regenerate schema + all SDKs (slow — only when exporting a new release)
 make build
+
+# Integration testing (requires live Proxmox or integration test env)
+export PULUMI_CONFIG_PASSPHRASE=<passphrase>
+make up       # first deploy
+make update   # re-deploy after changes
+make preview  # dry-run
+make down     # destroy + cleanup
 ```
 
 CI runs `make test_provider` and `make lint` on every push/PR. Both must pass.
@@ -60,7 +89,11 @@ provider/
 sdk/                         # GENERATED — do not edit
 examples/                    # YAML/Go Pulumi programs for manual testing
 .golangci.yml                # Lint rules (repo root)
-.github/prompts/             # Reusable task-specific Copilot prompt files
+.github/skills/              # Reusable task-specific skills
+  - `.github:fix-lint` — fix golangci-lint errors
+  - `.github:new-resource` — scaffold a new resource
+  - `.github:adapter-testing` — add/complete adapter unit tests
+  - `.github:debugging` — systematic approach to finding and fixing bugs
 ```
 
 ---
@@ -71,15 +104,28 @@ examples/                    # YAML/Go Pulumi programs for manual testing
 2. **Adapters** (`provider/pkg/adapters/`) — implement domain interfaces against the real Proxmox HTTP/SSH API. Each adapter has a matching `_test.go`.
 3. **Resources** (`provider/pkg/provider/resources/`) — implement `infer.CustomResource` interfaces. Depend **only** on domain interfaces, never on adapters directly. Wired together in `provider.go`.
 
+**Reference implementation:** The `ha` (HA group) resource is the reference for structure, patterns, and style. Check it first when uncertain.
+
+For debugging guidance, see the `.github:debugging` skill.
+
 ### Do / Don't
 
+**Critical (breaks build or contracts):**
 | ✅ Do | ❌ Don't |
 |---|---|
 | Add `var _ proxmox.XOps = (*XAdapter)(nil)` compile-time checks | Import adapter packages from resource packages |
 | Add `var _ = (infer.CustomResource[...])((*X)(nil))` in resource files | Edit anything under `sdk/` |
-| Nil-check the operations field before every use in resources | Use `github.com/golang/protobuf` (use `google.golang.org/protobuf`) |
+| **Nil-check the operations field before every use in resources** (fails silently otherwise) | Use `github.com/golang/protobuf` (use `google.golang.org/protobuf`) |
 | Use `fmt.Errorf("...: %w", err)` for error wrapping | Share a mock server across parallel subtests |
 | Call `t.Parallel()` in every test function and subtest | Use `NewAPIMock` for new tests (use `CreateMockServer` instead) |
+
+**Style & discipline:**
+| ✅ Do | ❌ Don't |
+|---|---|
+| Keep changes focused to the task at hand | Refactor unrelated code while fixing a bug |
+| Use existing abstractions (interfaces, helpers) | Add abstractions for a single caller |
+| Validate inputs at system boundaries (user input, external APIs) | Add error handling for impossible cases (trust internal contracts) |
+| Ask for clarification when Proxmox API is undocumented or schema/adapter/resource disagree | Guess or assume API behavior |
 
 ---
 
@@ -122,8 +168,23 @@ import (
 )
 ```
 
-- **Format**: `gofumpt` (stricter than `gofmt`). Run `make lint` to auto-check.
+- **Format**: `gofumpt` (stricter than `gofmt`) + `golines` (120-char line limit). Run `make lint` to auto-check both.
+- **Line limit:** 120 characters (enforced by golines via `make lint`).
+- **Commit message format:** Conventional Commits — `type(scope): description`. Examples: `fix(vm): handle CPU parsing edge case`, `feat(ha): add support for HA group rules`.
 - **Method receivers**: Use meaningful names that reflect the type, not single letters or opaque abbreviations. Prefer a short but descriptive word derived from the type name (e.g., `adapter` for `*VMAdapter`, `inputs` for `*RoleInputs`, `mock` for `*mockXOperations`). Avoid `a`, `r`, `p`, `m`, `e`, `s`, and other one-letter receivers.
+
+**Bad → Good example:**
+```go
+// BAD
+func (a *VMAdapter) Create(ctx context.Context, r *CreateInput) (*VM, error) {
+    // ...
+}
+
+// GOOD
+func (adapter *VMAdapter) Create(ctx context.Context, inputs *CreateInput) (*VM, error) {
+    // ...
+}
+```
 
 ---
 
@@ -170,7 +231,7 @@ When adding a new resource, create **all** of the following (in order):
 5. `provider/pkg/provider/resources/<name>/<name>_test.go` — resource unit tests with mock interface
 6. `provider/pkg/provider/provider.go` — add `new<Name>ResourceWithConfig` wiring + register in `Resources` slice
 
-See `.github/prompts/new-resource.prompt.md` for the full step-by-step scaffold guide.
+Use the `/new-resource` Copilot skill for the full step-by-step scaffold guide.
 
 ---
 

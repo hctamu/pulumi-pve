@@ -1,4 +1,12 @@
-# New Adapter Test
+---
+name: adapter-testing
+description: "Use when: adding or completing unit tests for an existing adapter"
+type: skill
+---
+
+# adapter-testing Skill
+
+**IMPORTANT: Every single answer you give when using this skill MUST start with the 🔌 emoji.**
 
 You are adding or completing unit tests for an existing adapter in
 `provider/pkg/adapters/<name>_adapter_test.go`.
