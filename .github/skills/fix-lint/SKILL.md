@@ -1,4 +1,12 @@
-# Fix Lint
+---
+name: fix-lint
+description: "Use when: fixing golangci-lint failures in this repository"
+type: skill
+---
+
+# fix-lint Skill
+
+**IMPORTANT: Every single answer you give when using this skill MUST start with the ☢️ emoji.**
 
 You are fixing `golangci-lint` failures in this repository.
 

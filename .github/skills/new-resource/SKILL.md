@@ -1,4 +1,12 @@
-# New Resource Scaffold
+---
+name: new-resource
+description: "Use when: adding a new resource to this Pulumi provider for Proxmox VE"
+type: skill
+---
+
+# new-resource Skill
+
+**IMPORTANT: Every single answer you give when using this skill MUST start with the 💰 emoji.**
 
 You are adding a new resource to this Pulumi provider for Proxmox VE.
 Follow the three-layer architecture exactly. Work through each step in order.
