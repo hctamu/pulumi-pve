@@ -21,9 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
@@ -77,18 +80,47 @@ func (sa *SSHAdapter) Connect(ctx context.Context) error {
 			cfg = *sa.PVEConfig
 		}
 
-		//nolint:gosec // Ignoring host key for internal infrastructure
+		hostKeyCallback, callbackErr := newHostKeyCallback(cfg.InsecureIgnoreHostKey)
+		if callbackErr != nil {
+			sa.initErr = callbackErr
+			return
+		}
+
 		sa.sshConfig = &ssh.ClientConfig{
 			User: cfg.SSHUser,
 			Auth: []ssh.AuthMethod{
 				ssh.Password(cfg.SSHPass),
 			},
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			HostKeyCallback: hostKeyCallback,
 		}
 
 		sa.targetIP, sa.initErr = sa.generateSSHHost(ctx)
 	})
 	return sa.initErr
+}
+
+func newHostKeyCallback(insecureIgnoreHostKey bool) (ssh.HostKeyCallback, error) {
+	if insecureIgnoreHostKey {
+		//nolint:gosec // Opt-in behavior controlled by provider config.
+		return ssh.InsecureIgnoreHostKey(), nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve user home directory for SSH known_hosts: %w", err)
+	}
+
+	knownHostsPath := filepath.Join(homeDir, ".ssh", "known_hosts")
+	hostKeyCallback, err := knownhosts.New(knownHostsPath)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"failed to initialize SSH known_hosts verification from %q: %w",
+			knownHostsPath,
+			err,
+		)
+	}
+
+	return hostKeyCallback, nil
 }
 
 // Run executes a command on the remote host and returns its output.
