@@ -18,13 +18,17 @@ package adapters
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 )
@@ -39,11 +43,12 @@ func TestNewSSHAdapter(t *testing.T) {
 		{
 			name: "creates adapter with config",
 			cfg: &config.Config{
-				PveURL:   "https://test.proxmox.com:8006",
-				PveUser:  "test@pam",
-				PveToken: "test-token",
-				SSHUser:  "root",
-				SSHPass:  "password",
+				PveURL:                "https://test.proxmox.com:8006",
+				PveUser:               "test@pam",
+				PveToken:              "test-token",
+				SSHUser:               "root",
+				SSHPass:               "password",
+				InsecureIgnoreHostKey: true,
 			},
 		},
 		{
@@ -149,11 +154,12 @@ func TestSSHAdapterConnect(t *testing.T) {
 			defer server.Close()
 
 			cfg := &config.Config{
-				PveURL:   server.URL,
-				PveUser:  "test@pam",
-				PveToken: "test-token",
-				SSHUser:  "root",
-				SSHPass:  "password",
+				PveURL:                server.URL,
+				PveUser:               "test@pam",
+				PveToken:              "test-token",
+				SSHUser:               "root",
+				SSHPass:               "password",
+				InsecureIgnoreHostKey: true,
 			}
 
 			pxa := NewProxmoxAdapter(cfg)
@@ -206,11 +212,12 @@ func TestSSHAdapterConnectIdempotent(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.Config{
-		PveURL:   server.URL,
-		PveUser:  "test@pam",
-		PveToken: "test-token",
-		SSHUser:  "root",
-		SSHPass:  "password",
+		PveURL:                server.URL,
+		PveUser:               "test@pam",
+		PveToken:              "test-token",
+		SSHUser:               "root",
+		SSHPass:               "password",
+		InsecureIgnoreHostKey: true,
 	}
 
 	pxa := NewProxmoxAdapter(cfg)
@@ -242,11 +249,12 @@ func TestSSHAdapterConnectNodeAPIError(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.Config{
-		PveURL:   server.URL,
-		PveUser:  "test@pam",
-		PveToken: "test-token",
-		SSHUser:  "root",
-		SSHPass:  "password",
+		PveURL:                server.URL,
+		PveUser:               "test@pam",
+		PveToken:              "test-token",
+		SSHUser:               "root",
+		SSHPass:               "password",
+		InsecureIgnoreHostKey: true,
 	}
 
 	pxa := NewProxmoxAdapter(cfg)
@@ -281,11 +289,12 @@ func TestSSHAdapterConnectNetworkAPIError(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.Config{
-		PveURL:   server.URL,
-		PveUser:  "test@pam",
-		PveToken: "test-token",
-		SSHUser:  "root",
-		SSHPass:  "password",
+		PveURL:                server.URL,
+		PveUser:               "test@pam",
+		PveToken:              "test-token",
+		SSHUser:               "root",
+		SSHPass:               "password",
+		InsecureIgnoreHostKey: true,
 	}
 
 	pxa := NewProxmoxAdapter(cfg)
@@ -340,11 +349,12 @@ func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 	defer server.Close()
 
 	cfg := &config.Config{
-		PveURL:   server.URL,
-		PveUser:  "test@pam",
-		PveToken: "test-token",
-		SSHUser:  "root",
-		SSHPass:  "password",
+		PveURL:                server.URL,
+		PveUser:               "test@pam",
+		PveToken:              "test-token",
+		SSHUser:               "root",
+		SSHPass:               "password",
+		InsecureIgnoreHostKey: true,
 	}
 
 	pxa := NewProxmoxAdapter(cfg)
@@ -356,4 +366,74 @@ func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, "192.168.1.100", adapter.targetIP)
+}
+
+func TestNewHostKeyCallback(t *testing.T) {
+	tests := []struct {
+		name                  string
+		insecureIgnoreHostKey bool
+		withKnownHosts        bool
+		wantErr               bool
+		errContains           string
+		wantCallbackErr       bool
+	}{
+		{
+			name:                  "returns insecure callback when option is enabled",
+			insecureIgnoreHostKey: true,
+			withKnownHosts:        false,
+			wantErr:               false,
+			wantCallbackErr:       false,
+		},
+		{
+			name:                  "returns known_hosts callback when option is disabled and file exists",
+			insecureIgnoreHostKey: false,
+			withKnownHosts:        true,
+			wantErr:               false,
+			wantCallbackErr:       true,
+		},
+		{
+			name:                  "returns error when option is disabled and known_hosts is missing",
+			insecureIgnoreHostKey: false,
+			withKnownHosts:        false,
+			wantErr:               true,
+			errContains:           "known_hosts",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			homeDir := t.TempDir()
+			t.Setenv("HOME", homeDir)
+
+			if tt.withKnownHosts {
+				sshDir := filepath.Join(homeDir, ".ssh")
+				require.NoError(t, os.MkdirAll(sshDir, 0o700))
+				require.NoError(t, os.WriteFile(filepath.Join(sshDir, "known_hosts"), []byte(""), 0o600))
+			}
+
+			callback, err := newHostKeyCallback(tt.insecureIgnoreHostKey)
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, callback)
+
+			pubKey, _, _, _, parseErr := ssh.ParseAuthorizedKey([]byte(
+				"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEd9fZxw2+P5lWQmWw7JXfR8zY8VzHi4vT8z3WQm9h8D test-key",
+			))
+			require.NoError(t, parseErr)
+
+			cbErr := callback("example.local:22", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 22}, pubKey)
+			if tt.wantCallbackErr {
+				require.Error(t, cbErr)
+				return
+			}
+			require.NoError(t, cbErr)
+		})
+	}
 }

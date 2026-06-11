@@ -26,7 +26,6 @@ import (
 	"time"
 
 	api "github.com/luthermonson/go-proxmox"
-	"golang.org/x/exp/slices"
 
 	p "github.com/pulumi/pulumi-go-provider"
 
@@ -375,7 +374,7 @@ func ConvertVMConfigToInputs(
 	}
 
 	stateDisks := []*proxmox.Disk{}
-	checkedDisks := make([]string, 0, len(userDisks))
+	checkedDisks := make(map[string]bool, len(userDisks))
 
 	// First: process disks in user-specified order
 	for _, userDisk := range userDisks {
@@ -386,7 +385,7 @@ func ConvertVMConfigToInputs(
 			continue // disk no longer present in API
 		}
 		disk := &proxmox.Disk{Interface: userDisk.Interface}
-		checkedDisks = append(checkedDisks, userDisk.Interface)
+		checkedDisks[userDisk.Interface] = true
 		if err := ParseDiskConfig(disk, diskMap[userDisk.Interface]); err != nil {
 			return stateInputs, err
 		}
@@ -395,7 +394,7 @@ func ConvertVMConfigToInputs(
 
 	// Then: append any disks from API not covered by user's input
 	for diskInterface, diskParams := range diskMap {
-		if slices.Contains(checkedDisks, diskInterface) {
+		if checkedDisks[diskInterface] {
 			continue
 		}
 		disk := proxmox.Disk{Interface: diskInterface}
