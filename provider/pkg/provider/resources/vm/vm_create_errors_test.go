@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -48,6 +49,10 @@ func (mock *mockErrorClient) ResolveNode(_ context.Context, _ *string) (string, 
 
 func (mock *mockErrorClient) NextVMID(_ context.Context) (int, error) {
 	return 0, mock.nextVMIDErr
+}
+
+func (mock *mockErrorClient) WaitForTask(_ context.Context, _ string, _, _ time.Duration) error {
+	return nil
 }
 
 func TestVMCreateConfigurationErrors(t *testing.T) {

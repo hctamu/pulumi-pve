@@ -31,67 +31,76 @@ import (
 func TestSDNAdapterApply(t *testing.T) {
 	t.Parallel()
 
-	t.Run("successful apply", func(t *testing.T) {
-		t.Parallel()
+	tests := []struct {
+		name       string
+		statusCode int
+		response   string
+		expectErr  bool
+		errMsg     string
+	}{
+		{
+			name:       "successful apply returns UPID",
+			statusCode: http.StatusOK,
+			response:   `{"data":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:"}`,
+			expectErr:  false,
+		},
+		{
+			name:       "API error on apply",
+			statusCode: http.StatusInternalServerError,
+			response:   `{"errors": "apply failed"}`,
+			expectErr:  true,
+			errMsg:     "failed to apply SDN changes",
+		},
+		{
+			name:       "bad request error",
+			statusCode: http.StatusBadRequest,
+			response:   `{"errors": "invalid parameters"}`,
+			expectErr:  true,
+			errMsg:     "failed to apply SDN changes",
+		},
+	}
 
-		server, captured := testutils.CreateMockServer(
-			t,
-			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-				assert.Equal(t, http.MethodPut, r.Method)
-				assert.Equal(t, "/cluster/sdn", r.URL.Path)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data": null}`))
-			},
-		)
-		defer server.Close()
+			server, captured := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					assert.Equal(t, http.MethodPut, r.Method)
+					assert.Equal(t, "/cluster/sdn", r.URL.Path)
 
-		cfg := &config.Config{
-			PveURL:   server.URL,
-			PveUser:  "test@pam",
-			PveToken: "test-token",
-		}
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(tt.statusCode)
+					_, _ = w.Write([]byte(tt.response))
+				},
+			)
+			defer server.Close()
 
-		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
-		err := proxmoxAdapter.Connect(context.Background())
-		require.NoError(t, err)
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
 
-		sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-		err = sdnAdapter.Apply(context.Background())
-		require.NoError(t, err)
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
 
-		assert.Equal(t, http.MethodPut, captured.Method)
-		assert.Equal(t, "/cluster/sdn", captured.Path)
-	})
+			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
+			err = sdnAdapter.Apply(context.Background())
 
-	t.Run("apply handles API error", func(t *testing.T) {
-		t.Parallel()
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				require.NoError(t, err)
+			}
 
-		server, _ := testutils.CreateMockServer(
-			t,
-			func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte(`{"errors": "apply failed"}`))
-			},
-		)
-		defer server.Close()
-
-		cfg := &config.Config{
-			PveURL:   server.URL,
-			PveUser:  "test@pam",
-			PveToken: "test-token",
-		}
-
-		proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
-		err := proxmoxAdapter.Connect(context.Background())
-		require.NoError(t, err)
-
-		sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-		err = sdnAdapter.Apply(context.Background())
-		require.Error(t, err)
-		assert.EqualError(t, err, "failed to apply SDN changes: 500 Internal Server Error")
-	})
+			assert.Equal(t, http.MethodPut, captured.Method)
+			assert.Equal(t, "/cluster/sdn", captured.Path)
+		})
+	}
 }
 
 func TestNewSDNAdapter(t *testing.T) {

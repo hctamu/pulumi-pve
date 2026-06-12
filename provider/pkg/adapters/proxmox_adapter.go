@@ -179,19 +179,23 @@ func (proxmoxAdapter *ProxmoxAdapter) Node(ctx context.Context, name string) (*a
 // WaitForTask waits for a Proxmox task to complete, polling every interval up to timeout.
 // interval=0 uses the default production poll interval of 5 seconds.
 // It returns an error if the task times out, encounters an error, or reports a failure.
-// A nil task is treated as a no-op and returns nil immediately.
+// An empty UPID is treated as a no-op and returns nil immediately.
 func (proxmoxAdapter *ProxmoxAdapter) WaitForTask(
 	ctx context.Context,
-	task *api.Task,
+	upid string,
 	timeout, interval time.Duration,
 ) error {
-	if task == nil {
+	if upid == "" {
 		return nil
+	}
+	if err := proxmoxAdapter.Connect(ctx); err != nil {
+		return err
 	}
 	const defaultInterval = 5 * time.Second
 	if interval == 0 {
 		interval = defaultInterval
 	}
+	task := api.NewTask(api.UPID(upid), proxmoxAdapter.client)
 	if err := task.Wait(ctx, interval, timeout); err != nil {
 		return err
 	}

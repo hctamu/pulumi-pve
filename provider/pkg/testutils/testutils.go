@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -106,6 +107,11 @@ func (m *MockProxmoxClient) ResolveNode(_ context.Context, node *string) (string
 // NextVMID implements proxmox.Client.
 func (m *MockProxmoxClient) NextVMID(_ context.Context) (int, error) {
 	return m.DefaultVMID, nil
+}
+
+// WaitForTask implements proxmox.Client.
+func (m *MockProxmoxClient) WaitForTask(_ context.Context, _ string, _, _ time.Duration) error {
+	return nil
 }
 
 // NewMockAdapter creates a ProxmoxAdapter pointed at the given URL for testing.

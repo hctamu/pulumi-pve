@@ -25,7 +25,6 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -1072,21 +1071,23 @@ func TestProxmoxAdapterWaitForTask(t *testing.T) {
 
 	// A syntactically valid UPID whose node field parses to "pve-node".
 	// Format: UPID:{node}:{pid}:{pstart}:{starttime}:{type}:{id}:{user}@{realm}:
-	const testUPID = api.UPID("UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:")
+	const testUPID = "UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:"
 
 	tests := []struct {
 		name           string
-		serverStatus   int // 0 means nil task (no server needed)
+		upid           string // empty string means nil task
+		serverStatus   int    // 0 means no server needed
 		serverResponse string
 		wantErr        bool
 		wantErrContain string
 	}{
 		{
-			// serverStatus 0 signals the nil-task path: no HTTP call is made.
-			name: "nil task returns nil immediately",
+			name: "empty UPID returns nil immediately",
+			upid: "",
 		},
 		{
 			name:         "task stopped with OK exit status returns nil",
+			upid:         testUPID,
 			serverStatus: http.StatusOK,
 			serverResponse: `{"data":{"upid":"UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:",` +
 				`"node":"pve-node","status":"stopped","exitstatus":"OK"}}`,
@@ -1094,6 +1095,7 @@ func TestProxmoxAdapterWaitForTask(t *testing.T) {
 		{
 			// go-proxmox sets IsFailed=true for any exit status other than "OK".
 			name:         "task stopped with non-OK exit status returns error",
+			upid:         testUPID,
 			serverStatus: http.StatusOK,
 			serverResponse: `{"data":{"upid":"UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:",` +
 				`"node":"pve-node","status":"stopped","exitstatus":"FAILED - exit code 1"}}`,
@@ -1103,6 +1105,7 @@ func TestProxmoxAdapterWaitForTask(t *testing.T) {
 		{
 			// go-proxmox propagates HTTP 500 as an error from Ping → Wait.
 			name:         "server error is propagated as error",
+			upid:         testUPID,
 			serverStatus: http.StatusInternalServerError,
 			wantErr:      true,
 		},
@@ -1112,13 +1115,10 @@ func TestProxmoxAdapterWaitForTask(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// WaitForTask does not use the adapter's own Proxmox client, so any
-			// config (or nil) is fine here.
-			adapter := adapters.NewProxmoxAdapter(nil)
-
-			if tt.serverStatus == 0 {
-				// nil-task path: no server, no task.
-				err := adapter.WaitForTask(context.Background(), nil, time.Second, 0)
+			if tt.upid == "" {
+				// Empty UPID path: no server needed
+				adapter := adapters.NewProxmoxAdapter(nil)
+				err := adapter.WaitForTask(context.Background(), "", time.Second, 0)
 				require.NoError(t, err)
 				return
 			}
@@ -1135,13 +1135,16 @@ func TestProxmoxAdapterWaitForTask(t *testing.T) {
 			)
 			defer server.Close()
 
-			// Build a go-proxmox client pointed at the mock server and wrap it in
-			// a Task so that Ping() polls our server instead of a real Proxmox node.
-			pxClient := api.NewClient(server.URL, api.WithAPIToken("user@pve!token", "TOKEN"))
-			task := api.NewTask(testUPID, pxClient)
+			// Create adapter with config pointing to mock server
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "user@pve!token",
+				PveToken: "TOKEN",
+			}
+			adapter := adapters.NewProxmoxAdapter(cfg)
 
 			// Pass 0 so WaitForTask uses the default 5s production interval.
-			err := adapter.WaitForTask(context.Background(), task, 5*time.Second, 0)
+			err := adapter.WaitForTask(context.Background(), tt.upid, 5*time.Second, 0)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -1159,7 +1162,7 @@ func TestProxmoxAdapterWaitForTask_Timeout(t *testing.T) {
 	t.Parallel()
 
 	// A syntactically valid UPID whose node field parses to "pve-node".
-	const testUPID = api.UPID("UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:")
+	const testUPID = "UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:"
 
 	// The server always responds with status "running" so the task never completes.
 	runningResponse := `{"data":{"upid":"UPID:pve-node:00000001:00000001:00000001:qmdel:100:root@pam:",` +
@@ -1175,15 +1178,18 @@ func TestProxmoxAdapterWaitForTask_Timeout(t *testing.T) {
 	)
 	defer server.Close()
 
-	pxClient := api.NewClient(server.URL, api.WithAPIToken("user@pve!token", "TOKEN"))
-	task := api.NewTask(testUPID, pxClient)
-
-	adapter := adapters.NewProxmoxAdapter(nil)
+	// Create adapter with config pointing to mock server
+	cfg := &config.Config{
+		PveURL:   server.URL,
+		PveUser:  "user@pve!token",
+		PveToken: "TOKEN",
+	}
+	adapter := adapters.NewProxmoxAdapter(cfg)
 
 	// Use a short poll interval so the test completes quickly:
 	// go-proxmox's Wait loop is: Ping → sleep(interval) → check timeout.
 	// With interval=50ms and timeout=150ms the timeout fires after the first sleep.
-	err := adapter.WaitForTask(context.Background(), task, 150*time.Millisecond, 50*time.Millisecond)
+	err := adapter.WaitForTask(context.Background(), testUPID, 150*time.Millisecond, 50*time.Millisecond)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "timed out")
