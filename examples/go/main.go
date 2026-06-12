@@ -70,7 +70,7 @@ func main() {
 			return err
 		}
 
-		_, err = sdnapply.NewSdnApply(ctx, "mySdnApply", &sdnapply.SdnApplyArgs{
+		_, err = sdnapply.NewSDNApply(ctx, "mySdnApply", &sdnapply.SDNApplyArgs{
 			Triggers: pulumi.Map{
 				"vm": vmArgs,
 			},

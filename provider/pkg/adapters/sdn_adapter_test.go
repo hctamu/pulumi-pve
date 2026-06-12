@@ -28,7 +28,7 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
-func TestSdnAdapterApply(t *testing.T) {
+func TestSDNAdapterApply(t *testing.T) {
 	t.Parallel()
 
 	t.Run("successful apply", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestSdnAdapterApply(t *testing.T) {
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		sdnAdapter := adapters.NewSdnAdapter(proxmoxAdapter)
+		sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
 		err = sdnAdapter.Apply(context.Background())
 		require.NoError(t, err)
 
@@ -87,14 +87,14 @@ func TestSdnAdapterApply(t *testing.T) {
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		sdnAdapter := adapters.NewSdnAdapter(proxmoxAdapter)
+		sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
 		err = sdnAdapter.Apply(context.Background())
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to apply SDN changes: 500 Internal Server Error")
 	})
 }
 
-func TestNewSdnAdapter(t *testing.T) {
+func TestNewSDNAdapter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("creates adapter with valid client", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestNewSdnAdapter(t *testing.T) {
 		err := proxmoxAdapter.Connect(context.Background())
 		require.NoError(t, err)
 
-		sdnAdapter := adapters.NewSdnAdapter(proxmoxAdapter)
+		sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
 		require.NotNil(t, sdnAdapter)
 	})
 }

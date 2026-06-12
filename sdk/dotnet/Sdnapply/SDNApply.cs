@@ -13,8 +13,8 @@ namespace Hctamu.Pve.Sdnapply
     /// <summary>
     /// Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
     /// </summary>
-    [PveResourceType("pve:sdnapply:SdnApply")]
-    public partial class SdnApply : global::Pulumi.CustomResource
+    [PveResourceType("pve:sdnapply:SDNApply")]
+    public partial class SDNApply : global::Pulumi.CustomResource
     {
         /// <summary>
         /// Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
@@ -24,19 +24,19 @@ namespace Hctamu.Pve.Sdnapply
 
 
         /// <summary>
-        /// Create a SdnApply resource with the given unique name, arguments, and options.
+        /// Create a SDNApply resource with the given unique name, arguments, and options.
         /// </summary>
         ///
         /// <param name="name">The unique name of the resource</param>
         /// <param name="args">The arguments used to populate this resource's properties</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
-        public SdnApply(string name, SdnApplyArgs? args = null, CustomResourceOptions? options = null)
-            : base("pve:sdnapply:SdnApply", name, args ?? new SdnApplyArgs(), MakeResourceOptions(options, ""))
+        public SDNApply(string name, SDNApplyArgs? args = null, CustomResourceOptions? options = null)
+            : base("pve:sdnapply:SDNApply", name, args ?? new SDNApplyArgs(), MakeResourceOptions(options, ""))
         {
         }
 
-        private SdnApply(string name, Input<string> id, CustomResourceOptions? options = null)
-            : base("pve:sdnapply:SdnApply", name, null, MakeResourceOptions(options, id))
+        private SDNApply(string name, Input<string> id, CustomResourceOptions? options = null)
+            : base("pve:sdnapply:SDNApply", name, null, MakeResourceOptions(options, id))
         {
         }
 
@@ -53,20 +53,20 @@ namespace Hctamu.Pve.Sdnapply
             return merged;
         }
         /// <summary>
-        /// Get an existing SdnApply resource's state with the given name, ID, and optional extra
+        /// Get an existing SDNApply resource's state with the given name, ID, and optional extra
         /// properties used to qualify the lookup.
         /// </summary>
         ///
         /// <param name="name">The unique name of the resulting resource.</param>
         /// <param name="id">The unique provider ID of the resource to lookup.</param>
         /// <param name="options">A bag of options that control this resource's behavior</param>
-        public static SdnApply Get(string name, Input<string> id, CustomResourceOptions? options = null)
+        public static SDNApply Get(string name, Input<string> id, CustomResourceOptions? options = null)
         {
-            return new SdnApply(name, id, options);
+            return new SDNApply(name, id, options);
         }
     }
 
-    public sealed class SdnApplyArgs : global::Pulumi.ResourceArgs
+    public sealed class SDNApplyArgs : global::Pulumi.ResourceArgs
     {
         [Input("triggers")]
         private InputMap<object>? _triggers;
@@ -80,9 +80,9 @@ namespace Hctamu.Pve.Sdnapply
             set => _triggers = value;
         }
 
-        public SdnApplyArgs()
+        public SDNApplyArgs()
         {
         }
-        public static new SdnApplyArgs Empty => new SdnApplyArgs();
+        public static new SDNApplyArgs Empty => new SDNApplyArgs();
     }
 }

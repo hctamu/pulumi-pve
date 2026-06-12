@@ -29,18 +29,18 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
-type mockSdnOperations struct {
+type mockSDNOperations struct {
 	applyFunc func(ctx context.Context) error
 }
 
-func (mock *mockSdnOperations) Apply(ctx context.Context) error {
+func (mock *mockSDNOperations) Apply(ctx context.Context) error {
 	if mock.applyFunc != nil {
 		return mock.applyFunc(ctx)
 	}
 	return nil
 }
 
-func TestSdnApplyCreate(t *testing.T) {
+func TestSDNApplyCreate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -84,17 +84,17 @@ func TestSdnApplyCreate(t *testing.T) {
 			t.Parallel()
 
 			var called bool
-			mock := &mockSdnOperations{
+			mock := &mockSDNOperations{
 				applyFunc: func(_ context.Context) error {
 					called = true
 					return tt.applyErr
 				},
 			}
 
-			resource := &sdnapplyResource.SdnApply{SdnOps: mock}
-			req := infer.CreateRequest[proxmox.SdnApplyInputs]{
+			resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+			req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 				Name:   "test-sdn-apply",
-				Inputs: proxmox.SdnApplyInputs{Triggers: tt.triggers},
+				Inputs: proxmox.SDNApplyInputs{Triggers: tt.triggers},
 				DryRun: tt.dryRun,
 			}
 			resp, err := resource.Create(context.Background(), req)
@@ -111,20 +111,20 @@ func TestSdnApplyCreate(t *testing.T) {
 	}
 }
 
-func TestSdnApplyCreateMissingOps(t *testing.T) {
+func TestSDNApplyCreateMissingOps(t *testing.T) {
 	t.Parallel()
 
-	resource := &sdnapplyResource.SdnApply{}
-	req := infer.CreateRequest[proxmox.SdnApplyInputs]{
+	resource := &sdnapplyResource.SDNApply{}
+	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 		Name:   "test-sdn-apply",
-		Inputs: proxmox.SdnApplyInputs{},
+		Inputs: proxmox.SDNApplyInputs{},
 	}
 	_, err := resource.Create(context.Background(), req)
 	require.Error(t, err)
-	assert.Equal(t, "SdnOperations not configured", err.Error())
+	assert.Equal(t, "SDNOperations not configured", err.Error())
 }
 
-func TestSdnApplyUpdate(t *testing.T) {
+func TestSDNApplyUpdate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -173,19 +173,19 @@ func TestSdnApplyUpdate(t *testing.T) {
 			t.Parallel()
 
 			var called bool
-			mock := &mockSdnOperations{
+			mock := &mockSDNOperations{
 				applyFunc: func(_ context.Context) error {
 					called = true
 					return tt.applyErr
 				},
 			}
 
-			resource := &sdnapplyResource.SdnApply{SdnOps: mock}
-			req := infer.UpdateRequest[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs]{
+			resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+			req := infer.UpdateRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]{
 				ID:     "test-sdn-apply",
-				Inputs: proxmox.SdnApplyInputs{Triggers: tt.newTriggers},
-				State: proxmox.SdnApplyOutputs{
-					SdnApplyInputs: proxmox.SdnApplyInputs{Triggers: tt.oldTriggers},
+				Inputs: proxmox.SDNApplyInputs{Triggers: tt.newTriggers},
+				State: proxmox.SDNApplyOutputs{
+					SDNApplyInputs: proxmox.SDNApplyInputs{Triggers: tt.oldTriggers},
 				},
 				DryRun: tt.dryRun,
 			}
@@ -202,37 +202,37 @@ func TestSdnApplyUpdate(t *testing.T) {
 	}
 }
 
-func TestSdnApplyUpdateMissingOps(t *testing.T) {
+func TestSDNApplyUpdateMissingOps(t *testing.T) {
 	t.Parallel()
 
-	resource := &sdnapplyResource.SdnApply{}
-	req := infer.UpdateRequest[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs]{
+	resource := &sdnapplyResource.SDNApply{}
+	req := infer.UpdateRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]{
 		ID:     "test-sdn-apply",
-		Inputs: proxmox.SdnApplyInputs{},
+		Inputs: proxmox.SDNApplyInputs{},
 	}
 	_, err := resource.Update(context.Background(), req)
 	require.Error(t, err)
-	assert.Equal(t, "SdnOperations not configured", err.Error())
+	assert.Equal(t, "SDNOperations not configured", err.Error())
 }
 
-func TestSdnApplyDelete(t *testing.T) {
+func TestSDNApplyDelete(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		ops  *mockSdnOperations
+		ops  *mockSDNOperations
 	}{
-		{"with ops configured", &mockSdnOperations{}},
+		{"with ops configured", &mockSDNOperations{}},
 		{"without ops", nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnapplyResource.SdnApply{SdnOps: tt.ops}
-			req := infer.DeleteRequest[proxmox.SdnApplyOutputs]{
+			resource := &sdnapplyResource.SDNApply{SDNOps: tt.ops}
+			req := infer.DeleteRequest[proxmox.SDNApplyOutputs]{
 				ID:    "test-sdn-apply",
-				State: proxmox.SdnApplyOutputs{},
+				State: proxmox.SDNApplyOutputs{},
 			}
 			_, err := resource.Delete(context.Background(), req)
 			require.NoError(t, err, "delete should always be a no-op")
@@ -240,7 +240,7 @@ func TestSdnApplyDelete(t *testing.T) {
 	}
 }
 
-func TestSdnApplyRead(t *testing.T) {
+func TestSDNApplyRead(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -255,12 +255,12 @@ func TestSdnApplyRead(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnapplyResource.SdnApply{SdnOps: &mockSdnOperations{}}
-			req := infer.ReadRequest[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs]{
+			resource := &sdnapplyResource.SDNApply{SDNOps: &mockSDNOperations{}}
+			req := infer.ReadRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]{
 				ID:     "test-sdn-apply",
-				Inputs: proxmox.SdnApplyInputs{Triggers: tt.triggers},
-				State: proxmox.SdnApplyOutputs{
-					SdnApplyInputs: proxmox.SdnApplyInputs{Triggers: tt.triggers},
+				Inputs: proxmox.SDNApplyInputs{Triggers: tt.triggers},
+				State: proxmox.SDNApplyOutputs{
+					SDNApplyInputs: proxmox.SDNApplyInputs{Triggers: tt.triggers},
 				},
 			}
 			resp, err := resource.Read(context.Background(), req)

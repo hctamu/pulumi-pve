@@ -101,7 +101,7 @@ _utilities.register(
   "mod": "sdnapply",
   "fqn": "pulumi_pve.sdnapply",
   "classes": {
-   "pve:sdnapply:SdnApply": "SdnApply"
+   "pve:sdnapply:SDNApply": "SDNApply"
   }
  },
  {

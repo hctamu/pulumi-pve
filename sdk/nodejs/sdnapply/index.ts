@@ -5,18 +5,18 @@ import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "../utilities";
 
 // Export members:
-export { SdnApplyArgs } from "./sdnApply";
-export type SdnApply = import("./sdnApply").SdnApply;
-export const SdnApply: typeof import("./sdnApply").SdnApply = null as any;
-utilities.lazyLoad(exports, ["SdnApply"], () => require("./sdnApply"));
+export { SDNApplyArgs } from "./sdnapply";
+export type SDNApply = import("./sdnapply").SDNApply;
+export const SDNApply: typeof import("./sdnapply").SDNApply = null as any;
+utilities.lazyLoad(exports, ["SDNApply"], () => require("./sdnapply"));
 
 
 const _module = {
     version: utilities.getVersion(),
     construct: (name: string, type: string, urn: string): pulumi.Resource => {
         switch (type) {
-            case "pve:sdnapply:SdnApply":
-                return new SdnApply(name, <any>undefined, { urn })
+            case "pve:sdnapply:SDNApply":
+                return new SDNApply(name, <any>undefined, { urn })
             default:
                 throw new Error(`unknown resource type ${type}`);
         }

@@ -26,43 +26,43 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
-// Ensure SdnApply implements the required interfaces
+// Ensure SDNApply implements the required interfaces
 var (
-	_ = (infer.CustomResource[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs])((*SdnApply)(nil))
-	_ = (infer.CustomDelete[proxmox.SdnApplyOutputs])((*SdnApply)(nil))
-	_ = (infer.CustomUpdate[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs])((*SdnApply)(nil))
-	_ = (infer.CustomRead[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs])((*SdnApply)(nil))
-	_ = infer.Annotated((*SdnApply)(nil))
+	_ = infer.CustomResource[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*SDNApply)(nil))
+	_ = infer.CustomDelete[proxmox.SDNApplyOutputs]((*SDNApply)(nil))
+	_ = infer.CustomUpdate[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*SDNApply)(nil))
+	_ = infer.CustomRead[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*SDNApply)(nil))
+	_ = infer.Annotated((*SDNApply)(nil))
 )
 
-// SdnApply represents a Proxmox SDN apply resource.
-type SdnApply struct {
-	SdnOps proxmox.SdnOperations
+// SDNApply represents a Proxmox SDN apply resource.
+type SDNApply struct {
+	SDNOps proxmox.SDNOperations
 }
 
 // Create applies pending SDN configuration changes via PUT /cluster/sdn.
-func (sdnApply *SdnApply) Create(
+func (sdnApply *SDNApply) Create(
 	ctx context.Context,
-	request infer.CreateRequest[proxmox.SdnApplyInputs],
-) (infer.CreateResponse[proxmox.SdnApplyOutputs], error) {
+	request infer.CreateRequest[proxmox.SDNApplyInputs],
+) (infer.CreateResponse[proxmox.SDNApplyOutputs], error) {
 	inputs := request.Inputs
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Applying SDN changes")
 
-	response := infer.CreateResponse[proxmox.SdnApplyOutputs]{
+	response := infer.CreateResponse[proxmox.SDNApplyOutputs]{
 		ID:     request.Name,
-		Output: proxmox.SdnApplyOutputs{SdnApplyInputs: inputs},
+		Output: proxmox.SDNApplyOutputs{SDNApplyInputs: inputs},
 	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	if sdnApply.SdnOps == nil {
-		return response, errors.New("SdnOperations not configured")
+	if sdnApply.SDNOps == nil {
+		return response, errors.New("SDNOperations not configured")
 	}
 
-	if err := sdnApply.SdnOps.Apply(ctx); err != nil {
+	if err := sdnApply.SDNOps.Apply(ctx); err != nil {
 		return response, err
 	}
 
@@ -70,35 +70,35 @@ func (sdnApply *SdnApply) Create(
 }
 
 // Delete is a no-op: SDN apply has no server-side delete.
-func (sdnApply *SdnApply) Delete(
+func (sdnApply *SDNApply) Delete(
 	ctx context.Context,
-	_ infer.DeleteRequest[proxmox.SdnApplyOutputs],
+	_ infer.DeleteRequest[proxmox.SDNApplyOutputs],
 ) (infer.DeleteResponse, error) {
 	p.GetLogger(ctx).Debugf("SDN apply delete (no-op)")
 	return infer.DeleteResponse{}, nil
 }
 
 // Update re-applies SDN configuration changes whenever any trigger value changes.
-func (sdnApply *SdnApply) Update(
+func (sdnApply *SDNApply) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs],
-) (infer.UpdateResponse[proxmox.SdnApplyOutputs], error) {
+	request infer.UpdateRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs],
+) (infer.UpdateResponse[proxmox.SDNApplyOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Re-applying SDN changes")
 
-	response := infer.UpdateResponse[proxmox.SdnApplyOutputs]{
-		Output: proxmox.SdnApplyOutputs{SdnApplyInputs: request.Inputs},
+	response := infer.UpdateResponse[proxmox.SDNApplyOutputs]{
+		Output: proxmox.SDNApplyOutputs{SDNApplyInputs: request.Inputs},
 	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	if sdnApply.SdnOps == nil {
-		return response, errors.New("SdnOperations not configured")
+	if sdnApply.SDNOps == nil {
+		return response, errors.New("SDNOperations not configured")
 	}
 
-	if err := sdnApply.SdnOps.Apply(ctx); err != nil {
+	if err := sdnApply.SDNOps.Apply(ctx); err != nil {
 		return response, err
 	}
 
@@ -106,16 +106,16 @@ func (sdnApply *SdnApply) Update(
 }
 
 // Read is a no-op: returns current state unchanged.
-func (sdnApply *SdnApply) Read(
+func (sdnApply *SDNApply) Read(
 	ctx context.Context,
-	request infer.ReadRequest[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs],
-) (infer.ReadResponse[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs], error) {
+	request infer.ReadRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs],
+) (infer.ReadResponse[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs], error) {
 	p.GetLogger(ctx).Debugf("SDN apply read (no-op)")
-	return infer.ReadResponse[proxmox.SdnApplyInputs, proxmox.SdnApplyOutputs](request), nil
+	return infer.ReadResponse[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs](request), nil
 }
 
-// Annotate adds a description to the SdnApply resource.
-func (sdnApply *SdnApply) Annotate(a infer.Annotator) {
+// Annotate adds a description to the SDNApply resource.
+func (sdnApply *SDNApply) Annotate(a infer.Annotator) {
 	a.Describe(
 		sdnApply,
 		"Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. "+

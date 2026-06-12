@@ -30,7 +30,7 @@
         "role/index.ts",
         "role/role.ts",
         "sdnapply/index.ts",
-        "sdnapply/sdnApply.ts",
+        "sdnapply/sdnapply.ts",
         "types/index.ts",
         "types/input.ts",
         "types/output.ts",

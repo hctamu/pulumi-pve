@@ -127,12 +127,12 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 	return &file.File{FileOps: fileAdapter}
 }
 
-// newSdnApplyResourceWithConfig creates a new SdnApply resource with a specific config.
+// newSDNApplyResourceWithConfig creates a new SDNApply resource with a specific config.
 // Passing nil will cause it to fetch config from context when Connect() is called.
-func newSdnApplyResourceWithConfig(cfg *config.Config) *sdnapply.SdnApply {
+func newSDNApplyResourceWithConfig(cfg *config.Config) *sdnapply.SDNApply {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
-	sdnAdapter := adapters.NewSdnAdapter(proxmoxAdapter)
-	return &sdnapply.SdnApply{SdnOps: sdnAdapter}
+	sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
+	return &sdnapply.SDNApply{SDNOps: sdnAdapter}
 }
 
 // newVMResourceWithConfig creates a new VM resource with a specific config.
@@ -162,7 +162,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newRoleResourceWithConfig(cfg)),
 			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(newUserResourceWithConfig(cfg)),
-			infer.Resource(newSdnApplyResourceWithConfig(cfg)),
+			infer.Resource(newSDNApplyResourceWithConfig(cfg)),
 		},
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
