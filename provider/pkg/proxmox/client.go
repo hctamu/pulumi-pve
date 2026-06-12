@@ -18,6 +18,7 @@ package proxmox
 
 import (
 	"context"
+	"time"
 )
 
 // Client is the general interface for interacting with Proxmox VE.
@@ -41,4 +42,10 @@ type Client interface {
 
 	// NextVMID returns the next available VM ID from the cluster.
 	NextVMID(ctx context.Context) (int, error)
+
+	// WaitForTask waits for a Proxmox task to complete by its UPID, polling every interval up to timeout.
+	// interval=0 uses the default production poll interval of 5 seconds.
+	// It returns an error if the task times out, encounters an error, or reports a failure.
+	// An empty UPID is treated as a no-op and returns nil immediately.
+	WaitForTask(ctx context.Context, upid string, timeout, interval time.Duration) error
 }

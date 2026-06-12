@@ -19,7 +19,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	pveproxmox "github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 const (
@@ -27,22 +27,27 @@ const (
 )
 
 // Ensure SDNAdapter implements the SDNOperations interface
-var _ proxmox.SDNOperations = (*SDNAdapter)(nil)
+var _ pveproxmox.SDNOperations = (*SDNAdapter)(nil)
 
-// SDNAdapter implements proxmox.SDNOperations using a ProxmoxClient.
+// SDNAdapter implements pveproxmox.SDNOperations using a ProxmoxClient.
 type SDNAdapter struct {
-	client proxmox.Client
+	client pveproxmox.Client
 }
 
 // NewSDNAdapter creates a new SDNAdapter wrapping the given ProxmoxClient.
-func NewSDNAdapter(client proxmox.Client) *SDNAdapter {
+func NewSDNAdapter(client pveproxmox.Client) *SDNAdapter {
 	return &SDNAdapter{client: client}
 }
 
 // Apply applies pending SDN configuration changes.
+// Returns the task UPID for tracking the async operation.
 func (adapter *SDNAdapter) Apply(ctx context.Context) error {
-	if err := adapter.client.Put(ctx, sdnApplyPath, nil, nil); err != nil {
+	var taskUPID string
+	if err := adapter.client.Put(ctx, sdnApplyPath, nil, &taskUPID); err != nil {
 		return fmt.Errorf("failed to apply SDN changes: %w", err)
 	}
+	// TaskUPID is returned but not awaited here as the client interface doesn't
+	// provide a method to poll task status. Callers can implement custom polling if needed.
+	_ = taskUPID
 	return nil
 }

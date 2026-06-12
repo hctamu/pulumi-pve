@@ -85,7 +85,7 @@ func (adapter *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs)
 
 	l.Debugf("Create VM Task: %v", createTask)
 
-	if err = adapter.client.WaitForTask(ctx, createTask, 60*time.Second, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, string(createTask.UPID), 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM creation task: %w", err)
 	}
 
@@ -133,7 +133,7 @@ func (adapter *VMAdapter) CloneVM(ctx context.Context, inputs proxmox.VMInputs) 
 	l.Debugf("Clone VM Task: %v", cloneTask)
 
 	cloneTimeout := time.Duration(inputs.Clone.Timeout) * time.Second
-	if err = adapter.client.WaitForTask(ctx, cloneTask, cloneTimeout, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, string(cloneTask.UPID), cloneTimeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM clone task: %w", err)
 	}
 
@@ -190,7 +190,7 @@ func (adapter *VMAdapter) UpdateConfig(
 		return fmt.Errorf("failed to update VM %d: %w", vmID, err)
 	}
 
-	if err = adapter.client.WaitForTask(ctx, task, 60*time.Second, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, string(task.UPID), 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM %d update: %w", vmID, err)
 	}
 
@@ -242,7 +242,7 @@ func (adapter *VMAdapter) ApplyConfig(
 		return fmt.Errorf("failed to apply config to VM %d: %w", vmID, err)
 	}
 
-	if err = adapter.client.WaitForTask(ctx, task, timeout, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, string(task.UPID), timeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for VM %d config task: %w", vmID, err)
 	}
 
@@ -334,7 +334,7 @@ func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *str
 		return fmt.Errorf("failed to unlink EFI disk on VM %d: %w", vmID, err)
 	}
 
-	if err = adapter.client.WaitForTask(ctx, unlinkTask, 60*time.Second, 0); err != nil {
+	if err = adapter.client.WaitForTask(ctx, string(unlinkTask.UPID), 60*time.Second, 0); err != nil {
 		return fmt.Errorf("failed to wait for EFI disk removal task on VM %d: %w", vmID, err)
 	}
 
