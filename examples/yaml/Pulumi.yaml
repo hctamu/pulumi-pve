@@ -6,26 +6,6 @@ plugins:
       path: ../../bin
 
 resources:
-  myFile:
-    type: pve:file:File
-    properties:
-      datastoreId: cephfs
-      contentType: snippets
-      sourceRaw:
-        fileData: |
-          hello world
-        fileName: testfile011.yaml
-
-  myPool:
-    type: pve:pool:Pool
-    properties:
-      name: testpool
-      comment: "a test pool"
-      storage:
-        - cephfs
-      vms:
-        - 100
-
   myVM:
     type: pve:vm:VM
     properties:
@@ -35,7 +15,7 @@ resources:
         - "tag1"
       description: "test VM"
       cpu:
-        type: EPYC-v3
+        type: EPYC-v4
         flagsEnabled:
           - virt-ssbd
         flagsDisabled:
@@ -72,7 +52,18 @@ resources:
         - storage: "ceph-ha"
           size: 21
           interface: "sata0"
-      clone:
-        vmId: 102
-        timeout: 360
-        fullClone: true
+
+  mySdnApply:
+    type: pve:sdnapply:SdnApply
+    properties:
+      triggers:
+        name: ${myVM.name}
+        memory: ${myVM.memory}
+        vmId: ${myVM.vmId}
+        node: ${myVM.node}
+        cpu:
+          fn::toJSON: ${myVM.cpu}
+        disks:
+          fn::toJSON: ${myVM.disks}
+        tags:
+          fn::toJSON: ${myVM.tags}
