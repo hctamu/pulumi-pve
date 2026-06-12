@@ -38,11 +38,11 @@ type VM struct {
 }
 
 var (
-	_ = (infer.CustomResource[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
-	_ = (infer.CustomDelete[proxmox.VMOutputs])((*VM)(nil))
-	_ = (infer.CustomRead[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
-	_ = (infer.CustomUpdate[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
-	_ = (infer.CustomDiff[proxmox.VMInputs, proxmox.VMOutputs])((*VM)(nil))
+	_ = infer.CustomResource[proxmox.VMInputs, proxmox.VMOutputs]((*VM)(nil))
+	_ = infer.CustomDelete[proxmox.VMOutputs]((*VM)(nil))
+	_ = infer.CustomRead[proxmox.VMInputs, proxmox.VMOutputs]((*VM)(nil))
+	_ = infer.CustomUpdate[proxmox.VMInputs, proxmox.VMOutputs]((*VM)(nil))
+	_ = infer.CustomDiff[proxmox.VMInputs, proxmox.VMOutputs]((*VM)(nil))
 	_ = infer.Annotated((*proxmox.VMInputs)(nil))
 )
 
@@ -418,6 +418,8 @@ func (vm *VM) Update(
 ) (infer.UpdateResponse[proxmox.VMOutputs], error) {
 	l := p.GetLogger(ctx)
 	l.Debugf("Update VM with ID: %v", request.ID)
+
+	time.Sleep(30 * time.Second)
 
 	vmID := request.State.VMID
 	if request.Inputs.VMID == nil {

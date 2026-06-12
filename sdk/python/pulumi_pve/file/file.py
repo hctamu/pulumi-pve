@@ -25,7 +25,6 @@ class FileArgs:
                  source_raw: pulumi.Input['_proxmox.FileSourceRawArgs']):
         """
         The set of arguments for constructing a File resource.
-
         :param pulumi.Input[_builtins.str] content_type: The type of the file (e.g: snippets)
         :param pulumi.Input[_builtins.str] datastore_id: The datastore to upload the file to.  (e.g:ceph-ha)
         :param pulumi.Input['_proxmox.FileSourceRawArgs'] source_raw: The raw source data
@@ -84,7 +83,6 @@ class File(pulumi.CustomResource):
         """
         A Proxmox file resource that represents a file in a Proxmox datastore.
 
-
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] content_type: The type of the file (e.g: snippets)
@@ -99,7 +97,6 @@ class File(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox file resource that represents a file in a Proxmox datastore.
-
 
         :param str resource_name: The name of the resource.
         :param FileArgs args: The arguments to use to populate this resource's properties.

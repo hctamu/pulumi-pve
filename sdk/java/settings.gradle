@@ -11,3 +11,4 @@ pluginManagement {
 }
 
 rootProject.name = "io.github.hctamu.pve"
+include("lib")

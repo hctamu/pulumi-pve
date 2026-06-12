@@ -6,6 +6,9 @@
   "repository": "https://github.com/hctamu/pulumi-pve",
   "pluginDownloadURL": "github://api.github.com/hctamu/pulumi-pve",
   "namespace": "hctamu",
+  "meta": {
+    "moduleFormat": "(.*)"
+  },
   "language": {
     "csharp": {
       "packageReferences": {
@@ -59,11 +62,11 @@
       }
     },
     "defaults": [
+      "pveToken",
       "pveUrl",
       "pveUser",
-      "pveToken",
-      "sshUser",
-      "sshPass"
+      "sshPass",
+      "sshUser"
     ]
   },
   "types": {
@@ -191,9 +194,9 @@
       },
       "type": "object",
       "required": [
-        "storage",
+        "interface",
         "size",
-        "interface"
+        "storage"
       ]
     },
     "pve:proxmox:EfiDisk": {
@@ -218,8 +221,8 @@
       },
       "type": "object",
       "required": [
-        "storage",
-        "efitype"
+        "efitype",
+        "storage"
       ]
     },
     "pve:proxmox:FileSourceRaw": {
@@ -269,9 +272,6 @@
   },
   "provider": {
     "properties": {
-      "insecureSkipVerify": {
-        "type": "boolean"
-      },
       "pveToken": {
         "type": "string",
         "secret": true
@@ -290,12 +290,13 @@
         "type": "string"
       }
     },
+    "type": "object",
     "required": [
+      "pveToken",
       "pveUrl",
       "pveUser",
-      "pveToken",
-      "sshUser",
-      "sshPass"
+      "sshPass",
+      "sshUser"
     ],
     "inputProperties": {
       "insecureSkipVerify": {
@@ -320,11 +321,11 @@
       }
     },
     "requiredInputs": [
+      "pveToken",
       "pveUrl",
       "pveUser",
-      "pveToken",
-      "sshUser",
-      "sshPass"
+      "sshPass",
+      "sshUser"
     ]
   },
   "resources": {
@@ -357,6 +358,7 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
         "path",
         "roleid",
@@ -416,9 +418,10 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
-        "datastoreId",
         "contentType",
+        "datastoreId",
         "sourceRaw"
       ],
       "inputProperties": {
@@ -439,8 +442,8 @@
         }
       },
       "requiredInputs": [
-        "datastoreId",
         "contentType",
+        "datastoreId",
         "sourceRaw"
       ]
     },
@@ -458,6 +461,7 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
         "name"
       ],
@@ -495,6 +499,7 @@
           "default": "started"
         }
       },
+      "type": "object",
       "required": [
         "resourceId"
       ],
@@ -545,6 +550,7 @@
           "description": "An optional list of VM IDs to assign to the pool."
         }
       },
+      "type": "object",
       "required": [
         "name"
       ],
@@ -593,6 +599,7 @@
           "description": "A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt')."
         }
       },
+      "type": "object",
       "required": [
         "name"
       ],
@@ -613,6 +620,28 @@
       "requiredInputs": [
         "name"
       ]
+    },
+    "pve:sdnapply:SdnApply": {
+      "description": "Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.",
+      "properties": {
+        "triggers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "pulumi.json#/Any"
+          },
+          "description": "Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed."
+        }
+      },
+      "type": "object",
+      "inputProperties": {
+        "triggers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "pulumi.json#/Any"
+          },
+          "description": "Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed."
+        }
+      }
     },
     "pve:user:User": {
       "description": "A Proxmox user resource that represents a user in the Proxmox VE.",
@@ -667,6 +696,7 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
         "userid"
       ],
@@ -799,9 +829,10 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
-        "name",
-        "disks"
+        "disks",
+        "name"
       ],
       "inputProperties": {
         "autostart": {
@@ -877,8 +908,8 @@
         }
       },
       "requiredInputs": [
-        "name",
-        "disks"
+        "disks",
+        "name"
       ]
     }
   }

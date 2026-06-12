@@ -34,6 +34,7 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/ha"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/pool"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdnapply"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 )
@@ -126,6 +127,14 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 	return &file.File{FileOps: fileAdapter}
 }
 
+// newSdnApplyResourceWithConfig creates a new SdnApply resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newSdnApplyResourceWithConfig(cfg *config.Config) *sdnapply.SdnApply {
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+	sdnAdapter := adapters.NewSdnAdapter(proxmoxAdapter)
+	return &sdnapply.SdnApply{SdnOps: sdnAdapter}
+}
+
 // newVMResourceWithConfig creates a new VM resource with a specific config.
 func newVMResourceWithConfig(cfg *config.Config) *vm.VM {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
@@ -153,6 +162,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newRoleResourceWithConfig(cfg)),
 			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(newUserResourceWithConfig(cfg)),
+			infer.Resource(newSdnApplyResourceWithConfig(cfg)),
 		},
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
