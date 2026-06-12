@@ -7,31 +7,31 @@ import * as utilities from "../utilities";
 /**
  * Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
  */
-export class SdnApply extends pulumi.CustomResource {
+export class SDNApply extends pulumi.CustomResource {
     /**
-     * Get an existing SdnApply resource's state with the given name, ID, and optional extra
+     * Get an existing SDNApply resource's state with the given name, ID, and optional extra
      * properties used to qualify the lookup.
      *
      * @param name The _unique_ name of the resulting resource.
      * @param id The _unique_ provider ID of the resource to lookup.
      * @param opts Optional settings to control the behavior of the CustomResource.
      */
-    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): SdnApply {
-        return new SdnApply(name, undefined as any, { ...opts, id: id });
+    public static get(name: string, id: pulumi.Input<pulumi.ID>, opts?: pulumi.CustomResourceOptions): SDNApply {
+        return new SDNApply(name, undefined as any, { ...opts, id: id });
     }
 
     /** @internal */
-    public static readonly __pulumiType = 'pve:sdnapply:SdnApply';
+    public static readonly __pulumiType = 'pve:sdnapply:SDNApply';
 
     /**
-     * Returns true if the given object is an instance of SdnApply.  This is designed to work even
+     * Returns true if the given object is an instance of SDNApply.  This is designed to work even
      * when multiple copies of the Pulumi SDK have been loaded into the same process.
      */
-    public static isInstance(obj: any): obj is SdnApply {
+    public static isInstance(obj: any): obj is SDNApply {
         if (obj === undefined || obj === null) {
             return false;
         }
-        return obj['__pulumiType'] === SdnApply.__pulumiType;
+        return obj['__pulumiType'] === SDNApply.__pulumiType;
     }
 
     /**
@@ -40,13 +40,13 @@ export class SdnApply extends pulumi.CustomResource {
     declare public readonly triggers: pulumi.Output<{[key: string]: any} | undefined>;
 
     /**
-     * Create a SdnApply resource with the given unique name, arguments, and options.
+     * Create a SDNApply resource with the given unique name, arguments, and options.
      *
      * @param name The _unique_ name of the resource.
      * @param args The arguments to use to populate this resource's properties.
      * @param opts A bag of options that control this resource's behavior.
      */
-    constructor(name: string, args?: SdnApplyArgs, opts?: pulumi.CustomResourceOptions) {
+    constructor(name: string, args?: SDNApplyArgs, opts?: pulumi.CustomResourceOptions) {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
@@ -55,14 +55,14 @@ export class SdnApply extends pulumi.CustomResource {
             resourceInputs["triggers"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
-        super(SdnApply.__pulumiType, name, resourceInputs, opts);
+        super(SDNApply.__pulumiType, name, resourceInputs, opts);
     }
 }
 
 /**
- * The set of arguments for constructing a SdnApply resource.
+ * The set of arguments for constructing a SDNApply resource.
  */
-export interface SdnApplyArgs {
+export interface SDNApplyArgs {
     /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
      */

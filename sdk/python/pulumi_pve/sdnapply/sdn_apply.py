@@ -14,14 +14,14 @@ else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
 
-__all__ = ['SdnApplyArgs', 'SdnApply']
+__all__ = ['SDNApplyArgs', 'SDNApply']
 
 @pulumi.input_type
-class SdnApplyArgs:
+class SDNApplyArgs:
     def __init__(__self__, *,
                  triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None):
         """
-        The set of arguments for constructing a SdnApply resource.
+        The set of arguments for constructing a SDNApply resource.
         :param pulumi.Input[Mapping[str, Any]] triggers: Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
         """
         if triggers is not None:
@@ -40,8 +40,8 @@ class SdnApplyArgs:
         pulumi.set(self, "triggers", value)
 
 
-@pulumi.type_token("pve:sdnapply:SdnApply")
-class SdnApply(pulumi.CustomResource):
+@pulumi.type_token("pve:sdnapply:SDNApply")
+class SDNApply(pulumi.CustomResource):
     @overload
     def __init__(__self__,
                  resource_name: str,
@@ -59,18 +59,18 @@ class SdnApply(pulumi.CustomResource):
     @overload
     def __init__(__self__,
                  resource_name: str,
-                 args: Optional[SdnApplyArgs] = None,
+                 args: Optional[SDNApplyArgs] = None,
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
 
         :param str resource_name: The name of the resource.
-        :param SdnApplyArgs args: The arguments to use to populate this resource's properties.
+        :param SDNApplyArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
         """
         ...
     def __init__(__self__, resource_name: str, *args, **kwargs):
-        resource_args, opts = _utilities.get_resource_args_opts(SdnApplyArgs, pulumi.ResourceOptions, *args, **kwargs)
+        resource_args, opts = _utilities.get_resource_args_opts(SDNApplyArgs, pulumi.ResourceOptions, *args, **kwargs)
         if resource_args is not None:
             __self__._internal_init(resource_name, opts, **resource_args.__dict__)
         else:
@@ -87,11 +87,11 @@ class SdnApply(pulumi.CustomResource):
         if opts.id is None:
             if __props__ is not None:
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
-            __props__ = SdnApplyArgs.__new__(SdnApplyArgs)
+            __props__ = SDNApplyArgs.__new__(SDNApplyArgs)
 
             __props__.__dict__["triggers"] = triggers
-        super(SdnApply, __self__).__init__(
-            'pve:sdnapply:SdnApply',
+        super(SDNApply, __self__).__init__(
+            'pve:sdnapply:SDNApply',
             resource_name,
             __props__,
             opts)
@@ -99,9 +99,9 @@ class SdnApply(pulumi.CustomResource):
     @staticmethod
     def get(resource_name: str,
             id: pulumi.Input[str],
-            opts: Optional[pulumi.ResourceOptions] = None) -> 'SdnApply':
+            opts: Optional[pulumi.ResourceOptions] = None) -> 'SDNApply':
         """
-        Get an existing SdnApply resource's state with the given name, id, and optional extra
+        Get an existing SDNApply resource's state with the given name, id, and optional extra
         properties used to qualify the lookup.
 
         :param str resource_name: The unique name of the resulting resource.
@@ -110,10 +110,10 @@ class SdnApply(pulumi.CustomResource):
         """
         opts = pulumi.ResourceOptions.merge(opts, pulumi.ResourceOptions(id=id))
 
-        __props__ = SdnApplyArgs.__new__(SdnApplyArgs)
+        __props__ = SDNApplyArgs.__new__(SDNApplyArgs)
 
         __props__.__dict__["triggers"] = None
-        return SdnApply(resource_name, opts=opts, __props__=__props__)
+        return SDNApply(resource_name, opts=opts, __props__=__props__)
 
     @_builtins.property
     @pulumi.getter

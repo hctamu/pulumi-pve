@@ -621,7 +621,7 @@
         "name"
       ]
     },
-    "pve:sdnapply:SdnApply": {
+    "pve:sdnapply:SDNApply": {
       "description": "Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.",
       "properties": {
         "triggers": {

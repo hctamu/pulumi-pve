@@ -26,21 +26,21 @@ const (
 	sdnApplyPath = "/cluster/sdn"
 )
 
-// Ensure SdnAdapter implements the SdnOperations interface
-var _ proxmox.SdnOperations = (*SdnAdapter)(nil)
+// Ensure SDNAdapter implements the SDNOperations interface
+var _ proxmox.SDNOperations = (*SDNAdapter)(nil)
 
-// SdnAdapter implements proxmox.SdnOperations using a ProxmoxClient.
-type SdnAdapter struct {
+// SDNAdapter implements proxmox.SDNOperations using a ProxmoxClient.
+type SDNAdapter struct {
 	client proxmox.Client
 }
 
-// NewSdnAdapter creates a new SdnAdapter wrapping the given ProxmoxClient.
-func NewSdnAdapter(client proxmox.Client) *SdnAdapter {
-	return &SdnAdapter{client: client}
+// NewSDNAdapter creates a new SDNAdapter wrapping the given ProxmoxClient.
+func NewSDNAdapter(client proxmox.Client) *SDNAdapter {
+	return &SDNAdapter{client: client}
 }
 
 // Apply applies pending SDN configuration changes.
-func (adapter *SdnAdapter) Apply(ctx context.Context) error {
+func (adapter *SDNAdapter) Apply(ctx context.Context) error {
 	if err := adapter.client.Put(ctx, sdnApplyPath, nil, nil); err != nil {
 		return fmt.Errorf("failed to apply SDN changes: %w", err)
 	}

@@ -13,9 +13,9 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 
-public final class SdnApplyArgs extends com.pulumi.resources.ResourceArgs {
+public final class SDNApplyArgs extends com.pulumi.resources.ResourceArgs {
 
-    public static final SdnApplyArgs Empty = new SdnApplyArgs();
+    public static final SDNApplyArgs Empty = new SDNApplyArgs();
 
     /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
@@ -32,28 +32,28 @@ public final class SdnApplyArgs extends com.pulumi.resources.ResourceArgs {
         return Optional.ofNullable(this.triggers);
     }
 
-    private SdnApplyArgs() {}
+    private SDNApplyArgs() {}
 
-    private SdnApplyArgs(SdnApplyArgs $) {
+    private SDNApplyArgs(SDNApplyArgs $) {
         this.triggers = $.triggers;
     }
 
     public static Builder builder() {
         return new Builder();
     }
-    public static Builder builder(SdnApplyArgs defaults) {
+    public static Builder builder(SDNApplyArgs defaults) {
         return new Builder(defaults);
     }
 
     public static final class Builder {
-        private SdnApplyArgs $;
+        private SDNApplyArgs $;
 
         public Builder() {
-            $ = new SdnApplyArgs();
+            $ = new SDNApplyArgs();
         }
 
-        public Builder(SdnApplyArgs defaults) {
-            $ = new SdnApplyArgs(Objects.requireNonNull(defaults));
+        public Builder(SDNApplyArgs defaults) {
+            $ = new SDNApplyArgs(Objects.requireNonNull(defaults));
         }
 
         /**
@@ -77,7 +77,7 @@ public final class SdnApplyArgs extends com.pulumi.resources.ResourceArgs {
             return triggers(Output.of(triggers));
         }
 
-        public SdnApplyArgs build() {
+        public SDNApplyArgs build() {
             return $;
         }
     }

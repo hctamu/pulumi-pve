@@ -419,8 +419,6 @@ func (vm *VM) Update(
 	l := p.GetLogger(ctx)
 	l.Debugf("Update VM with ID: %v", request.ID)
 
-	time.Sleep(30 * time.Second)
-
 	vmID := request.State.VMID
 	if request.Inputs.VMID == nil {
 		request.Inputs.VMID = vmID

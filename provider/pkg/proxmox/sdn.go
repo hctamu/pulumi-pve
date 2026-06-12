@@ -21,19 +21,19 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// SdnOperations defines the interface for SDN apply operations.
-type SdnOperations interface {
+// SDNOperations defines the interface for SDN apply operations.
+type SDNOperations interface {
 	// Apply applies pending SDN configuration changes via PUT /cluster/sdn.
 	Apply(ctx context.Context) error
 }
 
-// SdnApplyInputs represents the input properties for the SdnApply resource.
-type SdnApplyInputs struct {
+// SDNApplyInputs represents the input properties for the SDNApply resource.
+type SDNApplyInputs struct {
 	Triggers map[string]any `pulumi:"triggers,optional"`
 }
 
-// Annotate adds descriptions to the SdnApply input properties.
-func (inputs *SdnApplyInputs) Annotate(a infer.Annotator) {
+// Annotate adds descriptions to the SDNApply input properties.
+func (inputs *SDNApplyInputs) Annotate(a infer.Annotator) {
 	a.Describe(
 		&inputs.Triggers,
 		"Arbitrary key-value pairs that can include resource outputs or complex objects. "+
@@ -41,7 +41,7 @@ func (inputs *SdnApplyInputs) Annotate(a infer.Annotator) {
 	)
 }
 
-// SdnApplyOutputs represents the output properties for the SdnApply resource.
-type SdnApplyOutputs struct {
-	SdnApplyInputs
+// SDNApplyOutputs represents the output properties for the SDNApply resource.
+type SDNApplyOutputs struct {
+	SDNApplyInputs
 }
