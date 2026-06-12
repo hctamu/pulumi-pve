@@ -39,7 +39,7 @@ func TestSDNAdapterApply(t *testing.T) {
 		errMsg     string
 	}{
 		{
-			name:       "successful apply returns UPID",
+			name:       "successful apply returns UPID and waits for task",
 			statusCode: http.StatusOK,
 			response:   `{"data":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:"}`,
 			expectErr:  false,
@@ -64,15 +64,27 @@ func TestSDNAdapterApply(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server, captured := testutils.CreateMockServer(
+			server, _ := testutils.CreateMockServer(
 				t,
 				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
-					assert.Equal(t, http.MethodPut, r.Method)
-					assert.Equal(t, "/cluster/sdn", r.URL.Path)
-
 					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(tt.statusCode)
-					_, _ = w.Write([]byte(tt.response))
+
+					// Handle the initial SDN apply request
+					if r.Method == http.MethodPut && r.URL.Path == "/cluster/sdn" {
+						w.WriteHeader(tt.statusCode)
+						_, _ = w.Write([]byte(tt.response))
+						return
+					}
+
+					// Handle task status polling for successful applies
+					if r.Method == http.MethodGet && tt.statusCode == http.StatusOK {
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write([]byte(`{"data":{"upid":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:","status":"stopped","exitstatus":"OK"}}`))
+						return
+					}
+
+					// Unexpected request
+					w.WriteHeader(http.StatusNotFound)
 				},
 			)
 			defer server.Close()
@@ -96,9 +108,6 @@ func TestSDNAdapterApply(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-
-			assert.Equal(t, http.MethodPut, captured.Method)
-			assert.Equal(t, "/cluster/sdn", captured.Path)
 		})
 	}
 }

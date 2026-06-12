@@ -18,6 +18,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"time"
 
 	pveproxmox "github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
@@ -46,8 +47,10 @@ func (adapter *SDNAdapter) Apply(ctx context.Context) error {
 	if err := adapter.client.Put(ctx, sdnApplyPath, nil, &taskUPID); err != nil {
 		return fmt.Errorf("failed to apply SDN changes: %w", err)
 	}
-	// TaskUPID is returned but not awaited here as the client interface doesn't
-	// provide a method to poll task status. Callers can implement custom polling if needed.
-	_ = taskUPID
+
+	if err := adapter.client.WaitForTask(ctx, taskUPID, 60*time.Second, 0); err != nil {
+		return fmt.Errorf("failed to wait for SDN apply task: %w", err)
+	}
+
 	return nil
 }
