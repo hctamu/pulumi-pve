@@ -84,17 +84,11 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 	}
 }
 
-// sdnApplyBody is the request body for the SDN apply PUT request.
-type sdnApplyBody struct {
-	Lock        string `json:"lock-token,omitempty"`
-	ReleaseLock int    `json:"release-lock,omitempty"`
-}
-
 // Apply applies pending SDN configuration changes.
 // lockToken must be the token returned by Lock.
 // When releaseLock is true, the lock is released atomically after the apply completes.
 func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string, releaseLock bool) error {
-	body := sdnApplyBody{Lock: lockToken}
+	body := pveproxmox.SDNApplyBody{Lock: lockToken}
 	if releaseLock {
 		body.ReleaseLock = 1
 	}

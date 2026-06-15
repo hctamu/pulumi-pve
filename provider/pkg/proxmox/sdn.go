@@ -58,3 +58,9 @@ func (inputs *SDNApplyInputs) Annotate(a infer.Annotator) {
 type SDNApplyOutputs struct {
 	SDNApplyInputs
 }
+
+// SDNApplyBody is the request body for the SDN apply PUT request (API level).
+type SDNApplyBody struct {
+	Lock        string `json:"lock-token,omitempty"`
+	ReleaseLock int    `json:"release-lock,omitempty"`
+}

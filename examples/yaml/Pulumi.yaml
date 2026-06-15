@@ -11,7 +11,7 @@ variables:
     tags:
       - "tag2"
       - "tag1"
-    description: "test VM
+    description: "test VM"
     cpu:
       type: EPYC-v4
       flagsEnabled:
