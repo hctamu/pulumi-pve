@@ -60,6 +60,8 @@ func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration)
 			lastErr = fmt.Errorf("failed to acquire SDN lock: %w", err)
 		} else if token == "" {
 			lastErr = errors.New("failed to acquire SDN lock: empty lock token returned")
+		} else {
+			return token, nil
 		}
 
 		if !time.Now().Before(deadline) {
