@@ -376,6 +376,7 @@ func TestNewHostKeyCallback(t *testing.T) {
 		wantErr               bool
 		errContains           string
 		wantCallbackErr       bool
+		knownHostsPathConfig  string
 	}{
 		{
 			name:                  "returns insecure callback when option is enabled",
@@ -392,6 +393,14 @@ func TestNewHostKeyCallback(t *testing.T) {
 			wantCallbackErr:       true,
 		},
 		{
+			name:                  "uses configured known_hosts path when provided",
+			insecureIgnoreHostKey: false,
+			withKnownHosts:        true,
+			wantErr:               false,
+			wantCallbackErr:       true,
+			knownHostsPathConfig:  "custom/known_hosts",
+		},
+		{
 			name:                  "returns error when option is disabled and known_hosts is missing",
 			insecureIgnoreHostKey: false,
 			withKnownHosts:        false,
@@ -405,13 +414,22 @@ func TestNewHostKeyCallback(t *testing.T) {
 			homeDir := t.TempDir()
 			t.Setenv("HOME", homeDir)
 
-			if tt.withKnownHosts {
-				sshDir := filepath.Join(homeDir, ".ssh")
-				require.NoError(t, os.MkdirAll(sshDir, 0o700))
-				require.NoError(t, os.WriteFile(filepath.Join(sshDir, "known_hosts"), []byte(""), 0o600))
+			knownHostsPathConfig := tt.knownHostsPathConfig
+			if knownHostsPathConfig != "" {
+				knownHostsPathConfig = filepath.Join(homeDir, knownHostsPathConfig)
 			}
 
-			callback, err := newHostKeyCallback(tt.insecureIgnoreHostKey)
+			if tt.withKnownHosts {
+				knownHostsPath := filepath.Join(homeDir, ".ssh", "known_hosts")
+				if knownHostsPathConfig != "" {
+					knownHostsPath = knownHostsPathConfig
+				}
+
+				require.NoError(t, os.MkdirAll(filepath.Dir(knownHostsPath), 0o700))
+				require.NoError(t, os.WriteFile(knownHostsPath, []byte(""), 0o600))
+			}
+
+			callback, err := newHostKeyCallback(tt.insecureIgnoreHostKey, knownHostsPathConfig)
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.errContains != "" {

@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"golang.org/x/crypto/ssh"
@@ -80,7 +81,7 @@ func (sa *SSHAdapter) Connect(ctx context.Context) error {
 			cfg = *sa.PVEConfig
 		}
 
-		hostKeyCallback, callbackErr := newHostKeyCallback(cfg.InsecureIgnoreHostKey)
+		hostKeyCallback, callbackErr := newHostKeyCallback(cfg.InsecureIgnoreHostKey, cfg.SSHKnownHostsPath)
 		if callbackErr != nil {
 			sa.initErr = callbackErr
 			return
@@ -99,18 +100,22 @@ func (sa *SSHAdapter) Connect(ctx context.Context) error {
 	return sa.initErr
 }
 
-func newHostKeyCallback(insecureIgnoreHostKey bool) (ssh.HostKeyCallback, error) {
+func newHostKeyCallback(insecureIgnoreHostKey bool, knownHostsPathConfig string) (ssh.HostKeyCallback, error) {
 	if insecureIgnoreHostKey {
 		//nolint:gosec // Opt-in behavior controlled by provider config.
 		return ssh.InsecureIgnoreHostKey(), nil
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve user home directory for SSH known_hosts: %w", err)
+	knownHostsPath := strings.TrimSpace(knownHostsPathConfig)
+	if knownHostsPath == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve user home directory for SSH known_hosts: %w", err)
+		}
+
+		knownHostsPath = filepath.Join(homeDir, ".ssh", "known_hosts")
 	}
 
-	knownHostsPath := filepath.Join(homeDir, ".ssh", "known_hosts")
 	hostKeyCallback, err := knownhosts.New(knownHostsPath)
 	if err != nil {
 		return nil, fmt.Errorf(

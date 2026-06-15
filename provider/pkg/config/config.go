@@ -44,4 +44,8 @@ type Config struct {
 	// Only use this for testing environments. In production, ensure ~/.ssh/known_hosts is properly configured.
 	// Defaults to false (host keys are verified against ~/.ssh/known_hosts).
 	InsecureIgnoreHostKey bool `pulumi:"insecureIgnoreHostKey,optional"`
+
+	// SSHKnownHostsPath is the path to the SSH known_hosts file used for host key verification.
+	// Defaults to ~/.ssh/known_hosts when not set.
+	SSHKnownHostsPath string `pulumi:"sshKnownHostsPath,optional"`
 }
