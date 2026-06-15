@@ -17,19 +17,27 @@ package proxmox
 
 import (
 	"context"
+	"time"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
 // SDNOperations defines the interface for SDN apply operations.
 type SDNOperations interface {
+	// Lock acquires the SDN cluster lock and returns a lock token.
+	// retryTimeout controls how long lock acquisition retries should continue.
+	Lock(ctx context.Context, retryTimeout time.Duration) (string, error)
+
 	// Apply applies pending SDN configuration changes via PUT /cluster/sdn.
-	Apply(ctx context.Context) error
+	// lockToken must be the token returned by Lock.
+	// When releaseLock is true, the lock is released atomically after the apply completes.
+	Apply(ctx context.Context, lockToken string, releaseLock bool) error
 }
 
 // SDNApplyInputs represents the input properties for the SDNApply resource.
 type SDNApplyInputs struct {
-	Triggers map[string]any `pulumi:"triggers,optional"`
+	Triggers            map[string]any `pulumi:"triggers,optional"`
+	RetryTimeoutSeconds int            `pulumi:"retryTimeoutSeconds,optional"`
 }
 
 // Annotate adds descriptions to the SDNApply input properties.
@@ -39,6 +47,11 @@ func (inputs *SDNApplyInputs) Annotate(a infer.Annotator) {
 		"Arbitrary key-value pairs that can include resource outputs or complex objects. "+
 			"When any trigger value changes, the SDN apply is re-executed.",
 	)
+	a.Describe(
+		&inputs.RetryTimeoutSeconds,
+		"How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
+	)
+	a.SetDefault(&inputs.RetryTimeoutSeconds, 60)
 }
 
 // SDNApplyOutputs represents the output properties for the SDNApply resource.

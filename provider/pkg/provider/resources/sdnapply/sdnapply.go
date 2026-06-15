@@ -19,6 +19,7 @@ package sdnapply
 import (
 	"context"
 	"errors"
+	"time"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
@@ -38,6 +39,26 @@ var (
 // SDNApply represents a Proxmox SDN apply resource.
 type SDNApply struct {
 	SDNOps proxmox.SDNOperations
+}
+
+const (
+	defaultLockRetryTimeout = 60 * time.Second
+)
+
+// applyWithLock acquires the SDN lock with retries, then applies pending changes,
+// releasing the lock atomically.
+func (sdnApply *SDNApply) applyWithLock(ctx context.Context, inputs proxmox.SDNApplyInputs) error {
+	retryTimeout := time.Duration(inputs.RetryTimeoutSeconds) * time.Second
+	if retryTimeout <= 0 {
+		retryTimeout = defaultLockRetryTimeout
+	}
+
+	token, err := sdnApply.SDNOps.Lock(ctx, retryTimeout)
+	if err != nil {
+		return err
+	}
+
+	return sdnApply.SDNOps.Apply(ctx, token, true)
 }
 
 // Create applies pending SDN configuration changes via PUT /cluster/sdn.
@@ -62,7 +83,7 @@ func (sdnApply *SDNApply) Create(
 		return response, errors.New("SDNOperations not configured")
 	}
 
-	if err := sdnApply.SDNOps.Apply(ctx); err != nil {
+	if err := sdnApply.applyWithLock(ctx, inputs); err != nil {
 		return response, err
 	}
 
@@ -98,7 +119,7 @@ func (sdnApply *SDNApply) Update(
 		return response, errors.New("SDNOperations not configured")
 	}
 
-	if err := sdnApply.SDNOps.Apply(ctx); err != nil {
+	if err := sdnApply.applyWithLock(ctx, request.Inputs); err != nil {
 		return response, err
 	}
 

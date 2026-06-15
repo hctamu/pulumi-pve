@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,12 +31,20 @@ import (
 )
 
 type mockSDNOperations struct {
-	applyFunc func(ctx context.Context) error
+	applyFunc func(ctx context.Context, lockToken string, releaseLock bool) error
+	lockFunc  func(ctx context.Context, retryTimeout time.Duration) (string, error)
 }
 
-func (mock *mockSDNOperations) Apply(ctx context.Context) error {
+func (mock *mockSDNOperations) Lock(ctx context.Context, retryTimeout time.Duration) (string, error) {
+	if mock.lockFunc != nil {
+		return mock.lockFunc(ctx, retryTimeout)
+	}
+	return "", nil
+}
+
+func (mock *mockSDNOperations) Apply(ctx context.Context, lockToken string, releaseLock bool) error {
 	if mock.applyFunc != nil {
-		return mock.applyFunc(ctx)
+		return mock.applyFunc(ctx, lockToken, releaseLock)
 	}
 	return nil
 }
@@ -85,7 +94,7 @@ func TestSDNApplyCreate(t *testing.T) {
 
 			var called bool
 			mock := &mockSDNOperations{
-				applyFunc: func(_ context.Context) error {
+				applyFunc: func(_ context.Context, _ string, _ bool) error {
 					called = true
 					return tt.applyErr
 				},
@@ -109,6 +118,62 @@ func TestSDNApplyCreate(t *testing.T) {
 			assert.Equal(t, tt.expectCalled, called)
 		})
 	}
+}
+
+func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
+	t.Parallel()
+
+	lockTimeout := time.Duration(0)
+	applyCalled := false
+	mock := &mockSDNOperations{
+		lockFunc: func(_ context.Context, retryTimeout time.Duration) (string, error) {
+			lockTimeout = retryTimeout
+			return "lock-token", nil
+		},
+		applyFunc: func(_ context.Context, lockToken string, releaseLock bool) error {
+			applyCalled = true
+			assert.Equal(t, "lock-token", lockToken)
+			assert.True(t, releaseLock)
+			return nil
+		},
+	}
+
+	resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+
+	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
+		Name:   "test-sdn-apply",
+		Inputs: proxmox.SDNApplyInputs{},
+	}
+
+	_, err := resource.Create(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 60*time.Second, lockTimeout)
+	assert.True(t, applyCalled)
+}
+
+func TestSDNApplyCreatePassesCustomTimeoutToLock(t *testing.T) {
+	t.Parallel()
+
+	lockTimeout := time.Duration(0)
+	mock := &mockSDNOperations{
+		lockFunc: func(_ context.Context, retryTimeout time.Duration) (string, error) {
+			lockTimeout = retryTimeout
+			return "", errors.New("lock busy")
+		},
+	}
+
+	resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+
+	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
+		Name: "test-sdn-apply",
+		Inputs: proxmox.SDNApplyInputs{
+			RetryTimeoutSeconds: 2,
+		},
+	}
+
+	_, err := resource.Create(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, 2*time.Second, lockTimeout)
 }
 
 func TestSDNApplyCreateMissingOps(t *testing.T) {
@@ -174,7 +239,7 @@ func TestSDNApplyUpdate(t *testing.T) {
 
 			var called bool
 			mock := &mockSDNOperations{
-				applyFunc: func(_ context.Context) error {
+				applyFunc: func(_ context.Context, _ string, _ bool) error {
 					called = true
 					return tt.applyErr
 				},

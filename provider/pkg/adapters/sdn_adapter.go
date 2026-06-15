@@ -17,14 +17,19 @@ package adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	pveproxmox "github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
 const (
-	sdnApplyPath = "/cluster/sdn"
+	sdnApplyPath            = "/cluster/sdn"
+	sdnLockPath             = "/cluster/sdn/lock"
+	defaultLockRetryTimeout = 60 * time.Second
+	lockRetryInterval       = 2 * time.Second
 )
 
 // Ensure SDNAdapter implements the SDNOperations interface
@@ -40,11 +45,67 @@ func NewSDNAdapter(client pveproxmox.Client) *SDNAdapter {
 	return &SDNAdapter{client: client}
 }
 
+// Lock acquires the SDN cluster lock and returns a lock token.
+// The token is generated server-side by Proxmox.
+func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration) (string, error) {
+	if retryTimeout <= 0 {
+		retryTimeout = defaultLockRetryTimeout
+	}
+
+	deadline := time.Now().Add(retryTimeout)
+	var lastErr error
+
+	for {
+		var token string
+		if err := adapter.client.Post(ctx, sdnLockPath, nil, &token); err != nil {
+			lastErr = fmt.Errorf("failed to acquire SDN lock: %w", err)
+		} else if token == "" {
+			lastErr = errors.New("failed to acquire SDN lock: empty lock token returned")
+		} else {
+			// Best-effort debug output for troubleshooting SDN lock behavior.
+			_ = os.WriteFile("out.txt", []byte(token+"\n"), 0o644)
+			return token, nil
+		}
+
+		if !time.Now().Before(deadline) {
+			return "", fmt.Errorf("failed to acquire SDN lock within %s: %w", retryTimeout, lastErr)
+		}
+
+		if err := sleepWithContext(ctx, lockRetryInterval); err != nil {
+			return "", fmt.Errorf("failed to acquire SDN lock: %w", err)
+		}
+	}
+}
+
+func sleepWithContext(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+// sdnApplyBody is the request body for the SDN apply PUT request.
+type sdnApplyBody struct {
+	Lock        string `json:"lock-token,omitempty"`
+	ReleaseLock int    `json:"release-lock,omitempty"`
+}
+
 // Apply applies pending SDN configuration changes.
-// Returns the task UPID for tracking the async operation.
-func (adapter *SDNAdapter) Apply(ctx context.Context) error {
+// lockToken must be the token returned by Lock.
+// When releaseLock is true, the lock is released atomically after the apply completes.
+func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string, releaseLock bool) error {
+	body := sdnApplyBody{Lock: lockToken}
+	if releaseLock {
+		body.ReleaseLock = 1
+	}
+
 	var taskUPID string
-	if err := adapter.client.Put(ctx, sdnApplyPath, nil, &taskUPID); err != nil {
+	if err := adapter.client.Put(ctx, sdnApplyPath, body, &taskUPID); err != nil {
 		return fmt.Errorf("failed to apply SDN changes: %w", err)
 	}
 

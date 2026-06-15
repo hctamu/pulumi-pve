@@ -19,6 +19,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,93 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
+
+func TestSDNAdapterLock(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		statusCode int
+		response   string
+		expectErr  bool
+		errMsg     string
+		expected   string
+		timeout    time.Duration
+	}{
+		{
+			name:       "successful lock returns token",
+			statusCode: http.StatusOK,
+			response:   `{"data":"d5fcc91e-5f0b-4fe6-9f4f-f2b4f0d8f4f9"}`,
+			expectErr:  false,
+			expected:   "d5fcc91e-5f0b-4fe6-9f4f-f2b4f0d8f4f9",
+			timeout:    60 * time.Second,
+		},
+		{
+			name:       "API error on lock",
+			statusCode: http.StatusInternalServerError,
+			response:   `{"errors":"could not acquire lock"}`,
+			expectErr:  true,
+			errMsg:     "failed to acquire SDN lock",
+			timeout:    time.Nanosecond,
+		},
+		{
+			name:       "empty token is rejected",
+			statusCode: http.StatusOK,
+			response:   `{"data":""}`,
+			expectErr:  true,
+			errMsg:     "empty lock token returned",
+			timeout:    time.Nanosecond,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server, captured := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					w.Header().Set("Content-Type", "application/json")
+
+					if r.Method == http.MethodPost && r.URL.Path == "/cluster/sdn/lock" {
+						w.WriteHeader(tt.statusCode)
+						_, _ = w.Write([]byte(tt.response))
+						return
+					}
+
+					w.WriteHeader(http.StatusNotFound)
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
+			token, err := sdnAdapter.Lock(context.Background(), tt.timeout)
+
+			assert.Equal(t, http.MethodPost, captured.Method)
+			assert.Equal(t, "/cluster/sdn/lock", captured.Path)
+			assert.Equal(t, "", captured.Body)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, token)
+		})
+	}
+}
 
 func TestSDNAdapterApply(t *testing.T) {
 	t.Parallel()
@@ -79,7 +167,11 @@ func TestSDNAdapterApply(t *testing.T) {
 					// Handle task status polling for successful applies
 					if r.Method == http.MethodGet && tt.statusCode == http.StatusOK {
 						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{"data":{"upid":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:","status":"stopped","exitstatus":"OK"}}`))
+						_, _ = w.Write(
+							[]byte(
+								`{"data":{"upid":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:","status":"stopped","exitstatus":"OK"}}`,
+							),
+						)
 						return
 					}
 
@@ -100,7 +192,7 @@ func TestSDNAdapterApply(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			err = sdnAdapter.Apply(context.Background())
+			err = sdnAdapter.Apply(context.Background(), "", false)
 
 			if tt.expectErr {
 				require.Error(t, err)

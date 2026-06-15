@@ -6,6 +6,7 @@ go 1.26.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/google/uuid v1.6.0
 	github.com/luthermonson/go-proxmox v0.4.1
 	github.com/pulumi/pulumi-go-provider v1.3.2
 	github.com/pulumi/pulumi/sdk/v3 v3.232.0
@@ -50,7 +51,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
