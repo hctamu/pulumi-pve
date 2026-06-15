@@ -204,6 +204,126 @@ func TestSDNAdapterApply(t *testing.T) {
 	}
 }
 
+func TestSDNAdapterLockContextCancellation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		errMsg string
+	}{
+		{
+			name:   "context cancelled during retry sleep",
+			errMsg: "failed to acquire SDN lock",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					w.Header().Set("Content-Type", "application/json")
+					if r.Method == http.MethodPost && r.URL.Path == "/cluster/sdn/lock" {
+						w.WriteHeader(http.StatusServiceUnavailable)
+						_, _ = w.Write([]byte(`{"errors":"lock unavailable"}`))
+						return
+					}
+					w.WriteHeader(http.StatusNotFound)
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			// Pre-cancel the context so sleepWithContext's ctx.Done() branch is hit immediately.
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
+			_, err = sdnAdapter.Lock(ctx, 60*time.Second)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errMsg)
+		})
+	}
+}
+
+func TestSDNAdapterApplyTaskFailure(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		errMsg string
+	}{
+		{
+			name:   "task fails after apply starts",
+			errMsg: "failed to wait for SDN apply task",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					w.Header().Set("Content-Type", "application/json")
+
+					if r.Method == http.MethodPut && r.URL.Path == "/cluster/sdn" {
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write(
+							[]byte(`{"data":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:"}`),
+						)
+						return
+					}
+
+					// Task status polling: task stopped with a failure exit status.
+					if r.Method == http.MethodGet {
+						w.WriteHeader(http.StatusOK)
+						_, _ = w.Write(
+							[]byte(
+								`{"data":{"upid":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:",` +
+									`"status":"stopped","exitstatus":"ERROR"}}`,
+							),
+						)
+						return
+					}
+
+					w.WriteHeader(http.StatusNotFound)
+				},
+			)
+			defer server.Close()
+
+			cfg := &config.Config{
+				PveURL:   server.URL,
+				PveUser:  "test@pam",
+				PveToken: "test-token",
+			}
+
+			proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+			err := proxmoxAdapter.Connect(context.Background())
+			require.NoError(t, err)
+
+			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
+			err = sdnAdapter.Apply(context.Background(), "", false)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.errMsg)
+		})
+	}
+}
+
 func TestNewSDNAdapter(t *testing.T) {
 	t.Parallel()
 
