@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	pveproxmox "github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
@@ -61,10 +60,6 @@ func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration)
 			lastErr = fmt.Errorf("failed to acquire SDN lock: %w", err)
 		} else if token == "" {
 			lastErr = errors.New("failed to acquire SDN lock: empty lock token returned")
-		} else {
-			// Best-effort debug output for troubleshooting SDN lock behavior.
-			_ = os.WriteFile("out.txt", []byte(token+"\n"), 0o644)
-			return token, nil
 		}
 
 		if !time.Now().Before(deadline) {
