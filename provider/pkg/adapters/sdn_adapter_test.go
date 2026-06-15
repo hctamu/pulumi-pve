@@ -169,7 +169,8 @@ func TestSDNAdapterApply(t *testing.T) {
 						w.WriteHeader(http.StatusOK)
 						_, _ = w.Write(
 							[]byte(
-								`{"data":{"upid":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:","status":"stopped","exitstatus":"OK"}}`,
+								`{"data":{"upid":"UPID:node1:00000000:00000000:00000001:sdn:undefined:root@pam:",` +
+									`"status":"stopped","exitstatus":"OK"}}`,
 							),
 						)
 						return
