@@ -32,13 +32,15 @@ type SDNOperations interface {
 
 	// Apply applies pending SDN configuration changes via PUT /cluster/sdn.
 	// lockToken must be the token returned by Lock.
-	Apply(ctx context.Context, lockToken string) error
+	// applyTimeout controls how long to wait for the apply task to complete.
+	Apply(ctx context.Context, lockToken string, applyTimeout time.Duration) error
 }
 
 // SDNApplyInputs represents the input properties for the SDNApply resource.
 type SDNApplyInputs struct {
 	Triggers            map[string]any `pulumi:"triggers,optional"`
-	RetryTimeoutSeconds int            `pulumi:"retryTimeoutSeconds,optional"`
+	LockTimeoutSeconds  int            `pulumi:"lockTimeoutSeconds,optional"`
+	ApplyTimeoutSeconds int            `pulumi:"applyTimeoutSeconds,optional"`
 	AllowPending        bool           `pulumi:"allowPending,optional"`
 }
 
@@ -50,13 +52,18 @@ func (inputs *SDNApplyInputs) Annotate(a infer.Annotator) {
 			"When any trigger value changes, the SDN apply is re-executed.",
 	)
 	a.Describe(
-		&inputs.RetryTimeoutSeconds,
+		&inputs.LockTimeoutSeconds,
 		"How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
 	)
-	a.SetDefault(&inputs.RetryTimeoutSeconds, 60)
+	a.SetDefault(&inputs.LockTimeoutSeconds, 60)
+	a.Describe(
+		&inputs.ApplyTimeoutSeconds,
+		"How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
+	)
+	a.SetDefault(&inputs.ApplyTimeoutSeconds, 60)
 	a.Describe(
 		&inputs.AllowPending,
-		"When true, the SDN lock is released atomically after the apply completes. Defaults to false.",
+		"When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.",
 	)
 }
 
