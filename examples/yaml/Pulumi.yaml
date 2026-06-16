@@ -12,8 +12,8 @@ variables:
     ipam: pve
     fabric: zerotest
     nodes:
-      - stage-devops-proxmox01
       - stage-devops-proxmox02
+      - stage-devops-proxmox01
     
 
 resources:
