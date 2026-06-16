@@ -34,6 +34,7 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/ha"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/pool"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdn"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 )
@@ -135,6 +136,13 @@ func newVMResourceWithConfig(cfg *config.Config) *vm.VM {
 	}
 }
 
+// newVnetResourceWithConfig creates a new SDN VNet resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newVnetResourceWithConfig(cfg *config.Config) *sdn.Vnet {
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+	return &sdn.Vnet{SdnVnetOps: adapters.NewSdnVnetAdapter(proxmoxAdapter)}
+}
+
 // NewProvider returns a new instance of the PVE provider.
 func NewProvider() p.Provider {
 	return NewProviderWithConfig(nil)
@@ -153,6 +161,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newRoleResourceWithConfig(cfg)),
 			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(newUserResourceWithConfig(cfg)),
+			infer.Resource(newVnetResourceWithConfig(cfg)),
 		},
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{

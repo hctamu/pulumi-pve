@@ -37,6 +37,9 @@
   },
   "config": {
     "variables": {
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -48,6 +51,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshPass": {
@@ -269,6 +275,9 @@
   },
   "provider": {
     "properties": {
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -280,6 +289,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshPass": {
@@ -298,6 +310,9 @@
       "sshPass"
     ],
     "inputProperties": {
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -309,6 +324,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshPass": {
@@ -612,6 +630,81 @@
       },
       "requiredInputs": [
         "name"
+      ]
+    },
+    "pve:sdn:Vnet": {
+      "description": "A Proxmox SDN VNet resource that defines a per-zone virtual network materialized as a bridge on each node after SdnApply runs.",
+      "properties": {
+        "alias": {
+          "type": "string",
+          "description": "An optional descriptive alias for the VNet."
+        },
+        "digest": {
+          "type": "string",
+          "description": "Read-only digest of the VNet configuration section, used by Proxmox for change detection."
+        },
+        "isolatePorts": {
+          "type": "boolean",
+          "description": "If true, sets the isolated property for all interfaces on the bridge of this VNet."
+        },
+        "state": {
+          "type": "string",
+          "description": "Read-only pending-apply state of the VNet (\"new\", \"changed\", or \"deleted\"); empty once the config has been applied."
+        },
+        "tag": {
+          "type": "integer",
+          "description": "The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number)."
+        },
+        "vlanaware": {
+          "type": "boolean",
+          "description": "If true, allow guest VLANs to pass through (trunk) this VNet."
+        },
+        "vnet": {
+          "type": "string",
+          "description": "The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
+          "replaceOnChanges": true
+        },
+        "zone": {
+          "type": "string",
+          "description": "The SDN zone this VNet belongs to (e.g. \"ringfence\")."
+        }
+      },
+      "required": [
+        "vnet",
+        "zone",
+        "tag"
+      ],
+      "inputProperties": {
+        "alias": {
+          "type": "string",
+          "description": "An optional descriptive alias for the VNet."
+        },
+        "isolatePorts": {
+          "type": "boolean",
+          "description": "If true, sets the isolated property for all interfaces on the bridge of this VNet."
+        },
+        "tag": {
+          "type": "integer",
+          "description": "The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number)."
+        },
+        "vlanaware": {
+          "type": "boolean",
+          "description": "If true, allow guest VLANs to pass through (trunk) this VNet."
+        },
+        "vnet": {
+          "type": "string",
+          "description": "The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
+          "replaceOnChanges": true
+        },
+        "zone": {
+          "type": "string",
+          "description": "The SDN zone this VNet belongs to (e.g. \"ringfence\")."
+        }
+      },
+      "requiredInputs": [
+        "vnet",
+        "zone",
+        "tag"
       ]
     },
     "pve:user:User": {
