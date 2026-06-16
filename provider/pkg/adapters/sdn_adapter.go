@@ -95,7 +95,8 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 
 // Apply applies pending SDN configuration changes.
 // lockToken must be the token returned by Lock.
-func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string) error {
+// applyTimeout controls how long to wait for the apply task; <= 0 uses the default.
+func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string, applyTimeout time.Duration) error {
 	body := pveproxmox.SDNApplyBody{Lock: lockToken, ReleaseLock: 1}
 
 	var taskUPID string
@@ -103,7 +104,11 @@ func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string) error {
 		return fmt.Errorf("failed to apply SDN changes: %w", err)
 	}
 
-	if err := adapter.client.WaitForTask(ctx, taskUPID, 60*time.Second, 0); err != nil {
+	if applyTimeout <= 0 {
+		applyTimeout = 60 * time.Second
+	}
+
+	if err := adapter.client.WaitForTask(ctx, taskUPID, applyTimeout, 0); err != nil {
 		return fmt.Errorf("failed to wait for SDN apply task: %w", err)
 	}
 

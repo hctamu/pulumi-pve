@@ -45,14 +45,14 @@ type SDNApply struct {
 func (sdnApply *SDNApply) applyWithLock(ctx context.Context, inputs proxmox.SDNApplyInputs) error {
 	token, err := sdnApply.SDNOps.Lock(
 		ctx,
-		time.Duration(inputs.RetryTimeoutSeconds)*time.Second,
+		time.Duration(inputs.LockTimeoutSeconds)*time.Second,
 		inputs.AllowPending,
 	)
 	if err != nil {
 		return err
 	}
 
-	return sdnApply.SDNOps.Apply(ctx, token)
+	return sdnApply.SDNOps.Apply(ctx, token, time.Duration(inputs.ApplyTimeoutSeconds)*time.Second)
 }
 
 // Create applies pending SDN configuration changes via PUT /cluster/sdn.
