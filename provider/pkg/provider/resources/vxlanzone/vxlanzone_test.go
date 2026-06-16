@@ -421,7 +421,7 @@ func TestVxlanZoneCheck(t *testing.T) {
 		{
 			name: "only fabric",
 			newInputs: property.NewMap(map[string]property.Value{
-				"name":   property.New("vxlan-1"),
+				"name":   property.New("vxlan1"),
 				"fabric": property.New("fabric-1"),
 				"ipam":   property.New("pve"),
 			}),
@@ -429,7 +429,7 @@ func TestVxlanZoneCheck(t *testing.T) {
 		{
 			name: "only peers",
 			newInputs: property.NewMap(map[string]property.Value{
-				"name":  property.New("vxlan-1"),
+				"name":  property.New("vxlan1"),
 				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
 				"ipam":  property.New("pve"),
 			}),
@@ -437,7 +437,7 @@ func TestVxlanZoneCheck(t *testing.T) {
 		{
 			name: "neither peers nor fabric",
 			newInputs: property.NewMap(map[string]property.Value{
-				"name": property.New("vxlan-1"),
+				"name": property.New("vxlan1"),
 				"ipam": property.New("pve"),
 			}),
 			expectFail:   true,
@@ -446,13 +446,51 @@ func TestVxlanZoneCheck(t *testing.T) {
 		{
 			name: "both peers and fabric",
 			newInputs: property.NewMap(map[string]property.Value{
-				"name":   property.New("vxlan-1"),
+				"name":   property.New("vxlan1"),
 				"fabric": property.New("fabric-1"),
 				"peers":  property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
 				"ipam":   property.New("pve"),
 			}),
 			expectFail:   true,
 			failProperty: "peers",
+		},
+		{
+			name: "name starts with digit",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("1vxlan"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+			}),
+			expectFail:   true,
+			failProperty: "name",
+		},
+		{
+			name: "name contains hyphen",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan-1"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+			}),
+			expectFail:   true,
+			failProperty: "name",
+		},
+		{
+			name: "name too long",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("verylongname"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+			}),
+			expectFail:   true,
+			failProperty: "name",
+		},
+		{
+			name: "name exactly 8 chars",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan123"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+			}),
 		},
 	}
 

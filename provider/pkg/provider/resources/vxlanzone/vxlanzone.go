@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"regexp"
 	"strings"
 
 	p "github.com/pulumi/pulumi-go-provider"
@@ -239,7 +240,7 @@ func ptrEqual[T comparable](a, b *T) bool {
 	return *a == *b
 }
 
-// Check validates that exactly one of fabric or peers is provided.
+// Check validates zone name format and that exactly one of fabric or peers is provided.
 func (sdnVxlanZone *VxlanZone) Check(
 	ctx context.Context,
 	req infer.CheckRequest,
@@ -247,6 +248,10 @@ func (sdnVxlanZone *VxlanZone) Check(
 	inputs, failures, err := infer.DefaultCheck[proxmox.VxlanZoneInputs](ctx, req.NewInputs)
 	if err != nil || len(failures) > 0 {
 		return infer.CheckResponse[proxmox.VxlanZoneInputs]{Inputs: inputs, Failures: failures}, err
+	}
+
+	if nameFailure := validateZoneName(inputs.Name); nameFailure != nil {
+		failures = append(failures, *nameFailure)
 	}
 
 	hasFabric := inputs.Fabric != nil && *inputs.Fabric != ""
@@ -260,6 +265,21 @@ func (sdnVxlanZone *VxlanZone) Check(
 	}
 
 	return infer.CheckResponse[proxmox.VxlanZoneInputs]{Inputs: inputs, Failures: failures}, nil
+}
+
+// zoneNameRe matches a valid zone name: starts with a letter, followed by letters/digits, max 8 chars.
+var zoneNameRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]{0,7}$`)
+
+// validateZoneName returns a CheckFailure if name does not start with a letter,
+// contains non-alphanumeric characters, or exceeds 8 characters.
+func validateZoneName(name string) *p.CheckFailure {
+	if !zoneNameRe.MatchString(name) {
+		return &p.CheckFailure{
+			Property: "name",
+			Reason:   "zone name must start with a letter, contain only letters and numbers, and be at most 8 characters",
+		}
+	}
+	return nil
 }
 
 // Annotate adds a description to the VxlanZone resource.
