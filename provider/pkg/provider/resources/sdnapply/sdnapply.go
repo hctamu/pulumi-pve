@@ -45,20 +45,19 @@ const (
 	defaultLockRetryTimeout = 60 * time.Second
 )
 
-// applyWithLock acquires the SDN lock with retries, then applies pending changes,
-// releasing the lock atomically.
+// applyWithLock acquires the SDN lock with retries (passing allowPending), then applies pending changes.
 func (sdnApply *SDNApply) applyWithLock(ctx context.Context, inputs proxmox.SDNApplyInputs) error {
 	retryTimeout := time.Duration(inputs.RetryTimeoutSeconds) * time.Second
 	if retryTimeout <= 0 {
 		retryTimeout = defaultLockRetryTimeout
 	}
 
-	token, err := sdnApply.SDNOps.Lock(ctx, retryTimeout)
+	token, err := sdnApply.SDNOps.Lock(ctx, retryTimeout, inputs.AllowPending)
 	if err != nil {
 		return err
 	}
 
-	return sdnApply.SDNOps.Apply(ctx, token, true)
+	return sdnApply.SDNOps.Apply(ctx, token)
 }
 
 // Create applies pending SDN configuration changes via PUT /cluster/sdn.

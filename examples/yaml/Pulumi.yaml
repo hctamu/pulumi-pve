@@ -8,7 +8,7 @@ plugins:
 variables:
   zone:
     name: vxlanpve
-    vxlanPort: 4785
+    vxlanPort: 4784
     ipam: pve
     fabric: zerotest
     nodes:
@@ -21,11 +21,12 @@ resources:
     type: pve:vxlanzone:VxlanZone
     properties: ${zone}
 
-  # mySDNApply:
-  #   type: pve:sdnapply:SDNApply
-  #   properties:
-  #     triggers:
-  #       zone: ${zone}
-  #   options:
-  #     dependsOn:
-  #       - ${myVxlanZone}
+  mySDNApply:
+    type: pve:sdnapply:SDNApply
+    properties:
+      triggers:
+        zone: ${zone}
+      allowPending: true
+    options:
+      dependsOn:
+        - ${myVxlanZone}

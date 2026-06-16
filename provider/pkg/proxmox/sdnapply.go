@@ -26,18 +26,20 @@ import (
 type SDNOperations interface {
 	// Lock acquires the SDN cluster lock and returns a lock token.
 	// retryTimeout controls how long lock acquisition retries should continue.
-	Lock(ctx context.Context, retryTimeout time.Duration) (string, error)
+	// When allowPending is true, the lock request includes allow-pending so that
+	// Proxmox accepts the lock even when there are pending changes.
+	Lock(ctx context.Context, retryTimeout time.Duration, allowPending bool) (string, error)
 
 	// Apply applies pending SDN configuration changes via PUT /cluster/sdn.
 	// lockToken must be the token returned by Lock.
-	// When releaseLock is true, the lock is released atomically after the apply completes.
-	Apply(ctx context.Context, lockToken string, releaseLock bool) error
+	Apply(ctx context.Context, lockToken string) error
 }
 
 // SDNApplyInputs represents the input properties for the SDNApply resource.
 type SDNApplyInputs struct {
 	Triggers            map[string]any `pulumi:"triggers,optional"`
 	RetryTimeoutSeconds int            `pulumi:"retryTimeoutSeconds,optional"`
+	AllowPending        bool           `pulumi:"allowPending,optional"`
 }
 
 // Annotate adds descriptions to the SDNApply input properties.
@@ -52,6 +54,10 @@ func (inputs *SDNApplyInputs) Annotate(a infer.Annotator) {
 		"How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
 	)
 	a.SetDefault(&inputs.RetryTimeoutSeconds, 60)
+	a.Describe(
+		&inputs.AllowPending,
+		"When true, the SDN lock is released atomically after the apply completes. Defaults to false.",
+	)
 }
 
 // SDNApplyOutputs represents the output properties for the SDNApply resource.
@@ -63,4 +69,9 @@ type SDNApplyOutputs struct {
 type SDNApplyBody struct {
 	Lock        string `json:"lock-token,omitempty"`
 	ReleaseLock int    `json:"release-lock,omitempty"`
+}
+
+// SDNLockBody is the request body for the SDN lock POST request (API level).
+type SDNLockBody struct {
+	AllowPending int `json:"allow-pending,omitempty"`
 }
