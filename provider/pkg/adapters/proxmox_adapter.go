@@ -17,11 +17,15 @@ limitations under the License.
 package adapters
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,10 +44,14 @@ var _ proxmox.Client = (*ProxmoxAdapter)(nil)
 // ProxmoxAdapter adapts the px.Client to implement the proxmox.ProxmoxClient interface
 // It handles lazy initialization of the underlying client
 type ProxmoxAdapter struct {
-	once      sync.Once
-	initErr   error
-	PVEConfig *config.Config
-	client    *api.Client
+	once          sync.Once
+	initErr       error
+	PVEConfig     *config.Config
+	client        *api.Client
+	httpClient    *http.Client
+	resolvedURL   string
+	resolvedUser  string
+	resolvedToken string
 }
 
 // NewProxmoxAdapter creates a new ProxmoxAdapter
@@ -66,12 +74,15 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 			pveConfig = *proxmoxAdapter.PVEConfig
 		}
 
-		proxmoxAdapter.client, proxmoxAdapter.initErr = newClient(
+		proxmoxAdapter.client, proxmoxAdapter.httpClient, proxmoxAdapter.initErr = newClient(
 			pveConfig.PveURL,
 			pveConfig.PveUser,
 			pveConfig.PveToken,
 			pveConfig.InsecureSkipVerify,
 		)
+		proxmoxAdapter.resolvedURL = pveConfig.PveURL
+		proxmoxAdapter.resolvedUser = pveConfig.PveUser
+		proxmoxAdapter.resolvedToken = pveConfig.PveToken
 	})
 
 	if proxmoxAdapter.initErr != nil {
@@ -83,7 +94,7 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 }
 
 // newClient creates a new Proxmox client
-func newClient(pveURL, pveUser, pveToken string, insecureSkipVerify bool) (*api.Client, error) {
+func newClient(pveURL, pveUser, pveToken string, insecureSkipVerify bool) (*api.Client, *http.Client, error) {
 	transport := http.DefaultTransport.(*http.Transport)
 	//nolint:gosec // InsecureSkipVerify is controlled by the user via provider config
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: insecureSkipVerify}
@@ -99,7 +110,7 @@ func newClient(pveURL, pveUser, pveToken string, insecureSkipVerify bool) (*api.
 
 	client := apiClient
 
-	return client, nil
+	return client, httpClient, nil
 }
 
 // Get performs a GET request to the Proxmox API.
@@ -118,12 +129,61 @@ func (proxmoxAdapter *ProxmoxAdapter) Post(ctx context.Context, path string, bod
 	return proxmoxAdapter.client.Post(ctx, path, body, result)
 }
 
-// Put performs a PUT request to the Proxmox API.
+// Put performs a PUT request to the Proxmox API, returning the full response body on error.
 func (proxmoxAdapter *ProxmoxAdapter) Put(ctx context.Context, path string, body, result any) error {
 	if err := proxmoxAdapter.Connect(ctx); err != nil {
 		return err
 	}
-	return proxmoxAdapter.client.Put(ctx, path, body, result)
+
+	data, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	url := proxmoxAdapter.resolvedURL + path
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(
+		"Authorization",
+		fmt.Sprintf("PVEAPIToken=%s=%s", proxmoxAdapter.resolvedUser, proxmoxAdapter.resolvedToken),
+	)
+
+	res, err := proxmoxAdapter.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = res.Body.Close() }()
+
+	respBody, _ := io.ReadAll(res.Body)
+
+	if res.StatusCode >= 400 {
+		if len(respBody) > 0 {
+			var errResp struct {
+				Message string `json:"message"`
+			}
+			if jsonErr := json.Unmarshal(respBody, &errResp); jsonErr == nil && errResp.Message != "" {
+				return errors.New(strings.TrimSpace(errResp.Message))
+			}
+			return fmt.Errorf("%s: %s", res.Status, strings.TrimSpace(string(respBody)))
+		}
+		return errors.New(res.Status)
+	}
+
+	if result == nil {
+		return nil
+	}
+
+	var datakey map[string]json.RawMessage
+	if err := json.Unmarshal(respBody, &datakey); err != nil {
+		return err
+	}
+	if d, ok := datakey["data"]; ok {
+		return json.Unmarshal(d, result)
+	}
+	return json.Unmarshal(respBody, result)
 }
 
 // Delete performs a DELETE request to the Proxmox API.

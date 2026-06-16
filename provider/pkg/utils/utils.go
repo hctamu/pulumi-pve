@@ -21,6 +21,7 @@ package utils
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"slices"
 	"sort"
 	"strconv"
@@ -198,4 +199,76 @@ func StringSliceDiff(a, b []string) []string {
 		}
 	}
 	return diff
+}
+
+// CommaSeparatedList is a string slice that marshals as a comma-separated JSON string
+// and unmarshals from either a JSON array or a JSON string. It handles Proxmox API
+// fields that expect comma-separated strings in request bodies but may return JSON
+// arrays in responses.
+type CommaSeparatedList []string
+
+// MarshalJSON serializes the list as a comma-separated JSON string, or null if empty.
+func (csl CommaSeparatedList) MarshalJSON() ([]byte, error) {
+	if len(csl) == 0 {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(strings.Join(csl, ","))
+}
+
+// UnmarshalJSON deserializes from either a JSON array or a comma-separated JSON string.
+func (csl *CommaSeparatedList) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*csl = nil
+		return nil
+	}
+
+	var arr []string
+	if err := json.Unmarshal(data, &arr); err == nil {
+		*csl = arr
+		return nil
+	}
+
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	if s == "" {
+		*csl = nil
+		return nil
+	}
+
+	*csl = CommaSeparatedList(strings.Split(s, ","))
+
+	return nil
+}
+
+// SetOrDeletePtr sets target to value if non-nil, or appends deleteKey to deleteFields
+// if the value was previously set. Used for computing Proxmox PUT delta payloads.
+func SetOrDeletePtr[T any](deleteFields *[]string, target **T, deleteKey string, value, oldValue *T) {
+	if value == nil {
+		if oldValue != nil {
+			*deleteFields = append(*deleteFields, deleteKey)
+		}
+		return
+	}
+	*target = value
+}
+
+// SetOrDeleteCSL sets target to values if non-empty, or appends deleteKey to deleteFields
+// if the list was previously set. Used for computing Proxmox PUT delta payloads.
+func SetOrDeleteCSL(
+	deleteFields *[]string,
+	target *CommaSeparatedList,
+	deleteKey string,
+	values, oldValues []string,
+) {
+	if len(values) == 0 {
+		if len(oldValues) > 0 {
+			*deleteFields = append(*deleteFields, deleteKey)
+		}
+		return
+	}
+	*target = CommaSeparatedList(values)
 }

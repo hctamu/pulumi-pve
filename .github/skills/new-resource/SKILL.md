@@ -101,7 +101,11 @@ Use the httptest-based pattern (see `ha_adapter_test.go`):
    - Checks `request.DryRun` and returns early with a preview response if true.
    - Nil-checks `<name>.<Name>Ops` and returns `errors.New("<Name>Operations not configured")`.
    - Uses `p.GetLogger(ctx).Debugf(...)` for observability.
-5. Import order: stdlib → blank → third-party → `github.com/pulumi/` → `github.com/hctamu/pulumi-pve/`.
+5. Read identifier rule (important for imports vs managed state):
+   - Prefer `request.Inputs.Name` (or equivalent primary name field) when present.
+   - If it is empty, fall back to `request.ID` (import flow).
+   - Use that resolved value for `Get(...)` lookups.
+6. Import order: stdlib → blank → third-party → `github.com/pulumi/` → `github.com/hctamu/pulumi-pve/`.
 
 ---
 

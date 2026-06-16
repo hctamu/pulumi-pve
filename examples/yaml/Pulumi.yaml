@@ -6,69 +6,26 @@ plugins:
       path: ../../bin
 
 variables:
-  vmConfig:
-    name: "aTestVM"
-    tags:
-      - "tag2"
-      - "tag1"
-    description: "test VM"
-    cpu:
-      type: EPYC-v4
-      flagsEnabled:
-        - virt-ssbd
-      flagsDisabled:
-        - spec-ctrl
-      hidden: true
-      hvVendorId: AuthenticAMD
-      physBits: "48"
-      cores: 4
-      sockets: 2
-      limit: 3.0
-      units: 2048
-      vcpus: 3
-      numa: true
-      numaNodes:
-        - cpus: "0-1"
-          hostNodes: "0"
-          memory: 2048
-          policy: "preferred"
-        - cpus: "2-3"
-          hostNodes: "1"
-          policy: "interleave"
-    memory: 27875
-    efidisk:
-      storage: "ceph-ha"
-      efitype: "4m"
-      preEnrolledKeys: false
-    disks:
-      - storage: "ceph-ha"
-        size: 20
-        interface: "scsi0"
-      - storage: "ceph-ha"
-        size: 17
-        interface: "scsi1"
-      - storage: "ceph-ha"
-        size: 21
-        interface: "sata0"
+  zone:
+    name: vxlanpve
+    vxlanPort: 4785
+    ipam: pve
+    fabric: zerotest
+    nodes:
+      - stage-devops-proxmox01
+      - stage-devops-proxmox02
+    
 
 resources:
-  myVM:
-    type: pve:vm:VM
-    properties: ${vmConfig}
+  myVxlanZone:
+    type: pve:vxlanzone:VxlanZone
+    properties: ${zone}
 
-  mySdnApply:
-    type: pve:sdnapply:SDNApply
-    properties:
-      triggers:
-        vm: ${vmConfig}
-    options:
-      dependsOn:
-        - ${myVM}
-  mySdnApply2:
-    type: pve:sdnapply:SDNApply
-    properties:
-      triggers:
-        vm: ${vmConfig}
-    options:
-      dependsOn:
-        - ${myVM}
+  # mySDNApply:
+  #   type: pve:sdnapply:SDNApply
+  #   properties:
+  #     triggers:
+  #       zone: ${zone}
+  #   options:
+  #     dependsOn:
+  #       - ${myVxlanZone}
