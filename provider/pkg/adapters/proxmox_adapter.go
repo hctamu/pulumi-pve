@@ -94,12 +94,15 @@ func (proxmoxAdapter *ProxmoxAdapter) Connect(ctx context.Context) error {
 }
 
 // newClient creates a new Proxmox client
-func newClient(pveURL, pveUser, pveToken string, insecureSkipVerify bool) (*api.Client, *http.Client, error) {
+func newClient(
+	pveURL, pveUser, pveToken string,
+	insecureSkipVerify bool,
+) (client *api.Client, httpClient *http.Client, err error) {
 	transport := http.DefaultTransport.(*http.Transport)
 	//nolint:gosec // InsecureSkipVerify is controlled by the user via provider config
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 
-	httpClient := http.DefaultClient
+	httpClient = http.DefaultClient
 	httpClient.Transport = transport
 
 	apiClient := api.NewClient(
@@ -108,7 +111,7 @@ func newClient(pveURL, pveUser, pveToken string, insecureSkipVerify bool) (*api.
 		api.WithHTTPClient(httpClient),
 	)
 
-	client := apiClient
+	client = apiClient
 
 	return client, httpClient, nil
 }
