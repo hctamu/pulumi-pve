@@ -254,6 +254,20 @@ func (sdnVxlanZone *VxlanZone) Check(
 		failures = append(failures, *nameFailure)
 	}
 
+	if inputs.MTU != nil && (*inputs.MTU <= 0 || *inputs.MTU >= 9000) {
+		failures = append(failures, p.CheckFailure{
+			Property: "mtu",
+			Reason:   "mtu must be a positive number less than 9000",
+		})
+	}
+
+	if inputs.VXLANPort != nil && (*inputs.VXLANPort < 1 || *inputs.VXLANPort > 65535) {
+		failures = append(failures, p.CheckFailure{
+			Property: "vxlanPort",
+			Reason:   "vxlanPort must be a valid port number between 1 and 65535",
+		})
+	}
+
 	hasFabric := inputs.Fabric != nil && *inputs.Fabric != ""
 	hasPeers := len(inputs.Peers) > 0
 
