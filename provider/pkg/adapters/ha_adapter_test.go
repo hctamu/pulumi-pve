@@ -606,7 +606,7 @@ func TestHAAdapterUpdate(t *testing.T) {
 
 		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"errors": "update failed"}`))
+			_, _ = w.Write([]byte(`{"message": "update failed", "data": null}`))
 		})
 		defer server.Close()
 
@@ -623,7 +623,12 @@ func TestHAAdapterUpdate(t *testing.T) {
 		haAdapter := adapters.NewHAAdapter(proxmoxAdapter)
 		err = haAdapter.Update(context.Background(), 100, inputs, oldOutputs)
 		require.Error(t, err)
-		assert.EqualError(t, err, "failed to update HA resource: 500 Internal Server Error", "error message should match")
+		assert.EqualError(
+			t,
+			err,
+			"failed to update HA resource: update failed",
+			"error message should match",
+		)
 	})
 }
 

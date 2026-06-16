@@ -37,6 +37,7 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdnapply"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vxlanzone"
 )
 
 // Name is the name of the PVE provider.
@@ -135,6 +136,14 @@ func newSDNApplyResourceWithConfig(cfg *config.Config) *sdnapply.SDNApply {
 	return &sdnapply.SDNApply{SDNOps: sdnAdapter}
 }
 
+// newVxlanZoneResourceWithConfig creates a new SDN VXLAN zone resource with a specific config.
+// Passing nil will cause it to fetch config from context when Connect() is called.
+func newVxlanZoneResourceWithConfig(cfg *config.Config) *vxlanzone.VxlanZone {
+	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
+	zoneAdapter := adapters.NewVxlanZoneAdapter(proxmoxAdapter)
+	return &vxlanzone.VxlanZone{VxlanZoneOps: zoneAdapter}
+}
+
 // newVMResourceWithConfig creates a new VM resource with a specific config.
 func newVMResourceWithConfig(cfg *config.Config) *vm.VM {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
@@ -163,6 +172,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(newUserResourceWithConfig(cfg)),
 			infer.Resource(newSDNApplyResourceWithConfig(cfg)),
+			infer.Resource(newVxlanZoneResourceWithConfig(cfg)),
 		},
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{

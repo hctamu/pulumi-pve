@@ -411,3 +411,259 @@ func TestStringSliceDiff(t *testing.T) {
 		})
 	}
 }
+
+func strPtr(s string) *string { return &s }
+func intPtr(i int) *int       { return &i }
+
+func TestSetOrDeletePtr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("string", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name           string
+			value          *string
+			oldValue       *string
+			expectedTarget *string
+			expectedDelete []string
+		}{
+			{
+				name:           "sets target when value is non-nil",
+				value:          strPtr("pdns"),
+				oldValue:       nil,
+				expectedTarget: strPtr("pdns"),
+				expectedDelete: []string{},
+			},
+			{
+				name:           "updates target when both are non-nil",
+				value:          strPtr("pdns-new"),
+				oldValue:       strPtr("pdns-old"),
+				expectedTarget: strPtr("pdns-new"),
+				expectedDelete: []string{},
+			},
+			{
+				name:           "appends delete key when value is nil and old was set",
+				value:          nil,
+				oldValue:       strPtr("pdns"),
+				expectedTarget: nil,
+				expectedDelete: []string{"dns"},
+			},
+			{
+				name:           "does nothing when both nil",
+				value:          nil,
+				oldValue:       nil,
+				expectedTarget: nil,
+				expectedDelete: []string{},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				deleteFields := []string{}
+				var target *string
+				utils.SetOrDeletePtr(&deleteFields, &target, "dns", tt.value, tt.oldValue)
+				assert.Equal(t, tt.expectedTarget, target)
+				assert.Equal(t, tt.expectedDelete, deleteFields)
+			})
+		}
+	})
+
+	t.Run("int", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name           string
+			value          *int
+			oldValue       *int
+			expectedTarget *int
+			expectedDelete []string
+		}{
+			{
+				name:           "sets target when value is non-nil",
+				value:          intPtr(1450),
+				oldValue:       nil,
+				expectedTarget: intPtr(1450),
+				expectedDelete: []string{},
+			},
+			{
+				name:           "updates target when both are non-nil",
+				value:          intPtr(9000),
+				oldValue:       intPtr(1450),
+				expectedTarget: intPtr(9000),
+				expectedDelete: []string{},
+			},
+			{
+				name:           "appends delete key when value is nil and old was set",
+				value:          nil,
+				oldValue:       intPtr(1450),
+				expectedTarget: nil,
+				expectedDelete: []string{"mtu"},
+			},
+			{
+				name:           "does nothing when both nil",
+				value:          nil,
+				oldValue:       nil,
+				expectedTarget: nil,
+				expectedDelete: []string{},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				deleteFields := []string{}
+				var target *int
+				utils.SetOrDeletePtr(&deleteFields, &target, "mtu", tt.value, tt.oldValue)
+				assert.Equal(t, tt.expectedTarget, target)
+				assert.Equal(t, tt.expectedDelete, deleteFields)
+			})
+		}
+	})
+}
+
+func TestSetOrDeleteCSL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		values         []string
+		oldValues      []string
+		expectedTarget utils.CommaSeparatedList
+		expectedDelete []string
+	}{
+		{
+			name:           "sets target when values are non-empty",
+			values:         []string{"10.0.0.1", "10.0.0.2"},
+			oldValues:      nil,
+			expectedTarget: utils.CommaSeparatedList{"10.0.0.1", "10.0.0.2"},
+			expectedDelete: []string{},
+		},
+		{
+			name:           "updates target when both are non-empty",
+			values:         []string{"10.0.0.3"},
+			oldValues:      []string{"10.0.0.1", "10.0.0.2"},
+			expectedTarget: utils.CommaSeparatedList{"10.0.0.3"},
+			expectedDelete: []string{},
+		},
+		{
+			name:           "appends delete key when values empty and old was set",
+			values:         nil,
+			oldValues:      []string{"10.0.0.1"},
+			expectedTarget: nil,
+			expectedDelete: []string{"peers"},
+		},
+		{
+			name:           "does nothing when both empty",
+			values:         nil,
+			oldValues:      nil,
+			expectedTarget: nil,
+			expectedDelete: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			deleteFields := []string{}
+			var target utils.CommaSeparatedList
+			utils.SetOrDeleteCSL(&deleteFields, &target, "peers", tt.values, tt.oldValues)
+			assert.Equal(t, tt.expectedTarget, target)
+			assert.Equal(t, tt.expectedDelete, deleteFields)
+		})
+	}
+}
+
+func TestCommaSeparatedListMarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    utils.CommaSeparatedList
+		expected string
+	}{
+		{
+			name:     "single element",
+			input:    utils.CommaSeparatedList{"10.0.0.1"},
+			expected: `"10.0.0.1"`,
+		},
+		{
+			name:     "multiple elements joined with comma",
+			input:    utils.CommaSeparatedList{"10.0.0.1", "10.0.0.2", "10.0.0.3"},
+			expected: `"10.0.0.1,10.0.0.2,10.0.0.3"`,
+		},
+		{
+			name:     "nil marshals to null",
+			input:    nil,
+			expected: `null`,
+		},
+		{
+			name:     "empty slice marshals to null",
+			input:    utils.CommaSeparatedList{},
+			expected: `null`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			data, err := tt.input.MarshalJSON()
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, string(data))
+		})
+	}
+}
+
+func TestCommaSeparatedListUnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected utils.CommaSeparatedList
+	}{
+		{
+			name:     "JSON array",
+			input:    `["10.0.0.1","10.0.0.2"]`,
+			expected: utils.CommaSeparatedList{"10.0.0.1", "10.0.0.2"},
+		},
+		{
+			name:     "comma-separated string",
+			input:    `"10.0.0.1,10.0.0.2,10.0.0.3"`,
+			expected: utils.CommaSeparatedList{"10.0.0.1", "10.0.0.2", "10.0.0.3"},
+		},
+		{
+			name:     "single value string",
+			input:    `"10.0.0.1"`,
+			expected: utils.CommaSeparatedList{"10.0.0.1"},
+		},
+		{
+			name:     "null becomes nil",
+			input:    `null`,
+			expected: nil,
+		},
+		{
+			name:     "empty string becomes nil",
+			input:    `""`,
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var csl utils.CommaSeparatedList
+			err := csl.UnmarshalJSON([]byte(tt.input))
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, csl)
+		})
+	}
+
+	t.Run("invalid JSON returns error", func(t *testing.T) {
+		t.Parallel()
+		var csl utils.CommaSeparatedList
+		err := csl.UnmarshalJSON([]byte(`{invalid`))
+		require.Error(t, err)
+	})
+}
