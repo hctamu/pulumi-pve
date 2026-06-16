@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 
 	sdnvxlanzoneResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vxlanzone"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
@@ -403,6 +404,73 @@ func TestVxlanZoneRead(t *testing.T) {
 			if tt.name == "success preserves peers and prefers input name" ||
 				tt.name == "success falls back to ID when input name empty" {
 				assert.Equal(t, []string{"10.0.0.1", "10.0.0.2"}, resp.State.Peers)
+			}
+		})
+	}
+}
+
+func TestVxlanZoneCheck(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		newInputs    property.Map
+		expectFail   bool
+		failProperty string
+	}{
+		{
+			name: "only fabric",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":   property.New("vxlan-1"),
+				"fabric": property.New("fabric-1"),
+				"ipam":   property.New("pve"),
+			}),
+		},
+		{
+			name: "only peers",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan-1"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+			}),
+		},
+		{
+			name: "neither peers nor fabric",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name": property.New("vxlan-1"),
+				"ipam": property.New("pve"),
+			}),
+			expectFail:   true,
+			failProperty: "peers",
+		},
+		{
+			name: "both peers and fabric",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":   property.New("vxlan-1"),
+				"fabric": property.New("fabric-1"),
+				"peers":  property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":   property.New("pve"),
+			}),
+			expectFail:   true,
+			failProperty: "peers",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resource := &sdnvxlanzoneResource.VxlanZone{}
+			resp, err := resource.Check(context.Background(), infer.CheckRequest{
+				NewInputs: tt.newInputs,
+			})
+
+			require.NoError(t, err)
+			if tt.expectFail {
+				require.NotEmpty(t, resp.Failures)
+				assert.Equal(t, tt.failProperty, resp.Failures[0].Property)
+			} else {
+				assert.Empty(t, resp.Failures)
 			}
 		})
 	}

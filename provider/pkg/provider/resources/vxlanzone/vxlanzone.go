@@ -35,6 +35,7 @@ var (
 	_ = infer.CustomDelete[proxmox.VxlanZoneOutputs]((*VxlanZone)(nil))
 	_ = infer.CustomUpdate[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]((*VxlanZone)(nil))
 	_ = infer.CustomRead[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]((*VxlanZone)(nil))
+	_ = infer.CustomCheck[proxmox.VxlanZoneInputs]((*VxlanZone)(nil))
 	_ = infer.Annotated((*VxlanZone)(nil))
 )
 
@@ -172,6 +173,29 @@ func (sdnVxlanZone *VxlanZone) Read(
 	response.Inputs = outputs.VxlanZoneInputs
 	response.State = *outputs
 	return response, nil
+}
+
+// Check validates that exactly one of fabric or peers is provided.
+func (sdnVxlanZone *VxlanZone) Check(
+	ctx context.Context,
+	req infer.CheckRequest,
+) (infer.CheckResponse[proxmox.VxlanZoneInputs], error) {
+	inputs, failures, err := infer.DefaultCheck[proxmox.VxlanZoneInputs](ctx, req.NewInputs)
+	if err != nil || len(failures) > 0 {
+		return infer.CheckResponse[proxmox.VxlanZoneInputs]{Inputs: inputs, Failures: failures}, err
+	}
+
+	hasFabric := inputs.Fabric != nil && *inputs.Fabric != ""
+	hasPeers := len(inputs.Peers) > 0
+
+	if hasFabric == hasPeers {
+		failures = append(failures, p.CheckFailure{
+			Property: "peers",
+			Reason:   "exactly one of fabric or peers must be provided, but not both",
+		})
+	}
+
+	return infer.CheckResponse[proxmox.VxlanZoneInputs]{Inputs: inputs, Failures: failures}, nil
 }
 
 // Annotate adds a description to the VxlanZone resource.
