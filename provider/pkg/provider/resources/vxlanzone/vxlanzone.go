@@ -36,6 +36,7 @@ var (
 	_ = infer.CustomUpdate[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]((*VxlanZone)(nil))
 	_ = infer.CustomRead[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]((*VxlanZone)(nil))
 	_ = infer.CustomCheck[proxmox.VxlanZoneInputs]((*VxlanZone)(nil))
+	_ = infer.CustomDiff[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]((*VxlanZone)(nil))
 	_ = infer.Annotated((*VxlanZone)(nil))
 )
 
@@ -173,6 +174,69 @@ func (sdnVxlanZone *VxlanZone) Read(
 	response.Inputs = outputs.VxlanZoneInputs
 	response.State = *outputs
 	return response, nil
+}
+
+// Diff computes the diff between old and new inputs, treating nodes and peers as
+// order-insensitive sets (Proxmox returns them in lexical order regardless of input order).
+func (sdnVxlanZone *VxlanZone) Diff(
+	ctx context.Context,
+	request infer.DiffRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs],
+) (p.DiffResponse, error) {
+	p.GetLogger(ctx).Debugf("Diff SDN VXLAN zone: %s", request.ID)
+
+	in := request.Inputs
+	st := request.State.VxlanZoneInputs
+
+	diff := map[string]p.PropertyDiff{}
+
+	if in.Name != st.Name {
+		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
+	}
+	if !ptrEqual(in.Fabric, st.Fabric) {
+		diff["fabric"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if utils.StringSliceChanged(in.Peers, st.Peers) {
+		diff["peers"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if !ptrEqual(in.MTU, st.MTU) {
+		diff["mtu"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if !ptrEqual(in.VXLANPort, st.VXLANPort) {
+		diff["vxlanPort"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if utils.StringSliceChanged(in.Nodes, st.Nodes) {
+		diff["nodes"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if !ptrEqual(in.DNS, st.DNS) {
+		diff["dns"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if !ptrEqual(in.DNSZone, st.DNSZone) {
+		diff["dnsZone"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if !ptrEqual(in.ReverseDNS, st.ReverseDNS) {
+		diff["reverseDns"] = p.PropertyDiff{Kind: p.Update}
+	}
+	if !ptrEqual(in.IPAM, st.IPAM) {
+		diff["ipam"] = p.PropertyDiff{Kind: p.Update}
+	}
+
+	return p.DiffResponse{
+		HasChanges:          len(diff) > 0,
+		DetailedDiff:        diff,
+		DeleteBeforeReplace: true,
+	}, nil
+}
+
+// ptrEqual returns true when two comparable pointer values are equal (both nil, or both
+// non-nil with equal dereferenced values).
+func ptrEqual[T comparable](a, b *T) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }
 
 // Check validates that exactly one of fabric or peers is provided.

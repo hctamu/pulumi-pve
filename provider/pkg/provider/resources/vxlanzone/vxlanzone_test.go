@@ -475,3 +475,125 @@ func TestVxlanZoneCheck(t *testing.T) {
 		})
 	}
 }
+
+func TestVxlanZoneDiff(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		inputs      proxmox.VxlanZoneInputs
+		state       proxmox.VxlanZoneOutputs
+		wantChanges bool
+		wantKeys    []string
+	}{
+		{
+			name: "no changes",
+			inputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Peers: []string{"10.0.0.1", "10.0.0.2"},
+				Nodes: []string{"node1", "node2"},
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Peers: []string{"10.0.0.1", "10.0.0.2"},
+				Nodes: []string{"node1", "node2"},
+			}},
+			wantChanges: false,
+		},
+		{
+			name: "peers reordered — no change",
+			inputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Peers: []string{"10.0.0.2", "10.0.0.1"},
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Peers: []string{"10.0.0.1", "10.0.0.2"},
+			}},
+			wantChanges: false,
+		},
+		{
+			name: "nodes reordered — no change",
+			inputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Nodes: []string{"node2", "node1"},
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Nodes: []string{"node1", "node2"},
+			}},
+			wantChanges: false,
+		},
+		{
+			name: "peers changed",
+			inputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Peers: []string{"10.0.0.1", "10.0.0.3"},
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Peers: []string{"10.0.0.1", "10.0.0.2"},
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"peers"},
+		},
+		{
+			name: "nodes changed",
+			inputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Nodes: []string{"node1", "node3"},
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name:  "vxlan-1",
+				Nodes: []string{"node1", "node2"},
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"nodes"},
+		},
+		{
+			name: "name changed triggers replace",
+			inputs: proxmox.VxlanZoneInputs{
+				Name: "vxlan-2",
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name: "vxlan-1",
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"name"},
+		},
+		{
+			name: "mtu changed",
+			inputs: proxmox.VxlanZoneInputs{
+				Name: "vxlan-1",
+				MTU:  intPtr(1400),
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name: "vxlan-1",
+				MTU:  intPtr(1500),
+			}},
+			wantChanges: true,
+			wantKeys:    []string{"mtu"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resource := &sdnvxlanzoneResource.VxlanZone{}
+			resp, err := resource.Diff(
+				context.Background(),
+				infer.DiffRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]{
+					ID:     tt.inputs.Name,
+					Inputs: tt.inputs,
+					State:  tt.state,
+				},
+			)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantChanges, resp.HasChanges)
+			for _, key := range tt.wantKeys {
+				assert.Contains(t, resp.DetailedDiff, key)
+			}
+		})
+	}
+}
