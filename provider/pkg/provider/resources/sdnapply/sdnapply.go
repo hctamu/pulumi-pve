@@ -41,18 +41,13 @@ type SDNApply struct {
 	SDNOps proxmox.SDNOperations
 }
 
-const (
-	defaultLockRetryTimeout = 60 * time.Second
-)
-
 // applyWithLock acquires the SDN lock with retries (passing allowPending), then applies pending changes.
 func (sdnApply *SDNApply) applyWithLock(ctx context.Context, inputs proxmox.SDNApplyInputs) error {
-	retryTimeout := time.Duration(inputs.RetryTimeoutSeconds) * time.Second
-	if retryTimeout <= 0 {
-		retryTimeout = defaultLockRetryTimeout
-	}
-
-	token, err := sdnApply.SDNOps.Lock(ctx, retryTimeout, inputs.AllowPending)
+	token, err := sdnApply.SDNOps.Lock(
+		ctx,
+		time.Duration(inputs.RetryTimeoutSeconds)*time.Second,
+		inputs.AllowPending,
+	)
 	if err != nil {
 		return err
 	}

@@ -151,7 +151,7 @@ func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
 
 	_, err := resource.Create(context.Background(), req)
 	require.NoError(t, err)
-	assert.Equal(t, 60*time.Second, lockTimeout)
+	assert.Equal(t, 0*time.Second, lockTimeout)
 	assert.True(t, applyCalled)
 }
 

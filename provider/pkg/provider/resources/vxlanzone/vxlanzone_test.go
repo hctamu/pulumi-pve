@@ -89,7 +89,7 @@ func TestVxlanZoneCreate(t *testing.T) {
 	tests := []struct {
 		name      string
 		dryRun    bool
-		ops       *mockVxlanZoneOperations
+		ops       proxmox.VxlanZoneOperations
 		inputs    proxmox.VxlanZoneInputs
 		expectErr bool
 		errMsg    string
@@ -163,7 +163,7 @@ func TestVxlanZoneUpdate(t *testing.T) {
 	tests := []struct {
 		name      string
 		dryRun    bool
-		ops       *mockVxlanZoneOperations
+		ops       proxmox.VxlanZoneOperations
 		inputs    proxmox.VxlanZoneInputs
 		state     proxmox.VxlanZoneOutputs
 		expectErr bool
@@ -253,7 +253,7 @@ func TestVxlanZoneDelete(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		ops       *mockVxlanZoneOperations
+		ops       proxmox.VxlanZoneOperations
 		state     proxmox.VxlanZoneOutputs
 		expectErr bool
 		errMsg    string
@@ -315,12 +315,13 @@ func TestVxlanZoneRead(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		ops       *mockVxlanZoneOperations
-		request   infer.ReadRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]
-		expectErr bool
-		errMsg    string
-		expectID  string
+		name       string
+		ops        proxmox.VxlanZoneOperations
+		request    infer.ReadRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]
+		expectErr  bool
+		errMsg     string
+		expectID   string
+		checkPeers bool
 	}{
 		{
 			name: "success preserves peers and prefers input name",
@@ -342,7 +343,8 @@ func TestVxlanZoneRead(t *testing.T) {
 					Peers: []string{"10.0.0.1", "10.0.0.2"},
 				}},
 			},
-			expectID: "vxlan-from-id",
+			expectID:   "vxlan-from-id",
+			checkPeers: true,
 		},
 		{
 			name: "success falls back to ID when input name empty",
@@ -363,7 +365,8 @@ func TestVxlanZoneRead(t *testing.T) {
 					Peers: []string{"10.0.0.1", "10.0.0.2"},
 				}},
 			},
-			expectID: "vxlan-import-id",
+			expectID:   "vxlan-import-id",
+			checkPeers: true,
 		},
 		{
 			name: "not found clears resource",
@@ -401,8 +404,7 @@ func TestVxlanZoneRead(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectID, resp.ID)
-			if tt.name == "success preserves peers and prefers input name" ||
-				tt.name == "success falls back to ID when input name empty" {
+			if tt.checkPeers {
 				assert.Equal(t, []string{"10.0.0.1", "10.0.0.2"}, resp.State.Peers)
 			}
 		})
