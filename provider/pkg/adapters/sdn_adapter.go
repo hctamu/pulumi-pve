@@ -46,9 +46,16 @@ func NewSDNAdapter(client pveproxmox.Client) *SDNAdapter {
 
 // Lock acquires the SDN cluster lock and returns a lock token.
 // The token is generated server-side by Proxmox.
-func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration) (string, error) {
+// When allowPending is true, the request includes allow-pending so Proxmox
+// accepts the lock even when there are pending changes.
+func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration, allowPending bool) (string, error) {
 	if retryTimeout <= 0 {
 		retryTimeout = defaultLockRetryTimeout
+	}
+
+	var body any
+	if allowPending {
+		body = pveproxmox.SDNLockBody{AllowPending: 1}
 	}
 
 	deadline := time.Now().Add(retryTimeout)
@@ -56,7 +63,7 @@ func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration)
 
 	for {
 		var token string
-		if err := adapter.client.Post(ctx, sdnLockPath, nil, &token); err != nil {
+		if err := adapter.client.Post(ctx, sdnLockPath, body, &token); err != nil {
 			lastErr = fmt.Errorf("failed to acquire SDN lock: %w", err)
 		} else if token == "" {
 			lastErr = errors.New("failed to acquire SDN lock: empty lock token returned")
@@ -88,12 +95,8 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 
 // Apply applies pending SDN configuration changes.
 // lockToken must be the token returned by Lock.
-// When releaseLock is true, the lock is released atomically after the apply completes.
-func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string, releaseLock bool) error {
-	body := pveproxmox.SDNApplyBody{Lock: lockToken}
-	if releaseLock {
-		body.ReleaseLock = 1
-	}
+func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string) error {
+	body := pveproxmox.SDNApplyBody{Lock: lockToken, ReleaseLock: 1}
 
 	var taskUPID string
 	if err := adapter.client.Put(ctx, sdnApplyPath, body, &taskUPID); err != nil {

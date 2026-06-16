@@ -98,7 +98,7 @@ func TestSDNAdapterLock(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			token, err := sdnAdapter.Lock(context.Background(), tt.timeout)
+			token, err := sdnAdapter.Lock(context.Background(), tt.timeout, false)
 
 			assert.Equal(t, http.MethodPost, captured.Method)
 			assert.Equal(t, "/cluster/sdn/lock", captured.Path)
@@ -193,7 +193,7 @@ func TestSDNAdapterApply(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			err = sdnAdapter.Apply(context.Background(), "", false)
+			err = sdnAdapter.Apply(context.Background(), "")
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -251,7 +251,7 @@ func TestSDNAdapterLockContextCancellation(t *testing.T) {
 			cancel()
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			_, err = sdnAdapter.Lock(ctx, 60*time.Second)
+			_, err = sdnAdapter.Lock(ctx, 60*time.Second, false)
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)
@@ -317,7 +317,7 @@ func TestSDNAdapterApplyTaskFailure(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			err = sdnAdapter.Apply(context.Background(), "", false)
+			err = sdnAdapter.Apply(context.Background(), "")
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)

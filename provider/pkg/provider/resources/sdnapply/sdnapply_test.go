@@ -31,20 +31,24 @@ import (
 )
 
 type mockSDNOperations struct {
-	applyFunc func(ctx context.Context, lockToken string, releaseLock bool) error
-	lockFunc  func(ctx context.Context, retryTimeout time.Duration) (string, error)
+	applyFunc func(ctx context.Context, lockToken string) error
+	lockFunc  func(ctx context.Context, retryTimeout time.Duration, allowPending bool) (string, error)
 }
 
-func (mock *mockSDNOperations) Lock(ctx context.Context, retryTimeout time.Duration) (string, error) {
+func (mock *mockSDNOperations) Lock(
+	ctx context.Context,
+	retryTimeout time.Duration,
+	allowPending bool,
+) (string, error) {
 	if mock.lockFunc != nil {
-		return mock.lockFunc(ctx, retryTimeout)
+		return mock.lockFunc(ctx, retryTimeout, allowPending)
 	}
 	return "", nil
 }
 
-func (mock *mockSDNOperations) Apply(ctx context.Context, lockToken string, releaseLock bool) error {
+func (mock *mockSDNOperations) Apply(ctx context.Context, lockToken string) error {
 	if mock.applyFunc != nil {
-		return mock.applyFunc(ctx, lockToken, releaseLock)
+		return mock.applyFunc(ctx, lockToken)
 	}
 	return nil
 }
@@ -94,7 +98,7 @@ func TestSDNApplyCreate(t *testing.T) {
 
 			var called bool
 			mock := &mockSDNOperations{
-				applyFunc: func(_ context.Context, _ string, _ bool) error {
+				applyFunc: func(_ context.Context, _ string) error {
 					called = true
 					return tt.applyErr
 				},
@@ -126,14 +130,14 @@ func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
 	lockTimeout := time.Duration(0)
 	applyCalled := false
 	mock := &mockSDNOperations{
-		lockFunc: func(_ context.Context, retryTimeout time.Duration) (string, error) {
+		lockFunc: func(_ context.Context, retryTimeout time.Duration, allowPending bool) (string, error) {
 			lockTimeout = retryTimeout
+			assert.True(t, allowPending)
 			return "lock-token", nil
 		},
-		applyFunc: func(_ context.Context, lockToken string, releaseLock bool) error {
+		applyFunc: func(_ context.Context, lockToken string) error {
 			applyCalled = true
 			assert.Equal(t, "lock-token", lockToken)
-			assert.True(t, releaseLock)
 			return nil
 		},
 	}
@@ -142,7 +146,7 @@ func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
 
 	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 		Name:   "test-sdn-apply",
-		Inputs: proxmox.SDNApplyInputs{},
+		Inputs: proxmox.SDNApplyInputs{AllowPending: true},
 	}
 
 	_, err := resource.Create(context.Background(), req)
@@ -156,7 +160,7 @@ func TestSDNApplyCreatePassesCustomTimeoutToLock(t *testing.T) {
 
 	lockTimeout := time.Duration(0)
 	mock := &mockSDNOperations{
-		lockFunc: func(_ context.Context, retryTimeout time.Duration) (string, error) {
+		lockFunc: func(_ context.Context, retryTimeout time.Duration, _ bool) (string, error) {
 			lockTimeout = retryTimeout
 			return "", errors.New("lock busy")
 		},
@@ -239,7 +243,7 @@ func TestSDNApplyUpdate(t *testing.T) {
 
 			var called bool
 			mock := &mockSDNOperations{
-				applyFunc: func(_ context.Context, _ string, _ bool) error {
+				applyFunc: func(_ context.Context, _ string) error {
 					called = true
 					return tt.applyErr
 				},
