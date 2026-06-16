@@ -19,7 +19,6 @@ package vxlanzone
 import (
 	"context"
 	"errors"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -46,19 +45,6 @@ type VxlanZone struct {
 	VxlanZoneOps proxmox.VxlanZoneOperations
 }
 
-func hasConfiguredVxlanZoneOps(ops proxmox.VxlanZoneOperations) bool {
-	if ops == nil {
-		return false
-	}
-
-	value := reflect.ValueOf(ops)
-	if value.Kind() == reflect.Pointer && value.IsNil() {
-		return false
-	}
-
-	return true
-}
-
 // Create creates a new VXLAN zone.
 func (sdnVxlanZone *VxlanZone) Create(
 	ctx context.Context,
@@ -76,7 +62,7 @@ func (sdnVxlanZone *VxlanZone) Create(
 		return response, nil
 	}
 
-	if !hasConfiguredVxlanZoneOps(sdnVxlanZone.VxlanZoneOps) {
+	if sdnVxlanZone.VxlanZoneOps == nil {
 		return response, errors.New("VxlanZoneOperations not configured")
 	}
 
@@ -94,7 +80,7 @@ func (sdnVxlanZone *VxlanZone) Delete(
 ) (infer.DeleteResponse, error) {
 	p.GetLogger(ctx).Debugf("Deleting SDN VXLAN zone: %s", request.State.Name)
 
-	if !hasConfiguredVxlanZoneOps(sdnVxlanZone.VxlanZoneOps) {
+	if sdnVxlanZone.VxlanZoneOps == nil {
 		return infer.DeleteResponse{}, errors.New("VxlanZoneOperations not configured")
 	}
 
@@ -125,7 +111,7 @@ func (sdnVxlanZone *VxlanZone) Update(
 		return response, nil
 	}
 
-	if !hasConfiguredVxlanZoneOps(sdnVxlanZone.VxlanZoneOps) {
+	if sdnVxlanZone.VxlanZoneOps == nil {
 		return response, errors.New("VxlanZoneOperations not configured")
 	}
 
@@ -145,7 +131,7 @@ func (sdnVxlanZone *VxlanZone) Read(
 
 	response := infer.ReadResponse[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs](request)
 
-	if !hasConfiguredVxlanZoneOps(sdnVxlanZone.VxlanZoneOps) {
+	if sdnVxlanZone.VxlanZoneOps == nil {
 		return response, errors.New("VxlanZoneOperations not configured")
 	}
 
@@ -160,7 +146,7 @@ func (sdnVxlanZone *VxlanZone) Read(
 
 	outputs, err := sdnVxlanZone.VxlanZoneOps.Get(ctx, zoneName)
 	if err != nil {
-		if utils.IsNotFound(err) || strings.Contains(err.Error(), "404 Not Found") {
+		if strings.Contains(err.Error(), "404 Not Found") {
 			response.ID = ""
 			response.State = proxmox.VxlanZoneOutputs{}
 			return response, nil
@@ -271,10 +257,15 @@ func (sdnVxlanZone *VxlanZone) Check(
 	hasFabric := inputs.Fabric != nil && *inputs.Fabric != ""
 	hasPeers := len(inputs.Peers) > 0
 
-	if hasFabric == hasPeers {
+	if hasFabric && hasPeers {
 		failures = append(failures, p.CheckFailure{
 			Property: "peers",
-			Reason:   "exactly one of fabric or peers must be provided, but not both",
+			Reason:   "exactly one of fabric or peers must be provided, not both",
+		})
+	} else if !hasFabric && !hasPeers {
+		failures = append(failures, p.CheckFailure{
+			Property: "peers",
+			Reason:   "one of fabric or peers must be provided",
 		})
 	}
 
