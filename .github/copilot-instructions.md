@@ -93,7 +93,7 @@ examples/                    # YAML/Go Pulumi programs for manual testing
   - `.github:fix-lint` — fix golangci-lint errors
   - `.github:new-resource` — scaffold a new resource
   - `.github:adapter-testing` — add/complete adapter unit tests
-  - `.github:debugging` — systematic approach to finding and fixing bugs
+  - `.github:debugging` — find and fix bugs systematically
 ```
 
 ---
