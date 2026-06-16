@@ -17,6 +17,13 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final ProviderArgs Empty = new ProviderArgs();
 
+    @Import(name="insecureIgnoreHostKey", json=true)
+    private @Nullable Output<Boolean> insecureIgnoreHostKey;
+
+    public Optional<Output<Boolean>> insecureIgnoreHostKey() {
+        return Optional.ofNullable(this.insecureIgnoreHostKey);
+    }
+
     @Import(name="insecureSkipVerify", json=true)
     private @Nullable Output<Boolean> insecureSkipVerify;
 
@@ -45,6 +52,13 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
         return this.pveUser;
     }
 
+    @Import(name="sshKnownHostsPath")
+    private @Nullable Output<String> sshKnownHostsPath;
+
+    public Optional<Output<String>> sshKnownHostsPath() {
+        return Optional.ofNullable(this.sshKnownHostsPath);
+    }
+
     @Import(name="sshPass", required=true)
     private Output<String> sshPass;
 
@@ -62,10 +76,12 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
     private ProviderArgs() {}
 
     private ProviderArgs(ProviderArgs $) {
+        this.insecureIgnoreHostKey = $.insecureIgnoreHostKey;
         this.insecureSkipVerify = $.insecureSkipVerify;
         this.pveToken = $.pveToken;
         this.pveUrl = $.pveUrl;
         this.pveUser = $.pveUser;
+        this.sshKnownHostsPath = $.sshKnownHostsPath;
         this.sshPass = $.sshPass;
         this.sshUser = $.sshUser;
     }
@@ -86,6 +102,15 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder(ProviderArgs defaults) {
             $ = new ProviderArgs(Objects.requireNonNull(defaults));
+        }
+
+        public Builder insecureIgnoreHostKey(@Nullable Output<Boolean> insecureIgnoreHostKey) {
+            $.insecureIgnoreHostKey = insecureIgnoreHostKey;
+            return this;
+        }
+
+        public Builder insecureIgnoreHostKey(Boolean insecureIgnoreHostKey) {
+            return insecureIgnoreHostKey(Output.of(insecureIgnoreHostKey));
         }
 
         public Builder insecureSkipVerify(@Nullable Output<Boolean> insecureSkipVerify) {
@@ -122,6 +147,15 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder pveUser(String pveUser) {
             return pveUser(Output.of(pveUser));
+        }
+
+        public Builder sshKnownHostsPath(@Nullable Output<String> sshKnownHostsPath) {
+            $.sshKnownHostsPath = sshKnownHostsPath;
+            return this;
+        }
+
+        public Builder sshKnownHostsPath(String sshKnownHostsPath) {
+            return sshKnownHostsPath(Output.of(sshKnownHostsPath));
         }
 
         public Builder sshPass(Output<String> sshPass) {

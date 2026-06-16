@@ -5,6 +5,9 @@ package io.github.hctamu.pve.sdnapply;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
+import com.pulumi.core.internal.Codegen;
+import java.lang.Boolean;
+import java.lang.Integer;
 import java.lang.Object;
 import java.lang.String;
 import java.util.Map;
@@ -16,6 +19,51 @@ import javax.annotation.Nullable;
 public final class SDNApplyArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final SDNApplyArgs Empty = new SDNApplyArgs();
+
+    /**
+     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+     * 
+     */
+    @Import(name="allowPending")
+    private @Nullable Output<Boolean> allowPending;
+
+    /**
+     * @return When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+     * 
+     */
+    public Optional<Output<Boolean>> allowPending() {
+        return Optional.ofNullable(this.allowPending);
+    }
+
+    /**
+     * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+     * 
+     */
+    @Import(name="applyTimeoutSeconds")
+    private @Nullable Output<Integer> applyTimeoutSeconds;
+
+    /**
+     * @return How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+     * 
+     */
+    public Optional<Output<Integer>> applyTimeoutSeconds() {
+        return Optional.ofNullable(this.applyTimeoutSeconds);
+    }
+
+    /**
+     * How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+     * 
+     */
+    @Import(name="lockTimeoutSeconds")
+    private @Nullable Output<Integer> lockTimeoutSeconds;
+
+    /**
+     * @return How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+     * 
+     */
+    public Optional<Output<Integer>> lockTimeoutSeconds() {
+        return Optional.ofNullable(this.lockTimeoutSeconds);
+    }
 
     /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
@@ -35,6 +83,9 @@ public final class SDNApplyArgs extends com.pulumi.resources.ResourceArgs {
     private SDNApplyArgs() {}
 
     private SDNApplyArgs(SDNApplyArgs $) {
+        this.allowPending = $.allowPending;
+        this.applyTimeoutSeconds = $.applyTimeoutSeconds;
+        this.lockTimeoutSeconds = $.lockTimeoutSeconds;
         this.triggers = $.triggers;
     }
 
@@ -54,6 +105,69 @@ public final class SDNApplyArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder(SDNApplyArgs defaults) {
             $ = new SDNApplyArgs(Objects.requireNonNull(defaults));
+        }
+
+        /**
+         * @param allowPending When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder allowPending(@Nullable Output<Boolean> allowPending) {
+            $.allowPending = allowPending;
+            return this;
+        }
+
+        /**
+         * @param allowPending When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder allowPending(Boolean allowPending) {
+            return allowPending(Output.of(allowPending));
+        }
+
+        /**
+         * @param applyTimeoutSeconds How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder applyTimeoutSeconds(@Nullable Output<Integer> applyTimeoutSeconds) {
+            $.applyTimeoutSeconds = applyTimeoutSeconds;
+            return this;
+        }
+
+        /**
+         * @param applyTimeoutSeconds How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder applyTimeoutSeconds(Integer applyTimeoutSeconds) {
+            return applyTimeoutSeconds(Output.of(applyTimeoutSeconds));
+        }
+
+        /**
+         * @param lockTimeoutSeconds How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder lockTimeoutSeconds(@Nullable Output<Integer> lockTimeoutSeconds) {
+            $.lockTimeoutSeconds = lockTimeoutSeconds;
+            return this;
+        }
+
+        /**
+         * @param lockTimeoutSeconds How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder lockTimeoutSeconds(Integer lockTimeoutSeconds) {
+            return lockTimeoutSeconds(Output.of(lockTimeoutSeconds));
         }
 
         /**
@@ -78,6 +192,8 @@ public final class SDNApplyArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         public SDNApplyArgs build() {
+            $.applyTimeoutSeconds = Codegen.integerProp("applyTimeoutSeconds").output().arg($.applyTimeoutSeconds).def(60).getNullable();
+            $.lockTimeoutSeconds = Codegen.integerProp("lockTimeoutSeconds").output().arg($.lockTimeoutSeconds).def(60).getNullable();
             return $;
         }
     }

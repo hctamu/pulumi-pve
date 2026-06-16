@@ -22,6 +22,7 @@ export class Provider extends pulumi.ProviderResource {
     declare public readonly pveToken: pulumi.Output<string>;
     declare public readonly pveUrl: pulumi.Output<string>;
     declare public readonly pveUser: pulumi.Output<string>;
+    declare public readonly sshKnownHostsPath: pulumi.Output<string | undefined>;
     declare public readonly sshPass: pulumi.Output<string>;
     declare public readonly sshUser: pulumi.Output<string>;
 
@@ -51,10 +52,12 @@ export class Provider extends pulumi.ProviderResource {
             if (args?.sshUser === undefined && !opts.urn) {
                 throw new Error("Missing required property 'sshUser'");
             }
+            resourceInputs["insecureIgnoreHostKey"] = pulumi.output(args?.insecureIgnoreHostKey).apply(JSON.stringify);
             resourceInputs["insecureSkipVerify"] = pulumi.output(args?.insecureSkipVerify).apply(JSON.stringify);
             resourceInputs["pveToken"] = args?.pveToken ? pulumi.secret(args.pveToken) : undefined;
             resourceInputs["pveUrl"] = args?.pveUrl;
             resourceInputs["pveUser"] = args?.pveUser;
+            resourceInputs["sshKnownHostsPath"] = args?.sshKnownHostsPath;
             resourceInputs["sshPass"] = args?.sshPass ? pulumi.secret(args.sshPass) : undefined;
             resourceInputs["sshUser"] = args?.sshUser;
         }
@@ -69,10 +72,12 @@ export class Provider extends pulumi.ProviderResource {
  * The set of arguments for constructing a Provider resource.
  */
 export interface ProviderArgs {
+    insecureIgnoreHostKey?: pulumi.Input<boolean>;
     insecureSkipVerify?: pulumi.Input<boolean>;
     pveToken: pulumi.Input<string>;
     pveUrl: pulumi.Input<string>;
     pveUser: pulumi.Input<string>;
+    sshKnownHostsPath?: pulumi.Input<string>;
     sshPass: pulumi.Input<string>;
     sshUser: pulumi.Input<string>;
 }

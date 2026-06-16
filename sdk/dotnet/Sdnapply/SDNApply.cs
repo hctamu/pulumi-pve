@@ -17,6 +17,24 @@ namespace Hctamu.Pve.Sdnapply
     public partial class SDNApply : global::Pulumi.CustomResource
     {
         /// <summary>
+        /// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+        /// </summary>
+        [Output("allowPending")]
+        public Output<bool?> AllowPending { get; private set; } = null!;
+
+        /// <summary>
+        /// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+        /// </summary>
+        [Output("applyTimeoutSeconds")]
+        public Output<int?> ApplyTimeoutSeconds { get; private set; } = null!;
+
+        /// <summary>
+        /// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+        /// </summary>
+        [Output("lockTimeoutSeconds")]
+        public Output<int?> LockTimeoutSeconds { get; private set; } = null!;
+
+        /// <summary>
         /// Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
         /// </summary>
         [Output("triggers")]
@@ -68,6 +86,24 @@ namespace Hctamu.Pve.Sdnapply
 
     public sealed class SDNApplyArgs : global::Pulumi.ResourceArgs
     {
+        /// <summary>
+        /// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+        /// </summary>
+        [Input("allowPending")]
+        public Input<bool>? AllowPending { get; set; }
+
+        /// <summary>
+        /// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+        /// </summary>
+        [Input("applyTimeoutSeconds")]
+        public Input<int>? ApplyTimeoutSeconds { get; set; }
+
+        /// <summary>
+        /// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+        /// </summary>
+        [Input("lockTimeoutSeconds")]
+        public Input<int>? LockTimeoutSeconds { get; set; }
+
         [Input("triggers")]
         private InputMap<object>? _triggers;
 
@@ -82,6 +118,8 @@ namespace Hctamu.Pve.Sdnapply
 
         public SDNApplyArgs()
         {
+            ApplyTimeoutSeconds = 60;
+            LockTimeoutSeconds = 60;
         }
         public static new SDNApplyArgs Empty => new SDNApplyArgs();
     }

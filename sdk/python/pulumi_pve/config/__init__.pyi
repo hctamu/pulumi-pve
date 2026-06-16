@@ -14,6 +14,8 @@ else:
     from typing_extensions import NotRequired, TypedDict, TypeAlias
 from .. import _utilities
 
+insecureIgnoreHostKey: Optional[bool]
+
 insecureSkipVerify: Optional[bool]
 
 pveToken: Optional[str]
@@ -21,6 +23,8 @@ pveToken: Optional[str]
 pveUrl: Optional[str]
 
 pveUser: Optional[str]
+
+sshKnownHostsPath: Optional[str]
 
 sshPass: Optional[str]
 

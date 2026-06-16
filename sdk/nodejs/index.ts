@@ -23,6 +23,7 @@ import * as sdnapply from "./sdnapply";
 import * as types from "./types";
 import * as user from "./user";
 import * as vm from "./vm";
+import * as vxlanzone from "./vxlanzone";
 
 export {
     acl,
@@ -36,6 +37,7 @@ export {
     types,
     user,
     vm,
+    vxlanzone,
 };
 pulumi.runtime.registerResourcePackage("pve", {
     version: utilities.getVersion(),
