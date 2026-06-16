@@ -102,6 +102,56 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 		})
 	}
 
+	t.Run("serializes booleans as proxmox 1/0", func(t *testing.T) {
+		t.Parallel()
+
+		inputs := proxmox.SdnVnetInputs{
+			Vnet:         "vpool3",
+			Zone:         "ringfence",
+			Tag:          10003,
+			Vlanaware:    true,
+			IsolatePorts: true,
+		}
+
+		server, _ := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, _ *http.Request, capturedReq *testutils.MockRequest) {
+				// api.IntOrBool marshals to 1/0, not true/false.
+				assert.Contains(t, capturedReq.Body, "\"vlanaware\":1")
+				assert.Contains(t, capturedReq.Body, "\"isolate-ports\":1")
+
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
+		defer server.Close()
+
+		err := newSdnVnetAdapter(t, server.URL).Create(context.Background(), inputs)
+		require.NoError(t, err)
+	})
+
+	t.Run("serializes false booleans explicitly", func(t *testing.T) {
+		t.Parallel()
+
+		inputs := proxmox.SdnVnetInputs{Vnet: "vpool4", Zone: "ringfence", Tag: 10004}
+
+		server, _ := testutils.CreateMockServer(
+			t,
+			func(w http.ResponseWriter, _ *http.Request, capturedReq *testutils.MockRequest) {
+				// Pointers are always set, so false must be sent as 0 (not omitted).
+				assert.Contains(t, capturedReq.Body, "\"vlanaware\":0")
+				assert.Contains(t, capturedReq.Body, "\"isolate-ports\":0")
+
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"data": null}`))
+			},
+		)
+		defer server.Close()
+
+		err := newSdnVnetAdapter(t, server.URL).Create(context.Background(), inputs)
+		require.NoError(t, err)
+	})
+
 	t.Run("API error", func(t *testing.T) {
 		t.Parallel()
 
@@ -127,11 +177,15 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 		t.Parallel()
 
 		apiResponse := proxmox.SdnVnetResponse{
-			Vnet:  "vpool1",
-			Zone:  "ringfence",
-			Tag:   10001,
-			Alias: "pool 1",
-			Type:  "vnet",
+			Vnet:         "vpool1",
+			Zone:         "ringfence",
+			Tag:          10001,
+			Alias:        "pool 1",
+			Type:         "vnet",
+			Vlanaware:    true,
+			IsolatePorts: true,
+			State:        "changed",
+			Digest:       "abc123",
 		}
 
 		server, captured := testutils.CreateMockServer(
@@ -156,6 +210,10 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 		assert.Equal(t, "ringfence", outputs.Zone)
 		assert.Equal(t, 10001, outputs.Tag)
 		assert.Equal(t, "pool 1", outputs.Alias)
+		assert.True(t, outputs.Vlanaware)
+		assert.True(t, outputs.IsolatePorts)
+		assert.Equal(t, "changed", outputs.State)
+		assert.Equal(t, "abc123", outputs.Digest)
 
 		assert.Equal(t, http.MethodGet, captured.Method)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool1", captured.Path)
@@ -208,7 +266,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 	t.Run("update zone and tag", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "zone2", Tag: 20001, Alias: "pool 1"}
+		inputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "zone2", Tag: 20001, Alias: "pool 1", Vlanaware: true}
 		oldOutputs := proxmox.SdnVnetOutputs{
 			SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
 		}
@@ -226,6 +284,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 				assert.Equal(t, 20001, body.Tag)
 				assert.Equal(t, "pool 1", body.Alias)
 				assert.Empty(t, body.Delete)
+				assert.Contains(t, capturedReq.Body, "\"vlanaware\":1")
 
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte(`{"data": null}`))
