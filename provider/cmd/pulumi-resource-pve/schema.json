@@ -40,6 +40,9 @@
   },
   "config": {
     "variables": {
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -51,6 +54,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshPass": {
@@ -282,6 +288,9 @@
       "pveUser": {
         "type": "string"
       },
+      "sshKnownHostsPath": {
+        "type": "string"
+      },
       "sshPass": {
         "type": "string",
         "secret": true
@@ -299,6 +308,9 @@
       "sshUser"
     ],
     "inputProperties": {
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -310,6 +322,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshPass": {
@@ -624,7 +639,16 @@
     "pve:sdnapply:SDNApply": {
       "description": "Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.",
       "properties": {
-        "retryTimeoutSeconds": {
+        "allowPending": {
+          "type": "boolean",
+          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
+        },
+        "applyTimeoutSeconds": {
+          "type": "integer",
+          "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
+          "default": 60
+        },
+        "lockTimeoutSeconds": {
           "type": "integer",
           "description": "How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
           "default": 60
@@ -639,7 +663,16 @@
       },
       "type": "object",
       "inputProperties": {
-        "retryTimeoutSeconds": {
+        "allowPending": {
+          "type": "boolean",
+          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
+        },
+        "applyTimeoutSeconds": {
+          "type": "integer",
+          "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
+          "default": 60
+        },
+        "lockTimeoutSeconds": {
           "type": "integer",
           "description": "How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
           "default": 60
@@ -925,10 +958,6 @@
     "pve:vxlanzone:VxlanZone": {
       "description": "A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.",
       "properties": {
-        "dhcp": {
-          "type": "string",
-          "description": "DHCP plugin ID associated with this zone."
-        },
         "dns": {
           "type": "string",
           "description": "DNS plugin ID associated with this zone."
@@ -980,13 +1009,10 @@
       },
       "type": "object",
       "required": [
+        "ipam",
         "name"
       ],
       "inputProperties": {
-        "dhcp": {
-          "type": "string",
-          "description": "DHCP plugin ID associated with this zone."
-        },
         "dns": {
           "type": "string",
           "description": "DNS plugin ID associated with this zone."
@@ -1037,6 +1063,7 @@
         }
       },
       "requiredInputs": [
+        "ipam",
         "name"
       ]
     }

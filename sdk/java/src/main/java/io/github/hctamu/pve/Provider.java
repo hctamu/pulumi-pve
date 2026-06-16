@@ -11,6 +11,7 @@ import io.github.hctamu.pve.ProviderArgs;
 import io.github.hctamu.pve.Utilities;
 import java.lang.String;
 import java.util.List;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 @ResourceType(type="pulumi:providers:pve")
@@ -32,6 +33,12 @@ public class Provider extends com.pulumi.resources.ProviderResource {
 
     public Output<String> pveUser() {
         return this.pveUser;
+    }
+    @Export(name="sshKnownHostsPath", refs={String.class}, tree="[0]")
+    private Output</* @Nullable */ String> sshKnownHostsPath;
+
+    public Output<Optional<String>> sshKnownHostsPath() {
+        return Codegen.optional(this.sshKnownHostsPath);
     }
     @Export(name="sshPass", refs={String.class}, tree="[0]")
     private Output<String> sshPass;

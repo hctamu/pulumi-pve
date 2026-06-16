@@ -15,6 +15,12 @@ import (
 type SDNApply struct {
 	pulumi.CustomResourceState
 
+	// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+	AllowPending pulumi.BoolPtrOutput `pulumi:"allowPending"`
+	// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+	ApplyTimeoutSeconds pulumi.IntPtrOutput `pulumi:"applyTimeoutSeconds"`
+	// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+	LockTimeoutSeconds pulumi.IntPtrOutput `pulumi:"lockTimeoutSeconds"`
 	// Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
 	Triggers pulumi.MapOutput `pulumi:"triggers"`
 }
@@ -26,6 +32,12 @@ func NewSDNApply(ctx *pulumi.Context,
 		args = &SDNApplyArgs{}
 	}
 
+	if args.ApplyTimeoutSeconds == nil {
+		args.ApplyTimeoutSeconds = pulumi.IntPtr(60)
+	}
+	if args.LockTimeoutSeconds == nil {
+		args.LockTimeoutSeconds = pulumi.IntPtr(60)
+	}
 	opts = internal.PkgResourceDefaultOpts(opts)
 	var resource SDNApply
 	err := ctx.RegisterResource("pve:sdnapply:SDNApply", name, args, &resource, opts...)
@@ -59,12 +71,24 @@ func (SDNApplyState) ElementType() reflect.Type {
 }
 
 type sdnapplyArgs struct {
+	// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+	AllowPending *bool `pulumi:"allowPending"`
+	// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+	ApplyTimeoutSeconds *int `pulumi:"applyTimeoutSeconds"`
+	// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+	LockTimeoutSeconds *int `pulumi:"lockTimeoutSeconds"`
 	// Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
 	Triggers map[string]interface{} `pulumi:"triggers"`
 }
 
 // The set of arguments for constructing a SDNApply resource.
 type SDNApplyArgs struct {
+	// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+	AllowPending pulumi.BoolPtrInput
+	// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+	ApplyTimeoutSeconds pulumi.IntPtrInput
+	// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+	LockTimeoutSeconds pulumi.IntPtrInput
 	// Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
 	Triggers pulumi.MapInput
 }
@@ -154,6 +178,21 @@ func (o SDNApplyOutput) ToSDNApplyOutput() SDNApplyOutput {
 
 func (o SDNApplyOutput) ToSDNApplyOutputWithContext(ctx context.Context) SDNApplyOutput {
 	return o
+}
+
+// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+func (o SDNApplyOutput) AllowPending() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v *SDNApply) pulumi.BoolPtrOutput { return v.AllowPending }).(pulumi.BoolPtrOutput)
+}
+
+// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+func (o SDNApplyOutput) ApplyTimeoutSeconds() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *SDNApply) pulumi.IntPtrOutput { return v.ApplyTimeoutSeconds }).(pulumi.IntPtrOutput)
+}
+
+// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+func (o SDNApplyOutput) LockTimeoutSeconds() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *SDNApply) pulumi.IntPtrOutput { return v.LockTimeoutSeconds }).(pulumi.IntPtrOutput)
 }
 
 // Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.

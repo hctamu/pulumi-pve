@@ -9,6 +9,8 @@ import com.pulumi.core.annotations.ResourceType;
 import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.sdnapply.SDNApplyArgs;
+import java.lang.Boolean;
+import java.lang.Integer;
 import java.lang.Object;
 import java.lang.String;
 import java.util.Map;
@@ -21,6 +23,48 @@ import javax.annotation.Nullable;
  */
 @ResourceType(type="pve:sdnapply:SDNApply")
 public class SDNApply extends com.pulumi.resources.CustomResource {
+    /**
+     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+     * 
+     */
+    @Export(name="allowPending", refs={Boolean.class}, tree="[0]")
+    private Output</* @Nullable */ Boolean> allowPending;
+
+    /**
+     * @return When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+     * 
+     */
+    public Output<Optional<Boolean>> allowPending() {
+        return Codegen.optional(this.allowPending);
+    }
+    /**
+     * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+     * 
+     */
+    @Export(name="applyTimeoutSeconds", refs={Integer.class}, tree="[0]")
+    private Output</* @Nullable */ Integer> applyTimeoutSeconds;
+
+    /**
+     * @return How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+     * 
+     */
+    public Output<Optional<Integer>> applyTimeoutSeconds() {
+        return Codegen.optional(this.applyTimeoutSeconds);
+    }
+    /**
+     * How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+     * 
+     */
+    @Export(name="lockTimeoutSeconds", refs={Integer.class}, tree="[0]")
+    private Output</* @Nullable */ Integer> lockTimeoutSeconds;
+
+    /**
+     * @return How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+     * 
+     */
+    public Output<Optional<Integer>> lockTimeoutSeconds() {
+        return Codegen.optional(this.lockTimeoutSeconds);
+    }
     /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
      * 

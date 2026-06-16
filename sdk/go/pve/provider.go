@@ -15,11 +15,12 @@ import (
 type Provider struct {
 	pulumi.ProviderResourceState
 
-	PveToken pulumi.StringOutput `pulumi:"pveToken"`
-	PveUrl   pulumi.StringOutput `pulumi:"pveUrl"`
-	PveUser  pulumi.StringOutput `pulumi:"pveUser"`
-	SshPass  pulumi.StringOutput `pulumi:"sshPass"`
-	SshUser  pulumi.StringOutput `pulumi:"sshUser"`
+	PveToken          pulumi.StringOutput    `pulumi:"pveToken"`
+	PveUrl            pulumi.StringOutput    `pulumi:"pveUrl"`
+	PveUser           pulumi.StringOutput    `pulumi:"pveUser"`
+	SshKnownHostsPath pulumi.StringPtrOutput `pulumi:"sshKnownHostsPath"`
+	SshPass           pulumi.StringOutput    `pulumi:"sshPass"`
+	SshUser           pulumi.StringOutput    `pulumi:"sshUser"`
 }
 
 // NewProvider registers a new resource with the given unique name, arguments, and options.
@@ -65,22 +66,26 @@ func NewProvider(ctx *pulumi.Context,
 }
 
 type providerArgs struct {
-	InsecureSkipVerify *bool  `pulumi:"insecureSkipVerify"`
-	PveToken           string `pulumi:"pveToken"`
-	PveUrl             string `pulumi:"pveUrl"`
-	PveUser            string `pulumi:"pveUser"`
-	SshPass            string `pulumi:"sshPass"`
-	SshUser            string `pulumi:"sshUser"`
+	InsecureIgnoreHostKey *bool   `pulumi:"insecureIgnoreHostKey"`
+	InsecureSkipVerify    *bool   `pulumi:"insecureSkipVerify"`
+	PveToken              string  `pulumi:"pveToken"`
+	PveUrl                string  `pulumi:"pveUrl"`
+	PveUser               string  `pulumi:"pveUser"`
+	SshKnownHostsPath     *string `pulumi:"sshKnownHostsPath"`
+	SshPass               string  `pulumi:"sshPass"`
+	SshUser               string  `pulumi:"sshUser"`
 }
 
 // The set of arguments for constructing a Provider resource.
 type ProviderArgs struct {
-	InsecureSkipVerify pulumi.BoolPtrInput
-	PveToken           pulumi.StringInput
-	PveUrl             pulumi.StringInput
-	PveUser            pulumi.StringInput
-	SshPass            pulumi.StringInput
-	SshUser            pulumi.StringInput
+	InsecureIgnoreHostKey pulumi.BoolPtrInput
+	InsecureSkipVerify    pulumi.BoolPtrInput
+	PveToken              pulumi.StringInput
+	PveUrl                pulumi.StringInput
+	PveUser               pulumi.StringInput
+	SshKnownHostsPath     pulumi.StringPtrInput
+	SshPass               pulumi.StringInput
+	SshUser               pulumi.StringInput
 }
 
 func (ProviderArgs) ElementType() reflect.Type {
@@ -130,6 +135,10 @@ func (o ProviderOutput) PveUrl() pulumi.StringOutput {
 
 func (o ProviderOutput) PveUser() pulumi.StringOutput {
 	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.PveUser }).(pulumi.StringOutput)
+}
+
+func (o ProviderOutput) SshKnownHostsPath() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.SshKnownHostsPath }).(pulumi.StringPtrOutput)
 }
 
 func (o ProviderOutput) SshPass() pulumi.StringOutput {

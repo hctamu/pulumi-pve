@@ -11,6 +11,9 @@ import java.util.Optional;
 public final class Config {
 
     private static final com.pulumi.Config config = com.pulumi.Config.of("pve");
+    public Optional<Boolean> insecureIgnoreHostKey() {
+        return Codegen.booleanProp("insecureIgnoreHostKey").config(config).get();
+    }
     public Optional<Boolean> insecureSkipVerify() {
         return Codegen.booleanProp("insecureSkipVerify").config(config).get();
     }
@@ -22,6 +25,9 @@ public final class Config {
     }
     public String pveUser() {
         return Codegen.stringProp("pveUser").config(config).require();
+    }
+    public Optional<String> sshKnownHostsPath() {
+        return Codegen.stringProp("sshKnownHostsPath").config(config).get();
     }
     public String sshPass() {
         return Codegen.stringProp("sshPass").config(config).require();

@@ -38,6 +38,8 @@
         "user/user.ts",
         "utilities.ts",
         "vm/index.ts",
-        "vm/vm.ts"
+        "vm/vm.ts",
+        "vxlanzone/index.ts",
+        "vxlanzone/vxlanZone.ts"
     ]
 }

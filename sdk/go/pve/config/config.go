@@ -11,6 +11,9 @@ import (
 
 var _ = internal.GetEnvOrDefault
 
+func GetInsecureIgnoreHostKey(ctx *pulumi.Context) bool {
+	return config.GetBool(ctx, "pve:insecureIgnoreHostKey")
+}
 func GetInsecureSkipVerify(ctx *pulumi.Context) bool {
 	return config.GetBool(ctx, "pve:insecureSkipVerify")
 }
@@ -22,6 +25,9 @@ func GetPveUrl(ctx *pulumi.Context) string {
 }
 func GetPveUser(ctx *pulumi.Context) string {
 	return config.Get(ctx, "pve:pveUser")
+}
+func GetSshKnownHostsPath(ctx *pulumi.Context) string {
+	return config.Get(ctx, "pve:sshKnownHostsPath")
 }
 func GetSshPass(ctx *pulumi.Context) string {
 	return config.Get(ctx, "pve:sshPass")

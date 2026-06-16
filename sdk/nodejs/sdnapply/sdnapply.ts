@@ -35,6 +35,18 @@ export class SDNApply extends pulumi.CustomResource {
     }
 
     /**
+     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+     */
+    declare public readonly allowPending: pulumi.Output<boolean | undefined>;
+    /**
+     * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+     */
+    declare public readonly applyTimeoutSeconds: pulumi.Output<number | undefined>;
+    /**
+     * How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+     */
+    declare public readonly lockTimeoutSeconds: pulumi.Output<number | undefined>;
+    /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
      */
     declare public readonly triggers: pulumi.Output<{[key: string]: any} | undefined>;
@@ -50,8 +62,14 @@ export class SDNApply extends pulumi.CustomResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
+            resourceInputs["allowPending"] = args?.allowPending;
+            resourceInputs["applyTimeoutSeconds"] = (args?.applyTimeoutSeconds) ?? 60;
+            resourceInputs["lockTimeoutSeconds"] = (args?.lockTimeoutSeconds) ?? 60;
             resourceInputs["triggers"] = args?.triggers;
         } else {
+            resourceInputs["allowPending"] = undefined /*out*/;
+            resourceInputs["applyTimeoutSeconds"] = undefined /*out*/;
+            resourceInputs["lockTimeoutSeconds"] = undefined /*out*/;
             resourceInputs["triggers"] = undefined /*out*/;
         }
         opts = pulumi.mergeOptions(utilities.resourceOptsDefaults(), opts);
@@ -63,6 +81,18 @@ export class SDNApply extends pulumi.CustomResource {
  * The set of arguments for constructing a SDNApply resource.
  */
 export interface SDNApplyArgs {
+    /**
+     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
+     */
+    allowPending?: pulumi.Input<boolean>;
+    /**
+     * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
+     */
+    applyTimeoutSeconds?: pulumi.Input<number>;
+    /**
+     * How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
+     */
+    lockTimeoutSeconds?: pulumi.Input<number>;
     /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
      */
