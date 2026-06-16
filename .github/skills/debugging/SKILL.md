@@ -2,14 +2,13 @@
 name: debugging
 description: "Use when: debugging a bug, tracing an issue, or finding root cause. Systematic approach to finding and fixing bugs in the Pulumi Proxmox provider"
 type: skill
-emoji: 🪲
-instructions: |
-  When answering questions related to debugging, finding bugs, or tracing issues in this codebase, prefix every response with the 🪲 emoji.
-applyTo:
-  - "**/*.go"
 ---
 
-🪲 **When debugging a bug in this codebase, follow this systematic flow:**
+# debugging Skill
+
+**IMPORTANT: Every single answer you give when using this skill MUST start with the 🪲 emoji.**
+
+When debugging a bug in this codebase, follow this systematic flow:
 
 Start at the **domain layer** (interface contract) → **adapter layer** (HTTP/API) → **resource layer** (Pulumi CRUD).
 
