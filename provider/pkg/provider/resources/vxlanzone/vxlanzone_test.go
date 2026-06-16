@@ -492,6 +492,79 @@ func TestVxlanZoneCheck(t *testing.T) {
 				"ipam":  property.New("pve"),
 			}),
 		},
+		{
+			name: "mtu zero",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan1"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+				"mtu":   property.New(float64(0)),
+			}),
+			expectFail:   true,
+			failProperty: "mtu",
+		},
+		{
+			name: "mtu negative",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan1"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+				"mtu":   property.New(float64(-1)),
+			}),
+			expectFail:   true,
+			failProperty: "mtu",
+		},
+		{
+			name: "mtu at limit 9000",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan1"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+				"mtu":   property.New(float64(9000)),
+			}),
+			expectFail:   true,
+			failProperty: "mtu",
+		},
+		{
+			name: "mtu valid",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("vxlan1"),
+				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":  property.New("pve"),
+				"mtu":   property.New(float64(1450)),
+			}),
+		},
+		{
+			name: "vxlanPort zero",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":      property.New("vxlan1"),
+				"peers":     property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":      property.New("pve"),
+				"vxlanPort": property.New(float64(0)),
+			}),
+			expectFail:   true,
+			failProperty: "vxlanPort",
+		},
+		{
+			name: "vxlanPort above 65535",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":      property.New("vxlan1"),
+				"peers":     property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":      property.New("pve"),
+				"vxlanPort": property.New(float64(65536)),
+			}),
+			expectFail:   true,
+			failProperty: "vxlanPort",
+		},
+		{
+			name: "vxlanPort valid",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":      property.New("vxlan1"),
+				"peers":     property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
+				"ipam":      property.New("pve"),
+				"vxlanPort": property.New(float64(4789)),
+			}),
+		},
 	}
 
 	for _, tt := range tests {
