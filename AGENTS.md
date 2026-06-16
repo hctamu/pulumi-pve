@@ -285,6 +285,18 @@ The Makefile exports `PULUMI_IGNORE_AMBIENT_PLUGINS=true` automatically; set it 
 
 Alternative swap-in program files in `examples/yaml/`: `Pulumi.vm.yaml` (VM only), `Pulumi.empty.yaml` (connectivity test only).
 
+
+### Testing a new resource
+
+To test a new resource against the real cluster, edit `examples/yaml/Pulumi.yaml` 
+
+1. Comment out resources that are not under test (to avoid side effects).
+2. Add your new resource definition.
+3. Run `make provider && make update` (not `make up` — the stack already exists).
+4. Verify with `make refresh` (should show 0 changes).
+5. Clean up with `make down`.
+6. Restore `Pulumi.yaml` to its original state after the test.
+
 ---
 
 ## Provider Configuration

@@ -40,6 +40,9 @@
       "insecureIgnoreHostKey": {
         "type": "boolean"
       },
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -51,6 +54,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshKnownHostsPath": {
@@ -278,6 +284,9 @@
       "insecureIgnoreHostKey": {
         "type": "boolean"
       },
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -289,6 +298,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshKnownHostsPath": {
@@ -313,6 +325,9 @@
       "insecureIgnoreHostKey": {
         "type": "boolean"
       },
+      "insecureIgnoreHostKey": {
+        "type": "boolean"
+      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -324,6 +339,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshKnownHostsPath": {
@@ -632,54 +650,80 @@
         "name"
       ]
     },
-    "pve:sdnapply:SDNApply": {
-      "description": "Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.",
+    "pve:sdn:Vnet": {
+      "description": "A Proxmox SDN VNet resource that defines a per-zone virtual network materialized as a bridge on each node after SdnApply runs.",
       "properties": {
-        "allowPending": {
+        "alias": {
+          "type": "string",
+          "description": "An optional descriptive alias for the VNet."
+        },
+        "digest": {
+          "type": "string",
+          "description": "Read-only digest of the VNet configuration section, used by Proxmox for change detection."
+        },
+        "isolatePorts": {
           "type": "boolean",
-          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
+          "description": "If true, sets the isolated property for all interfaces on the bridge of this VNet."
         },
-        "applyTimeoutSeconds": {
+        "state": {
+          "type": "string",
+          "description": "Read-only pending-apply state of the VNet (\"new\", \"changed\", or \"deleted\"); empty once the config has been applied."
+        },
+        "tag": {
           "type": "integer",
-          "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
-          "default": 60
+          "description": "The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number)."
         },
-        "lockTimeoutSeconds": {
-          "type": "integer",
-          "description": "How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
-          "default": 60
+        "vlanaware": {
+          "type": "boolean",
+          "description": "If true, allow guest VLANs to pass through (trunk) this VNet."
         },
-        "triggers": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "pulumi.json#/Any"
-          },
-          "description": "Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed."
+        "vnet": {
+          "type": "string",
+          "description": "The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
+          "replaceOnChanges": true
+        },
+        "zone": {
+          "type": "string",
+          "description": "The SDN zone this VNet belongs to (e.g. \"ringfence\")."
         }
       },
+      "required": [
+        "vnet",
+        "zone",
+        "tag"
+      ],
       "inputProperties": {
-        "allowPending": {
+        "alias": {
+          "type": "string",
+          "description": "An optional descriptive alias for the VNet."
+        },
+        "isolatePorts": {
           "type": "boolean",
-          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
+          "description": "If true, sets the isolated property for all interfaces on the bridge of this VNet."
         },
-        "applyTimeoutSeconds": {
+        "tag": {
           "type": "integer",
-          "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
-          "default": 60
+          "description": "The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number)."
         },
-        "lockTimeoutSeconds": {
-          "type": "integer",
-          "description": "How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
-          "default": 60
+        "vlanaware": {
+          "type": "boolean",
+          "description": "If true, allow guest VLANs to pass through (trunk) this VNet."
         },
-        "triggers": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "pulumi.json#/Any"
-          },
-          "description": "Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed."
+        "vnet": {
+          "type": "string",
+          "description": "The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
+          "replaceOnChanges": true
+        },
+        "zone": {
+          "type": "string",
+          "description": "The SDN zone this VNet belongs to (e.g. \"ringfence\")."
         }
-      }
+      },
+      "requiredInputs": [
+        "vnet",
+        "zone",
+        "tag"
+      ]
     },
     "pve:user:User": {
       "description": "A Proxmox user resource that represents a user in the Proxmox VE.",

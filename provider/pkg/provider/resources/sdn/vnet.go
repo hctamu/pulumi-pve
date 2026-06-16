@@ -26,22 +26,22 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
-// Ensure SdnVnet implements the required interfaces.
+// Ensure Vnet implements the required interfaces.
 var (
-	_ = (infer.CustomResource[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*SdnVnet)(nil))
-	_ = (infer.CustomDelete[proxmox.SdnVnetOutputs])((*SdnVnet)(nil))
-	_ = (infer.CustomUpdate[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*SdnVnet)(nil))
-	_ = (infer.CustomRead[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*SdnVnet)(nil))
-	_ = infer.Annotated((*SdnVnet)(nil))
+	_ = (infer.CustomResource[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomDelete[proxmox.SdnVnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomUpdate[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomRead[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
+	_ = infer.Annotated((*Vnet)(nil))
 )
 
-// SdnVnet represents a Proxmox SDN VNet resource.
-type SdnVnet struct {
+// Vnet represents a Proxmox SDN VNet resource.
+type Vnet struct {
 	SdnVnetOps proxmox.SdnVnetOperations
 }
 
 // Create creates a new VNet resource.
-func (vnet *SdnVnet) Create(
+func (vnet *Vnet) Create(
 	ctx context.Context,
 	request infer.CreateRequest[proxmox.SdnVnetInputs],
 ) (infer.CreateResponse[proxmox.SdnVnetOutputs], error) {
@@ -74,7 +74,7 @@ func (vnet *SdnVnet) Create(
 }
 
 // Read reads the current state of a VNet resource.
-func (vnet *SdnVnet) Read(
+func (vnet *Vnet) Read(
 	ctx context.Context,
 	request infer.ReadRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs],
 ) (infer.ReadResponse[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs], error) {
@@ -104,7 +104,7 @@ func (vnet *SdnVnet) Read(
 }
 
 // Update updates an existing VNet resource.
-func (vnet *SdnVnet) Update(
+func (vnet *Vnet) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs],
 ) (infer.UpdateResponse[proxmox.SdnVnetOutputs], error) {
@@ -130,7 +130,7 @@ func (vnet *SdnVnet) Update(
 }
 
 // Delete deletes an existing VNet resource.
-func (vnet *SdnVnet) Delete(
+func (vnet *Vnet) Delete(
 	ctx context.Context,
 	request infer.DeleteRequest[proxmox.SdnVnetOutputs],
 ) (infer.DeleteResponse, error) {
@@ -150,7 +150,7 @@ func (vnet *SdnVnet) Delete(
 }
 
 // Annotate adds a description to the VNet resource.
-func (vnet *SdnVnet) Annotate(a infer.Annotator) {
+func (vnet *Vnet) Annotate(a infer.Annotator) {
 	a.Describe(
 		vnet,
 		"A Proxmox SDN VNet resource that defines a per-zone virtual network "+

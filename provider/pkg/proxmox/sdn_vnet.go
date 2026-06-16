@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"regexp"
 
+	api "github.com/luthermonson/go-proxmox"
+
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
@@ -44,7 +46,7 @@ var vnetNameRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 
 // ValidateVnetName checks the Proxmox 8-character alphanumeric limit for VNet names.
 func ValidateVnetName(ctx context.Context, name string) error {
-	if len(name) == 0 || len(name) > 8 {
+	if name == "" || len(name) > 8 {
 		err := fmt.Errorf("invalid vnet name %q: must be 1-8 characters", name)
 		p.GetLogger(ctx).Error(err.Error())
 		return err
@@ -59,10 +61,12 @@ func ValidateVnetName(ctx context.Context, name string) error {
 
 // SdnVnetInputs represents the input properties for the SDN VNet resource.
 type SdnVnetInputs struct {
-	Vnet  string `pulumi:"vnet"           provider:"replaceOnChanges"`
-	Zone  string `pulumi:"zone"`
-	Tag   int    `pulumi:"tag"`
-	Alias string `pulumi:"alias,optional"`
+	Vnet         string `pulumi:"vnet"                provider:"replaceOnChanges"`
+	Zone         string `pulumi:"zone"`
+	Tag          int    `pulumi:"tag"`
+	Alias        string `pulumi:"alias,optional"`
+	Vlanaware    bool   `pulumi:"vlanaware,optional"`
+	IsolatePorts bool   `pulumi:"isolatePorts,optional"`
 }
 
 // Annotate adds descriptions to the input properties for documentation and schema generation.
@@ -74,27 +78,54 @@ func (inputs *SdnVnetInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Zone, "The SDN zone this VNet belongs to (e.g. \"ringfence\").")
 	a.Describe(&inputs.Tag, "The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number).")
 	a.Describe(&inputs.Alias, "An optional descriptive alias for the VNet.")
+	a.Describe(&inputs.Vlanaware, "If true, allow guest VLANs to pass through (trunk) this VNet.")
+	a.Describe(
+		&inputs.IsolatePorts,
+		"If true, sets the isolated property for all interfaces on the bridge of this VNet.",
+	)
 }
 
 // SdnVnetOutputs represents the output properties for the SDN VNet resource.
 type SdnVnetOutputs struct {
 	SdnVnetInputs
+	State  string `pulumi:"state,optional"`
+	Digest string `pulumi:"digest,optional"`
+}
+
+// Annotate adds descriptions to the output-only properties (read-only metadata).
+func (outputs *SdnVnetOutputs) Annotate(a infer.Annotator) {
+	outputs.SdnVnetInputs.Annotate(a)
+	a.Describe(
+		&outputs.State,
+		"Read-only pending-apply state of the VNet (\"new\", \"changed\", or \"deleted\"); "+
+			"empty once the config has been applied.",
+	)
+	a.Describe(
+		&outputs.Digest,
+		"Read-only digest of the VNet configuration section, used by Proxmox for change detection.",
+	)
 }
 
 // SdnVnetAPIResource is the write payload for POST/PUT (API level only).
 type SdnVnetAPIResource struct {
-	Vnet   string   `json:"vnet,omitempty"`
-	Zone   string   `json:"zone,omitempty"`
-	Tag    int      `json:"tag,omitempty"`
-	Alias  string   `json:"alias,omitempty"`
-	Delete []string `json:"delete,omitempty"`
+	Vnet         string         `json:"vnet,omitempty"`
+	Zone         string         `json:"zone,omitempty"`
+	Tag          int            `json:"tag,omitempty"`
+	Alias        string         `json:"alias,omitempty"`
+	Vlanaware    *api.IntOrBool `json:"vlanaware,omitempty"`
+	IsolatePorts *api.IntOrBool `json:"isolate-ports,omitempty"`
+	Delete       []string       `json:"delete,omitempty"`
 }
 
 // SdnVnetResponse is the read payload returned by GET (API level only).
 type SdnVnetResponse struct {
-	Vnet  string `json:"vnet"`
-	Zone  string `json:"zone"`
-	Tag   int    `json:"tag"`
-	Alias string `json:"alias"`
-	Type  string `json:"type"`
+	Vnet         string        `json:"vnet"`
+	Zone         string        `json:"zone"`
+	Tag          int           `json:"tag"`
+	Alias        string        `json:"alias"`
+	Type         string        `json:"type"`
+	Vlanaware    api.IntOrBool `json:"vlanaware"`
+	IsolatePorts api.IntOrBool `json:"isolate-ports"`
+	State        string        `json:"state"`
+	Digest       string        `json:"digest"`
 }

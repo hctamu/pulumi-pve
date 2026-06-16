@@ -19,6 +19,8 @@ import (
 	"context"
 	"fmt"
 
+	api "github.com/luthermonson/go-proxmox"
+
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
@@ -39,11 +41,15 @@ func NewSdnVnetAdapter(client proxmox.Client) *SdnVnetAdapter {
 
 // Create creates a new VNet.
 func (adapter *SdnVnetAdapter) Create(ctx context.Context, inputs proxmox.SdnVnetInputs) error {
+	vlanaware := api.IntOrBool(inputs.Vlanaware)
+	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
 	apiResource := &proxmox.SdnVnetAPIResource{
-		Vnet:  inputs.Vnet,
-		Zone:  inputs.Zone,
-		Tag:   inputs.Tag,
-		Alias: inputs.Alias,
+		Vnet:         inputs.Vnet,
+		Zone:         inputs.Zone,
+		Tag:          inputs.Tag,
+		Alias:        inputs.Alias,
+		Vlanaware:    &vlanaware,
+		IsolatePorts: &isolatePorts,
 	}
 	if err := adapter.client.Post(ctx, sdnVnetBasePath, apiResource, nil); err != nil {
 		return fmt.Errorf("failed to create VNet: %w", err)
@@ -60,11 +66,15 @@ func (adapter *SdnVnetAdapter) Get(ctx context.Context, vnet string) (*proxmox.S
 	}
 	return &proxmox.SdnVnetOutputs{
 		SdnVnetInputs: proxmox.SdnVnetInputs{
-			Vnet:  response.Vnet,
-			Zone:  response.Zone,
-			Tag:   response.Tag,
-			Alias: response.Alias,
+			Vnet:         response.Vnet,
+			Zone:         response.Zone,
+			Tag:          response.Tag,
+			Alias:        response.Alias,
+			Vlanaware:    bool(response.Vlanaware),
+			IsolatePorts: bool(response.IsolatePorts),
 		},
+		State:  response.State,
+		Digest: response.Digest,
 	}, nil
 }
 
@@ -75,9 +85,13 @@ func (adapter *SdnVnetAdapter) Update(
 	inputs proxmox.SdnVnetInputs,
 	oldOutputs proxmox.SdnVnetOutputs,
 ) error {
+	vlanaware := api.IntOrBool(inputs.Vlanaware)
+	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
 	apiResource := &proxmox.SdnVnetAPIResource{
-		Zone: inputs.Zone,
-		Tag:  inputs.Tag,
+		Zone:         inputs.Zone,
+		Tag:          inputs.Tag,
+		Vlanaware:    &vlanaware,
+		IsolatePorts: &isolatePorts,
 	}
 	if inputs.Alias == "" && oldOutputs.Alias != "" {
 		apiResource.Delete = []string{"alias"}
