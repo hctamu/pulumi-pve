@@ -680,7 +680,12 @@
         "vnet": {
           "type": "string",
           "description": "The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
-          "replaceOnChanges": true
+          "replaceOnChanges": true,
+          "language": {
+            "csharp": {
+              "name": "VnetName"
+            }
+          }
         },
         "zone": {
           "type": "string",
@@ -712,7 +717,12 @@
         "vnet": {
           "type": "string",
           "description": "The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
-          "replaceOnChanges": true
+          "replaceOnChanges": true,
+          "language": {
+            "csharp": {
+              "name": "VnetName"
+            }
+          }
         },
         "zone": {
           "type": "string",
