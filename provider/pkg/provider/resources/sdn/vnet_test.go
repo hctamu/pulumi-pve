@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 
 	sdnResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdn"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
@@ -73,6 +74,60 @@ func (mock *mockSdnVnetOperations) Delete(ctx context.Context, vnet string) erro
 	return nil
 }
 
+// --- Check ---
+
+func TestSdnVnetCheck(t *testing.T) {
+	t.Parallel()
+
+	newInputs := func(vnet, zone string, tag float64) property.Map {
+		return property.NewMap(map[string]property.Value{
+			"vnet": property.New(vnet),
+			"zone": property.New(zone),
+			"tag":  property.New(tag),
+		})
+	}
+
+	tests := []struct {
+		name            string
+		vnet            string
+		wantFailures    int
+		wantFailureText string
+	}{
+		{name: "valid name passes", vnet: "vpool1"},
+		{name: "name longer than 8 chars", vnet: "vnetpool42", wantFailures: 1, wantFailureText: "must be 1-8 characters"},
+		{name: "empty name", vnet: "", wantFailures: 1, wantFailureText: "must be 1-8 characters"},
+		{
+			name:            "name starts with digit",
+			vnet:            "1vpool",
+			wantFailures:    1,
+			wantFailureText: "must be alphanumeric and start with a letter",
+		},
+		{
+			name:            "special chars in name",
+			vnet:            "vnet-1",
+			wantFailures:    1,
+			wantFailureText: "must be alphanumeric and start with a letter",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resource := &sdnResource.Vnet{}
+			req := infer.CheckRequest{NewInputs: newInputs(tt.vnet, "ringfence", 10001)}
+
+			resp, err := resource.Check(context.Background(), req)
+			require.NoError(t, err)
+			assert.Len(t, resp.Failures, tt.wantFailures)
+			if tt.wantFailures > 0 {
+				assert.Equal(t, "vnet", resp.Failures[0].Property)
+				assert.Contains(t, resp.Failures[0].Reason, tt.wantFailureText)
+			}
+		})
+	}
+}
+
 // --- Create ---
 
 func TestSdnVnetCreate(t *testing.T) {
@@ -88,6 +143,15 @@ func TestSdnVnetCreate(t *testing.T) {
 					gotInputs = inputs
 					return nil
 				},
+				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+					return &proxmox.SdnVnetOutputs{
+						SdnVnetInputs: proxmox.SdnVnetInputs{
+							Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1",
+						},
+						State:  "new",
+						Digest: "abc123",
+					}, nil
+				},
 			},
 		}
 
@@ -102,6 +166,8 @@ func TestSdnVnetCreate(t *testing.T) {
 		assert.Equal(t, "ringfence", resp.Output.Zone)
 		assert.Equal(t, 10001, resp.Output.Tag)
 		assert.Equal(t, "pool 1", resp.Output.Alias)
+		assert.Equal(t, "new", resp.Output.State)
+		assert.Equal(t, "abc123", resp.Output.Digest)
 		assert.Equal(t, req.Inputs, gotInputs)
 	})
 
@@ -129,53 +195,6 @@ func TestSdnVnetCreate(t *testing.T) {
 		assert.False(t, called, "createFunc must not be called on dry run")
 	})
 
-	t.Run("invalid name longer than 8 chars", func(t *testing.T) {
-		t.Parallel()
-
-		called := false
-		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				createFunc: func(_ context.Context, _ proxmox.SdnVnetInputs) error {
-					called = true
-					return nil
-				},
-			},
-		}
-
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vnetpool42", Zone: "ringfence", Tag: 10042},
-		}
-		_, err := resource.Create(context.Background(), req)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "must be 1-8 characters")
-		assert.False(t, called, "createFunc must not be called when name is invalid")
-	})
-
-	t.Run("invalid name starts with digit", func(t *testing.T) {
-		t.Parallel()
-
-		resource := &sdnResource.Vnet{SdnVnetOps: &mockSdnVnetOperations{}}
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "1vpool", Zone: "ringfence", Tag: 10001},
-		}
-		_, err := resource.Create(context.Background(), req)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "must be alphanumeric and start with a letter")
-	})
-
-	t.Run("invalid name also rejected on dry run", func(t *testing.T) {
-		t.Parallel()
-
-		resource := &sdnResource.Vnet{SdnVnetOps: &mockSdnVnetOperations{}}
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vnet-pool42", Zone: "ringfence", Tag: 10042},
-			DryRun: true,
-		}
-		_, err := resource.Create(context.Background(), req)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid vnet name")
-	})
-
 	t.Run("nil ops returns error", func(t *testing.T) {
 		t.Parallel()
 
@@ -195,6 +214,24 @@ func TestSdnVnetCreate(t *testing.T) {
 			SdnVnetOps: &mockSdnVnetOperations{
 				createFunc: func(_ context.Context, _ proxmox.SdnVnetInputs) error {
 					return errors.New("failed to create VNet: 500 Internal Server Error")
+				},
+			},
+		}
+		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
+			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		}
+		_, err := resource.Create(context.Background(), req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "500 Internal Server Error")
+	})
+
+	t.Run("get error after create is propagated", func(t *testing.T) {
+		t.Parallel()
+
+		resource := &sdnResource.Vnet{
+			SdnVnetOps: &mockSdnVnetOperations{
+				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+					return nil, errors.New("failed to get VNet: 500 Internal Server Error")
 				},
 			},
 		}
@@ -315,6 +352,7 @@ func TestSdnVnetUpdate(t *testing.T) {
 
 		var gotVnet string
 		var gotInputs proxmox.SdnVnetInputs
+		newInputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 20001}
 		resource := &sdnResource.Vnet{
 			SdnVnetOps: &mockSdnVnetOperations{
 				updateFunc: func(_ context.Context, vnet string, inputs proxmox.SdnVnetInputs, _ proxmox.SdnVnetOutputs) error {
@@ -322,10 +360,16 @@ func TestSdnVnetUpdate(t *testing.T) {
 					gotInputs = inputs
 					return nil
 				},
+				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+					return &proxmox.SdnVnetOutputs{
+						SdnVnetInputs: newInputs,
+						State:         "changed",
+						Digest:        "def456",
+					}, nil
+				},
 			},
 		}
 
-		newInputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 20001}
 		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
 			ID:     "my-vnet",
 			Inputs: newInputs,
@@ -336,6 +380,8 @@ func TestSdnVnetUpdate(t *testing.T) {
 		resp, err := resource.Update(context.Background(), req)
 		require.NoError(t, err)
 		assert.Equal(t, newInputs, resp.Output.SdnVnetInputs)
+		assert.Equal(t, "changed", resp.Output.State)
+		assert.Equal(t, "def456", resp.Output.Digest)
 		assert.Equal(t, "vpool1", gotVnet)
 		assert.Equal(t, newInputs, gotInputs)
 	})
@@ -382,6 +428,25 @@ func TestSdnVnetUpdate(t *testing.T) {
 			SdnVnetOps: &mockSdnVnetOperations{
 				updateFunc: func(_ context.Context, _ string, _ proxmox.SdnVnetInputs, _ proxmox.SdnVnetOutputs) error {
 					return errors.New("failed to update VNet: 500 Internal Server Error")
+				},
+			},
+		}
+		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
+			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			State:  proxmox.SdnVnetOutputs{SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1"}},
+		}
+		_, err := resource.Update(context.Background(), req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "500 Internal Server Error")
+	})
+
+	t.Run("get error after update is propagated", func(t *testing.T) {
+		t.Parallel()
+
+		resource := &sdnResource.Vnet{
+			SdnVnetOps: &mockSdnVnetOperations{
+				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+					return nil, errors.New("failed to get VNet: 500 Internal Server Error")
 				},
 			},
 		}

@@ -22,7 +22,6 @@ import (
 
 	api "github.com/luthermonson/go-proxmox"
 
-	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
@@ -45,16 +44,12 @@ type SdnVnetOperations interface {
 var vnetNameRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
 
 // ValidateVnetName checks the Proxmox 8-character alphanumeric limit for VNet names.
-func ValidateVnetName(ctx context.Context, name string) error {
+func ValidateVnetName(name string) error {
 	if name == "" || len(name) > 8 {
-		err := fmt.Errorf("invalid vnet name %q: must be 1-8 characters", name)
-		p.GetLogger(ctx).Error(err.Error())
-		return err
+		return fmt.Errorf("invalid vnet name %q: must be 1-8 characters", name)
 	}
 	if !vnetNameRegexp.MatchString(name) {
-		err := fmt.Errorf("invalid vnet name %q: must be alphanumeric and start with a letter", name)
-		p.GetLogger(ctx).Error(err.Error())
-		return err
+		return fmt.Errorf("invalid vnet name %q: must be alphanumeric and start with a letter", name)
 	}
 	return nil
 }
@@ -106,26 +101,19 @@ func (outputs *SdnVnetOutputs) Annotate(a infer.Annotator) {
 	)
 }
 
-// SdnVnetAPIResource is the write payload for POST/PUT (API level only).
-type SdnVnetAPIResource struct {
+// SdnVnetAPIObject is the API-level representation of a VNet used for both
+// reads (GET) and writes (POST/PUT). Read-only fields (Type, State, Digest)
+// are populated on GET and ignored on POST/PUT. The write-only field (Delete)
+// is sent on PUT to remove optional fields and is absent in GET responses.
+type SdnVnetAPIObject struct {
 	Vnet         string         `json:"vnet,omitempty"`
 	Zone         string         `json:"zone,omitempty"`
 	Tag          int            `json:"tag,omitempty"`
 	Alias        string         `json:"alias,omitempty"`
+	Type         string         `json:"type,omitempty"`
 	Vlanaware    *api.IntOrBool `json:"vlanaware,omitempty"`
 	IsolatePorts *api.IntOrBool `json:"isolate-ports,omitempty"`
+	State        string         `json:"state,omitempty"`
+	Digest       string         `json:"digest,omitempty"`
 	Delete       []string       `json:"delete,omitempty"`
-}
-
-// SdnVnetResponse is the read payload returned by GET (API level only).
-type SdnVnetResponse struct {
-	Vnet         string        `json:"vnet"`
-	Zone         string        `json:"zone"`
-	Tag          int           `json:"tag"`
-	Alias        string        `json:"alias"`
-	Type         string        `json:"type"`
-	Vlanaware    api.IntOrBool `json:"vlanaware"`
-	IsolatePorts api.IntOrBool `json:"isolate-ports"`
-	State        string        `json:"state"`
-	Digest       string        `json:"digest"`
 }

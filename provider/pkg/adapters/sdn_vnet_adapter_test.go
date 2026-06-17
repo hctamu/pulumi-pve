@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -77,7 +78,7 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 					assert.Equal(t, http.MethodPost, r.Method)
 					assert.Equal(t, "/cluster/sdn/vnets", r.URL.Path)
 
-					var body proxmox.SdnVnetAPIResource
+					var body proxmox.SdnVnetAPIObject
 					err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 					require.NoError(t, err)
 					assert.Equal(t, tt.inputs.Vnet, body.Vnet)
@@ -176,14 +177,15 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		apiResponse := proxmox.SdnVnetResponse{
+		trueVal := api.IntOrBool(true)
+		apiResponse := proxmox.SdnVnetAPIObject{
 			Vnet:         "vpool1",
 			Zone:         "ringfence",
 			Tag:          10001,
 			Alias:        "pool 1",
 			Type:         "vnet",
-			Vlanaware:    true,
-			IsolatePorts: true,
+			Vlanaware:    &trueVal,
+			IsolatePorts: &trueVal,
 			State:        "changed",
 			Digest:       "abc123",
 		}
@@ -226,7 +228,7 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 			t,
 			func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 				w.WriteHeader(http.StatusOK)
-				err := json.NewEncoder(w).Encode(map[string]any{"data": proxmox.SdnVnetResponse{
+				err := json.NewEncoder(w).Encode(map[string]any{"data": proxmox.SdnVnetAPIObject{
 					Vnet: "vpool2",
 					Zone: "ringfence",
 					Tag:  10002,
@@ -277,7 +279,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 				assert.Equal(t, http.MethodPut, r.Method)
 				assert.Equal(t, "/cluster/sdn/vnets/vpool1", r.URL.Path)
 
-				var body proxmox.SdnVnetAPIResource
+				var body proxmox.SdnVnetAPIObject
 				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 				require.NoError(t, err)
 				assert.Equal(t, "zone2", body.Zone)
@@ -309,7 +311,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 		server, captured := testutils.CreateMockServer(
 			t,
 			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-				var body proxmox.SdnVnetAPIResource
+				var body proxmox.SdnVnetAPIObject
 				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 				require.NoError(t, err)
 				assert.Equal(t, []string{"alias"}, body.Delete)
@@ -338,7 +340,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 		server, _ := testutils.CreateMockServer(
 			t,
 			func(w http.ResponseWriter, _ *http.Request, capturedReq *testutils.MockRequest) {
-				var body proxmox.SdnVnetAPIResource
+				var body proxmox.SdnVnetAPIObject
 				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 				require.NoError(t, err)
 				assert.Equal(t, "new alias", body.Alias)
