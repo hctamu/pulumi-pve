@@ -19,6 +19,7 @@ import * as group from "./group";
 import * as ha from "./ha";
 import * as pool from "./pool";
 import * as role from "./role";
+import * as sdn from "./sdn";
 import * as types from "./types";
 import * as user from "./user";
 import * as vm from "./vm";
@@ -31,6 +32,7 @@ export {
     ha,
     pool,
     role,
+    sdn,
     types,
     user,
     vm,

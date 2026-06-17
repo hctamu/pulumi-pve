@@ -26,6 +26,8 @@ if typing.TYPE_CHECKING:
     proxmox = __proxmox
     import pulumi_pve.role as __role
     role = __role
+    import pulumi_pve.sdn as __sdn
+    sdn = __sdn
     import pulumi_pve.user as __user
     user = __user
     import pulumi_pve.vm as __vm
@@ -39,6 +41,7 @@ else:
     pool = _utilities.lazy_import('pulumi_pve.pool')
     proxmox = _utilities.lazy_import('pulumi_pve.proxmox')
     role = _utilities.lazy_import('pulumi_pve.role')
+    sdn = _utilities.lazy_import('pulumi_pve.sdn')
     user = _utilities.lazy_import('pulumi_pve.user')
     vm = _utilities.lazy_import('pulumi_pve.vm')
 
@@ -91,6 +94,14 @@ _utilities.register(
   "fqn": "pulumi_pve.role",
   "classes": {
    "pve:role:Role": "Role"
+  }
+ },
+ {
+  "pkg": "pve",
+  "mod": "sdn",
+  "fqn": "pulumi_pve.sdn",
+  "classes": {
+   "pve:sdn:Vnet": "Vnet"
   }
  },
  {

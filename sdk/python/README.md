@@ -53,3 +53,49 @@ This will:
 2. Create the provider binary and place it in the ./bin folder (gitignored)
 3. Generate the ~~dotnet~~, Go, ~~Node, and Python~~ SDKs and place them in the ./sdk folder
 4. Install the provider on your machine.
+
+## Configuration
+
+The Pulumi Proxmox VE provider requires the following configuration settings:
+
+### Required Settings
+
+- **`pve:pveUrl`** - The URL of the Proxmox VE API server (e.g., `https://pve.example.com:8006`)
+- **`pve:pveUser`** - The Proxmox VE user for authentication (e.g., `root@pam` or `user@pve`)
+- **`pve:pveToken`** - An API token generated in the Proxmox VE UI (marked as secret)
+- **`pve:sshUser`** - The SSH user for connecting to Proxmox VE nodes (e.g., `root`)
+- **`pve:sshPass`** - The SSH password for authenticating to Proxmox VE nodes (marked as secret)
+
+### Optional Settings
+
+- **`pve:insecureSkipVerify`** - Disable TLS certificate verification for HTTPS connections. Defaults to `false`. ⚠️ Only use for testing with self-signed certificates.
+- **`pve:insecureIgnoreHostKey`** - Disable SSH host key verification when connecting to nodes. Defaults to `false`. ⚠️ Only use for testing environments. In production, ensure `~/.ssh/known_hosts` is properly configured.
+- **`pve:sshKnownHostsPath`** - Path to the SSH `known_hosts` file used for host key verification. Defaults to `~/.ssh/known_hosts` when unset.
+
+### Configuration Example
+
+Set these in your Pulumi stack configuration (e.g., `Pulumi.dev.yaml`):
+
+```yaml
+config:
+  pve:pveUrl: https://pve.local:8006
+  pve:pveUser: root@pam
+  pve:pveToken:
+    secure: AQAAAA...  # Use `pulumi config set --secret` for token
+  pve:sshUser: root
+  pve:sshPass:
+    secure: AQAAAA...  # Use `pulumi config set --secret` for password
+  pve:insecureSkipVerify: false
+  pve:insecureIgnoreHostKey: false
+  pve:sshKnownHostsPath: /home/your-user/.ssh/known_hosts
+```
+
+Or set via environment variables:
+
+```bash
+export PULUMI_CONFIG_PVE_PVEURL=https://pve.local:8006
+export PULUMI_CONFIG_PVE_PVEUSER=root@pam
+export PULUMI_CONFIG_PVE_PVETOKEN=your-token-here
+export PULUMI_CONFIG_PVE_SSHUSER=root
+export PULUMI_CONFIG_PVE_SSHPASS=your-password-here
+```

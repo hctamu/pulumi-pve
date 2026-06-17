@@ -21,6 +21,10 @@ __config__ = pulumi.Config('pve')
 
 class _ExportableConfig(types.ModuleType):
     @_builtins.property
+    def insecure_ignore_host_key(self) -> Optional[bool]:
+        return __config__.get_bool('insecureIgnoreHostKey')
+
+    @_builtins.property
     def insecure_skip_verify(self) -> Optional[bool]:
         return __config__.get_bool('insecureSkipVerify')
 
@@ -35,6 +39,10 @@ class _ExportableConfig(types.ModuleType):
     @_builtins.property
     def pve_user(self) -> Optional[str]:
         return __config__.get('pveUser')
+
+    @_builtins.property
+    def ssh_known_hosts_path(self) -> Optional[str]:
+        return __config__.get('sshKnownHostsPath')
 
     @_builtins.property
     def ssh_pass(self) -> Optional[str]:

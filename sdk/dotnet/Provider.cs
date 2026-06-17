@@ -22,6 +22,9 @@ namespace Hctamu.Pve
         [Output("pveUser")]
         public Output<string> PveUser { get; private set; } = null!;
 
+        [Output("sshKnownHostsPath")]
+        public Output<string?> SshKnownHostsPath { get; private set; } = null!;
+
         [Output("sshPass")]
         public Output<string> SshPass { get; private set; } = null!;
 
@@ -62,6 +65,9 @@ namespace Hctamu.Pve
 
     public sealed class ProviderArgs : global::Pulumi.ResourceArgs
     {
+        [Input("insecureIgnoreHostKey", json: true)]
+        public Input<bool>? InsecureIgnoreHostKey { get; set; }
+
         [Input("insecureSkipVerify", json: true)]
         public Input<bool>? InsecureSkipVerify { get; set; }
 
@@ -82,6 +88,9 @@ namespace Hctamu.Pve
 
         [Input("pveUser", required: true)]
         public Input<string> PveUser { get; set; } = null!;
+
+        [Input("sshKnownHostsPath")]
+        public Input<string>? SshKnownHostsPath { get; set; }
 
         [Input("sshPass", required: true)]
         private Input<string>? _sshPass;

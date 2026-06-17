@@ -24,7 +24,9 @@ class ProviderArgs:
                  pve_user: pulumi.Input[_builtins.str],
                  ssh_pass: pulumi.Input[_builtins.str],
                  ssh_user: pulumi.Input[_builtins.str],
-                 insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None):
+                 insecure_ignore_host_key: Optional[pulumi.Input[_builtins.bool]] = None,
+                 insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None,
+                 ssh_known_hosts_path: Optional[pulumi.Input[_builtins.str]] = None):
         """
         The set of arguments for constructing a Provider resource.
         """
@@ -33,8 +35,12 @@ class ProviderArgs:
         pulumi.set(__self__, "pve_user", pve_user)
         pulumi.set(__self__, "ssh_pass", ssh_pass)
         pulumi.set(__self__, "ssh_user", ssh_user)
+        if insecure_ignore_host_key is not None:
+            pulumi.set(__self__, "insecure_ignore_host_key", insecure_ignore_host_key)
         if insecure_skip_verify is not None:
             pulumi.set(__self__, "insecure_skip_verify", insecure_skip_verify)
+        if ssh_known_hosts_path is not None:
+            pulumi.set(__self__, "ssh_known_hosts_path", ssh_known_hosts_path)
 
     @_builtins.property
     @pulumi.getter(name="pveToken")
@@ -82,6 +88,15 @@ class ProviderArgs:
         pulumi.set(self, "ssh_user", value)
 
     @_builtins.property
+    @pulumi.getter(name="insecureIgnoreHostKey")
+    def insecure_ignore_host_key(self) -> Optional[pulumi.Input[_builtins.bool]]:
+        return pulumi.get(self, "insecure_ignore_host_key")
+
+    @insecure_ignore_host_key.setter
+    def insecure_ignore_host_key(self, value: Optional[pulumi.Input[_builtins.bool]]):
+        pulumi.set(self, "insecure_ignore_host_key", value)
+
+    @_builtins.property
     @pulumi.getter(name="insecureSkipVerify")
     def insecure_skip_verify(self) -> Optional[pulumi.Input[_builtins.bool]]:
         return pulumi.get(self, "insecure_skip_verify")
@@ -90,6 +105,15 @@ class ProviderArgs:
     def insecure_skip_verify(self, value: Optional[pulumi.Input[_builtins.bool]]):
         pulumi.set(self, "insecure_skip_verify", value)
 
+    @_builtins.property
+    @pulumi.getter(name="sshKnownHostsPath")
+    def ssh_known_hosts_path(self) -> Optional[pulumi.Input[_builtins.str]]:
+        return pulumi.get(self, "ssh_known_hosts_path")
+
+    @ssh_known_hosts_path.setter
+    def ssh_known_hosts_path(self, value: Optional[pulumi.Input[_builtins.str]]):
+        pulumi.set(self, "ssh_known_hosts_path", value)
+
 
 @pulumi.type_token("pulumi:providers:pve")
 class Provider(pulumi.ProviderResource):
@@ -97,10 +121,12 @@ class Provider(pulumi.ProviderResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
+                 insecure_ignore_host_key: Optional[pulumi.Input[_builtins.bool]] = None,
                  insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None,
                  pve_token: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_url: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_user: Optional[pulumi.Input[_builtins.str]] = None,
+                 ssh_known_hosts_path: Optional[pulumi.Input[_builtins.str]] = None,
                  ssh_pass: Optional[pulumi.Input[_builtins.str]] = None,
                  ssh_user: Optional[pulumi.Input[_builtins.str]] = None,
                  __props__=None):
@@ -134,10 +160,12 @@ class Provider(pulumi.ProviderResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
+                 insecure_ignore_host_key: Optional[pulumi.Input[_builtins.bool]] = None,
                  insecure_skip_verify: Optional[pulumi.Input[_builtins.bool]] = None,
                  pve_token: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_url: Optional[pulumi.Input[_builtins.str]] = None,
                  pve_user: Optional[pulumi.Input[_builtins.str]] = None,
+                 ssh_known_hosts_path: Optional[pulumi.Input[_builtins.str]] = None,
                  ssh_pass: Optional[pulumi.Input[_builtins.str]] = None,
                  ssh_user: Optional[pulumi.Input[_builtins.str]] = None,
                  __props__=None):
@@ -149,6 +177,7 @@ class Provider(pulumi.ProviderResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = ProviderArgs.__new__(ProviderArgs)
 
+            __props__.__dict__["insecure_ignore_host_key"] = pulumi.Output.from_input(insecure_ignore_host_key).apply(pulumi.runtime.to_json) if insecure_ignore_host_key is not None else None
             __props__.__dict__["insecure_skip_verify"] = pulumi.Output.from_input(insecure_skip_verify).apply(pulumi.runtime.to_json) if insecure_skip_verify is not None else None
             if pve_token is None and not opts.urn:
                 raise TypeError("Missing required property 'pve_token'")
@@ -159,6 +188,7 @@ class Provider(pulumi.ProviderResource):
             if pve_user is None and not opts.urn:
                 raise TypeError("Missing required property 'pve_user'")
             __props__.__dict__["pve_user"] = pve_user
+            __props__.__dict__["ssh_known_hosts_path"] = ssh_known_hosts_path
             if ssh_pass is None and not opts.urn:
                 raise TypeError("Missing required property 'ssh_pass'")
             __props__.__dict__["ssh_pass"] = None if ssh_pass is None else pulumi.Output.secret(ssh_pass)
@@ -187,6 +217,11 @@ class Provider(pulumi.ProviderResource):
     @pulumi.getter(name="pveUser")
     def pve_user(self) -> pulumi.Output[_builtins.str]:
         return pulumi.get(self, "pve_user")
+
+    @_builtins.property
+    @pulumi.getter(name="sshKnownHostsPath")
+    def ssh_known_hosts_path(self) -> pulumi.Output[Optional[_builtins.str]]:
+        return pulumi.get(self, "ssh_known_hosts_path")
 
     @_builtins.property
     @pulumi.getter(name="sshPass")

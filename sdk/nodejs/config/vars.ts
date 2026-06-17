@@ -7,6 +7,14 @@ import * as utilities from "../utilities";
 declare var exports: any;
 const __config = new pulumi.Config("pve");
 
+export declare const insecureIgnoreHostKey: boolean | undefined;
+Object.defineProperty(exports, "insecureIgnoreHostKey", {
+    get() {
+        return __config.getObject<boolean>("insecureIgnoreHostKey");
+    },
+    enumerable: true,
+});
+
 export declare const insecureSkipVerify: boolean | undefined;
 Object.defineProperty(exports, "insecureSkipVerify", {
     get() {
@@ -35,6 +43,14 @@ export declare const pveUser: string | undefined;
 Object.defineProperty(exports, "pveUser", {
     get() {
         return __config.get("pveUser");
+    },
+    enumerable: true,
+});
+
+export declare const sshKnownHostsPath: string | undefined;
+Object.defineProperty(exports, "sshKnownHostsPath", {
+    get() {
+        return __config.get("sshKnownHostsPath");
     },
     enumerable: true,
 });

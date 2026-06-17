@@ -32,6 +32,13 @@ namespace Hctamu.Pve
 
         private static readonly global::Pulumi.Config __config = new global::Pulumi.Config("pve");
 
+        private static readonly __Value<bool?> _insecureIgnoreHostKey = new __Value<bool?>(() => __config.GetBoolean("insecureIgnoreHostKey"));
+        public static bool? InsecureIgnoreHostKey
+        {
+            get => _insecureIgnoreHostKey.Get();
+            set => _insecureIgnoreHostKey.Set(value);
+        }
+
         private static readonly __Value<bool?> _insecureSkipVerify = new __Value<bool?>(() => __config.GetBoolean("insecureSkipVerify"));
         public static bool? InsecureSkipVerify
         {
@@ -58,6 +65,13 @@ namespace Hctamu.Pve
         {
             get => _pveUser.Get();
             set => _pveUser.Set(value);
+        }
+
+        private static readonly __Value<string?> _sshKnownHostsPath = new __Value<string?>(() => __config.Get("sshKnownHostsPath"));
+        public static string? SshKnownHostsPath
+        {
+            get => _sshKnownHostsPath.Get();
+            set => _sshKnownHostsPath.Set(value);
         }
 
         private static readonly __Value<string?> _sshPass = new __Value<string?>(() => __config.Get("sshPass"));

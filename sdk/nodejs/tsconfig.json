@@ -35,6 +35,8 @@
         "provider.ts",
         "role/index.ts",
         "role/role.ts",
+        "sdn/index.ts",
+        "sdn/vnet.ts",
         "types/index.ts",
         "types/input.ts",
         "types/output.ts",
