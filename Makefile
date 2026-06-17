@@ -43,7 +43,8 @@ tidy_provider:
 
 $(SCHEMA_FILE): provider $(PULUMI)
 	$(PULUMI) package get-schema $(WORKING_DIR)/bin/${PROVIDER} | \
-		jq 'del(.version)' > $(SCHEMA_FILE)
+		jq 'del(.version) | .resources["pve:sdn:Vnet"].inputProperties.vnet.language = {"csharp": {"name": "VnetName"}} | .resources["pve:sdn:Vnet"].properties.vnet.language = {"csharp": {"name": "VnetName"}}' \
+		> $(SCHEMA_FILE)
 
 # Codegen generates the schema file and *generates* all sdks. This is a local process and
 # does not require the ability to build all SDKs.
