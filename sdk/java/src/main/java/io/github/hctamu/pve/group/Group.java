@@ -10,6 +10,7 @@ import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.group.GroupArgs;
 import java.lang.String;
+import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -88,6 +89,9 @@ public class Group extends com.pulumi.resources.CustomResource {
         var defaultOptions = com.pulumi.resources.CustomResourceOptions.builder()
             .version(Utilities.getVersion())
             .pluginDownloadURL("github://api.github.com/hctamu/pulumi-pve")
+            .replaceOnChanges(List.of(
+                "name"
+            ))
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }

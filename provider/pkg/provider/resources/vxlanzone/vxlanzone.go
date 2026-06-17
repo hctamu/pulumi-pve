@@ -240,10 +240,10 @@ func (sdnVxlanZone *VxlanZone) Check(
 		failures = append(failures, *nameFailure)
 	}
 
-	if inputs.MTU != nil && (*inputs.MTU <= 0 || *inputs.MTU >= 9000) {
+	if inputs.MTU != nil && (*inputs.MTU <= 0 || *inputs.MTU >= 65000) {
 		failures = append(failures, p.CheckFailure{
 			Property: "mtu",
-			Reason:   "mtu must be a positive number less than 9000",
+			Reason:   "mtu must be a positive number less than 65000",
 		})
 	}
 

@@ -31,6 +31,7 @@ class VxlanZoneArgs:
                  vxlan_port: Optional[pulumi.Input[_builtins.int]] = None):
         """
         The set of arguments for constructing a VxlanZone resource.
+
         :param pulumi.Input[_builtins.str] ipam: IPAM plugin ID associated with this zone.
         :param pulumi.Input[_builtins.str] name: The unique VXLAN zone name.
         :param pulumi.Input[_builtins.str] dns: DNS plugin ID associated with this zone.
@@ -204,6 +205,7 @@ class VxlanZone(pulumi.CustomResource):
         """
         A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.
 
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] dns: DNS plugin ID associated with this zone.
@@ -225,6 +227,7 @@ class VxlanZone(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.
+
 
         :param str resource_name: The name of the resource.
         :param VxlanZoneArgs args: The arguments to use to populate this resource's properties.
