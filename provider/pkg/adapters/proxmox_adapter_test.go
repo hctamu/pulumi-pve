@@ -392,6 +392,37 @@ func TestProxmoxAdapterPut(t *testing.T) {
 		err = adapter.Put(context.Background(), "/test/resources/123", requestBody, &result)
 		require.Error(t, err)
 	})
+
+	t.Run("PUT request surfaces field-level validation errors", func(t *testing.T) {
+		t.Parallel()
+
+		requestBody := map[string]string{"fabric": "fakeRealFabric"}
+
+		server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte(
+				`{"data":null,"errors":{"fabric":"fabric 'fakeRealFabric' does not exist"},` +
+					`"message":"Parameter verification failed."}`,
+			))
+		})
+		defer server.Close()
+
+		cfg := &config.Config{
+			PveURL:   server.URL,
+			PveUser:  "test@pam",
+			PveToken: "test-token",
+		}
+
+		adapter := adapters.NewProxmoxAdapter(cfg)
+		err := adapter.Connect(context.Background())
+		require.NoError(t, err)
+
+		err = adapter.Put(context.Background(), "/test/resources/123", requestBody, nil)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Parameter verification failed.")
+		assert.Contains(t, err.Error(), "fabric: fabric 'fakeRealFabric' does not exist")
+	})
 }
 
 func TestProxmoxAdapterDelete(t *testing.T) {

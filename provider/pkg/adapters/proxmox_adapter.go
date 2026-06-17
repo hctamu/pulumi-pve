@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -165,10 +166,19 @@ func (proxmoxAdapter *ProxmoxAdapter) Put(ctx context.Context, path string, body
 	if res.StatusCode >= 400 {
 		if len(respBody) > 0 {
 			var errResp struct {
-				Message string `json:"message"`
+				Message string                     `json:"message"`
+				Errors  map[string]json.RawMessage `json:"errors"`
 			}
-			if jsonErr := json.Unmarshal(respBody, &errResp); jsonErr == nil && errResp.Message != "" {
-				return errors.New(strings.TrimSpace(errResp.Message))
+			if jsonErr := json.Unmarshal(respBody, &errResp); jsonErr == nil {
+				if details := formatProxmoxErrors(errResp.Errors); details != "" {
+					if errResp.Message != "" {
+						return fmt.Errorf("%s %s", strings.TrimSpace(errResp.Message), details)
+					}
+					return errors.New(details)
+				}
+				if errResp.Message != "" {
+					return errors.New(strings.TrimSpace(errResp.Message))
+				}
 			}
 			return fmt.Errorf("%s: %s", res.Status, strings.TrimSpace(string(respBody)))
 		}
@@ -187,6 +197,23 @@ func (proxmoxAdapter *ProxmoxAdapter) Put(ctx context.Context, path string, body
 		return json.Unmarshal(d, result)
 	}
 	return json.Unmarshal(respBody, result)
+}
+
+// formatProxmoxErrors converts a Proxmox API "errors" map (field -> reason) into a
+// deterministic, human-readable "field: reason" list. Returns an empty string when
+// there are no field-level errors.
+func formatProxmoxErrors(fieldErrors map[string]json.RawMessage) string {
+	if len(fieldErrors) == 0 {
+		return ""
+	}
+
+	details := make([]string, 0, len(fieldErrors))
+	for field, reason := range fieldErrors {
+		details = append(details, fmt.Sprintf("%s: %s", field, strings.Trim(string(reason), `"`)))
+	}
+	sort.Strings(details)
+
+	return strings.Join(details, ", ")
 }
 
 // Delete performs a DELETE request to the Proxmox API.
