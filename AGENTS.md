@@ -176,6 +176,9 @@ import (
   - **No single-letter variables** in range loops (except `i`, `j` in traditional index loops). `for _, d := range disks` → `for _, disk := range disks`
   - **Loop variables**: use the singular of the slice name (`for _, disk := range vm.Disks`, `for _, option := range options`)
   - **Short-lived temporaries**: acceptable but prefer clarity (`iface` over `i` for interface type, `idx` over `i` for position when not a traditional index loop)
+- **Return statements**: Always use explicit returns with named return values. Do not use naked `return` statements (even when using named return values). Always write out the full `return value1, value2, ...` for clarity.
+  - ❌ Bad: `func foo() (client *Client, err error) { ... return }`
+  - ✅ Good: `func foo() (client *Client, err error) { ... return client, err }`
 
 ---
 
