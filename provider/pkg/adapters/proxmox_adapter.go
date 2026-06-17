@@ -104,7 +104,7 @@ func newClient(
 
 	client = apiClient
 
-	return
+	return client, err
 }
 
 // Get performs a GET request to the Proxmox API.

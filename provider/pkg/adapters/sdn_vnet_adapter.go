@@ -43,7 +43,7 @@ func NewSdnVnetAdapter(client proxmox.Client) *SdnVnetAdapter {
 func (adapter *SdnVnetAdapter) Create(ctx context.Context, inputs proxmox.SdnVnetInputs) error {
 	vlanaware := api.IntOrBool(inputs.Vlanaware)
 	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
-	apiResource := &proxmox.SdnVnetAPIResource{
+	apiObject := &proxmox.SdnVnetAPIObject{
 		Vnet:         inputs.Vnet,
 		Zone:         inputs.Zone,
 		Tag:          inputs.Tag,
@@ -51,7 +51,7 @@ func (adapter *SdnVnetAdapter) Create(ctx context.Context, inputs proxmox.SdnVne
 		Vlanaware:    &vlanaware,
 		IsolatePorts: &isolatePorts,
 	}
-	if err := adapter.client.Post(ctx, sdnVnetBasePath, apiResource, nil); err != nil {
+	if err := adapter.client.Post(ctx, sdnVnetBasePath, apiObject, nil); err != nil {
 		return fmt.Errorf("failed to create VNet: %w", err)
 	}
 	return nil
@@ -59,23 +59,28 @@ func (adapter *SdnVnetAdapter) Create(ctx context.Context, inputs proxmox.SdnVne
 
 // Get retrieves an existing VNet by its name.
 func (adapter *SdnVnetAdapter) Get(ctx context.Context, vnet string) (*proxmox.SdnVnetOutputs, error) {
-	var response *proxmox.SdnVnetResponse
+	var apiObject *proxmox.SdnVnetAPIObject
 	url := fmt.Sprintf("%s/%s", sdnVnetBasePath, vnet)
-	if err := adapter.client.Get(ctx, url, &response); err != nil {
+	if err := adapter.client.Get(ctx, url, &apiObject); err != nil {
 		return nil, fmt.Errorf("failed to get VNet: %w", err)
 	}
-	return &proxmox.SdnVnetOutputs{
+	outputs := &proxmox.SdnVnetOutputs{
 		SdnVnetInputs: proxmox.SdnVnetInputs{
-			Vnet:         response.Vnet,
-			Zone:         response.Zone,
-			Tag:          response.Tag,
-			Alias:        response.Alias,
-			Vlanaware:    bool(response.Vlanaware),
-			IsolatePorts: bool(response.IsolatePorts),
+			Vnet:  apiObject.Vnet,
+			Zone:  apiObject.Zone,
+			Tag:   apiObject.Tag,
+			Alias: apiObject.Alias,
 		},
-		State:  response.State,
-		Digest: response.Digest,
-	}, nil
+		State:  apiObject.State,
+		Digest: apiObject.Digest,
+	}
+	if apiObject.Vlanaware != nil {
+		outputs.Vlanaware = bool(*apiObject.Vlanaware)
+	}
+	if apiObject.IsolatePorts != nil {
+		outputs.IsolatePorts = bool(*apiObject.IsolatePorts)
+	}
+	return outputs, nil
 }
 
 // Update updates an existing VNet.
@@ -87,19 +92,19 @@ func (adapter *SdnVnetAdapter) Update(
 ) error {
 	vlanaware := api.IntOrBool(inputs.Vlanaware)
 	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
-	apiResource := &proxmox.SdnVnetAPIResource{
+	apiObject := &proxmox.SdnVnetAPIObject{
 		Zone:         inputs.Zone,
 		Tag:          inputs.Tag,
 		Vlanaware:    &vlanaware,
 		IsolatePorts: &isolatePorts,
 	}
 	if inputs.Alias == "" && oldOutputs.Alias != "" {
-		apiResource.Delete = []string{"alias"}
+		apiObject.Delete = []string{"alias"}
 	} else if inputs.Alias != "" {
-		apiResource.Alias = inputs.Alias
+		apiObject.Alias = inputs.Alias
 	}
 	url := fmt.Sprintf("%s/%s", sdnVnetBasePath, vnet)
-	if err := adapter.client.Put(ctx, url, apiResource, nil); err != nil {
+	if err := adapter.client.Put(ctx, url, apiObject, nil); err != nil {
 		return fmt.Errorf("failed to update VNet: %w", err)
 	}
 	return nil

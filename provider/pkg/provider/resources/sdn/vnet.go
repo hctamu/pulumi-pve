@@ -32,12 +32,32 @@ var (
 	_ = (infer.CustomDelete[proxmox.SdnVnetOutputs])((*Vnet)(nil))
 	_ = (infer.CustomUpdate[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
 	_ = (infer.CustomRead[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomCheck[proxmox.SdnVnetInputs])((*Vnet)(nil))
 	_ = infer.Annotated((*Vnet)(nil))
 )
 
 // Vnet represents a Proxmox SDN VNet resource.
 type Vnet struct {
 	SdnVnetOps proxmox.SdnVnetOperations
+}
+
+// Check validates the inputs for a VNet resource. Name constraints are enforced here
+// so that pulumi preview catches invalid values before any API call is made.
+func (vnet *Vnet) Check(
+	ctx context.Context,
+	req infer.CheckRequest,
+) (infer.CheckResponse[proxmox.SdnVnetInputs], error) {
+	inputs, failures, err := infer.DefaultCheck[proxmox.SdnVnetInputs](ctx, req.NewInputs)
+	if err != nil {
+		return infer.CheckResponse[proxmox.SdnVnetInputs]{}, err
+	}
+	if nameErr := proxmox.ValidateVnetName(inputs.Vnet); nameErr != nil {
+		failures = append(failures, p.CheckFailure{Property: "vnet", Reason: nameErr.Error()})
+	}
+	return infer.CheckResponse[proxmox.SdnVnetInputs]{
+		Inputs:   inputs,
+		Failures: failures,
+	}, nil
 }
 
 // Create creates a new VNet resource.
@@ -54,11 +74,6 @@ func (vnet *Vnet) Create(
 		Output: proxmox.SdnVnetOutputs{SdnVnetInputs: inputs},
 	}
 
-	// Validate before DryRun so pulumi preview also catches bad names.
-	if err := proxmox.ValidateVnetName(ctx, inputs.Vnet); err != nil {
-		return response, err
-	}
-
 	if request.DryRun {
 		return response, nil
 	}
@@ -70,6 +85,12 @@ func (vnet *Vnet) Create(
 	if err := vnet.SdnVnetOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
+
+	outputs, err := vnet.SdnVnetOps.Get(ctx, inputs.Vnet)
+	if err != nil {
+		return response, err
+	}
+	response.Output = *outputs
 	return response, nil
 }
 
@@ -126,6 +147,12 @@ func (vnet *Vnet) Update(
 	if err := vnet.SdnVnetOps.Update(ctx, request.State.Vnet, request.Inputs, request.State); err != nil {
 		return response, err
 	}
+
+	outputs, err := vnet.SdnVnetOps.Get(ctx, request.State.Vnet)
+	if err != nil {
+		return response, err
+	}
+	response.Output = *outputs
 	return response, nil
 }
 
