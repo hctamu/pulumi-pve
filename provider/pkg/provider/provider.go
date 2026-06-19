@@ -158,7 +158,7 @@ func newVMResourceWithConfig(cfg *config.Config) *vm.VM {
 // Passing nil will cause it to fetch config from context when Connect() is called.
 func newVnetResourceWithConfig(cfg *config.Config) *sdn.Vnet {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
-	return &sdn.Vnet{SdnVnetOps: adapters.NewSdnVnetAdapter(proxmoxAdapter)}
+	return &sdn.Vnet{VnetOps: adapters.NewVnAdapter(proxmoxAdapter)}
 }
 
 // NewProvider returns a new instance of the PVE provider.

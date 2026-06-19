@@ -28,17 +28,17 @@ import (
 
 // Ensure Vnet implements the required interfaces.
 var (
-	_ = (infer.CustomResource[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomDelete[proxmox.SdnVnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomUpdate[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomRead[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomCheck[proxmox.SdnVnetInputs])((*Vnet)(nil))
+	_ = (infer.CustomResource[proxmox.VnetInputs, proxmox.VnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomDelete[proxmox.VnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomUpdate[proxmox.VnetInputs, proxmox.VnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomRead[proxmox.VnetInputs, proxmox.VnetOutputs])((*Vnet)(nil))
+	_ = (infer.CustomCheck[proxmox.VnetInputs])((*Vnet)(nil))
 	_ = infer.Annotated((*Vnet)(nil))
 )
 
 // Vnet represents a Proxmox SDN VNet resource.
 type Vnet struct {
-	SdnVnetOps proxmox.SdnVnetOperations
+	VnetOps proxmox.VnetOperations
 }
 
 // Check validates the inputs for a VNet resource. Name constraints are enforced here
@@ -46,15 +46,15 @@ type Vnet struct {
 func (vnet *Vnet) Check(
 	ctx context.Context,
 	req infer.CheckRequest,
-) (infer.CheckResponse[proxmox.SdnVnetInputs], error) {
-	inputs, failures, err := infer.DefaultCheck[proxmox.SdnVnetInputs](ctx, req.NewInputs)
+) (infer.CheckResponse[proxmox.VnetInputs], error) {
+	inputs, failures, err := infer.DefaultCheck[proxmox.VnetInputs](ctx, req.NewInputs)
 	if err != nil {
-		return infer.CheckResponse[proxmox.SdnVnetInputs]{}, err
+		return infer.CheckResponse[proxmox.VnetInputs]{}, err
 	}
 	if nameErr := proxmox.ValidateVnetName(inputs.Vnet); nameErr != nil {
 		failures = append(failures, p.CheckFailure{Property: "vnet", Reason: nameErr.Error()})
 	}
-	return infer.CheckResponse[proxmox.SdnVnetInputs]{
+	return infer.CheckResponse[proxmox.VnetInputs]{
 		Inputs:   inputs,
 		Failures: failures,
 	}, nil
@@ -63,30 +63,30 @@ func (vnet *Vnet) Check(
 // Create creates a new VNet resource.
 func (vnet *Vnet) Create(
 	ctx context.Context,
-	request infer.CreateRequest[proxmox.SdnVnetInputs],
-) (infer.CreateResponse[proxmox.SdnVnetOutputs], error) {
+	request infer.CreateRequest[proxmox.VnetInputs],
+) (infer.CreateResponse[proxmox.VnetOutputs], error) {
 	inputs := request.Inputs
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Creating SDN VNet resource: %v", inputs)
 
-	response := infer.CreateResponse[proxmox.SdnVnetOutputs]{
+	response := infer.CreateResponse[proxmox.VnetOutputs]{
 		ID:     request.Name,
-		Output: proxmox.SdnVnetOutputs{SdnVnetInputs: inputs},
+		Output: proxmox.VnetOutputs{VnetInputs: inputs},
 	}
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	if vnet.SdnVnetOps == nil {
-		return response, errors.New("SdnVnetOperations not configured")
+	if vnet.VnetOps == nil {
+		return response, errors.New("VnetOperations not configured")
 	}
 
-	if err := vnet.SdnVnetOps.Create(ctx, inputs); err != nil {
+	if err := vnet.VnetOps.Create(ctx, inputs); err != nil {
 		return response, err
 	}
 
-	outputs, err := vnet.SdnVnetOps.Get(ctx, inputs.Vnet)
+	outputs, err := vnet.VnetOps.Get(ctx, inputs.Vnet)
 	if err != nil {
 		return response, err
 	}
@@ -97,15 +97,15 @@ func (vnet *Vnet) Create(
 // Read reads the current state of a VNet resource.
 func (vnet *Vnet) Read(
 	ctx context.Context,
-	request infer.ReadRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs],
-) (infer.ReadResponse[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs], error) {
+	request infer.ReadRequest[proxmox.VnetInputs, proxmox.VnetOutputs],
+) (infer.ReadResponse[proxmox.VnetInputs, proxmox.VnetOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Reading SDN VNet resource: %v", request.ID)
 
-	response := infer.ReadResponse[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs](request)
+	response := infer.ReadResponse[proxmox.VnetInputs, proxmox.VnetOutputs](request)
 
-	if vnet.SdnVnetOps == nil {
-		return response, errors.New("SdnVnetOperations not configured")
+	if vnet.VnetOps == nil {
+		return response, errors.New("VnetOperations not configured")
 	}
 
 	// During import, Inputs.Vnet is empty; fall back to the resource ID.
@@ -114,12 +114,12 @@ func (vnet *Vnet) Read(
 		vnetName = request.ID
 	}
 
-	outputs, err := vnet.SdnVnetOps.Get(ctx, vnetName)
+	outputs, err := vnet.VnetOps.Get(ctx, vnetName)
 	if err != nil {
 		return response, err
 	}
 
-	response.Inputs = outputs.SdnVnetInputs
+	response.Inputs = outputs.VnetInputs
 	response.State = *outputs
 	return response, nil
 }
@@ -127,28 +127,28 @@ func (vnet *Vnet) Read(
 // Update updates an existing VNet resource.
 func (vnet *Vnet) Update(
 	ctx context.Context,
-	request infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs],
-) (infer.UpdateResponse[proxmox.SdnVnetOutputs], error) {
+	request infer.UpdateRequest[proxmox.VnetInputs, proxmox.VnetOutputs],
+) (infer.UpdateResponse[proxmox.VnetOutputs], error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Updating SDN VNet resource: %v", request.ID)
 
-	response := infer.UpdateResponse[proxmox.SdnVnetOutputs]{Output: request.State}
+	response := infer.UpdateResponse[proxmox.VnetOutputs]{Output: request.State}
 
 	if request.DryRun {
 		return response, nil
 	}
 
-	if vnet.SdnVnetOps == nil {
-		return response, errors.New("SdnVnetOperations not configured")
+	if vnet.VnetOps == nil {
+		return response, errors.New("VnetOperations not configured")
 	}
 
-	response.Output.SdnVnetInputs = request.Inputs
+	response.Output.VnetInputs = request.Inputs
 
-	if err := vnet.SdnVnetOps.Update(ctx, request.State.Vnet, request.Inputs, request.State); err != nil {
+	if err := vnet.VnetOps.Update(ctx, request.State.Vnet, request.Inputs, request.State); err != nil {
 		return response, err
 	}
 
-	outputs, err := vnet.SdnVnetOps.Get(ctx, request.State.Vnet)
+	outputs, err := vnet.VnetOps.Get(ctx, request.State.Vnet)
 	if err != nil {
 		return response, err
 	}
@@ -159,18 +159,18 @@ func (vnet *Vnet) Update(
 // Delete deletes an existing VNet resource.
 func (vnet *Vnet) Delete(
 	ctx context.Context,
-	request infer.DeleteRequest[proxmox.SdnVnetOutputs],
+	request infer.DeleteRequest[proxmox.VnetOutputs],
 ) (infer.DeleteResponse, error) {
 	logger := p.GetLogger(ctx)
 	logger.Debugf("Deleting SDN VNet resource: %v", request.State.Vnet)
 
 	var response infer.DeleteResponse
 
-	if vnet.SdnVnetOps == nil {
-		return response, errors.New("SdnVnetOperations not configured")
+	if vnet.VnetOps == nil {
+		return response, errors.New("VnetOperations not configured")
 	}
 
-	if err := vnet.SdnVnetOps.Delete(ctx, request.State.Vnet); err != nil {
+	if err := vnet.VnetOps.Delete(ctx, request.State.Vnet); err != nil {
 		return response, err
 	}
 	return response, nil

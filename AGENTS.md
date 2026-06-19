@@ -1,45 +1,16 @@
 # Copilot Instructions
 
-## Repository Summary
+## General Guidelines
+
+**🌐 Prefix every response with the 🌐 emoji when answering questions about general guidelines, conventions, or project principles.**
+
+- **Be critical:** Question assumptions, challenge vague requirements, and flag inconsistencies. Don't just accept a task at face value — if the ask is unclear, the scope is ambiguous, or the approach seems wrong, say so.
+- **Ask for clarification:** If a request is incomplete, contradicts the guidelines, or lacks context, ask back instead of guessing. Examples: "Is this a bug fix or a refactor?", "Which resource does this apply to?", "What's the success criterion?"
+- **Single source of truth:** This file (copilot-instructions.md) is the authoritative reference. All other documentation should defer to it.
 
 This is a **Pulumi provider for Proxmox VE (PVE)** written in Go. It enables infrastructure-as-code management of Proxmox resources (VMs, storage, pools, HA groups, users, groups, roles, ACLs) using the [pulumi-go-provider](https://github.com/pulumi/pulumi-go-provider) infer framework. Multi-language SDKs (Go, Python, Node.js, .NET, Java) are **generated** from a JSON schema — never edit files under `sdk/` directly.
 
----
-
-## Environment
-
-All build tools (Go 1.26.0, golangci-lint, pulumi, golines, gofumpt, dlv, Java/Gradle for SDK gen) live exclusively inside the devcontainer. **Nothing is installed on the host.**
-
-The devcontainer is defined by `Dockerfile` (repo root) + `.devcontainer/devcontainer.json`. The container is named `pulumi-pve`; the repo is mounted at `/workspaces/pulumi-pve` inside it.
-
-### GitHub Copilot — runs inside the devcontainer
-
-Copilot works from within the container (VSCode → "Reopen in Container"). All commands run directly in the integrated terminal with no extra setup.
-
-### OpenCode — runs on the host, shells into the container for commands
-
-OpenCode runs on the host machine, not inside the container. To execute any build/test/lint command, prefix it with `docker exec`:
-
-```bash
-# Start the container if it isn't running (idempotent)
-docker start pulumi-pve
-
-# Run any make/go command inside the container
-docker exec -w /workspaces/pulumi-pve pulumi-pve make provider
-docker exec -w /workspaces/pulumi-pve pulumi-pve make lint
-docker exec -w /workspaces/pulumi-pve pulumi-pve make test_provider
-
-# Interactive shell (for debugging)
-docker exec -it -w /workspaces/pulumi-pve pulumi-pve bash
-```
-
-Source files are edited on the host (they are bind-mounted into the container), so file edits take effect immediately for the next `docker exec` command.
-
-**`go.mod` lives at `provider/go.mod`**, not the repo root — all direct `go` commands must be run from `provider/` (or via `docker exec ... bash -c "cd provider && go ..."`).
-
-### On-save formatter (inside the container / VS Code only)
-
-The devcontainer VS Code config runs `golines ${file} -w -m 120 -t 2` on every `.go` save. Outside VS Code, run it manually before committing if lines exceed 120 chars.
+Development must be done inside the devcontainer (VSCode → "Reopen in Container").
 
 ---
 
@@ -49,35 +20,54 @@ The devcontainer VS Code config runs `golines ${file} -w -m 120 -t 2` on every `
 - **pulumi-go-provider** — infer-based Pulumi resource framework (schema auto-generated from Go struct tags)
 - **luthermonson/go-proxmox** — Proxmox HTTP API client
 - **testify** — test assertions (`assert`/`require`)
+- **mocha/v3** — HTTP mock server for adapter tests
 - **golangci-lint v2** — enforced via `.golangci.yml`
+- **gofumpt** — stricter Go formatter (used by `make lint`)
+- **golines** — enforces 120-char line limit (used by `make lint`)
 
 ---
 
 ## Build & Validate Commands
 
+**Pre-commit checklist** (all must pass locally before pushing):
 ```bash
-make provider            # Build provider binary only (fast)
-make provider_debug      # Build with debug symbols (for dlv)
-make build               # Build provider + all SDKs (slow)
-make lint                # Run golangci-lint (run before committing)
-make test_provider       # Run all provider unit tests
-make generate_schema     # Regenerate schema.json from provider binary
-make sdk/go              # Regenerate a single SDK (go/nodejs/python/dotnet/java)
-make codegen             # generate_schema + all five SDKs (full regeneration)
-make tidy                # go mod tidy — run after adding/removing dependencies
+make lint              # golangci-lint with golines (120-char limit)
+make test_provider     # all unit tests
+make provider          # build provider binary
 ```
 
-Run a single package's tests (from repo root):
+**Full commands:**
 ```bash
+# Build provider binary
+make provider
+
+# Run provider unit tests (fast — no Proxmox needed)
+make test_provider
+# or single package:
 cd provider && go test -v -count=1 -cover -timeout 2h -parallel 4 ./pkg/provider/resources/vm
-```
-
-Run a single test:
-```bash
+# or single test:
 cd provider && go test -v -count=1 -cover -timeout 2h ./pkg/provider/resources/vm -run TestParseCPU
-```
 
-`make lint` uses `--path-prefix provider` — do not invoke golangci-lint directly without that flag or paths will be wrong.
+# Lint (must pass before committing)
+# IMPORTANT: use 'make lint' not 'golangci-lint' directly — it sets --path-prefix provider
+make lint
+
+# Tidy modules (run after adding/removing dependencies)
+make tidy
+
+# Regenerate schema.json (fast — after changing struct tags)
+make generate_schema
+
+# Regenerate schema + all SDKs (slow — only when exporting a new release)
+make build
+
+# Integration testing (requires live Proxmox or integration test env)
+export PULUMI_CONFIG_PASSPHRASE=<passphrase>
+make up       # first deploy
+make update   # re-deploy after changes
+make preview  # dry-run
+make down     # destroy + cleanup
+```
 
 CI runs `make test_provider` and `make lint` on every push/PR. Both must pass.
 
@@ -96,11 +86,14 @@ provider/
       provider.go            # Resource registration & wiring
       resources/             # Pulumi resource implementations (vm, ha, pool…)
     testutils/               # Shared mock helpers (MockProxmoxClient, CreateMockServer)
-    utils/                   # Utility functions (StringSliceChanged, etc.)
 sdk/                         # GENERATED — do not edit
 examples/                    # YAML/Go Pulumi programs for manual testing
 .golangci.yml                # Lint rules (repo root)
-.github/prompts/             # Reusable task-specific prompt files
+.github/skills/              # Reusable task-specific skills
+  - `.github:fix-lint` — fix golangci-lint errors
+  - `.github:new-resource` — scaffold a new resource
+  - `.github:adapter-testing` — add/complete adapter unit tests
+  - `.github:debugging` — find and fix bugs systematically
 ```
 
 ---
@@ -111,28 +104,34 @@ examples/                    # YAML/Go Pulumi programs for manual testing
 2. **Adapters** (`provider/pkg/adapters/`) — implement domain interfaces against the real Proxmox HTTP/SSH API. Each adapter has a matching `_test.go`.
 3. **Resources** (`provider/pkg/provider/resources/`) — implement `infer.CustomResource` interfaces. Depend **only** on domain interfaces, never on adapters directly. Wired together in `provider.go`.
 
-The HA resource is the reference implementation of the adapter pattern.
+**Reference implementation:** The `ha` (HA group) resource is the reference for structure, patterns, and style. Check it first when uncertain.
+
+For debugging guidance, see the `.github:debugging` skill.
 
 ### Do / Don't
 
+**Critical (breaks build or contracts):**
 | ✅ Do | ❌ Don't |
 |---|---|
 | Add `var _ proxmox.XOps = (*XAdapter)(nil)` compile-time checks | Import adapter packages from resource packages |
 | Add `var _ = (infer.CustomResource[...])((*X)(nil))` in resource files | Edit anything under `sdk/` |
-| Nil-check the operations field before every use in resources | Use `github.com/golang/protobuf` (use `google.golang.org/protobuf`) |
+| **Nil-check the operations field before every use in resources** (fails silently otherwise) | Use `github.com/golang/protobuf` (use `google.golang.org/protobuf`) |
 | Use `fmt.Errorf("...: %w", err)` for error wrapping | Share a mock server across parallel subtests |
-| Call `t.Parallel()` in every test function and subtest | Use `NewAPIMock` for new tests (use `testutils.CreateMockServer` instead) |
-| Check `request.DryRun` and return early in every CRUD method | Hand-edit `.github/workflows/*.yml` (auto-generated from `.ci-mgmt.yaml`) |
+| Call `t.Parallel()` in every test function and subtest | Use `NewAPIMock` for new tests (use `CreateMockServer` instead) |
 
-Resource-to-adapter wiring lives in `provider/pkg/provider/provider.go` (`NewProviderWithConfig`). Pass `nil` config to read credentials from Pulumi context at runtime; pass a non-nil `*config.Config` in tests.
+**Style & discipline:**
+| ✅ Do | ❌ Don't |
+|---|---|
+| Keep changes focused to the task at hand | Refactor unrelated code while fixing a bug |
+| Use existing abstractions (interfaces, helpers) | Add abstractions for a single caller |
+| Validate inputs at system boundaries (user input, external APIs) | Add error handling for impossible cases (trust internal contracts) |
+| Ask for clarification when Proxmox API is undocumented or schema/adapter/resource disagree | Guess or assume API behavior |
 
 ---
 
 ## Code Style
 
 ### Copyright header — required on **every** `.go` file
-
-Place as a `/* ... */` block comment immediately before `package` with **no blank line** between comment and `package`:
 
 ```go
 /* Copyright 2025, Pulumi Corporation.
@@ -169,22 +168,23 @@ import (
 )
 ```
 
-- **Formatter**: `gofumpt` (stricter than `gofmt`). Line length limit: 120 chars (`lll` linter). The devcontainer runs `golines ${file} -w -m 120 -t 2` on every `.go` save; outside VS Code run `golines -w -m 120 -t 2 <file>` manually.
-- **`gocritic`**: enable-all except `hugeParam` and `importShadow`. Extra `govet` checks enabled: `nilness`, `reflectvaluecompare`, `sortslice`, `unusedwrite`.
-- **Method receivers**: Use meaningful names derived from the type name (e.g., `adapter` for `*VMAdapter`). Single-letter receivers (`a`, `r`, `p`, `m`, `s`, etc.) are rejected by the linter.
-- **Variable names**: Use meaningful, descriptive names throughout the codebase
-  - **No single-letter variables** in range loops (except `i`, `j` in traditional index loops). `for _, d := range disks` → `for _, disk := range disks`
-  - **Loop variables**: use the singular of the slice name (`for _, disk := range vm.Disks`, `for _, option := range options`)
-  - **Short-lived temporaries**: acceptable but prefer clarity (`iface` over `i` for interface type, `idx` over `i` for position when not a traditional index loop)
-- **Return statements**: Always use explicit returns with named return values. Do not use naked `return` statements (even when using named return values). Always write out the full `return value1, value2, ...` for clarity.
-  - ❌ Bad: `func foo() (client *Client, err error) { ... return }`
-  - ✅ Good: `func foo() (client *Client, err error) { ... return client, err }`
+- **Format**: `gofumpt` (stricter than `gofmt`) + `golines` (120-char line limit). Run `make lint` to auto-check both.
+- **Line limit:** 120 characters (enforced by golines via `make lint`).
+- **Commit message format:** Conventional Commits — `type(scope): description`. Examples: `fix(vm): handle CPU parsing edge case`, `feat(ha): add support for HA group rules`.
+- **Method receivers**: Use meaningful names that reflect the type, not single letters or opaque abbreviations. Prefer a short but descriptive word derived from the type name (e.g., `adapter` for `*VMAdapter`, `inputs` for `*RoleInputs`, `mock` for `*mockXOperations`). Avoid `a`, `r`, `p`, `m`, `e`, `s`, and other one-letter receivers.
 
----
+**Bad → Good example:**
+```go
+// BAD
+func (a *VMAdapter) Create(ctx context.Context, r *CreateInput) (*VM, error) {
+    // ...
+}
 
-## Schema and SDKs
-
-Schema (`provider/cmd/pulumi-resource-pve/schema.json`) is generated from the compiled provider binary — it is not hand-edited. Generation strips the version field via `jq 'del(.version)'`. After changing resource inputs/outputs, run `make generate_schema` then regenerate the affected SDK(s).
+// GOOD
+func (adapter *VMAdapter) Create(ctx context.Context, inputs *CreateInput) (*VM, error) {
+    // ...
+}
+```
 
 ---
 
@@ -193,8 +193,9 @@ Schema (`provider/cmd/pulumi-resource-pve/schema.json`) is generated from the co
 - **All tests must be table-driven.** Define a `tests` slice of structs; range with `t.Run`.
 - **Always call `t.Parallel()`** in every test function and every subtest.
 - **Two test patterns — use the right one:**
-  - **Adapter tests** (`*_adapter_test.go`, `package adapters_test`): use `testutils.CreateMockServer` to start a real `httptest.Server`, then wire `NewProxmoxAdapter` → `.Connect(ctx)` → `NewXAdapter`. Assert on both the captured HTTP request and the returned domain value.
+  - **Adapter tests** (`*_adapter_test.go`): use `testutils.CreateMockServer` to start a real `httptest.Server`, then wire `NewProxmoxAdapter` → `.Connect()` → `NewXAdapter`. Assert on both the captured HTTP request and the returned domain value.
   - **Resource tests** (`resources/<name>/<name>_test.go`): define a local `mockXOperations` struct with `func` fields; inject it directly into the resource struct. No HTTP server needed.
+- Lifecycle/integration tests live in `<name>_lifecycle_test.go` and use `integration.LifeCycleTest`.
 - The `-short` flag skips integration tests; unit tests must not require a live Proxmox instance.
 
 ```go
@@ -217,34 +218,6 @@ func TestExample(t *testing.T) {
 }
 ```
 
-### Test helper conventions
-
-Shared helpers live in `provider/pkg/testutils/`:
-- `testutils.CreateMockServer(t, handler)` — wraps `httptest.NewServer`; returns server + captured-request store.
-- `testutils.NewMockAdapter(url)` — creates a `ProxmoxAdapter` pointing at the given `httptest` URL; call `.Connect(ctx)` before use.
-- `testutils.MockProxmoxClient{DefaultNode, DefaultVMID}` — lightweight stub for resource-layer tests.
-- `testutils.Ptr[T](v)` — generic helper to take a pointer to a literal value.
-
-Each parallel subtest must create its **own** mock server — never share one across subtests.
-
-### Mock server response format
-
-`go-proxmox` expects the Proxmox API envelope even in tests:
-```json
-{"data": null}
-{"data": {"key": "value"}}
-```
-A bare string or non-enveloped object causes silent misparsing.
-
----
-
-## Key Implementation Quirks
-
-- **Clone field** is never returned by the Proxmox API. It must always be carried forward from the user's inputs or from prior state (`preserveInputs` in `vm.go` and `readCurrentOutput`). Do not attempt to read it from the Proxmox response.
-- **Tags order**: Proxmox returns tags sorted alphabetically regardless of submission order. Use `utils.StringSliceChanged` (order-insensitive) for comparison; `preserveInputs` restores the user's original order when content matches.
-- **UpdateConfig guard**: `vm_adapter.go` no-ops when the options list is empty. Proxmox returns HTTP 500 for a `Config()` call with zero options — do not remove this guard.
-- **TLS**: `InsecureSkipVerify: true` is intentional (Proxmox self-signed certs). The `//nolint:gosec` comment is required or lint will fail.
-
 ---
 
 ## Adding a New Resource — Checklist
@@ -258,71 +231,31 @@ When adding a new resource, create **all** of the following (in order):
 5. `provider/pkg/provider/resources/<name>/<name>_test.go` — resource unit tests with mock interface
 6. `provider/pkg/provider/provider.go` — add `new<Name>ResourceWithConfig` wiring + register in `Resources` slice
 
-See `.github/prompts/new-resource.prompt.md` for the full scaffold guide. Adapter test conventions are in `.github/prompts/new-adapter-test.prompt.md`. Verify with:
-
-```bash
-cd provider && go build ./...   # must compile
-make test_provider               # all tests must pass
-make lint                        # zero warnings
-```
+Use the `/new-resource` Copilot skill for the full step-by-step scaffold guide.
 
 ---
 
-## Integration Testing Against the Real Cluster
+## CI Checks (must all pass)
 
-Prerequisites: `PULUMI_CONFIG_PASSPHRASE` must be set. Build the binary first (`Pulumi.yaml` loads the plugin from `../../bin`).
+| Check | Command |
+|---|---|
+| Unit tests | `make test_provider` |
+| Lint | `make lint` (golangci-lint with `.golangci.yml`) |
+| Build | `make provider` |
+| Schema diff (PR only) | schema-tools compares generated schema |
 
-```bash
-export PULUMI_CONFIG_PASSPHRASE=<passphrase>
-make provider          # compile binary into bin/
-make up                # pulumi login --local + stack init dev + pulumi up -y
-make preview           # dry-run with diff; safe to run anytime
-make update            # re-deploy after code changes (skips stack init)
-make refresh           # reconcile state with real Proxmox state
-make down              # pulumi destroy -y + remove stack (clean slate)
-```
+Respond terse like smart caveman. All technical substance stay. Only fluff die.
 
-`make up` will fail if the `dev` stack already exists — use `make update` after the first deploy.
+Rules:
+- Drop: articles (a/an/the), filler (just/really/basically), pleasantries, hedging
+- Fragments OK. Short synonyms. Technical terms exact. Code unchanged.
+- Pattern: [thing] [action] [reason]. [next step].
+- Not: "Sure! I'd be happy to help you with that."
+- Yes: "Bug in auth middleware. Fix:"
 
-The Makefile exports `PULUMI_IGNORE_AMBIENT_PLUGINS=true` automatically; set it manually when running `pulumi` CLI directly.
+Switch level: /caveman lite|full|ultra|wenyan
+Stop: "stop caveman" or "normal mode"
 
-Alternative swap-in program files in `examples/yaml/`: `Pulumi.vm.yaml` (VM only), `Pulumi.empty.yaml` (connectivity test only).
+Auto-Clarity: drop caveman for security warnings, irreversible actions, user confused. Resume after.
 
-
-### Testing a new resource
-
-To test a new resource against the real cluster, edit `examples/yaml/Pulumi.yaml` 
-
-1. Comment out resources that are not under test (to avoid side effects).
-2. Add your new resource definition.
-3. Run `make provider && make update` (not `make up` — the stack already exists).
-4. Verify with `make refresh` (should show 0 changes).
-5. Clean up with `make down`.
-6. Restore `Pulumi.yaml` to its original state after the test.
-
----
-
-## Provider Configuration
-
-```yaml
-config:
-  pve:pveUrl: "https://proxmox-host:8006"
-  pve:pveUser: "user@pam"
-  pve:pveToken: "token-id=secret"
-  pve:sshUser: "root"     # optional, for SSH operations
-  pve:sshPass: "password" # optional, for SSH operations
-```
-
-`PVE_API_URL` environment variable overrides `pveUrl` if set.
-
----
-
-## CI Workflows
-
-`.github/workflows/*.yml` are auto-generated from `.ci-mgmt.yaml` — do not hand-edit them. To regenerate: `make ci-mgmt`.
-
----
-
-## Release
-
-Tag `v*.*.*` on GitHub → CI publishes to NPM, NuGet, and PyPI automatically.
+Boundaries: code/commits/PRs written normal.

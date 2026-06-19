@@ -24,26 +24,26 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
-const sdnVnetBasePath = "/cluster/sdn/vnets"
+const vnetBasePath = "/cluster/sdn/vnets"
 
-// Ensure SdnVnetAdapter implements the SdnVnetOperations interface.
-var _ proxmox.SdnVnetOperations = (*SdnVnetAdapter)(nil)
+// Ensure VnAdapter implements the VnetOperations interface.
+var _ proxmox.VnetOperations = (*VnAdapter)(nil)
 
-// SdnVnetAdapter implements proxmox.SdnVnetOperations using a ProxmoxClient.
-type SdnVnetAdapter struct {
+// VnAdapter implements proxmox.VnetOperations using a ProxmoxClient.
+type VnAdapter struct {
 	client proxmox.Client
 }
 
-// NewSdnVnetAdapter creates a new SdnVnetAdapter wrapping the given ProxmoxClient.
-func NewSdnVnetAdapter(client proxmox.Client) *SdnVnetAdapter {
-	return &SdnVnetAdapter{client: client}
+// NewVnAdapter creates a new VnAdapter wrapping the given ProxmoxClient.
+func NewVnAdapter(client proxmox.Client) *VnAdapter {
+	return &VnAdapter{client: client}
 }
 
 // Create creates a new VNet.
-func (adapter *SdnVnetAdapter) Create(ctx context.Context, inputs proxmox.SdnVnetInputs) error {
+func (adapter *VnAdapter) Create(ctx context.Context, inputs proxmox.VnetInputs) error {
 	vlanaware := api.IntOrBool(inputs.Vlanaware)
 	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
-	apiObject := &proxmox.SdnVnetAPIObject{
+	apiObject := &proxmox.VnetAPIObject{
 		Vnet:         inputs.Vnet,
 		Zone:         inputs.Zone,
 		Tag:          inputs.Tag,
@@ -51,21 +51,21 @@ func (adapter *SdnVnetAdapter) Create(ctx context.Context, inputs proxmox.SdnVne
 		Vlanaware:    &vlanaware,
 		IsolatePorts: &isolatePorts,
 	}
-	if err := adapter.client.Post(ctx, sdnVnetBasePath, apiObject, nil); err != nil {
+	if err := adapter.client.Post(ctx, vnetBasePath, apiObject, nil); err != nil {
 		return fmt.Errorf("failed to create VNet: %w", err)
 	}
 	return nil
 }
 
 // Get retrieves an existing VNet by its name.
-func (adapter *SdnVnetAdapter) Get(ctx context.Context, vnet string) (*proxmox.SdnVnetOutputs, error) {
-	var apiObject *proxmox.SdnVnetAPIObject
-	url := fmt.Sprintf("%s/%s", sdnVnetBasePath, vnet)
+func (adapter *VnAdapter) Get(ctx context.Context, vnet string) (*proxmox.VnetOutputs, error) {
+	var apiObject *proxmox.VnetAPIObject
+	url := fmt.Sprintf("%s/%s", vnetBasePath, vnet)
 	if err := adapter.client.Get(ctx, url, &apiObject); err != nil {
 		return nil, fmt.Errorf("failed to get VNet: %w", err)
 	}
-	outputs := &proxmox.SdnVnetOutputs{
-		SdnVnetInputs: proxmox.SdnVnetInputs{
+	outputs := &proxmox.VnetOutputs{
+		VnetInputs: proxmox.VnetInputs{
 			Vnet:  apiObject.Vnet,
 			Zone:  apiObject.Zone,
 			Tag:   apiObject.Tag,
@@ -84,15 +84,15 @@ func (adapter *SdnVnetAdapter) Get(ctx context.Context, vnet string) (*proxmox.S
 }
 
 // Update updates an existing VNet.
-func (adapter *SdnVnetAdapter) Update(
+func (adapter *VnAdapter) Update(
 	ctx context.Context,
 	vnet string,
-	inputs proxmox.SdnVnetInputs,
-	oldOutputs proxmox.SdnVnetOutputs,
+	inputs proxmox.VnetInputs,
+	oldOutputs proxmox.VnetOutputs,
 ) error {
 	vlanaware := api.IntOrBool(inputs.Vlanaware)
 	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
-	apiObject := &proxmox.SdnVnetAPIObject{
+	apiObject := &proxmox.VnetAPIObject{
 		Zone:         inputs.Zone,
 		Tag:          inputs.Tag,
 		Vlanaware:    &vlanaware,
@@ -103,7 +103,7 @@ func (adapter *SdnVnetAdapter) Update(
 	} else if inputs.Alias != "" {
 		apiObject.Alias = inputs.Alias
 	}
-	url := fmt.Sprintf("%s/%s", sdnVnetBasePath, vnet)
+	url := fmt.Sprintf("%s/%s", vnetBasePath, vnet)
 	if err := adapter.client.Put(ctx, url, apiObject, nil); err != nil {
 		return fmt.Errorf("failed to update VNet: %w", err)
 	}
@@ -111,8 +111,8 @@ func (adapter *SdnVnetAdapter) Update(
 }
 
 // Delete deletes an existing VNet by its name.
-func (adapter *SdnVnetAdapter) Delete(ctx context.Context, vnet string) error {
-	url := fmt.Sprintf("%s/%s", sdnVnetBasePath, vnet)
+func (adapter *VnAdapter) Delete(ctx context.Context, vnet string) error {
+	url := fmt.Sprintf("%s/%s", vnetBasePath, vnet)
 	if err := adapter.client.Delete(ctx, url, nil); err != nil {
 		return fmt.Errorf("failed to delete VNet: %w", err)
 	}
