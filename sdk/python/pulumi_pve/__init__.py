@@ -101,7 +101,16 @@ _utilities.register(
   "mod": "sdn",
   "fqn": "pulumi_pve.sdn",
   "classes": {
+   "pve:sdn:Apply": "Apply",
    "pve:sdn:Vnet": "Vnet"
+  }
+ },
+ {
+  "pkg": "pve",
+  "mod": "sdn/zone",
+  "fqn": "pulumi_pve.sdn.zone",
+  "classes": {
+   "pve:sdn/zone:VxlanZone": "VxlanZone"
   }
  },
  {

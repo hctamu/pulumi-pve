@@ -98,11 +98,11 @@ func TestSDNAdapterLock(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			token, err := sdnAdapter.Lock(context.Background(), tt.timeout, false)
+			token, err := sdnAdapter.Lock(context.Background(), tt.timeout)
 
 			assert.Equal(t, http.MethodPost, captured.Method)
 			assert.Equal(t, "/cluster/sdn/lock", captured.Path)
-			assert.Equal(t, "", captured.Body)
+			assert.Equal(t, `{"allow-pending":1}`, captured.Body)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -251,7 +251,7 @@ func TestSDNAdapterLockContextCancellation(t *testing.T) {
 			cancel()
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			_, err = sdnAdapter.Lock(ctx, 60*time.Second, false)
+			_, err = sdnAdapter.Lock(ctx, 60*time.Second)
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)

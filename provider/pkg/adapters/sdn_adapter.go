@@ -46,17 +46,14 @@ func NewSDNAdapter(client pveproxmox.Client) *SDNAdapter {
 
 // Lock acquires the SDN cluster lock and returns a lock token.
 // The token is generated server-side by Proxmox.
-// When allowPending is true, the request includes allow-pending so Proxmox
-// accepts the lock even when there are pending changes.
-func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration, allowPending bool) (string, error) {
+// The request always includes allow-pending so Proxmox accepts the lock
+// even when there are pending changes.
+func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration) (string, error) {
 	if retryTimeout <= 0 {
 		retryTimeout = defaultLockRetryTimeout
 	}
 
-	var body any
-	if allowPending {
-		body = pveproxmox.SDNLockBody{AllowPending: 1}
-	}
+	body := pveproxmox.SDNLockBody{AllowPending: 1}
 
 	deadline := time.Now().Add(retryTimeout)
 	var lastErr error

@@ -19,7 +19,6 @@ package zone
 import (
 	"context"
 	"errors"
-	"regexp"
 	"strings"
 
 	p "github.com/pulumi/pulumi-go-provider"
@@ -236,8 +235,8 @@ func (sdnVxlanZone *VxlanZone) Check(
 		return infer.CheckResponse[proxmox.VxlanZoneInputs]{Inputs: inputs, Failures: failures}, err
 	}
 
-	if nameFailure := validateZoneName(inputs.Name); nameFailure != nil {
-		failures = append(failures, *nameFailure)
+	if nameErr := proxmox.ValidateSDNName(inputs.Name); nameErr != nil {
+		failures = append(failures, p.CheckFailure{Property: "name", Reason: nameErr.Error()})
 	}
 
 	if inputs.MTU != nil && (*inputs.MTU <= 0 || *inputs.MTU >= 65000) {
@@ -270,21 +269,6 @@ func (sdnVxlanZone *VxlanZone) Check(
 	}
 
 	return infer.CheckResponse[proxmox.VxlanZoneInputs]{Inputs: inputs, Failures: failures}, nil
-}
-
-// zoneNameRe matches a valid zone name: starts with a letter, followed by letters/digits, max 8 chars.
-var zoneNameRe = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]{0,7}$`)
-
-// validateZoneName returns a CheckFailure if name does not start with a letter,
-// contains non-alphanumeric characters, or exceeds 8 characters.
-func validateZoneName(name string) *p.CheckFailure {
-	if !zoneNameRe.MatchString(name) {
-		return &p.CheckFailure{
-			Property: "name",
-			Reason:   "zone name must start with a letter, contain only letters and numbers, and be at most 8 characters",
-		}
-	}
-	return nil
 }
 
 // Annotate adds a description to the VxlanZone resource.

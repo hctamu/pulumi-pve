@@ -17,8 +17,6 @@ package proxmox
 
 import (
 	"context"
-	"fmt"
-	"regexp"
 
 	api "github.com/luthermonson/go-proxmox"
 
@@ -38,20 +36,6 @@ type VnetOperations interface {
 
 	// Delete deletes an existing VNet by its name.
 	Delete(ctx context.Context, vnet string) error
-}
-
-// vnetNameRegexp enforces the Proxmox VNet naming rule: start with a letter, alphanumeric only.
-var vnetNameRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9]*$`)
-
-// ValidateVnetName checks the Proxmox 8-character alphanumeric limit for VNet names.
-func ValidateVnetName(name string) error {
-	if name == "" || len(name) > 8 {
-		return fmt.Errorf("invalid vnet name %q: must be 1-8 characters", name)
-	}
-	if !vnetNameRegexp.MatchString(name) {
-		return fmt.Errorf("invalid vnet name %q: must be alphanumeric and start with a letter", name)
-	}
-	return nil
 }
 
 // VnetInputs represents the input properties for the SDN VNet resource.
