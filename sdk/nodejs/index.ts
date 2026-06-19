@@ -20,11 +20,9 @@ import * as ha from "./ha";
 import * as pool from "./pool";
 import * as role from "./role";
 import * as sdn from "./sdn";
-import * as sdnapply from "./sdnapply";
 import * as types from "./types";
 import * as user from "./user";
 import * as vm from "./vm";
-import * as vxlanzone from "./vxlanzone";
 
 export {
     acl,
@@ -35,11 +33,9 @@ export {
     pool,
     role,
     sdn,
-    sdnapply,
     types,
     user,
     vm,
-    vxlanzone,
 };
 pulumi.runtime.registerResourcePackage("pve", {
     version: utilities.getVersion(),

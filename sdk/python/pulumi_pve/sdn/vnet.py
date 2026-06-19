@@ -27,7 +27,6 @@ class VnetArgs:
                  vlanaware: Optional[pulumi.Input[_builtins.bool]] = None):
         """
         The set of arguments for constructing a Vnet resource.
-
         :param pulumi.Input[_builtins.int] tag: The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number).
         :param pulumi.Input[_builtins.str] vnet: The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.
         :param pulumi.Input[_builtins.str] zone: The SDN zone this VNet belongs to (e.g. "ringfence").
@@ -134,7 +133,6 @@ class Vnet(pulumi.CustomResource):
         """
         A Proxmox SDN VNet resource that defines a per-zone virtual network materialized as a bridge on each node after SdnApply runs.
 
-
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] alias: An optional descriptive alias for the VNet.
@@ -152,7 +150,6 @@ class Vnet(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox SDN VNet resource that defines a per-zone virtual network materialized as a bridge on each node after SdnApply runs.
-
 
         :param str resource_name: The name of the resource.
         :param VnetArgs args: The arguments to use to populate this resource's properties.

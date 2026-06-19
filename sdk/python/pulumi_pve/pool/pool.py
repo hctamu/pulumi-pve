@@ -25,7 +25,6 @@ class PoolArgs:
                  vms: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.int]]]] = None):
         """
         The set of arguments for constructing a Pool resource.
-
         :param pulumi.Input[_builtins.str] name: The name of the Proxmox pool.
         :param pulumi.Input[_builtins.str] comment: An optional comment for the pool
         :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] storage: An optional list of storage names to assign to the pool.
@@ -102,7 +101,6 @@ class Pool(pulumi.CustomResource):
         """
         A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.
 
-
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] comment: An optional comment for the pool
@@ -118,7 +116,6 @@ class Pool(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox pool resource that groups virtual machines under a common pool in the Proxmox VE.
-
 
         :param str resource_name: The name of the resource.
         :param PoolArgs args: The arguments to use to populate this resource's properties.

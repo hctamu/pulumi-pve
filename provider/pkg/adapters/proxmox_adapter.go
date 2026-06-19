@@ -100,13 +100,12 @@ func newClient(
 	pveUser,
 	pveToken string,
 	insecureSkipVerify bool,
-) (client *api.Client, err error) {
-	transport := http.DefaultTransport.(*http.Transport)
+) (*api.Client, *http.Client, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
 	//nolint:gosec // InsecureSkipVerify is controlled by the user via provider config
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 
-	httpClient = http.DefaultClient
-	httpClient.Transport = transport
+	httpClient := &http.Client{Transport: transport}
 
 	apiClient := api.NewClient(
 		pveURL,
@@ -114,9 +113,7 @@ func newClient(
 		api.WithHTTPClient(httpClient),
 	)
 
-	client = apiClient
-
-	return client, err
+	return apiClient, httpClient, nil
 }
 
 // Get performs a GET request to the Proxmox API.
