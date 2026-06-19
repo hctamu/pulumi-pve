@@ -363,8 +363,8 @@ func TestVnetUpdate(t *testing.T) {
 				getFunc: func(_ context.Context, _ string) (*proxmox.VnetOutputs, error) {
 					return &proxmox.VnetOutputs{
 						VnetInputs: newInputs,
-						State:         "changed",
-						Digest:        "def456",
+						State:      "changed",
+						Digest:     "def456",
 					}, nil
 				},
 			},

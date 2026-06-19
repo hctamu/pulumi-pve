@@ -128,12 +128,12 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 	return &file.File{FileOps: fileAdapter}
 }
 
-// newSDNApplyResourceWithConfig creates a new SDNApply resource with a specific config.
+// newSDNApplyResourceWithConfig creates a new SDN Apply resource with a specific config.
 // Passing nil will cause it to fetch config from context when Connect() is called.
-func newSDNApplyResourceWithConfig(cfg *config.Config) *sdn.SDNApply {
+func newSDNApplyResourceWithConfig(cfg *config.Config) *sdn.Apply {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 	sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-	return &sdn.SDNApply{SDNOps: sdnAdapter}
+	return &sdn.Apply{SDNOps: sdnAdapter}
 }
 
 // newVxlanZoneResourceWithConfig creates a new SDN VXLAN zone resource with a specific config.
