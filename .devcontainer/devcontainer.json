@@ -8,7 +8,12 @@
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile"
 	},
-	"mounts": [],
+	"initializeCommand": "mkdir -p ~/.local/share/opencode ~/.ssh && touch ~/.auth_storage.json && touch ~/.secrets",
+	"mounts": [
+		"source=${localEnv:HOME}/.auth_storage.json,target=/home/vscode/.auth_storage.json,type=bind",
+		"source=${localEnv:HOME}/.secrets,target=/home/vscode/.secrets,type=bind,readonly",
+		"source=${localEnv:HOME}/.local/share/opencode,target=/home/vscode/.local/share/opencode,type=bind",
+	],
 	"remoteEnv": {
 		"XDG_CACHE_HOME": "/home/vscode/.cache",
 		"XDG_CONFIG_HOME": "/home/vscode/.config"
@@ -37,7 +42,8 @@
 					"github.vscode-github-actions",
 					"pulumi.pulumi-vscode-tools",
           "emeraldwalk.runonsave",
-          "anthropic.claude-code"
+          "anthropic.claude-code",
+          "sst-dev.opencode"
 				],
         "settings": {
           "emeraldwalk.runonsave": {
@@ -51,19 +57,4 @@
         }
 			}
 		}
-
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Uncomment the next line to run commands after the container is created.
-	// "postCreateCommand": "cat /etc/os-release",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "devcontainer"
 }
