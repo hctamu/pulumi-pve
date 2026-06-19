@@ -96,6 +96,22 @@ examples/                    # YAML/Go Pulumi programs for manual testing
   - `.github:debugging` — find and fix bugs systematically
 ```
 
+## Skills — Auto-Load Rules
+
+Load the matching skill **before** starting the task. Use the `skill` tool with the path below.
+
+| Trigger | Skill path |
+|---|---|
+| Fixing lint errors / `make lint` fails | `.github/skills/fix-lint/SKILL.md` |
+| Adding a new resource (domain + adapter + resource files) | `.github/skills/new-resource/SKILL.md` |
+| Adding or completing adapter unit tests | `.github/skills/adapter-testing/SKILL.md` |
+| Debugging a bug, crash, or unexpected behaviour | `.github/skills/debugging/SKILL.md` |
+
+Load by reading the skill file directly, e.g.:
+```
+Read: .github/skills/fix-lint/SKILL.md
+```
+
 ---
 
 ## Architecture — Three Layers

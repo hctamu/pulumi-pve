@@ -26,22 +26,22 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
-// Ensure SDNApply implements the required interfaces
+// Ensure Apply implements the required interfaces
 var (
-	_ = infer.CustomResource[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*SDNApply)(nil))
-	_ = infer.CustomDelete[proxmox.SDNApplyOutputs]((*SDNApply)(nil))
-	_ = infer.CustomUpdate[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*SDNApply)(nil))
-	_ = infer.CustomRead[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*SDNApply)(nil))
-	_ = infer.Annotated((*SDNApply)(nil))
+	_ = infer.CustomResource[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*Apply)(nil))
+	_ = infer.CustomDelete[proxmox.SDNApplyOutputs]((*Apply)(nil))
+	_ = infer.CustomUpdate[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*Apply)(nil))
+	_ = infer.CustomRead[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]((*Apply)(nil))
+	_ = infer.Annotated((*Apply)(nil))
 )
 
-// SDNApply represents a Proxmox SDN apply resource.
-type SDNApply struct {
+// Apply represents a Proxmox SDN apply resource.
+type Apply struct {
 	SDNOps proxmox.SDNOperations
 }
 
 // applyWithLock acquires the SDN lock with retries (passing allowPending), then applies pending changes.
-func (sdnApply *SDNApply) applyWithLock(ctx context.Context, inputs proxmox.SDNApplyInputs) error {
+func (sdnApply *Apply) applyWithLock(ctx context.Context, inputs proxmox.SDNApplyInputs) error {
 	token, err := sdnApply.SDNOps.Lock(
 		ctx,
 		time.Duration(inputs.LockTimeoutSeconds)*time.Second,
@@ -55,7 +55,7 @@ func (sdnApply *SDNApply) applyWithLock(ctx context.Context, inputs proxmox.SDNA
 }
 
 // Create applies pending SDN configuration changes via PUT /cluster/sdn.
-func (sdnApply *SDNApply) Create(
+func (sdnApply *Apply) Create(
 	ctx context.Context,
 	request infer.CreateRequest[proxmox.SDNApplyInputs],
 ) (infer.CreateResponse[proxmox.SDNApplyOutputs], error) {
@@ -84,7 +84,7 @@ func (sdnApply *SDNApply) Create(
 }
 
 // Delete is a no-op: SDN apply has no server-side delete.
-func (sdnApply *SDNApply) Delete(
+func (sdnApply *Apply) Delete(
 	ctx context.Context,
 	_ infer.DeleteRequest[proxmox.SDNApplyOutputs],
 ) (infer.DeleteResponse, error) {
@@ -93,7 +93,7 @@ func (sdnApply *SDNApply) Delete(
 }
 
 // Update re-applies SDN configuration changes whenever any trigger value changes.
-func (sdnApply *SDNApply) Update(
+func (sdnApply *Apply) Update(
 	ctx context.Context,
 	request infer.UpdateRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs],
 ) (infer.UpdateResponse[proxmox.SDNApplyOutputs], error) {
@@ -120,7 +120,7 @@ func (sdnApply *SDNApply) Update(
 }
 
 // Read is a no-op: returns current state unchanged.
-func (sdnApply *SDNApply) Read(
+func (sdnApply *Apply) Read(
 	ctx context.Context,
 	request infer.ReadRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs],
 ) (infer.ReadResponse[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs], error) {
@@ -128,8 +128,8 @@ func (sdnApply *SDNApply) Read(
 	return infer.ReadResponse[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs](request), nil
 }
 
-// Annotate adds a description to the SDNApply resource.
-func (sdnApply *SDNApply) Annotate(a infer.Annotator) {
+// Annotate adds a description to the Apply resource.
+func (sdnApply *Apply) Annotate(a infer.Annotator) {
 	a.Describe(
 		sdnApply,
 		"Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. "+
