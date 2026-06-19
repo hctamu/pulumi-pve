@@ -56,7 +56,7 @@ namespace Hctamu.Pve.Sdn
         /// The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.
         /// </summary>
         [Output("vnet")]
-        public Output<string> Vnet { get; private set; } = null!;
+        public Output<string> VnetName { get; private set; } = null!;
 
         /// <summary>
         /// The SDN zone this VNet belongs to (e.g. "ringfence").
@@ -142,7 +142,7 @@ namespace Hctamu.Pve.Sdn
         /// The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.
         /// </summary>
         [Input("vnet", required: true)]
-        public Input<string> Vnet { get; set; } = null!;
+        public Input<string> VnetName { get; set; } = null!;
 
         /// <summary>
         /// The SDN zone this VNet belongs to (e.g. "ringfence").
