@@ -115,7 +115,6 @@ func newClient(
 	)
 
 	client = apiClient
-	client = apiClient
 
 	return client, err
 }
