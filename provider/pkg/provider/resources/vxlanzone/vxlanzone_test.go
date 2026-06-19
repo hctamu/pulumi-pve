@@ -517,12 +517,12 @@ func TestVxlanZoneCheck(t *testing.T) {
 			failProperty: "mtu",
 		},
 		{
-			name: "mtu at limit 9000",
+			name: "mtu at limit 65000",
 			newInputs: property.NewMap(map[string]property.Value{
 				"name":  property.New("vxlan1"),
 				"peers": property.New(property.NewArray([]property.Value{property.New("10.0.0.1")})),
 				"ipam":  property.New("pve"),
-				"mtu":   property.New(float64(9000)),
+				"mtu":   property.New(float64(65000)),
 			}),
 			expectFail:   true,
 			failProperty: "mtu",
