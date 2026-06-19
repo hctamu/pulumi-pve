@@ -70,7 +70,6 @@ class CPU(dict):
                  vcpus: Optional[_builtins.int] = None):
         """
         CPU configuration for the virtual machine.
-
         :param _builtins.int cores: Number of CPU cores per socket.
         :param Sequence[_builtins.str] flags_disabled: List of CPU flags to disable.
         :param Sequence[_builtins.str] flags_enabled: List of CPU flags to enable (e.g., pcid, spec-ctrl).
@@ -253,7 +252,6 @@ class Clone(dict):
                  timeout: Optional[_builtins.int] = None):
         """
         Configuration for cloning a source virtual machine.
-
         :param _builtins.int vm_id: Source VM ID to clone from.
         :param _builtins.str data_store_id: Target storage pool for the cloned disks.
         :param _builtins.bool full_clone: Create a full independent clone instead of a linked clone.
@@ -323,7 +321,6 @@ class Disk(dict):
                  filename: Optional[_builtins.str] = None):
         """
         Disk configuration for the virtual machine.
-
         :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
         :param _builtins.int size: Disk size in gigabytes.
         :param _builtins.str storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
@@ -397,7 +394,6 @@ class EfiDisk(dict):
                  pre_enrolled_keys: Optional[_builtins.bool] = None):
         """
         EFI disk configuration for the virtual machine.
-
         :param _builtins.str efitype: EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
         :param _builtins.str storage: Target storage pool for the EFI disk (e.g., local-lvm).
         :param _builtins.str filename: File name of the EFI disk image (computed by Proxmox if not provided).
@@ -520,7 +516,6 @@ class NumaNode(dict):
                  policy: Optional[_builtins.str] = None):
         """
         NUMA node topology configuration for the virtual machine.
-
         :param _builtins.str cpus: CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
         :param _builtins.str host_nodes: Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
         :param _builtins.int memory: Memory in megabytes allocated to this NUMA node.

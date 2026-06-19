@@ -31,7 +31,6 @@ class UserArgs:
                  password: Optional[pulumi.Input[_builtins.str]] = None):
         """
         The set of arguments for constructing a User resource.
-
         :param pulumi.Input[_builtins.str] userid: The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
         :param pulumi.Input[_builtins.str] comment: An optional comment for the user.
         :param pulumi.Input[_builtins.str] email: An optional email address for the user.
@@ -204,7 +203,6 @@ class User(pulumi.CustomResource):
         """
         A Proxmox user resource that represents a user in the Proxmox VE.
 
-
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] comment: An optional comment for the user.
@@ -226,7 +224,6 @@ class User(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox user resource that represents a user in the Proxmox VE.
-
 
         :param str resource_name: The name of the resource.
         :param UserArgs args: The arguments to use to populate this resource's properties.

@@ -28,14 +28,10 @@ if typing.TYPE_CHECKING:
     role = __role
     import pulumi_pve.sdn as __sdn
     sdn = __sdn
-    import pulumi_pve.sdnapply as __sdnapply
-    sdnapply = __sdnapply
     import pulumi_pve.user as __user
     user = __user
     import pulumi_pve.vm as __vm
     vm = __vm
-    import pulumi_pve.vxlanzone as __vxlanzone
-    vxlanzone = __vxlanzone
 else:
     acl = _utilities.lazy_import('pulumi_pve.acl')
     config = _utilities.lazy_import('pulumi_pve.config')
@@ -46,10 +42,8 @@ else:
     proxmox = _utilities.lazy_import('pulumi_pve.proxmox')
     role = _utilities.lazy_import('pulumi_pve.role')
     sdn = _utilities.lazy_import('pulumi_pve.sdn')
-    sdnapply = _utilities.lazy_import('pulumi_pve.sdnapply')
     user = _utilities.lazy_import('pulumi_pve.user')
     vm = _utilities.lazy_import('pulumi_pve.vm')
-    vxlanzone = _utilities.lazy_import('pulumi_pve.vxlanzone')
 
 _utilities.register(
     resource_modules="""
@@ -112,14 +106,6 @@ _utilities.register(
  },
  {
   "pkg": "pve",
-  "mod": "sdnapply",
-  "fqn": "pulumi_pve.sdnapply",
-  "classes": {
-   "pve:sdnapply:SDNApply": "SDNApply"
-  }
- },
- {
-  "pkg": "pve",
   "mod": "user",
   "fqn": "pulumi_pve.user",
   "classes": {
@@ -132,14 +118,6 @@ _utilities.register(
   "fqn": "pulumi_pve.vm",
   "classes": {
    "pve:vm:VM": "VM"
-  }
- },
- {
-  "pkg": "pve",
-  "mod": "vxlanzone",
-  "fqn": "pulumi_pve.vxlanzone",
-  "classes": {
-   "pve:vxlanzone:VxlanZone": "VxlanZone"
   }
  }
 ]

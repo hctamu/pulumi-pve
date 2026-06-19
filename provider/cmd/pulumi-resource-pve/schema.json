@@ -6,6 +6,9 @@
   "repository": "https://github.com/hctamu/pulumi-pve",
   "pluginDownloadURL": "github://api.github.com/hctamu/pulumi-pve",
   "namespace": "hctamu",
+  "meta": {
+    "moduleFormat": "(.*)"
+  },
   "language": {
     "csharp": {
       "packageReferences": {
@@ -40,9 +43,6 @@
       "insecureIgnoreHostKey": {
         "type": "boolean"
       },
-      "insecureIgnoreHostKey": {
-        "type": "boolean"
-      },
       "insecureSkipVerify": {
         "type": "boolean"
       },
@@ -59,9 +59,6 @@
       "sshKnownHostsPath": {
         "type": "string"
       },
-      "sshKnownHostsPath": {
-        "type": "string"
-      },
       "sshPass": {
         "type": "string",
         "secret": true
@@ -71,11 +68,11 @@
       }
     },
     "defaults": [
+      "pveToken",
       "pveUrl",
       "pveUser",
-      "pveToken",
-      "sshUser",
-      "sshPass"
+      "sshPass",
+      "sshUser"
     ]
   },
   "types": {
@@ -203,9 +200,9 @@
       },
       "type": "object",
       "required": [
-        "storage",
+        "interface",
         "size",
-        "interface"
+        "storage"
       ]
     },
     "pve:proxmox:EfiDisk": {
@@ -230,8 +227,8 @@
       },
       "type": "object",
       "required": [
-        "storage",
-        "efitype"
+        "efitype",
+        "storage"
       ]
     },
     "pve:proxmox:FileSourceRaw": {
@@ -281,15 +278,6 @@
   },
   "provider": {
     "properties": {
-      "insecureIgnoreHostKey": {
-        "type": "boolean"
-      },
-      "insecureIgnoreHostKey": {
-        "type": "boolean"
-      },
-      "insecureSkipVerify": {
-        "type": "boolean"
-      },
       "pveToken": {
         "type": "string",
         "secret": true
@@ -298,9 +286,6 @@
         "type": "string"
       },
       "pveUser": {
-        "type": "string"
-      },
-      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshKnownHostsPath": {
@@ -314,17 +299,15 @@
         "type": "string"
       }
     },
+    "type": "object",
     "required": [
+      "pveToken",
       "pveUrl",
       "pveUser",
-      "pveToken",
-      "sshUser",
-      "sshPass"
+      "sshPass",
+      "sshUser"
     ],
     "inputProperties": {
-      "insecureIgnoreHostKey": {
-        "type": "boolean"
-      },
       "insecureIgnoreHostKey": {
         "type": "boolean"
       },
@@ -339,9 +322,6 @@
         "type": "string"
       },
       "pveUser": {
-        "type": "string"
-      },
-      "sshKnownHostsPath": {
         "type": "string"
       },
       "sshKnownHostsPath": {
@@ -356,11 +336,11 @@
       }
     },
     "requiredInputs": [
+      "pveToken",
       "pveUrl",
       "pveUser",
-      "pveToken",
-      "sshUser",
-      "sshPass"
+      "sshPass",
+      "sshUser"
     ]
   },
   "resources": {
@@ -393,6 +373,7 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
         "path",
         "roleid",
@@ -452,9 +433,10 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
-        "datastoreId",
         "contentType",
+        "datastoreId",
         "sourceRaw"
       ],
       "inputProperties": {
@@ -475,8 +457,8 @@
         }
       },
       "requiredInputs": [
-        "datastoreId",
         "contentType",
+        "datastoreId",
         "sourceRaw"
       ]
     },
@@ -494,6 +476,7 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
         "name"
       ],
@@ -531,6 +514,7 @@
           "default": "started"
         }
       },
+      "type": "object",
       "required": [
         "resourceId"
       ],
@@ -581,6 +565,7 @@
           "description": "An optional list of VM IDs to assign to the pool."
         }
       },
+      "type": "object",
       "required": [
         "name"
       ],
@@ -629,6 +614,7 @@
           "description": "A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt')."
         }
       },
+      "type": "object",
       "required": [
         "name"
       ],
@@ -692,10 +678,11 @@
           "description": "The SDN zone this VNet belongs to (e.g. \"ringfence\")."
         }
       },
+      "type": "object",
       "required": [
+        "tag",
         "vnet",
-        "zone",
-        "tag"
+        "zone"
       ],
       "inputProperties": {
         "alias": {
@@ -730,9 +717,9 @@
         }
       },
       "requiredInputs": [
+        "tag",
         "vnet",
-        "zone",
-        "tag"
+        "zone"
       ]
     },
     "pve:user:User": {
@@ -788,6 +775,7 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
         "userid"
       ],
@@ -920,9 +908,10 @@
           "replaceOnChanges": true
         }
       },
+      "type": "object",
       "required": [
-        "name",
-        "disks"
+        "disks",
+        "name"
       ],
       "inputProperties": {
         "autostart": {
@@ -998,119 +987,8 @@
         }
       },
       "requiredInputs": [
-        "name",
-        "disks"
-      ]
-    },
-    "pve:vxlanzone:VxlanZone": {
-      "description": "A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.",
-      "properties": {
-        "dns": {
-          "type": "string",
-          "description": "DNS plugin ID associated with this zone."
-        },
-        "dnsZone": {
-          "type": "string",
-          "description": "DNS zone/domain name used for host registrations."
-        },
-        "fabric": {
-          "type": "string",
-          "description": "SDN fabric identifier used to connect this VXLAN zone to an EVPN fabric."
-        },
-        "ipam": {
-          "type": "string",
-          "description": "IPAM plugin ID associated with this zone."
-        },
-        "mtu": {
-          "type": "integer",
-          "description": "MTU for the VXLAN zone. If unset, Proxmox uses its automatic/default MTU."
-        },
-        "name": {
-          "type": "string",
-          "description": "The unique VXLAN zone name.",
-          "replaceOnChanges": true
-        },
-        "nodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Cluster nodes where this zone is active."
-        },
-        "peers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "A list of peer IP addresses in the VXLAN underlay network. Note: peers are not returned by the Proxmox API on read and will not be refreshed by `pulumi refresh`."
-        },
-        "reverseDns": {
-          "type": "string",
-          "description": "Reverse DNS plugin ID associated with this zone."
-        },
-        "vxlanPort": {
-          "type": "integer",
-          "description": "UDP destination port used for VXLAN encapsulation.",
-          "default": 4789
-        }
-      },
-      "required": [
-        "name",
-        "ipam"
-      ],
-      "inputProperties": {
-        "dns": {
-          "type": "string",
-          "description": "DNS plugin ID associated with this zone."
-        },
-        "dnsZone": {
-          "type": "string",
-          "description": "DNS zone/domain name used for host registrations."
-        },
-        "fabric": {
-          "type": "string",
-          "description": "SDN fabric identifier used to connect this VXLAN zone to an EVPN fabric."
-        },
-        "ipam": {
-          "type": "string",
-          "description": "IPAM plugin ID associated with this zone."
-        },
-        "mtu": {
-          "type": "integer",
-          "description": "MTU for the VXLAN zone. If unset, Proxmox uses its automatic/default MTU."
-        },
-        "name": {
-          "type": "string",
-          "description": "The unique VXLAN zone name.",
-          "replaceOnChanges": true
-        },
-        "nodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Cluster nodes where this zone is active."
-        },
-        "peers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "A list of peer IP addresses in the VXLAN underlay network. Note: peers are not returned by the Proxmox API on read and will not be refreshed by `pulumi refresh`."
-        },
-        "reverseDns": {
-          "type": "string",
-          "description": "Reverse DNS plugin ID associated with this zone."
-        },
-        "vxlanPort": {
-          "type": "integer",
-          "description": "UDP destination port used for VXLAN encapsulation.",
-          "default": 4789
-        }
-      },
-      "requiredInputs": [
-        "name",
-        "ipam"
+        "disks",
+        "name"
       ]
     }
   }

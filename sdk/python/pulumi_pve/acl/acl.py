@@ -26,7 +26,6 @@ class ACLArgs:
                  propagate: Optional[pulumi.Input[_builtins.bool]] = None):
         """
         The set of arguments for constructing a ACL resource.
-
         :param pulumi.Input[_builtins.str] path: The path of the ACL.
         :param pulumi.Input[_builtins.str] roleid: The role ID of the ACL.
         :param pulumi.Input[_builtins.str] type: The type of the ACL. Must be one of 'user', 'group', or 'token'.
@@ -116,7 +115,6 @@ class ACL(pulumi.CustomResource):
         """
         A Proxmox ACL resource that controls access to Proxmox objects.
 
-
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] path: The path of the ACL.
@@ -133,7 +131,6 @@ class ACL(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox ACL resource that controls access to Proxmox objects.
-
 
         :param str resource_name: The name of the resource.
         :param ACLArgs args: The arguments to use to populate this resource's properties.
