@@ -372,7 +372,7 @@ func TestVnAdapterUpdate(t *testing.T) {
 			proxmox.VnetOutputs{},
 		)
 		require.Error(t, err)
-		assert.EqualError(t, err, "failed to update VNet: 500 Internal Server Error")
+		assert.EqualError(t, err, `failed to update VNet: 500 Internal Server Error: {"errors": "update failed"}`)
 	})
 }
 
