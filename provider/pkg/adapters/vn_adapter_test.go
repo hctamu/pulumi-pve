@@ -32,9 +32,9 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
-// newSdnVnetAdapter is a test helper that wires a ProxmoxAdapter pointing at the given
-// mock server URL and returns a ready-to-use SdnVnetAdapter.
-func newSdnVnetAdapter(t *testing.T, serverURL string) *adapters.SdnVnetAdapter {
+// newVnAdapter is a test helper that wires a ProxmoxAdapter pointing at the given
+// mock server URL and returns a ready-to-use VnAdapter.
+func newVnAdapter(t *testing.T, serverURL string) *adapters.VnAdapter {
 	t.Helper()
 	cfg := &config.Config{
 		PveURL:   serverURL,
@@ -44,26 +44,26 @@ func newSdnVnetAdapter(t *testing.T, serverURL string) *adapters.SdnVnetAdapter 
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 	err := proxmoxAdapter.Connect(context.Background())
 	require.NoError(t, err)
-	return adapters.NewSdnVnetAdapter(proxmoxAdapter)
+	return adapters.NewVnAdapter(proxmoxAdapter)
 }
 
-func TestSdnVnetAdapterCreate(t *testing.T) {
+func TestVnAdapterCreate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name        string
-		inputs      proxmox.SdnVnetInputs
+		inputs      proxmox.VnetInputs
 		wantAlias   bool
 		wantErrBody string
 	}{
 		{
 			name:      "success with alias",
-			inputs:    proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
+			inputs:    proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
 			wantAlias: true,
 		},
 		{
 			name:      "success without alias",
-			inputs:    proxmox.SdnVnetInputs{Vnet: "vpool2", Zone: "ringfence", Tag: 10002},
+			inputs:    proxmox.VnetInputs{Vnet: "vpool2", Zone: "ringfence", Tag: 10002},
 			wantAlias: false,
 		},
 	}
@@ -78,7 +78,7 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 					assert.Equal(t, http.MethodPost, r.Method)
 					assert.Equal(t, "/cluster/sdn/vnets", r.URL.Path)
 
-					var body proxmox.SdnVnetAPIObject
+					var body proxmox.VnetAPIObject
 					err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 					require.NoError(t, err)
 					assert.Equal(t, tt.inputs.Vnet, body.Vnet)
@@ -96,7 +96,7 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 			)
 			defer server.Close()
 
-			err := newSdnVnetAdapter(t, server.URL).Create(context.Background(), tt.inputs)
+			err := newVnAdapter(t, server.URL).Create(context.Background(), tt.inputs)
 			require.NoError(t, err)
 			assert.Equal(t, http.MethodPost, captured.Method)
 			assert.Equal(t, "/cluster/sdn/vnets", captured.Path)
@@ -106,7 +106,7 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 	t.Run("serializes booleans as proxmox 1/0", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := proxmox.SdnVnetInputs{
+		inputs := proxmox.VnetInputs{
 			Vnet:         "vpool3",
 			Zone:         "ringfence",
 			Tag:          10003,
@@ -127,14 +127,14 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Create(context.Background(), inputs)
+		err := newVnAdapter(t, server.URL).Create(context.Background(), inputs)
 		require.NoError(t, err)
 	})
 
 	t.Run("serializes false booleans explicitly", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := proxmox.SdnVnetInputs{Vnet: "vpool4", Zone: "ringfence", Tag: 10004}
+		inputs := proxmox.VnetInputs{Vnet: "vpool4", Zone: "ringfence", Tag: 10004}
 
 		server, _ := testutils.CreateMockServer(
 			t,
@@ -149,7 +149,7 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Create(context.Background(), inputs)
+		err := newVnAdapter(t, server.URL).Create(context.Background(), inputs)
 		require.NoError(t, err)
 	})
 
@@ -162,23 +162,23 @@ func TestSdnVnetAdapterCreate(t *testing.T) {
 		})
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Create(
+		err := newVnAdapter(t, server.URL).Create(
 			context.Background(),
-			proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to create VNet: 500 Internal Server Error")
 	})
 }
 
-func TestSdnVnetAdapterGet(t *testing.T) {
+func TestVnAdapterGet(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
 		trueVal := api.IntOrBool(true)
-		apiResponse := proxmox.SdnVnetAPIObject{
+		apiResponse := proxmox.VnetAPIObject{
 			Vnet:         "vpool1",
 			Zone:         "ringfence",
 			Tag:          10001,
@@ -204,7 +204,7 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 		)
 		defer server.Close()
 
-		outputs, err := newSdnVnetAdapter(t, server.URL).Get(context.Background(), "vpool1")
+		outputs, err := newVnAdapter(t, server.URL).Get(context.Background(), "vpool1")
 		require.NoError(t, err)
 		require.NotNil(t, outputs)
 
@@ -228,7 +228,7 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 			t,
 			func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 				w.WriteHeader(http.StatusOK)
-				err := json.NewEncoder(w).Encode(map[string]any{"data": proxmox.SdnVnetAPIObject{
+				err := json.NewEncoder(w).Encode(map[string]any{"data": proxmox.VnetAPIObject{
 					Vnet: "vpool2",
 					Zone: "ringfence",
 					Tag:  10002,
@@ -239,7 +239,7 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 		)
 		defer server.Close()
 
-		outputs, err := newSdnVnetAdapter(t, server.URL).Get(context.Background(), "vpool2")
+		outputs, err := newVnAdapter(t, server.URL).Get(context.Background(), "vpool2")
 		require.NoError(t, err)
 		assert.Empty(t, outputs.Alias)
 		assert.Equal(t, 10002, outputs.Tag)
@@ -255,22 +255,22 @@ func TestSdnVnetAdapterGet(t *testing.T) {
 		})
 		defer server.Close()
 
-		outputs, err := newSdnVnetAdapter(t, server.URL).Get(context.Background(), "vpool1")
+		outputs, err := newVnAdapter(t, server.URL).Get(context.Background(), "vpool1")
 		require.Error(t, err)
 		assert.Nil(t, outputs)
 		assert.EqualError(t, err, "failed to get VNet: 500 Internal Server Error")
 	})
 }
 
-func TestSdnVnetAdapterUpdate(t *testing.T) {
+func TestVnAdapterUpdate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("update zone and tag", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "zone2", Tag: 20001, Alias: "pool 1", Vlanaware: true}
-		oldOutputs := proxmox.SdnVnetOutputs{
-			SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
+		inputs := proxmox.VnetInputs{Vnet: "vpool1", Zone: "zone2", Tag: 20001, Alias: "pool 1", Vlanaware: true}
+		oldOutputs := proxmox.VnetOutputs{
+			VnetInputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
 		}
 
 		server, captured := testutils.CreateMockServer(
@@ -279,7 +279,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 				assert.Equal(t, http.MethodPut, r.Method)
 				assert.Equal(t, "/cluster/sdn/vnets/vpool1", r.URL.Path)
 
-				var body proxmox.SdnVnetAPIObject
+				var body proxmox.VnetAPIObject
 				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 				require.NoError(t, err)
 				assert.Equal(t, "zone2", body.Zone)
@@ -294,7 +294,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
+		err := newVnAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
 		require.NoError(t, err)
 		assert.Equal(t, http.MethodPut, captured.Method)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool1", captured.Path)
@@ -303,15 +303,15 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 	t.Run("alias removal sends delete list", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: ""}
-		oldOutputs := proxmox.SdnVnetOutputs{
-			SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
+		inputs := proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: ""}
+		oldOutputs := proxmox.VnetOutputs{
+			VnetInputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
 		}
 
 		server, captured := testutils.CreateMockServer(
 			t,
 			func(w http.ResponseWriter, r *http.Request, capturedReq *testutils.MockRequest) {
-				var body proxmox.SdnVnetAPIObject
+				var body proxmox.VnetAPIObject
 				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 				require.NoError(t, err)
 				assert.Equal(t, []string{"alias"}, body.Delete)
@@ -323,7 +323,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
+		err := newVnAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
 		require.NoError(t, err)
 		assert.Contains(t, captured.Body, "alias")
 		assert.Contains(t, captured.Body, "delete")
@@ -332,15 +332,15 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 	t.Run("alias addition does not send delete list", func(t *testing.T) {
 		t.Parallel()
 
-		inputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "new alias"}
-		oldOutputs := proxmox.SdnVnetOutputs{
-			SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		inputs := proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "new alias"}
+		oldOutputs := proxmox.VnetOutputs{
+			VnetInputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		}
 
 		server, _ := testutils.CreateMockServer(
 			t,
 			func(w http.ResponseWriter, _ *http.Request, capturedReq *testutils.MockRequest) {
-				var body proxmox.SdnVnetAPIObject
+				var body proxmox.VnetAPIObject
 				err := json.NewDecoder(strings.NewReader(capturedReq.Body)).Decode(&body)
 				require.NoError(t, err)
 				assert.Equal(t, "new alias", body.Alias)
@@ -352,7 +352,7 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
+		err := newVnAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
 		require.NoError(t, err)
 	})
 
@@ -365,18 +365,18 @@ func TestSdnVnetAdapterUpdate(t *testing.T) {
 		})
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Update(
+		err := newVnAdapter(t, server.URL).Update(
 			context.Background(),
 			"vpool1",
-			proxmox.SdnVnetInputs{Zone: "ringfence", Tag: 10001},
-			proxmox.SdnVnetOutputs{},
+			proxmox.VnetInputs{Zone: "ringfence", Tag: 10001},
+			proxmox.VnetOutputs{},
 		)
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to update VNet: 500 Internal Server Error")
 	})
 }
 
-func TestSdnVnetAdapterDelete(t *testing.T) {
+func TestVnAdapterDelete(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -395,7 +395,7 @@ func TestSdnVnetAdapterDelete(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Delete(context.Background(), "vpool1")
+		err := newVnAdapter(t, server.URL).Delete(context.Background(), "vpool1")
 		require.NoError(t, err)
 		assert.Equal(t, http.MethodDelete, captured.Method)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool1", captured.Path)
@@ -415,7 +415,7 @@ func TestSdnVnetAdapterDelete(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Delete(context.Background(), "vpool42")
+		err := newVnAdapter(t, server.URL).Delete(context.Background(), "vpool42")
 		require.NoError(t, err)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool42", captured.Path)
 	})
@@ -430,7 +430,7 @@ func TestSdnVnetAdapterDelete(t *testing.T) {
 		})
 		defer server.Close()
 
-		err := newSdnVnetAdapter(t, server.URL).Delete(context.Background(), "vpool1")
+		err := newVnAdapter(t, server.URL).Delete(context.Background(), "vpool1")
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to delete VNet: 500 Internal Server Error")
 	})

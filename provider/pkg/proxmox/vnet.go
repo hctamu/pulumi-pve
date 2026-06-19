@@ -25,16 +25,16 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 )
 
-// SdnVnetOperations defines the interface for SDN VNet resource operations.
-type SdnVnetOperations interface {
+// VnetOperations defines the interface for SDN VNet resource operations.
+type VnetOperations interface {
 	// Create creates a new VNet.
-	Create(ctx context.Context, inputs SdnVnetInputs) error
+	Create(ctx context.Context, inputs VnetInputs) error
 
 	// Get retrieves an existing VNet by its name.
-	Get(ctx context.Context, vnet string) (*SdnVnetOutputs, error)
+	Get(ctx context.Context, vnet string) (*VnetOutputs, error)
 
 	// Update updates an existing VNet.
-	Update(ctx context.Context, vnet string, inputs SdnVnetInputs, oldOutputs SdnVnetOutputs) error
+	Update(ctx context.Context, vnet string, inputs VnetInputs, oldOutputs VnetOutputs) error
 
 	// Delete deletes an existing VNet by its name.
 	Delete(ctx context.Context, vnet string) error
@@ -54,8 +54,8 @@ func ValidateVnetName(name string) error {
 	return nil
 }
 
-// SdnVnetInputs represents the input properties for the SDN VNet resource.
-type SdnVnetInputs struct {
+// VnetInputs represents the input properties for the SDN VNet resource.
+type VnetInputs struct {
 	Vnet         string `pulumi:"vnet"                provider:"replaceOnChanges"`
 	Zone         string `pulumi:"zone"`
 	Tag          int    `pulumi:"tag"`
@@ -65,7 +65,7 @@ type SdnVnetInputs struct {
 }
 
 // Annotate adds descriptions to the input properties for documentation and schema generation.
-func (inputs *SdnVnetInputs) Annotate(a infer.Annotator) {
+func (inputs *VnetInputs) Annotate(a infer.Annotator) {
 	a.Describe(
 		&inputs.Vnet,
 		"The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.",
@@ -80,16 +80,16 @@ func (inputs *SdnVnetInputs) Annotate(a infer.Annotator) {
 	)
 }
 
-// SdnVnetOutputs represents the output properties for the SDN VNet resource.
-type SdnVnetOutputs struct {
-	SdnVnetInputs
+// VnetOutputs represents the output properties for the SDN VNet resource.
+type VnetOutputs struct {
+	VnetInputs
 	State  string `pulumi:"state,optional"`
 	Digest string `pulumi:"digest,optional"`
 }
 
 // Annotate adds descriptions to the output-only properties (read-only metadata).
-func (outputs *SdnVnetOutputs) Annotate(a infer.Annotator) {
-	outputs.SdnVnetInputs.Annotate(a)
+func (outputs *VnetOutputs) Annotate(a infer.Annotator) {
+	outputs.VnetInputs.Annotate(a)
 	a.Describe(
 		&outputs.State,
 		"Read-only pending-apply state of the VNet (\"new\", \"changed\", or \"deleted\"); "+
@@ -101,11 +101,11 @@ func (outputs *SdnVnetOutputs) Annotate(a infer.Annotator) {
 	)
 }
 
-// SdnVnetAPIObject is the API-level representation of a VNet used for both
+// VnetAPIObject is the API-level representation of a VNet used for both
 // reads (GET) and writes (POST/PUT). Read-only fields (Type, State, Digest)
 // are populated on GET and ignored on POST/PUT. The write-only field (Delete)
 // is sent on PUT to remove optional fields and is absent in GET responses.
-type SdnVnetAPIObject struct {
+type VnetAPIObject struct {
 	Vnet         string         `json:"vnet,omitempty"`
 	Zone         string         `json:"zone,omitempty"`
 	Tag          int            `json:"tag,omitempty"`

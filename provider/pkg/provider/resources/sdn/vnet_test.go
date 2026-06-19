@@ -30,36 +30,36 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
-// mockSdnVnetOperations is a test double for proxmox.SdnVnetOperations.
+// mockVnetOperations is a test double for proxmox.VnetOperations.
 // Set the func fields to customise behaviour per subtest; nil funcs are no-ops that succeed.
-type mockSdnVnetOperations struct {
-	createFunc func(ctx context.Context, inputs proxmox.SdnVnetInputs) error
-	getFunc    func(ctx context.Context, vnet string) (*proxmox.SdnVnetOutputs, error)
-	updateFunc func(ctx context.Context, vnet string, inputs proxmox.SdnVnetInputs, old proxmox.SdnVnetOutputs) error
+type mockVnetOperations struct {
+	createFunc func(ctx context.Context, inputs proxmox.VnetInputs) error
+	getFunc    func(ctx context.Context, vnet string) (*proxmox.VnetOutputs, error)
+	updateFunc func(ctx context.Context, vnet string, inputs proxmox.VnetInputs, old proxmox.VnetOutputs) error
 	deleteFunc func(ctx context.Context, vnet string) error
 }
 
-func (mock *mockSdnVnetOperations) Create(ctx context.Context, inputs proxmox.SdnVnetInputs) error {
+func (mock *mockVnetOperations) Create(ctx context.Context, inputs proxmox.VnetInputs) error {
 	if mock.createFunc != nil {
 		return mock.createFunc(ctx, inputs)
 	}
 	return nil
 }
 
-func (mock *mockSdnVnetOperations) Get(ctx context.Context, vnet string) (*proxmox.SdnVnetOutputs, error) {
+func (mock *mockVnetOperations) Get(ctx context.Context, vnet string) (*proxmox.VnetOutputs, error) {
 	if mock.getFunc != nil {
 		return mock.getFunc(ctx, vnet)
 	}
-	return &proxmox.SdnVnetOutputs{
-		SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: vnet, Zone: "ringfence", Tag: 10001},
+	return &proxmox.VnetOutputs{
+		VnetInputs: proxmox.VnetInputs{Vnet: vnet, Zone: "ringfence", Tag: 10001},
 	}, nil
 }
 
-func (mock *mockSdnVnetOperations) Update(
+func (mock *mockVnetOperations) Update(
 	ctx context.Context,
 	vnet string,
-	inputs proxmox.SdnVnetInputs,
-	old proxmox.SdnVnetOutputs,
+	inputs proxmox.VnetInputs,
+	old proxmox.VnetOutputs,
 ) error {
 	if mock.updateFunc != nil {
 		return mock.updateFunc(ctx, vnet, inputs, old)
@@ -67,7 +67,7 @@ func (mock *mockSdnVnetOperations) Update(
 	return nil
 }
 
-func (mock *mockSdnVnetOperations) Delete(ctx context.Context, vnet string) error {
+func (mock *mockVnetOperations) Delete(ctx context.Context, vnet string) error {
 	if mock.deleteFunc != nil {
 		return mock.deleteFunc(ctx, vnet)
 	}
@@ -76,7 +76,7 @@ func (mock *mockSdnVnetOperations) Delete(ctx context.Context, vnet string) erro
 
 // --- Check ---
 
-func TestSdnVnetCheck(t *testing.T) {
+func TestVnetCheck(t *testing.T) {
 	t.Parallel()
 
 	newInputs := func(vnet, zone string, tag float64) property.Map {
@@ -130,22 +130,22 @@ func TestSdnVnetCheck(t *testing.T) {
 
 // --- Create ---
 
-func TestSdnVnetCreate(t *testing.T) {
+func TestVnetCreate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		var gotInputs proxmox.SdnVnetInputs
+		var gotInputs proxmox.VnetInputs
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				createFunc: func(_ context.Context, inputs proxmox.SdnVnetInputs) error {
+			VnetOps: &mockVnetOperations{
+				createFunc: func(_ context.Context, inputs proxmox.VnetInputs) error {
 					gotInputs = inputs
 					return nil
 				},
-				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
-					return &proxmox.SdnVnetOutputs{
-						SdnVnetInputs: proxmox.SdnVnetInputs{
+				getFunc: func(_ context.Context, _ string) (*proxmox.VnetOutputs, error) {
+					return &proxmox.VnetOutputs{
+						VnetInputs: proxmox.VnetInputs{
 							Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1",
 						},
 						State:  "new",
@@ -155,9 +155,9 @@ func TestSdnVnetCreate(t *testing.T) {
 			},
 		}
 
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
+		req := infer.CreateRequest[proxmox.VnetInputs]{
 			Name:   "my-vnet",
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1"},
 		}
 		resp, err := resource.Create(context.Background(), req)
 		require.NoError(t, err)
@@ -176,17 +176,17 @@ func TestSdnVnetCreate(t *testing.T) {
 
 		called := false
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				createFunc: func(_ context.Context, _ proxmox.SdnVnetInputs) error {
+			VnetOps: &mockVnetOperations{
+				createFunc: func(_ context.Context, _ proxmox.VnetInputs) error {
 					called = true
 					return nil
 				},
 			},
 		}
 
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
+		req := infer.CreateRequest[proxmox.VnetInputs]{
 			Name:   "my-vnet",
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 			DryRun: true,
 		}
 		resp, err := resource.Create(context.Background(), req)
@@ -199,26 +199,26 @@ func TestSdnVnetCreate(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{}
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		req := infer.CreateRequest[proxmox.VnetInputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		}
 		_, err := resource.Create(context.Background(), req)
 		require.Error(t, err)
-		assert.Equal(t, "SdnVnetOperations not configured", err.Error())
+		assert.Equal(t, "VnetOperations not configured", err.Error())
 	})
 
 	t.Run("adapter error is propagated", func(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				createFunc: func(_ context.Context, _ proxmox.SdnVnetInputs) error {
+			VnetOps: &mockVnetOperations{
+				createFunc: func(_ context.Context, _ proxmox.VnetInputs) error {
 					return errors.New("failed to create VNet: 500 Internal Server Error")
 				},
 			},
 		}
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		req := infer.CreateRequest[proxmox.VnetInputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		}
 		_, err := resource.Create(context.Background(), req)
 		require.Error(t, err)
@@ -229,14 +229,14 @@ func TestSdnVnetCreate(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+			VnetOps: &mockVnetOperations{
+				getFunc: func(_ context.Context, _ string) (*proxmox.VnetOutputs, error) {
 					return nil, errors.New("failed to get VNet: 500 Internal Server Error")
 				},
 			},
 		}
-		req := infer.CreateRequest[proxmox.SdnVnetInputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		req := infer.CreateRequest[proxmox.VnetInputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		}
 		_, err := resource.Create(context.Background(), req)
 		require.Error(t, err)
@@ -246,18 +246,18 @@ func TestSdnVnetCreate(t *testing.T) {
 
 // --- Read ---
 
-func TestSdnVnetRead(t *testing.T) {
+func TestVnetRead(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success maps outputs to inputs and state", func(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				getFunc: func(_ context.Context, vnet string) (*proxmox.SdnVnetOutputs, error) {
+			VnetOps: &mockVnetOperations{
+				getFunc: func(_ context.Context, vnet string) (*proxmox.VnetOutputs, error) {
 					assert.Equal(t, "vpool1", vnet)
-					return &proxmox.SdnVnetOutputs{
-						SdnVnetInputs: proxmox.SdnVnetInputs{
+					return &proxmox.VnetOutputs{
+						VnetInputs: proxmox.VnetInputs{
 							Vnet: "vpool1", Zone: "ringfence", Tag: 10001, Alias: "pool 1",
 							Vlanaware: true, IsolatePorts: true,
 						},
@@ -268,9 +268,9 @@ func TestSdnVnetRead(t *testing.T) {
 			},
 		}
 
-		req := infer.ReadRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
+		req := infer.ReadRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
 			ID:     "my-vnet",
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1"},
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1"},
 		}
 		resp, err := resource.Read(context.Background(), req)
 		require.NoError(t, err)
@@ -282,7 +282,7 @@ func TestSdnVnetRead(t *testing.T) {
 		assert.True(t, resp.State.IsolatePorts)
 		assert.Equal(t, "changed", resp.State.State)
 		assert.Equal(t, "abc123", resp.State.Digest)
-		assert.Equal(t, resp.State.SdnVnetInputs, resp.Inputs)
+		assert.Equal(t, resp.State.VnetInputs, resp.Inputs)
 	})
 
 	t.Run("import fallback uses resource ID when Inputs.Vnet is empty", func(t *testing.T) {
@@ -290,19 +290,19 @@ func TestSdnVnetRead(t *testing.T) {
 
 		var gotVnet string
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				getFunc: func(_ context.Context, vnet string) (*proxmox.SdnVnetOutputs, error) {
+			VnetOps: &mockVnetOperations{
+				getFunc: func(_ context.Context, vnet string) (*proxmox.VnetOutputs, error) {
 					gotVnet = vnet
-					return &proxmox.SdnVnetOutputs{
-						SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: vnet, Zone: "ringfence", Tag: 10001},
+					return &proxmox.VnetOutputs{
+						VnetInputs: proxmox.VnetInputs{Vnet: vnet, Zone: "ringfence", Tag: 10001},
 					}, nil
 				},
 			},
 		}
 
-		req := infer.ReadRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
+		req := infer.ReadRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
 			ID:     "vpool1",
-			Inputs: proxmox.SdnVnetInputs{}, // empty — simulates import
+			Inputs: proxmox.VnetInputs{}, // empty — simulates import
 		}
 		_, err := resource.Read(context.Background(), req)
 		require.NoError(t, err)
@@ -313,28 +313,28 @@ func TestSdnVnetRead(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{}
-		req := infer.ReadRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
+		req := infer.ReadRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
 			ID:     "my-vnet",
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1"},
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1"},
 		}
 		_, err := resource.Read(context.Background(), req)
 		require.Error(t, err)
-		assert.Equal(t, "SdnVnetOperations not configured", err.Error())
+		assert.Equal(t, "VnetOperations not configured", err.Error())
 	})
 
 	t.Run("adapter error is propagated", func(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+			VnetOps: &mockVnetOperations{
+				getFunc: func(_ context.Context, _ string) (*proxmox.VnetOutputs, error) {
 					return nil, errors.New("failed to get VNet: 500 Internal Server Error")
 				},
 			},
 		}
-		req := infer.ReadRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
+		req := infer.ReadRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
 			ID:     "my-vnet",
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1"},
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1"},
 		}
 		_, err := resource.Read(context.Background(), req)
 		require.Error(t, err)
@@ -344,25 +344,25 @@ func TestSdnVnetRead(t *testing.T) {
 
 // --- Update ---
 
-func TestSdnVnetUpdate(t *testing.T) {
+func TestVnetUpdate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success propagates new inputs into output", func(t *testing.T) {
 		t.Parallel()
 
 		var gotVnet string
-		var gotInputs proxmox.SdnVnetInputs
-		newInputs := proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 20001}
+		var gotInputs proxmox.VnetInputs
+		newInputs := proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 20001}
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				updateFunc: func(_ context.Context, vnet string, inputs proxmox.SdnVnetInputs, _ proxmox.SdnVnetOutputs) error {
+			VnetOps: &mockVnetOperations{
+				updateFunc: func(_ context.Context, vnet string, inputs proxmox.VnetInputs, _ proxmox.VnetOutputs) error {
 					gotVnet = vnet
 					gotInputs = inputs
 					return nil
 				},
-				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
-					return &proxmox.SdnVnetOutputs{
-						SdnVnetInputs: newInputs,
+				getFunc: func(_ context.Context, _ string) (*proxmox.VnetOutputs, error) {
+					return &proxmox.VnetOutputs{
+						VnetInputs: newInputs,
 						State:         "changed",
 						Digest:        "def456",
 					}, nil
@@ -370,16 +370,16 @@ func TestSdnVnetUpdate(t *testing.T) {
 			},
 		}
 
-		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
+		req := infer.UpdateRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
 			ID:     "my-vnet",
 			Inputs: newInputs,
-			State: proxmox.SdnVnetOutputs{
-				SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			State: proxmox.VnetOutputs{
+				VnetInputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 			},
 		}
 		resp, err := resource.Update(context.Background(), req)
 		require.NoError(t, err)
-		assert.Equal(t, newInputs, resp.Output.SdnVnetInputs)
+		assert.Equal(t, newInputs, resp.Output.VnetInputs)
 		assert.Equal(t, "changed", resp.Output.State)
 		assert.Equal(t, "def456", resp.Output.Digest)
 		assert.Equal(t, "vpool1", gotVnet)
@@ -391,17 +391,17 @@ func TestSdnVnetUpdate(t *testing.T) {
 
 		called := false
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				updateFunc: func(_ context.Context, _ string, _ proxmox.SdnVnetInputs, _ proxmox.SdnVnetOutputs) error {
+			VnetOps: &mockVnetOperations{
+				updateFunc: func(_ context.Context, _ string, _ proxmox.VnetInputs, _ proxmox.VnetOutputs) error {
 					called = true
 					return nil
 				},
 			},
 		}
 
-		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
-			State:  proxmox.SdnVnetOutputs{},
+		req := infer.UpdateRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			State:  proxmox.VnetOutputs{},
 			DryRun: true,
 		}
 		_, err := resource.Update(context.Background(), req)
@@ -413,27 +413,27 @@ func TestSdnVnetUpdate(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{}
-		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		req := infer.UpdateRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		}
 		_, err := resource.Update(context.Background(), req)
 		require.Error(t, err)
-		assert.Equal(t, "SdnVnetOperations not configured", err.Error())
+		assert.Equal(t, "VnetOperations not configured", err.Error())
 	})
 
 	t.Run("adapter error is propagated", func(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				updateFunc: func(_ context.Context, _ string, _ proxmox.SdnVnetInputs, _ proxmox.SdnVnetOutputs) error {
+			VnetOps: &mockVnetOperations{
+				updateFunc: func(_ context.Context, _ string, _ proxmox.VnetInputs, _ proxmox.VnetOutputs) error {
 					return errors.New("failed to update VNet: 500 Internal Server Error")
 				},
 			},
 		}
-		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
-			State:  proxmox.SdnVnetOutputs{SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1"}},
+		req := infer.UpdateRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			State:  proxmox.VnetOutputs{VnetInputs: proxmox.VnetInputs{Vnet: "vpool1"}},
 		}
 		_, err := resource.Update(context.Background(), req)
 		require.Error(t, err)
@@ -444,15 +444,15 @@ func TestSdnVnetUpdate(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
-				getFunc: func(_ context.Context, _ string) (*proxmox.SdnVnetOutputs, error) {
+			VnetOps: &mockVnetOperations{
+				getFunc: func(_ context.Context, _ string) (*proxmox.VnetOutputs, error) {
 					return nil, errors.New("failed to get VNet: 500 Internal Server Error")
 				},
 			},
 		}
-		req := infer.UpdateRequest[proxmox.SdnVnetInputs, proxmox.SdnVnetOutputs]{
-			Inputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
-			State:  proxmox.SdnVnetOutputs{SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1"}},
+		req := infer.UpdateRequest[proxmox.VnetInputs, proxmox.VnetOutputs]{
+			Inputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+			State:  proxmox.VnetOutputs{VnetInputs: proxmox.VnetInputs{Vnet: "vpool1"}},
 		}
 		_, err := resource.Update(context.Background(), req)
 		require.Error(t, err)
@@ -462,7 +462,7 @@ func TestSdnVnetUpdate(t *testing.T) {
 
 // --- Delete ---
 
-func TestSdnVnetDelete(t *testing.T) {
+func TestVnetDelete(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success uses State.Vnet as identifier", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestSdnVnetDelete(t *testing.T) {
 
 		var gotVnet string
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
+			VnetOps: &mockVnetOperations{
 				deleteFunc: func(_ context.Context, vnet string) error {
 					gotVnet = vnet
 					return nil
@@ -478,9 +478,9 @@ func TestSdnVnetDelete(t *testing.T) {
 			},
 		}
 
-		req := infer.DeleteRequest[proxmox.SdnVnetOutputs]{
-			State: proxmox.SdnVnetOutputs{
-				SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
+		req := infer.DeleteRequest[proxmox.VnetOutputs]{
+			State: proxmox.VnetOutputs{
+				VnetInputs: proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 			},
 		}
 		_, err := resource.Delete(context.Background(), req)
@@ -492,26 +492,26 @@ func TestSdnVnetDelete(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{}
-		req := infer.DeleteRequest[proxmox.SdnVnetOutputs]{
-			State: proxmox.SdnVnetOutputs{SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1"}},
+		req := infer.DeleteRequest[proxmox.VnetOutputs]{
+			State: proxmox.VnetOutputs{VnetInputs: proxmox.VnetInputs{Vnet: "vpool1"}},
 		}
 		_, err := resource.Delete(context.Background(), req)
 		require.Error(t, err)
-		assert.Equal(t, "SdnVnetOperations not configured", err.Error())
+		assert.Equal(t, "VnetOperations not configured", err.Error())
 	})
 
 	t.Run("adapter error is propagated", func(t *testing.T) {
 		t.Parallel()
 
 		resource := &sdnResource.Vnet{
-			SdnVnetOps: &mockSdnVnetOperations{
+			VnetOps: &mockVnetOperations{
 				deleteFunc: func(_ context.Context, _ string) error {
 					return errors.New("failed to delete VNet: 500 Internal Server Error")
 				},
 			},
 		}
-		req := infer.DeleteRequest[proxmox.SdnVnetOutputs]{
-			State: proxmox.SdnVnetOutputs{SdnVnetInputs: proxmox.SdnVnetInputs{Vnet: "vpool1"}},
+		req := infer.DeleteRequest[proxmox.VnetOutputs]{
+			State: proxmox.VnetOutputs{VnetInputs: proxmox.VnetInputs{Vnet: "vpool1"}},
 		}
 		_, err := resource.Delete(context.Background(), req)
 		require.Error(t, err)
