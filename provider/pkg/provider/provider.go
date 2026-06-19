@@ -179,6 +179,8 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 			infer.Resource(newACLResourceWithConfig(cfg)),
 			infer.Resource(newUserResourceWithConfig(cfg)),
 			infer.Resource(newVnetResourceWithConfig(cfg)),
+			infer.Resource(newSDNApplyResourceWithConfig(cfg)),
+			infer.Resource(newVxlanZoneResourceWithConfig(cfg)),
 		},
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{

@@ -100,14 +100,14 @@ func newClient(
 	pveUser,
 	pveToken string,
 	insecureSkipVerify bool,
-) (*api.Client, *http.Client, error) {
+) (apiClient *api.Client, httpClient *http.Client, err error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	//nolint:gosec // InsecureSkipVerify is controlled by the user via provider config
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: insecureSkipVerify}
 
-	httpClient := &http.Client{Transport: transport}
+	httpClient = &http.Client{Transport: transport}
 
-	apiClient := api.NewClient(
+	apiClient = api.NewClient(
 		pveURL,
 		api.WithAPIToken(pveUser, pveToken),
 		api.WithHTTPClient(httpClient),
