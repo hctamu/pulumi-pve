@@ -185,6 +185,7 @@ func NewProviderWithConfig(cfg *config.Config) p.Provider {
 		Config: infer.Config(config.Config{}),
 		ModuleMap: map[tokens.ModuleName]tokens.ModuleName{
 			"provider": "index",
+			"zone":     "sdn/zone",
 		},
 		Metadata: schema.Metadata{
 			License:           "Apache-2.0",

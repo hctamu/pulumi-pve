@@ -32,16 +32,15 @@ import (
 
 type mockSDNOperations struct {
 	applyFunc func(ctx context.Context, lockToken string, applyTimeout time.Duration) error
-	lockFunc  func(ctx context.Context, retryTimeout time.Duration, allowPending bool) (string, error)
+	lockFunc  func(ctx context.Context, retryTimeout time.Duration) (string, error)
 }
 
 func (mock *mockSDNOperations) Lock(
 	ctx context.Context,
 	retryTimeout time.Duration,
-	allowPending bool,
 ) (string, error) {
 	if mock.lockFunc != nil {
-		return mock.lockFunc(ctx, retryTimeout, allowPending)
+		return mock.lockFunc(ctx, retryTimeout)
 	}
 	return "", nil
 }
@@ -130,9 +129,8 @@ func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
 	lockTimeout := time.Duration(0)
 	applyCalled := false
 	mock := &mockSDNOperations{
-		lockFunc: func(_ context.Context, retryTimeout time.Duration, allowPending bool) (string, error) {
+		lockFunc: func(_ context.Context, retryTimeout time.Duration) (string, error) {
 			lockTimeout = retryTimeout
-			assert.True(t, allowPending)
 			return "lock-token", nil
 		},
 		applyFunc: func(_ context.Context, lockToken string, _ time.Duration) error {
@@ -146,7 +144,7 @@ func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
 
 	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 		Name:   "test-sdn-apply",
-		Inputs: proxmox.SDNApplyInputs{AllowPending: true},
+		Inputs: proxmox.SDNApplyInputs{},
 	}
 
 	_, err := resource.Create(context.Background(), req)
@@ -160,7 +158,7 @@ func TestSDNApplyCreatePassesCustomTimeoutToLock(t *testing.T) {
 
 	lockTimeout := time.Duration(0)
 	mock := &mockSDNOperations{
-		lockFunc: func(_ context.Context, retryTimeout time.Duration, _ bool) (string, error) {
+		lockFunc: func(_ context.Context, retryTimeout time.Duration) (string, error) {
 			lockTimeout = retryTimeout
 			return "", errors.New("lock busy")
 		},

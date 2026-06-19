@@ -636,6 +636,168 @@
         "name"
       ]
     },
+    "pve:sdn/zone:VxlanZone": {
+      "description": "A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.",
+      "properties": {
+        "dns": {
+          "type": "string",
+          "description": "DNS plugin ID associated with this zone."
+        },
+        "dnsZone": {
+          "type": "string",
+          "description": "DNS zone/domain name used for host registrations."
+        },
+        "fabric": {
+          "type": "string",
+          "description": "SDN fabric identifier used to connect this VXLAN zone to an EVPN fabric."
+        },
+        "ipam": {
+          "type": "string",
+          "description": "IPAM plugin ID associated with this zone."
+        },
+        "mtu": {
+          "type": "integer",
+          "description": "MTU for the VXLAN zone. If unset, Proxmox uses its automatic/default MTU."
+        },
+        "name": {
+          "type": "string",
+          "description": "The unique VXLAN zone name.",
+          "replaceOnChanges": true
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Cluster nodes where this zone is active."
+        },
+        "peers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of peer IP addresses in the VXLAN underlay network. Note: peers are not returned by the Proxmox API on read and will not be refreshed by `pulumi refresh`."
+        },
+        "reverseDns": {
+          "type": "string",
+          "description": "Reverse DNS plugin ID associated with this zone."
+        },
+        "vxlanPort": {
+          "type": "integer",
+          "description": "UDP destination port used for VXLAN encapsulation.",
+          "default": 4789
+        }
+      },
+      "type": "object",
+      "required": [
+        "ipam",
+        "name"
+      ],
+      "inputProperties": {
+        "dns": {
+          "type": "string",
+          "description": "DNS plugin ID associated with this zone."
+        },
+        "dnsZone": {
+          "type": "string",
+          "description": "DNS zone/domain name used for host registrations."
+        },
+        "fabric": {
+          "type": "string",
+          "description": "SDN fabric identifier used to connect this VXLAN zone to an EVPN fabric."
+        },
+        "ipam": {
+          "type": "string",
+          "description": "IPAM plugin ID associated with this zone."
+        },
+        "mtu": {
+          "type": "integer",
+          "description": "MTU for the VXLAN zone. If unset, Proxmox uses its automatic/default MTU."
+        },
+        "name": {
+          "type": "string",
+          "description": "The unique VXLAN zone name.",
+          "replaceOnChanges": true
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Cluster nodes where this zone is active."
+        },
+        "peers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of peer IP addresses in the VXLAN underlay network. Note: peers are not returned by the Proxmox API on read and will not be refreshed by `pulumi refresh`."
+        },
+        "reverseDns": {
+          "type": "string",
+          "description": "Reverse DNS plugin ID associated with this zone."
+        },
+        "vxlanPort": {
+          "type": "integer",
+          "description": "UDP destination port used for VXLAN encapsulation.",
+          "default": 4789
+        }
+      },
+      "requiredInputs": [
+        "ipam",
+        "name"
+      ]
+    },
+    "pve:sdn:Apply": {
+      "description": "Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.",
+      "properties": {
+        "allowPending": {
+          "type": "boolean",
+          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
+        },
+        "applyTimeoutSeconds": {
+          "type": "integer",
+          "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
+          "default": 60
+        },
+        "lockTimeoutSeconds": {
+          "type": "integer",
+          "description": "How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
+          "default": 60
+        },
+        "triggers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "pulumi.json#/Any"
+          },
+          "description": "Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed."
+        }
+      },
+      "type": "object",
+      "inputProperties": {
+        "allowPending": {
+          "type": "boolean",
+          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
+        },
+        "applyTimeoutSeconds": {
+          "type": "integer",
+          "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
+          "default": 60
+        },
+        "lockTimeoutSeconds": {
+          "type": "integer",
+          "description": "How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.",
+          "default": 60
+        },
+        "triggers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "pulumi.json#/Any"
+          },
+          "description": "Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed."
+        }
+      }
+    },
     "pve:sdn:Vnet": {
       "description": "A Proxmox SDN VNet resource that defines a per-zone virtual network materialized as a bridge on each node after SdnApply runs.",
       "properties": {

@@ -94,19 +94,29 @@ func TestVnetCheck(t *testing.T) {
 		wantFailureText string
 	}{
 		{name: "valid name passes", vnet: "vpool1"},
-		{name: "name longer than 8 chars", vnet: "vnetpool42", wantFailures: 1, wantFailureText: "must be 1-8 characters"},
-		{name: "empty name", vnet: "", wantFailures: 1, wantFailureText: "must be 1-8 characters"},
+		{
+			name:            "name longer than 8 chars",
+			vnet:            "vnetpool42",
+			wantFailures:    1,
+			wantFailureText: "must start with a letter, contain only letters and numbers, and be at most 8 characters",
+		},
+		{
+			name:            "empty name",
+			vnet:            "",
+			wantFailures:    1,
+			wantFailureText: "must start with a letter, contain only letters and numbers, and be at most 8 characters",
+		},
 		{
 			name:            "name starts with digit",
 			vnet:            "1vpool",
 			wantFailures:    1,
-			wantFailureText: "must be alphanumeric and start with a letter",
+			wantFailureText: "must start with a letter, contain only letters and numbers, and be at most 8 characters",
 		},
 		{
 			name:            "special chars in name",
 			vnet:            "vnet-1",
 			wantFailures:    1,
-			wantFailureText: "must be alphanumeric and start with a letter",
+			wantFailureText: "must start with a letter, contain only letters and numbers, and be at most 8 characters",
 		},
 	}
 

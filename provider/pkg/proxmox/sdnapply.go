@@ -26,9 +26,8 @@ import (
 type SDNOperations interface {
 	// Lock acquires the SDN cluster lock and returns a lock token.
 	// retryTimeout controls how long lock acquisition retries should continue.
-	// When allowPending is true, the lock request includes allow-pending so that
-	// Proxmox accepts the lock even when there are pending changes.
-	Lock(ctx context.Context, retryTimeout time.Duration, allowPending bool) (string, error)
+	// The lock is always acquired with allow-pending enabled.
+	Lock(ctx context.Context, retryTimeout time.Duration) (string, error)
 
 	// Apply applies pending SDN configuration changes via PUT /cluster/sdn.
 	// lockToken must be the token returned by Lock.
@@ -41,7 +40,6 @@ type SDNApplyInputs struct {
 	Triggers            map[string]any `pulumi:"triggers,optional"`
 	LockTimeoutSeconds  int            `pulumi:"lockTimeoutSeconds,optional"`
 	ApplyTimeoutSeconds int            `pulumi:"applyTimeoutSeconds,optional"`
-	AllowPending        bool           `pulumi:"allowPending,optional"`
 }
 
 // Annotate adds descriptions to the SDNApply input properties.
@@ -61,10 +59,6 @@ func (inputs *SDNApplyInputs) Annotate(a infer.Annotator) {
 		"How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
 	)
 	a.SetDefault(&inputs.ApplyTimeoutSeconds, 60)
-	a.Describe(
-		&inputs.AllowPending,
-		"When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.",
-	)
 }
 
 // SDNApplyOutputs represents the output properties for the SDNApply resource.

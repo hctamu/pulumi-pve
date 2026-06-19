@@ -5,16 +5,30 @@ import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "../utilities";
 
 // Export members:
+export { ApplyArgs } from "./apply";
+export type Apply = import("./apply").Apply;
+export const Apply: typeof import("./apply").Apply = null as any;
+utilities.lazyLoad(exports, ["Apply"], () => require("./apply"));
+
 export { VnetArgs } from "./vnet";
 export type Vnet = import("./vnet").Vnet;
 export const Vnet: typeof import("./vnet").Vnet = null as any;
 utilities.lazyLoad(exports, ["Vnet"], () => require("./vnet"));
 
 
+// Export sub-modules:
+import * as zone from "./zone";
+
+export {
+    zone,
+};
+
 const _module = {
     version: utilities.getVersion(),
     construct: (name: string, type: string, urn: string): pulumi.Resource => {
         switch (type) {
+            case "pve:sdn:Apply":
+                return new Apply(name, <any>undefined, { urn })
             case "pve:sdn:Vnet":
                 return new Vnet(name, <any>undefined, { urn })
             default:

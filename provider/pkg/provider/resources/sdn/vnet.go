@@ -51,7 +51,7 @@ func (vnet *Vnet) Check(
 	if err != nil {
 		return infer.CheckResponse[proxmox.VnetInputs]{}, err
 	}
-	if nameErr := proxmox.ValidateVnetName(inputs.Vnet); nameErr != nil {
+	if nameErr := proxmox.ValidateSDNName(inputs.Vnet); nameErr != nil {
 		failures = append(failures, p.CheckFailure{Property: "vnet", Reason: nameErr.Error()})
 	}
 	return infer.CheckResponse[proxmox.VnetInputs]{
