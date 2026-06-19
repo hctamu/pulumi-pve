@@ -40,3 +40,7 @@ ENV PATH="/home/vscode/.sdkman/candidates/gradle/current/bin:/home/vscode/.sdkma
 RUN mkdir -p /home/vscode/.gradle \
     && echo "org.gradle.java.installations.paths=/home/vscode/.sdkman/candidates/java/current" \
        > /home/vscode/.gradle/gradle.properties
+
+# Pre-create .local subdirectories as vscode so Docker bind-mounts don't
+# cause them to be owned by root (which would block mkdir of sibling dirs).
+RUN mkdir -p /home/vscode/.local/share /home/vscode/.local/state
