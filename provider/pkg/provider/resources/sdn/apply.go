@@ -13,8 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package sdnapply provides a resource for applying pending SDN configuration changes in Proxmox VE.
-package sdnapply
+package sdn
 
 import (
 	"context"

@@ -35,10 +35,9 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/pool"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/role"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdn"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdnapply"
+	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdn/zone"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/user"
 	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
-	"github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vxlanzone"
 )
 
 // Name is the name of the PVE provider.
@@ -131,18 +130,18 @@ func newFileWithConfig(cfg *config.Config) *file.File {
 
 // newSDNApplyResourceWithConfig creates a new SDNApply resource with a specific config.
 // Passing nil will cause it to fetch config from context when Connect() is called.
-func newSDNApplyResourceWithConfig(cfg *config.Config) *sdnapply.SDNApply {
+func newSDNApplyResourceWithConfig(cfg *config.Config) *sdn.SDNApply {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 	sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-	return &sdnapply.SDNApply{SDNOps: sdnAdapter}
+	return &sdn.SDNApply{SDNOps: sdnAdapter}
 }
 
 // newVxlanZoneResourceWithConfig creates a new SDN VXLAN zone resource with a specific config.
 // Passing nil will cause it to fetch config from context when Connect() is called.
-func newVxlanZoneResourceWithConfig(cfg *config.Config) *vxlanzone.VxlanZone {
+func newVxlanZoneResourceWithConfig(cfg *config.Config) *zone.VxlanZone {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 	zoneAdapter := adapters.NewVxlanZoneAdapter(proxmoxAdapter)
-	return &vxlanzone.VxlanZone{VxlanZoneOps: zoneAdapter}
+	return &zone.VxlanZone{VxlanZoneOps: zoneAdapter}
 }
 
 // newVMResourceWithConfig creates a new VM resource with a specific config.

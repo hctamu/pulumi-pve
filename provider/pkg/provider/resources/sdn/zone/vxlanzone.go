@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package vxlanzone provides a resource for managing Proxmox SDN VXLAN zones.
-package vxlanzone
+// Package zone provides resources for managing Proxmox SDN zone configurations.
+package zone
 
 import (
 	"context"
