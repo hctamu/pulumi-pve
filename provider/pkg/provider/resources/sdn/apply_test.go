@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sdnapply_test
+package sdn_test
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 
-	sdnapplyResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdnapply"
+	sdnResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdn"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
@@ -104,7 +104,7 @@ func TestSDNApplyCreate(t *testing.T) {
 				},
 			}
 
-			resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+			resource := &sdnResource.SDNApply{SDNOps: mock}
 			req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 				Name:   "test-sdn-apply",
 				Inputs: proxmox.SDNApplyInputs{Triggers: tt.triggers},
@@ -142,7 +142,7 @@ func TestSDNApplyCreatePassesDefaultTimeoutToLock(t *testing.T) {
 		},
 	}
 
-	resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+	resource := &sdnResource.SDNApply{SDNOps: mock}
 
 	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 		Name:   "test-sdn-apply",
@@ -166,7 +166,7 @@ func TestSDNApplyCreatePassesCustomTimeoutToLock(t *testing.T) {
 		},
 	}
 
-	resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+	resource := &sdnResource.SDNApply{SDNOps: mock}
 
 	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 		Name: "test-sdn-apply",
@@ -183,7 +183,7 @@ func TestSDNApplyCreatePassesCustomTimeoutToLock(t *testing.T) {
 func TestSDNApplyCreateMissingOps(t *testing.T) {
 	t.Parallel()
 
-	resource := &sdnapplyResource.SDNApply{}
+	resource := &sdnResource.SDNApply{}
 	req := infer.CreateRequest[proxmox.SDNApplyInputs]{
 		Name:   "test-sdn-apply",
 		Inputs: proxmox.SDNApplyInputs{},
@@ -249,7 +249,7 @@ func TestSDNApplyUpdate(t *testing.T) {
 				},
 			}
 
-			resource := &sdnapplyResource.SDNApply{SDNOps: mock}
+			resource := &sdnResource.SDNApply{SDNOps: mock}
 			req := infer.UpdateRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]{
 				ID:     "test-sdn-apply",
 				Inputs: proxmox.SDNApplyInputs{Triggers: tt.newTriggers},
@@ -274,7 +274,7 @@ func TestSDNApplyUpdate(t *testing.T) {
 func TestSDNApplyUpdateMissingOps(t *testing.T) {
 	t.Parallel()
 
-	resource := &sdnapplyResource.SDNApply{}
+	resource := &sdnResource.SDNApply{}
 	req := infer.UpdateRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]{
 		ID:     "test-sdn-apply",
 		Inputs: proxmox.SDNApplyInputs{},
@@ -298,7 +298,7 @@ func TestSDNApplyDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnapplyResource.SDNApply{SDNOps: tt.ops}
+			resource := &sdnResource.SDNApply{SDNOps: tt.ops}
 			req := infer.DeleteRequest[proxmox.SDNApplyOutputs]{
 				ID:    "test-sdn-apply",
 				State: proxmox.SDNApplyOutputs{},
@@ -324,7 +324,7 @@ func TestSDNApplyRead(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnapplyResource.SDNApply{SDNOps: &mockSDNOperations{}}
+			resource := &sdnResource.SDNApply{SDNOps: &mockSDNOperations{}}
 			req := infer.ReadRequest[proxmox.SDNApplyInputs, proxmox.SDNApplyOutputs]{
 				ID:     "test-sdn-apply",
 				Inputs: proxmox.SDNApplyInputs{Triggers: tt.triggers},

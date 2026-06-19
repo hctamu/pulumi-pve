@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package vxlanzone_test
+package zone_test
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
 
-	sdnvxlanzoneResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vxlanzone"
+	zoneResource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/sdn/zone"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
@@ -137,7 +137,7 @@ func TestVxlanZoneCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnvxlanzoneResource.VxlanZone{VxlanZoneOps: tt.ops}
+			resource := &zoneResource.VxlanZone{VxlanZoneOps: tt.ops}
 			resp, err := resource.Create(context.Background(), infer.CreateRequest[proxmox.VxlanZoneInputs]{
 				Name:   tt.inputs.Name,
 				Inputs: tt.inputs,
@@ -225,7 +225,7 @@ func TestVxlanZoneUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnvxlanzoneResource.VxlanZone{VxlanZoneOps: tt.ops}
+			resource := &zoneResource.VxlanZone{VxlanZoneOps: tt.ops}
 			resp, err := resource.Update(
 				context.Background(),
 				infer.UpdateRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]{
@@ -291,7 +291,7 @@ func TestVxlanZoneDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnvxlanzoneResource.VxlanZone{VxlanZoneOps: tt.ops}
+			resource := &zoneResource.VxlanZone{VxlanZoneOps: tt.ops}
 			_, err := resource.Delete(
 				context.Background(),
 				infer.DeleteRequest[proxmox.VxlanZoneOutputs]{
@@ -393,7 +393,7 @@ func TestVxlanZoneRead(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnvxlanzoneResource.VxlanZone{VxlanZoneOps: tt.ops}
+			resource := &zoneResource.VxlanZone{VxlanZoneOps: tt.ops}
 			resp, err := resource.Read(context.Background(), tt.request)
 
 			if tt.expectErr {
@@ -573,7 +573,7 @@ func TestVxlanZoneCheck(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnvxlanzoneResource.VxlanZone{}
+			resource := &zoneResource.VxlanZone{}
 			resp, err := resource.Check(context.Background(), infer.CheckRequest{
 				NewInputs: tt.newInputs,
 			})
@@ -693,7 +693,7 @@ func TestVxlanZoneDiff(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			resource := &sdnvxlanzoneResource.VxlanZone{}
+			resource := &zoneResource.VxlanZone{}
 			resp, err := resource.Diff(
 				context.Background(),
 				infer.DiffRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs]{
