@@ -21,7 +21,6 @@ linters:
     depguard:
       rules:
         Main:
-          list-type: blacklist
           deny:
             - pkg: github.com/golang/protobuf
               desc: Use google.golang.org/protobuf instead
@@ -32,7 +31,6 @@ linters:
             - pkg/proxmox
             - pkg/proxmox/**
             - pkg/config/**
-          list-type: blacklist
           deny:
             - pkg: github.com/luthermonson/go-proxmox
               desc: go-proxmox must be imported only in adapters/
