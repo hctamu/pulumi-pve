@@ -15,8 +15,6 @@ import (
 type Apply struct {
 	pulumi.CustomResourceState
 
-	// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-	AllowPending pulumi.BoolPtrOutput `pulumi:"allowPending"`
 	// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
 	ApplyTimeoutSeconds pulumi.IntPtrOutput `pulumi:"applyTimeoutSeconds"`
 	// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
@@ -71,8 +69,6 @@ func (ApplyState) ElementType() reflect.Type {
 }
 
 type applyArgs struct {
-	// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-	AllowPending *bool `pulumi:"allowPending"`
 	// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
 	ApplyTimeoutSeconds *int `pulumi:"applyTimeoutSeconds"`
 	// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
@@ -83,8 +79,6 @@ type applyArgs struct {
 
 // The set of arguments for constructing a Apply resource.
 type ApplyArgs struct {
-	// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-	AllowPending pulumi.BoolPtrInput
 	// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
 	ApplyTimeoutSeconds pulumi.IntPtrInput
 	// How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
@@ -178,11 +172,6 @@ func (o ApplyOutput) ToApplyOutput() ApplyOutput {
 
 func (o ApplyOutput) ToApplyOutputWithContext(ctx context.Context) ApplyOutput {
 	return o
-}
-
-// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-func (o ApplyOutput) AllowPending() pulumi.BoolPtrOutput {
-	return o.ApplyT(func(v *Apply) pulumi.BoolPtrOutput { return v.AllowPending }).(pulumi.BoolPtrOutput)
 }
 
 // How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.

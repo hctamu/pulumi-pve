@@ -6,7 +6,6 @@ package io.github.hctamu.pve.sdn;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.core.internal.Codegen;
-import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.Object;
 import java.lang.String;
@@ -19,21 +18,6 @@ import javax.annotation.Nullable;
 public final class ApplyArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final ApplyArgs Empty = new ApplyArgs();
-
-    /**
-     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-     * 
-     */
-    @Import(name="allowPending")
-    private @Nullable Output<Boolean> allowPending;
-
-    /**
-     * @return When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-     * 
-     */
-    public Optional<Output<Boolean>> allowPending() {
-        return Optional.ofNullable(this.allowPending);
-    }
 
     /**
      * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
@@ -83,7 +67,6 @@ public final class ApplyArgs extends com.pulumi.resources.ResourceArgs {
     private ApplyArgs() {}
 
     private ApplyArgs(ApplyArgs $) {
-        this.allowPending = $.allowPending;
         this.applyTimeoutSeconds = $.applyTimeoutSeconds;
         this.lockTimeoutSeconds = $.lockTimeoutSeconds;
         this.triggers = $.triggers;
@@ -105,27 +88,6 @@ public final class ApplyArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder(ApplyArgs defaults) {
             $ = new ApplyArgs(Objects.requireNonNull(defaults));
-        }
-
-        /**
-         * @param allowPending When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-         * 
-         * @return builder
-         * 
-         */
-        public Builder allowPending(@Nullable Output<Boolean> allowPending) {
-            $.allowPending = allowPending;
-            return this;
-        }
-
-        /**
-         * @param allowPending When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-         * 
-         * @return builder
-         * 
-         */
-        public Builder allowPending(Boolean allowPending) {
-            return allowPending(Output.of(allowPending));
         }
 
         /**

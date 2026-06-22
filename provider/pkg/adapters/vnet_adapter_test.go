@@ -32,9 +32,9 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
-// newVnAdapter is a test helper that wires a ProxmoxAdapter pointing at the given
-// mock server URL and returns a ready-to-use VnAdapter.
-func newVnAdapter(t *testing.T, serverURL string) *adapters.VnAdapter {
+// newVnetAdapter is a test helper that wires a ProxmoxAdapter pointing at the given
+// mock server URL and returns a ready-to-use VnetAdapter.
+func newVnetAdapter(t *testing.T, serverURL string) *adapters.VnetAdapter {
 	t.Helper()
 	cfg := &config.Config{
 		PveURL:   serverURL,
@@ -44,10 +44,10 @@ func newVnAdapter(t *testing.T, serverURL string) *adapters.VnAdapter {
 	proxmoxAdapter := adapters.NewProxmoxAdapter(cfg)
 	err := proxmoxAdapter.Connect(context.Background())
 	require.NoError(t, err)
-	return adapters.NewVnAdapter(proxmoxAdapter)
+	return adapters.NewVnetAdapter(proxmoxAdapter)
 }
 
-func TestVnAdapterCreate(t *testing.T) {
+func TestVnetAdapterCreate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -96,7 +96,7 @@ func TestVnAdapterCreate(t *testing.T) {
 			)
 			defer server.Close()
 
-			err := newVnAdapter(t, server.URL).Create(context.Background(), tt.inputs)
+			err := newVnetAdapter(t, server.URL).Create(context.Background(), tt.inputs)
 			require.NoError(t, err)
 			assert.Equal(t, http.MethodPost, captured.Method)
 			assert.Equal(t, "/cluster/sdn/vnets", captured.Path)
@@ -127,7 +127,7 @@ func TestVnAdapterCreate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Create(context.Background(), inputs)
+		err := newVnetAdapter(t, server.URL).Create(context.Background(), inputs)
 		require.NoError(t, err)
 	})
 
@@ -149,7 +149,7 @@ func TestVnAdapterCreate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Create(context.Background(), inputs)
+		err := newVnetAdapter(t, server.URL).Create(context.Background(), inputs)
 		require.NoError(t, err)
 	})
 
@@ -162,7 +162,7 @@ func TestVnAdapterCreate(t *testing.T) {
 		})
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Create(
+		err := newVnetAdapter(t, server.URL).Create(
 			context.Background(),
 			proxmox.VnetInputs{Vnet: "vpool1", Zone: "ringfence", Tag: 10001},
 		)
@@ -171,7 +171,7 @@ func TestVnAdapterCreate(t *testing.T) {
 	})
 }
 
-func TestVnAdapterGet(t *testing.T) {
+func TestVnetAdapterGet(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestVnAdapterGet(t *testing.T) {
 		)
 		defer server.Close()
 
-		outputs, err := newVnAdapter(t, server.URL).Get(context.Background(), "vpool1")
+		outputs, err := newVnetAdapter(t, server.URL).Get(context.Background(), "vpool1")
 		require.NoError(t, err)
 		require.NotNil(t, outputs)
 
@@ -239,7 +239,7 @@ func TestVnAdapterGet(t *testing.T) {
 		)
 		defer server.Close()
 
-		outputs, err := newVnAdapter(t, server.URL).Get(context.Background(), "vpool2")
+		outputs, err := newVnetAdapter(t, server.URL).Get(context.Background(), "vpool2")
 		require.NoError(t, err)
 		assert.Empty(t, outputs.Alias)
 		assert.Equal(t, 10002, outputs.Tag)
@@ -255,14 +255,14 @@ func TestVnAdapterGet(t *testing.T) {
 		})
 		defer server.Close()
 
-		outputs, err := newVnAdapter(t, server.URL).Get(context.Background(), "vpool1")
+		outputs, err := newVnetAdapter(t, server.URL).Get(context.Background(), "vpool1")
 		require.Error(t, err)
 		assert.Nil(t, outputs)
 		assert.EqualError(t, err, "failed to get VNet: 500 Internal Server Error")
 	})
 }
 
-func TestVnAdapterUpdate(t *testing.T) {
+func TestVnetAdapterUpdate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("update zone and tag", func(t *testing.T) {
@@ -294,7 +294,7 @@ func TestVnAdapterUpdate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
+		err := newVnetAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
 		require.NoError(t, err)
 		assert.Equal(t, http.MethodPut, captured.Method)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool1", captured.Path)
@@ -323,7 +323,7 @@ func TestVnAdapterUpdate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
+		err := newVnetAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
 		require.NoError(t, err)
 		assert.Contains(t, captured.Body, "alias")
 		assert.Contains(t, captured.Body, "delete")
@@ -352,7 +352,7 @@ func TestVnAdapterUpdate(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
+		err := newVnetAdapter(t, server.URL).Update(context.Background(), "vpool1", inputs, oldOutputs)
 		require.NoError(t, err)
 	})
 
@@ -365,7 +365,7 @@ func TestVnAdapterUpdate(t *testing.T) {
 		})
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Update(
+		err := newVnetAdapter(t, server.URL).Update(
 			context.Background(),
 			"vpool1",
 			proxmox.VnetInputs{Zone: "ringfence", Tag: 10001},
@@ -376,7 +376,7 @@ func TestVnAdapterUpdate(t *testing.T) {
 	})
 }
 
-func TestVnAdapterDelete(t *testing.T) {
+func TestVnetAdapterDelete(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -395,7 +395,7 @@ func TestVnAdapterDelete(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Delete(context.Background(), "vpool1")
+		err := newVnetAdapter(t, server.URL).Delete(context.Background(), "vpool1")
 		require.NoError(t, err)
 		assert.Equal(t, http.MethodDelete, captured.Method)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool1", captured.Path)
@@ -415,7 +415,7 @@ func TestVnAdapterDelete(t *testing.T) {
 		)
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Delete(context.Background(), "vpool42")
+		err := newVnetAdapter(t, server.URL).Delete(context.Background(), "vpool42")
 		require.NoError(t, err)
 		assert.Equal(t, "/cluster/sdn/vnets/vpool42", captured.Path)
 	})
@@ -430,7 +430,7 @@ func TestVnAdapterDelete(t *testing.T) {
 		})
 		defer server.Close()
 
-		err := newVnAdapter(t, server.URL).Delete(context.Background(), "vpool1")
+		err := newVnetAdapter(t, server.URL).Delete(context.Background(), "vpool1")
 		require.Error(t, err)
 		assert.EqualError(t, err, "failed to delete VNet: 500 Internal Server Error")
 	})

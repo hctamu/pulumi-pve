@@ -9,7 +9,6 @@ import com.pulumi.core.annotations.ResourceType;
 import com.pulumi.core.internal.Codegen;
 import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.sdn.ApplyArgs;
-import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.Object;
 import java.lang.String;
@@ -23,20 +22,6 @@ import javax.annotation.Nullable;
  */
 @ResourceType(type="pve:sdn:Apply")
 public class Apply extends com.pulumi.resources.CustomResource {
-    /**
-     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-     * 
-     */
-    @Export(name="allowPending", refs={Boolean.class}, tree="[0]")
-    private Output</* @Nullable */ Boolean> allowPending;
-
-    /**
-     * @return When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-     * 
-     */
-    public Output<Optional<Boolean>> allowPending() {
-        return Codegen.optional(this.allowPending);
-    }
     /**
      * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
      * 

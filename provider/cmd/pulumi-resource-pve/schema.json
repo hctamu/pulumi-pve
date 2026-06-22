@@ -751,10 +751,6 @@
     "pve:sdn:Apply": {
       "description": "Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.",
       "properties": {
-        "allowPending": {
-          "type": "boolean",
-          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
-        },
         "applyTimeoutSeconds": {
           "type": "integer",
           "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",
@@ -775,10 +771,6 @@
       },
       "type": "object",
       "inputProperties": {
-        "allowPending": {
-          "type": "boolean",
-          "description": "When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false."
-        },
         "applyTimeoutSeconds": {
           "type": "integer",
           "description": "How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.",

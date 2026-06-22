@@ -35,10 +35,6 @@ export class Apply extends pulumi.CustomResource {
     }
 
     /**
-     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-     */
-    declare public readonly allowPending: pulumi.Output<boolean | undefined>;
-    /**
      * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
      */
     declare public readonly applyTimeoutSeconds: pulumi.Output<number | undefined>;
@@ -62,12 +58,10 @@ export class Apply extends pulumi.CustomResource {
         let resourceInputs: pulumi.Inputs = {};
         opts = opts || {};
         if (!opts.id) {
-            resourceInputs["allowPending"] = args?.allowPending;
             resourceInputs["applyTimeoutSeconds"] = (args?.applyTimeoutSeconds) ?? 60;
             resourceInputs["lockTimeoutSeconds"] = (args?.lockTimeoutSeconds) ?? 60;
             resourceInputs["triggers"] = args?.triggers;
         } else {
-            resourceInputs["allowPending"] = undefined /*out*/;
             resourceInputs["applyTimeoutSeconds"] = undefined /*out*/;
             resourceInputs["lockTimeoutSeconds"] = undefined /*out*/;
             resourceInputs["triggers"] = undefined /*out*/;
@@ -81,10 +75,6 @@ export class Apply extends pulumi.CustomResource {
  * The set of arguments for constructing a Apply resource.
  */
 export interface ApplyArgs {
-    /**
-     * When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-     */
-    allowPending?: pulumi.Input<boolean>;
     /**
      * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
      */
