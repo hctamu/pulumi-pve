@@ -18,9 +18,9 @@ package proxmox
 import (
 	"context"
 
-	api "github.com/luthermonson/go-proxmox"
-
 	"github.com/pulumi/pulumi-go-provider/infer"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // VnetOperations defines the interface for SDN VNet resource operations.
@@ -95,8 +95,8 @@ type VnetAPIObject struct {
 	Tag          int            `json:"tag,omitempty"`
 	Alias        string         `json:"alias,omitempty"`
 	Type         string         `json:"type,omitempty"`
-	Vlanaware    *api.IntOrBool `json:"vlanaware,omitempty"`
-	IsolatePorts *api.IntOrBool `json:"isolate-ports,omitempty"`
+	Vlanaware    *utils.IntBool `json:"vlanaware,omitempty"`
+	IsolatePorts *utils.IntBool `json:"isolate-ports,omitempty"`
 	State        string         `json:"state,omitempty"`
 	Digest       string         `json:"digest,omitempty"`
 	Delete       []string       `json:"delete,omitempty"`

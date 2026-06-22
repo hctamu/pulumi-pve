@@ -27,8 +27,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-
-	api "github.com/luthermonson/go-proxmox"
 )
 
 // DifferPtr compares two pointers to values and returns true if they are different.
@@ -82,8 +80,9 @@ func StringToSlice(str string) []string {
 	return slice
 }
 
-// MapToStringSlice converts a map with string keys to a sorted slice of strings
-func MapToStringSlice(m map[string]api.IntOrBool) []string {
+// MapToStringSlice converts a map with string keys to a sorted slice of strings.
+// Only the keys are used; values are ignored.
+func MapToStringSlice[V any](m map[string]V) []string {
 	slice := make([]string, 0, len(m))
 	for key := range m {
 		slice = append(slice, key)
@@ -271,4 +270,33 @@ func SetOrDeleteCSL(
 		return
 	}
 	*target = CommaSeparatedList(values)
+}
+
+// IntBool is a boolean that marshals to/from Proxmox's 1/0 wire format.
+// Proxmox represents boolean fields as integers in JSON (1 = true, 0 = false).
+type IntBool bool
+
+// MarshalJSON serializes IntBool as 1 or 0.
+func (b IntBool) MarshalJSON() ([]byte, error) {
+	if b {
+		return []byte("1"), nil
+	}
+	return []byte("0"), nil
+}
+
+// UnmarshalJSON deserializes IntBool from 1/0 or true/false.
+func (b *IntBool) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "1", "true":
+		*b = true
+	case "0", "false":
+		*b = false
+	default:
+		var n json.Number
+		if err := json.Unmarshal(data, &n); err != nil {
+			return err
+		}
+		*b = n != "0"
+	}
+	return nil
 }

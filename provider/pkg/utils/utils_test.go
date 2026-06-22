@@ -19,7 +19,6 @@ import (
 	"errors"
 	"testing"
 
-	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -206,10 +205,10 @@ func TestSliceStringRoundTrip(t *testing.T) {
 
 func TestMapToStringSlice(t *testing.T) {
 	t.Parallel()
-	m := map[string]api.IntOrBool{
-		"beta":  api.IntOrBool(true),
-		"alpha": api.IntOrBool(false),
-		"gamma": api.IntOrBool(true),
+	m := map[string]bool{
+		"beta":  true,
+		"alpha": false,
+		"gamma": true,
 	}
 	got := utils.MapToStringSlice(m)
 	assert.Equal(t, []string{"alpha", "beta", "gamma"}, got)

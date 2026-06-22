@@ -26,8 +26,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
-	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
 
@@ -112,14 +110,4 @@ func (m *MockProxmoxClient) NextVMID(_ context.Context) (int, error) {
 // WaitForTask implements proxmox.Client.
 func (m *MockProxmoxClient) WaitForTask(_ context.Context, _ string, _, _ time.Duration) error {
 	return nil
-}
-
-// NewMockAdapter creates a ProxmoxAdapter pointed at the given URL for testing.
-// Use this to construct a *VMAdapter that talks to a mock server.
-func NewMockAdapter(url string) *adapters.ProxmoxAdapter {
-	return adapters.NewProxmoxAdapter(&config.Config{
-		PveURL:   url,
-		PveUser:  "user@pve!token",
-		PveToken: "TOKEN",
-	})
 }

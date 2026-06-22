@@ -71,7 +71,7 @@ func (adapter *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs)
 	vmID := *inputs.VMID
 
 	l.Infof("Create VM '%v(%v)' on '%v'", inputs.Name, vmID, nodeName)
-	options := BuildVMOptions(inputs, vmID)
+	options := buildVMOptions(inputs, vmID)
 
 	node, err := adapter.client.Node(ctx, nodeName)
 	if err != nil {
@@ -152,7 +152,7 @@ func (adapter *VMAdapter) Get(
 		return proxmox.VMInputs{}, fmt.Errorf("failed to find VM %v: %v", vmID, err)
 	}
 
-	stateInputs, err := ConvertVMConfigToInputs(virtualMachine, userDisks)
+	stateInputs, err := convertVMConfigToInputs(virtualMachine, userDisks)
 	if err != nil {
 		return proxmox.VMInputs{}, fmt.Errorf("failed to convert VM config to inputs: %v", err)
 	}
@@ -176,7 +176,7 @@ func (adapter *VMAdapter) UpdateConfig(
 	}
 
 	l.Debugf("VM: %v", virtualMachine)
-	options := BuildVMOptionsDiff(inputs, vmID, &stateInputs)
+	options := buildVMOptionsDiff(inputs, vmID, &stateInputs)
 	l.Debugf("Update options: %+v", options)
 
 	// Only call Config if there are options to apply; Proxmox returns 500 otherwise.
@@ -231,7 +231,7 @@ func (adapter *VMAdapter) ApplyConfig(
 		return fmt.Errorf("failed to find VM %d: %w", vmID, err)
 	}
 
-	options := BuildVMOptions(inputs, vmID)
+	options := buildVMOptions(inputs, vmID)
 	if len(options) == 0 {
 		l.Debugf("No VM config options to apply; skipping Config call")
 		return nil
@@ -341,12 +341,12 @@ func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *str
 	return nil
 }
 
-// ConvertVMConfigToInputs converts a VirtualMachine API response to VMInputs (state).
+// convertVMConfigToInputs converts a VirtualMachine API response to VMInputs (state).
 // userDisks is used solely as an ordering hint: disks present in userDisks are listed
 // first (in user-specified order), followed by any additional disks found in the API.
 // Input preservation (clearing computed fields the user did not supply) is the
 // responsibility of the caller.
-func ConvertVMConfigToInputs(
+func convertVMConfigToInputs(
 	vm *api.VirtualMachine,
 	userDisks []*proxmox.Disk,
 ) (stateInputs proxmox.VMInputs, err error) {
@@ -439,8 +439,8 @@ func ConvertVMConfigToInputs(
 	return stateInputs, nil
 }
 
-// BuildVMOptions builds a list of VirtualMachineOption from the VMInputs.
-func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOption {
+// buildVMOptions builds a list of VirtualMachineOption from the VMInputs.
+func buildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOption {
 	options := []api.VirtualMachineOption{}
 
 	if inputs.Name != "" {
@@ -501,8 +501,8 @@ func BuildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 	return options
 }
 
-// BuildVMOptionsDiff builds a list of VirtualMachineOption representing the diff between inputs and currentInputs.
-func BuildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmox.VMInputs) []api.VirtualMachineOption {
+// buildVMOptionsDiff builds a list of VirtualMachineOption representing the diff between inputs and currentInputs.
+func buildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmox.VMInputs) []api.VirtualMachineOption {
 	options := []api.VirtualMachineOption{}
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddPtrOption("memory", &options, inputs.Memory, currentInputs.Memory)
