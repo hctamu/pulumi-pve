@@ -143,7 +143,7 @@ func (proxmoxAdapter *ProxmoxAdapter) Put(ctx context.Context, path string, body
 		return err
 	}
 
-	url := proxmoxAdapter.resolvedURL + path
+	url := strings.TrimSuffix(proxmoxAdapter.resolvedURL, "/") + path
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(data))
 	if err != nil {
 		return err

@@ -94,6 +94,9 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 // lockToken must be the token returned by Lock.
 // applyTimeout controls how long to wait for the apply task; <= 0 uses the default.
 func (adapter *SDNAdapter) Apply(ctx context.Context, lockToken string, applyTimeout time.Duration) error {
+	if lockToken == "" {
+		return errors.New("lock token must not be empty")
+	}
 	body := pveproxmox.SDNApplyBody{Lock: lockToken, ReleaseLock: 1}
 
 	var taskUPID string

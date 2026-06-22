@@ -193,7 +193,7 @@ func TestSDNAdapterApply(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			err = sdnAdapter.Apply(context.Background(), "", 0)
+			err = sdnAdapter.Apply(context.Background(), "test-lock-token", 0)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -317,7 +317,7 @@ func TestSDNAdapterApplyTaskFailure(t *testing.T) {
 			require.NoError(t, err)
 
 			sdnAdapter := adapters.NewSDNAdapter(proxmoxAdapter)
-			err = sdnAdapter.Apply(context.Background(), "", 0)
+			err = sdnAdapter.Apply(context.Background(), "test-lock-token", 0)
 
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)

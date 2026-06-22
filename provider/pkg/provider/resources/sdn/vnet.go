@@ -28,11 +28,11 @@ import (
 
 // Ensure Vnet implements the required interfaces.
 var (
-	_ = (infer.CustomResource[proxmox.VnetInputs, proxmox.VnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomDelete[proxmox.VnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomUpdate[proxmox.VnetInputs, proxmox.VnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomRead[proxmox.VnetInputs, proxmox.VnetOutputs])((*Vnet)(nil))
-	_ = (infer.CustomCheck[proxmox.VnetInputs])((*Vnet)(nil))
+	_ = infer.CustomResource[proxmox.VnetInputs, proxmox.VnetOutputs]((*Vnet)(nil))
+	_ = infer.CustomDelete[proxmox.VnetOutputs]((*Vnet)(nil))
+	_ = infer.CustomUpdate[proxmox.VnetInputs, proxmox.VnetOutputs]((*Vnet)(nil))
+	_ = infer.CustomRead[proxmox.VnetInputs, proxmox.VnetOutputs]((*Vnet)(nil))
+	_ = infer.CustomCheck[proxmox.VnetInputs]((*Vnet)(nil))
 	_ = infer.Annotated((*Vnet)(nil))
 )
 
@@ -140,6 +140,10 @@ func (vnet *Vnet) Update(
 
 	if vnet.VnetOps == nil {
 		return response, errors.New("VnetOperations not configured")
+	}
+
+	if request.State.Vnet == "" {
+		return response, errors.New("vnet name missing from state")
 	}
 
 	response.Output.VnetInputs = request.Inputs
