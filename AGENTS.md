@@ -134,6 +134,7 @@ For debugging guidance, see the `.github:debugging` skill.
 | **Nil-check the operations field before every use in resources** (fails silently otherwise) | Use `github.com/golang/protobuf` (use `google.golang.org/protobuf`) |
 | Use `fmt.Errorf("...: %w", err)` for error wrapping | Share a mock server across parallel subtests |
 | Call `t.Parallel()` in every test function and subtest | Use `NewAPIMock` for new tests (use `CreateMockServer` instead) |
+| Keep `github.com/luthermonson/go-proxmox` confined to `adapters/` | Import `go-proxmox` in `proxmox/`, `utils/`, or `provider/resources/` — including test files |
 
 **Style & discipline:**
 | ✅ Do | ❌ Don't |

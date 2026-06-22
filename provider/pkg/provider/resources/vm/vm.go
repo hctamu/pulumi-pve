@@ -124,7 +124,7 @@ func (vm *VM) Create(
 	}
 
 	// Build Create output from full API state, preserving computed FileIDs in the stack.
-	response.Output = proxmox.VMOutputs{VMInputs: preserveCreateState(stateInputs, request.Inputs)}
+	response.Output = proxmox.VMOutputs{VMInputs: PreserveCreateState(stateInputs, request.Inputs)}
 
 	return response, nil
 }
@@ -220,7 +220,7 @@ func (vm *VM) Read(
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, err
 	}
 
-	preservedInputs := preserveInputs(stateInputs, request.Inputs)
+	preservedInputs := PreserveInputs(stateInputs, request.Inputs)
 
 	response := infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID:     request.ID,
@@ -255,25 +255,25 @@ func (vm *VM) Read(
 	return response, nil
 }
 
-// preserveInputs computes user-visible inputs from API state by clearing computed
+// PreserveInputs computes user-visible inputs from API state by clearing computed
 // fields that the user did not explicitly supply.
 //
 //   - VMID and Node are cleared when the user omitted them (they are computed by Proxmox).
 //   - Disk FileIDs are cleared for disks the user already had without a FileID.
 //   - EFI disk FileID is cleared when the user supplied an EFI disk without a FileID.
 //   - Newly discovered disks/EFI (not present in userInputs) retain their FileIDs.
-func preserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+func PreserveInputs(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	return applyPreservation(state, userInputs, true)
 }
 
-// preserveCreateState builds the output state for Create by keeping the full API state
+// PreserveCreateState builds the output state for Create by keeping the full API state
 // (including computed disk/EFI FileIDs) while applying user-intent corrections for
 // fields the API cannot represent (clone info, zero-value fields, tag ordering).
-func preserveCreateState(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
+func PreserveCreateState(state, userInputs proxmox.VMInputs) proxmox.VMInputs {
 	return applyPreservation(state, userInputs, false)
 }
 
-// applyPreservation is the shared implementation for preserveInputs and preserveCreateState.
+// applyPreservation is the shared implementation for PreserveInputs and PreserveCreateState.
 // When clearComputed is true, VMID/Node and disk FileIDs are cleared for fields the user
 // did not explicitly provide (Read path). When false, all computed values are kept (Create path).
 func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) proxmox.VMInputs {

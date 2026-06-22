@@ -20,13 +20,11 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
 
-	"github.com/hctamu/pulumi-pve/provider/pkg/adapters"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
@@ -144,145 +142,6 @@ func (mock *mockVMOps) Delete(ctx context.Context, vmID int, node *string) error
 	}
 	return nil
 }
-
-// createMockVMWithConfig creates a minimal api.VirtualMachine with basic fields populated
-// for testing ConvertVMConfigToInputs and preservation logic.
-func createMockVMWithConfig(node string, vmid uint64, diskConfigs map[string]string, efi string) *api.VirtualMachine {
-	cfg := &api.VirtualMachineConfig{
-		Name:        "test-vm",
-		Description: "desc",
-	}
-
-	// Populate disk fields based on interface name
-	for iface, conf := range diskConfigs {
-		switch iface {
-		case "scsi0":
-			cfg.SCSI0 = conf
-		case "scsi1":
-			cfg.SCSI1 = conf
-		case "virtio0":
-			cfg.VirtIO0 = conf
-		case "ide2":
-			cfg.IDE2 = conf
-		case "sata0":
-			cfg.SATA0 = conf
-		}
-	}
-	if efi != "" {
-		cfg.EFIDisk0 = efi
-	}
-
-	return &api.VirtualMachine{
-		Node:                 node,
-		VMID:                 api.StringOrUint64(vmid),
-		VirtualMachineConfig: cfg,
-	}
-}
-
-func TestConvertAndPreserve_NoVMIDOrNodeInPrev(t *testing.T) {
-	t.Parallel()
-
-	// Prev inputs: user did not provide vmId/node and omitted disk/efi file IDs
-	prev := proxmox.VMInputs{
-		Disks: []*proxmox.Disk{{
-			DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-			Interface: "scsi0",
-			Size:      32,
-		}},
-		// No proxmox.EfiDisk in prev
-	}
-
-	// API VM returns concrete vmId/node and file IDs
-	vm := createMockVMWithConfig(
-		"pve-node1",
-		100,
-		map[string]string{
-			"scsi0": "local-lvm:vm-100-disk-0,size=32G",
-		},
-		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=0",
-	)
-
-	computed, err := adapters.ConvertVMConfigToInputs(vm, prev.Disks)
-	require.NoError(t, err)
-
-	preserved := preserveInputs(computed, prev)
-
-	// Computed should carry values from API
-	require.NotNil(t, computed.VMID)
-	assert.Equal(t, 100, *computed.VMID)
-	require.NotNil(t, computed.Node)
-	assert.Equal(t, "pve-node1", *computed.Node)
-	require.NotNil(t, computed.Disks)
-	require.Len(t, computed.Disks, 1)
-	require.NotNil(t, computed.Disks[0].FileID)
-	assert.Equal(t, "vm-100-disk-0", *computed.Disks[0].FileID)
-	// Efi present in computed
-	require.NotNil(t, computed.EfiDisk)
-	require.NotNil(t, computed.EfiDisk.FileID)
-
-	// Preserve emptiness based on prev (returned from ConvertVMConfigToInputs)
-
-	// VMID and Node must remain nil in proxmox.VMInputs
-	assert.Nil(t, preserved.VMID)
-	assert.Nil(t, preserved.Node)
-	// proxmox.Disk FileID cleared because prev omitted it
-	require.Len(t, preserved.Disks, 1)
-	assert.Nil(t, preserved.Disks[0].FileID)
-	// EFI was present in VM config; include it in preserved inputs
-	require.NotNil(t, preserved.EfiDisk)
-	require.NotNil(t, preserved.EfiDisk.FileID)
-	assert.Equal(t, "vm-100-efidisk", *preserved.EfiDisk.FileID)
-}
-
-func TestConvertAndPreserve_WithVMIDAndNodeInPrev(t *testing.T) {
-	t.Parallel()
-
-	vmid := 100
-	node := "pve-node1"
-	prev := proxmox.VMInputs{
-		VMID: &vmid,
-		Node: &node,
-		EfiDisk: &proxmox.EfiDisk{ // present but without FileID
-			DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
-			EfiType:  proxmox.EfiType4M,
-		},
-		Disks: []*proxmox.Disk{{
-			DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-			Interface: "scsi0",
-			Size:      32,
-		}},
-	}
-
-	vm := createMockVMWithConfig(
-		node,
-		100,
-		map[string]string{
-			"scsi0": "local-lvm:vm-100-disk-0,size=32G",
-		},
-		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=1",
-	)
-
-	computed, err := adapters.ConvertVMConfigToInputs(vm, prev.Disks)
-	require.NoError(t, err)
-
-	preserved := preserveInputs(computed, prev)
-
-	// VMID and Node should remain set
-	require.NotNil(t, preserved.VMID)
-	assert.Equal(t, vmid, *preserved.VMID)
-	require.NotNil(t, preserved.Node)
-	assert.Equal(t, node, *preserved.Node)
-
-	// proxmox.Disk FileID still nil because prev omitted it
-	require.Len(t, preserved.Disks, 1)
-	assert.Nil(t, preserved.Disks[0].FileID)
-
-	// proxmox.EfiDisk remains present but FileID stays nil because prev omitted it
-	require.NotNil(t, preserved.EfiDisk)
-	assert.Nil(t, preserved.EfiDisk.FileID)
-}
-
-// --- Update IO handling tests ---
 
 func TestUpdateCopiesVMIDAndNodeFromState(t *testing.T) {
 	t.Parallel()
@@ -836,7 +695,7 @@ func TestPreserveInputs_ZeroValueFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			preserved := preserveInputs(tt.state, tt.userInputs)
+			preserved := PreserveInputs(tt.state, tt.userInputs)
 			tt.check(t, preserved)
 		})
 	}
@@ -904,7 +763,7 @@ func TestVMReadStatePreservesZeroValueFields(t *testing.T) {
 	assert.False(t, *resp.State.CPU.Numa)
 }
 
-// --- preserveCreateState vs preserveInputs tests ---
+// --- PreserveCreateState vs PreserveInputs tests ---
 
 func TestPreserveCreateState_KeepsFileIDs(t *testing.T) {
 	t.Parallel()
@@ -1060,7 +919,7 @@ func TestPreserveCreateState_KeepsFileIDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := preserveCreateState(tt.state, tt.userInputs)
+			result := PreserveCreateState(tt.state, tt.userInputs)
 			tt.check(t, result)
 		})
 	}
@@ -1186,7 +1045,7 @@ func TestPreserveInputs_ClearsFileIDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := preserveInputs(tt.state, tt.userInputs)
+			result := PreserveInputs(tt.state, tt.userInputs)
 			tt.check(t, result)
 		})
 	}

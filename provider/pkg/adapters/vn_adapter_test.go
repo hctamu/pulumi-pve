@@ -22,7 +22,6 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/luthermonson/go-proxmox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,6 +29,7 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // newVnAdapter is a test helper that wires a ProxmoxAdapter pointing at the given
@@ -117,7 +117,7 @@ func TestVnAdapterCreate(t *testing.T) {
 		server, _ := testutils.CreateMockServer(
 			t,
 			func(w http.ResponseWriter, _ *http.Request, capturedReq *testutils.MockRequest) {
-				// api.IntOrBool marshals to 1/0, not true/false.
+				// utils.IntBool marshals to 1/0, not true/false.
 				assert.Contains(t, capturedReq.Body, "\"vlanaware\":1")
 				assert.Contains(t, capturedReq.Body, "\"isolate-ports\":1")
 
@@ -177,7 +177,7 @@ func TestVnAdapterGet(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		trueVal := api.IntOrBool(true)
+		trueVal := utils.IntBool(true)
 		apiResponse := proxmox.VnetAPIObject{
 			Vnet:         "vpool1",
 			Zone:         "ringfence",

@@ -20,10 +20,22 @@ linters:
   settings:
     depguard:
       rules:
-        protobuf:
+        Main:
+          list-type: blacklist
           deny:
             - pkg: github.com/golang/protobuf
               desc: Use google.golang.org/protobuf instead
+        go-proxmox:
+          files:
+            - pkg/cmd/**
+            - pkg/provider/**
+            - pkg/proxmox
+            - pkg/proxmox/**
+            - pkg/config/**
+          list-type: blacklist
+          deny:
+            - pkg: github.com/luthermonson/go-proxmox
+              desc: go-proxmox must be imported only in adapters/
     gocritic:
       enable-all: true
       disabled-checks:

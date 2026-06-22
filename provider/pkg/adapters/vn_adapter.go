@@ -19,9 +19,8 @@ import (
 	"context"
 	"fmt"
 
-	api "github.com/luthermonson/go-proxmox"
-
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 const vnetBasePath = "/cluster/sdn/vnets"
@@ -41,8 +40,8 @@ func NewVnAdapter(client proxmox.Client) *VnAdapter {
 
 // Create creates a new VNet.
 func (adapter *VnAdapter) Create(ctx context.Context, inputs proxmox.VnetInputs) error {
-	vlanaware := api.IntOrBool(inputs.Vlanaware)
-	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
+	vlanaware := utils.IntBool(inputs.Vlanaware)
+	isolatePorts := utils.IntBool(inputs.IsolatePorts)
 	apiObject := &proxmox.VnetAPIObject{
 		Vnet:         inputs.Vnet,
 		Zone:         inputs.Zone,
@@ -90,8 +89,8 @@ func (adapter *VnAdapter) Update(
 	inputs proxmox.VnetInputs,
 	oldOutputs proxmox.VnetOutputs,
 ) error {
-	vlanaware := api.IntOrBool(inputs.Vlanaware)
-	isolatePorts := api.IntOrBool(inputs.IsolatePorts)
+	vlanaware := utils.IntBool(inputs.Vlanaware)
+	isolatePorts := utils.IntBool(inputs.IsolatePorts)
 	apiObject := &proxmox.VnetAPIObject{
 		Zone:         inputs.Zone,
 		Tag:          inputs.Tag,
