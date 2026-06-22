@@ -19,19 +19,15 @@ __all__ = ['ApplyArgs', 'Apply']
 @pulumi.input_type
 class ApplyArgs:
     def __init__(__self__, *,
-                 allow_pending: Optional[pulumi.Input[_builtins.bool]] = None,
                  apply_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
                  lock_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
                  triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None):
         """
         The set of arguments for constructing a Apply resource.
-        :param pulumi.Input[_builtins.bool] allow_pending: When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
         :param pulumi.Input[_builtins.int] apply_timeout_seconds: How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         :param pulumi.Input[_builtins.int] lock_timeout_seconds: How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
         :param pulumi.Input[Mapping[str, Any]] triggers: Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
         """
-        if allow_pending is not None:
-            pulumi.set(__self__, "allow_pending", allow_pending)
         if apply_timeout_seconds is None:
             apply_timeout_seconds = 60
         if apply_timeout_seconds is not None:
@@ -42,18 +38,6 @@ class ApplyArgs:
             pulumi.set(__self__, "lock_timeout_seconds", lock_timeout_seconds)
         if triggers is not None:
             pulumi.set(__self__, "triggers", triggers)
-
-    @_builtins.property
-    @pulumi.getter(name="allowPending")
-    def allow_pending(self) -> Optional[pulumi.Input[_builtins.bool]]:
-        """
-        When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-        """
-        return pulumi.get(self, "allow_pending")
-
-    @allow_pending.setter
-    def allow_pending(self, value: Optional[pulumi.Input[_builtins.bool]]):
-        pulumi.set(self, "allow_pending", value)
 
     @_builtins.property
     @pulumi.getter(name="applyTimeoutSeconds")
@@ -98,7 +82,6 @@ class Apply(pulumi.CustomResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 allow_pending: Optional[pulumi.Input[_builtins.bool]] = None,
                  apply_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
                  lock_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
                  triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None,
@@ -108,7 +91,6 @@ class Apply(pulumi.CustomResource):
 
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
-        :param pulumi.Input[_builtins.bool] allow_pending: When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
         :param pulumi.Input[_builtins.int] apply_timeout_seconds: How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         :param pulumi.Input[_builtins.int] lock_timeout_seconds: How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
         :param pulumi.Input[Mapping[str, Any]] triggers: Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
@@ -137,7 +119,6 @@ class Apply(pulumi.CustomResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 allow_pending: Optional[pulumi.Input[_builtins.bool]] = None,
                  apply_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
                  lock_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
                  triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None,
@@ -150,7 +131,6 @@ class Apply(pulumi.CustomResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = ApplyArgs.__new__(ApplyArgs)
 
-            __props__.__dict__["allow_pending"] = allow_pending
             if apply_timeout_seconds is None:
                 apply_timeout_seconds = 60
             __props__.__dict__["apply_timeout_seconds"] = apply_timeout_seconds
@@ -180,19 +160,10 @@ class Apply(pulumi.CustomResource):
 
         __props__ = ApplyArgs.__new__(ApplyArgs)
 
-        __props__.__dict__["allow_pending"] = None
         __props__.__dict__["apply_timeout_seconds"] = None
         __props__.__dict__["lock_timeout_seconds"] = None
         __props__.__dict__["triggers"] = None
         return Apply(resource_name, opts=opts, __props__=__props__)
-
-    @_builtins.property
-    @pulumi.getter(name="allowPending")
-    def allow_pending(self) -> pulumi.Output[Optional[_builtins.bool]]:
-        """
-        When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-        """
-        return pulumi.get(self, "allow_pending")
 
     @_builtins.property
     @pulumi.getter(name="applyTimeoutSeconds")

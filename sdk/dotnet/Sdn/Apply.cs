@@ -17,12 +17,6 @@ namespace Hctamu.Pve.Sdn
     public partial class Apply : global::Pulumi.CustomResource
     {
         /// <summary>
-        /// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-        /// </summary>
-        [Output("allowPending")]
-        public Output<bool?> AllowPending { get; private set; } = null!;
-
-        /// <summary>
         /// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         /// </summary>
         [Output("applyTimeoutSeconds")]
@@ -86,12 +80,6 @@ namespace Hctamu.Pve.Sdn
 
     public sealed class ApplyArgs : global::Pulumi.ResourceArgs
     {
-        /// <summary>
-        /// When true, allows acquiring the SDN lock even when there are pending changes. Defaults to false.
-        /// </summary>
-        [Input("allowPending")]
-        public Input<bool>? AllowPending { get; set; }
-
         /// <summary>
         /// How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         /// </summary>

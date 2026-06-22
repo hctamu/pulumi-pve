@@ -25,21 +25,21 @@ import (
 
 const vnetBasePath = "/cluster/sdn/vnets"
 
-// Ensure VnAdapter implements the VnetOperations interface.
-var _ proxmox.VnetOperations = (*VnAdapter)(nil)
+// Ensure VnetAdapter implements the VnetOperations interface.
+var _ proxmox.VnetOperations = (*VnetAdapter)(nil)
 
-// VnAdapter implements proxmox.VnetOperations using a ProxmoxClient.
-type VnAdapter struct {
+// VnetAdapter implements proxmox.VnetOperations using a ProxmoxClient.
+type VnetAdapter struct {
 	client proxmox.Client
 }
 
-// NewVnAdapter creates a new VnAdapter wrapping the given ProxmoxClient.
-func NewVnAdapter(client proxmox.Client) *VnAdapter {
-	return &VnAdapter{client: client}
+// NewVnetAdapter creates a new VnetAdapter wrapping the given ProxmoxClient.
+func NewVnetAdapter(client proxmox.Client) *VnetAdapter {
+	return &VnetAdapter{client: client}
 }
 
 // Create creates a new VNet.
-func (adapter *VnAdapter) Create(ctx context.Context, inputs proxmox.VnetInputs) error {
+func (adapter *VnetAdapter) Create(ctx context.Context, inputs proxmox.VnetInputs) error {
 	vlanaware := utils.IntBool(inputs.Vlanaware)
 	isolatePorts := utils.IntBool(inputs.IsolatePorts)
 	apiObject := &proxmox.VnetAPIObject{
@@ -57,7 +57,7 @@ func (adapter *VnAdapter) Create(ctx context.Context, inputs proxmox.VnetInputs)
 }
 
 // Get retrieves an existing VNet by its name.
-func (adapter *VnAdapter) Get(ctx context.Context, vnet string) (*proxmox.VnetOutputs, error) {
+func (adapter *VnetAdapter) Get(ctx context.Context, vnet string) (*proxmox.VnetOutputs, error) {
 	var apiObject *proxmox.VnetAPIObject
 	url := fmt.Sprintf("%s/%s", vnetBasePath, vnet)
 	if err := adapter.client.Get(ctx, url, &apiObject); err != nil {
@@ -83,7 +83,7 @@ func (adapter *VnAdapter) Get(ctx context.Context, vnet string) (*proxmox.VnetOu
 }
 
 // Update updates an existing VNet.
-func (adapter *VnAdapter) Update(
+func (adapter *VnetAdapter) Update(
 	ctx context.Context,
 	vnet string,
 	inputs proxmox.VnetInputs,
@@ -110,7 +110,7 @@ func (adapter *VnAdapter) Update(
 }
 
 // Delete deletes an existing VNet by its name.
-func (adapter *VnAdapter) Delete(ctx context.Context, vnet string) error {
+func (adapter *VnetAdapter) Delete(ctx context.Context, vnet string) error {
 	url := fmt.Sprintf("%s/%s", vnetBasePath, vnet)
 	if err := adapter.client.Delete(ctx, url, nil); err != nil {
 		return fmt.Errorf("failed to delete VNet: %w", err)
