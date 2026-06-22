@@ -7,7 +7,7 @@ plugins:
 
 variables:
   zone:
-    name: tamas
+    name: test
     vxlanPort: 4784
     ipam: pve
     fabric: zerotest
@@ -20,7 +20,7 @@ resources:
   myVnet:
     type: pve:sdn:Vnet
     properties:
-      vnet: tamas     # max 8 alphanumeric chars, must start with a letter
+      vnet: test     # max 8 alphanumeric chars, must start with a letter
       zone: ztonvl        # must reference an existing SDN zone
       tag: 10099          # VNI/VLAN tag (1-16777215)
       alias: "my vnet"    # optional
