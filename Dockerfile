@@ -8,8 +8,10 @@ RUN sed -i '/^XDG_CACHE_HOME=/d; /^XDG_CONFIG_HOME=/d' /etc/environment
 RUN apt-get update && apt-get install -y \
     zip \
     vim \
-    sudo
+    sudo \
+    ca-certificates
 
+RUN update-ca-certificates --fresh
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 RUN go install mvdan.cc/gofumpt@latest
 RUN go install github.com/segmentio/golines@latest
@@ -44,3 +46,5 @@ RUN mkdir -p /home/vscode/.gradle \
 # Pre-create .local subdirectories as vscode so Docker bind-mounts don't
 # cause them to be owned by root (which would block mkdir of sibling dirs).
 RUN mkdir -p /home/vscode/.local/share /home/vscode/.local/state
+
+CMD [ "bash" ]
