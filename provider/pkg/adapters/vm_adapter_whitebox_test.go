@@ -405,7 +405,7 @@ func TestBuildOptionsCPUFields(t *testing.T) {
 			t.Parallel()
 
 			// Call BuildVMOptions with a dummy VMID
-			options := buildVMOptions(tt.inputs, 100)
+			options := buildVMOptions(tt.inputs)
 
 			// Filter to only CPU-related options for easier comparison
 			cpuOptions := filterCPUOptions(options)
@@ -534,7 +534,7 @@ func TestBuildOptionsCPUConsistency(t *testing.T) {
 			var results [][]api.VirtualMachineOption
 
 			for i := 0; i < iterations; i++ {
-				options := buildVMOptions(tt.inputs, 100+i) // Use different VMIDs
+				options := buildVMOptions(tt.inputs) // Use different VMIDs
 				cpuOptions := filterCPUOptions(options)
 				results = append(results, cpuOptions)
 			}
@@ -818,7 +818,7 @@ func TestAddCPUDiff(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			options := buildVMOptionsDiff(tt.newInputs, 100, &tt.oldInputs)
+			options := buildVMOptionsDiff(tt.newInputs, &tt.oldInputs)
 			cpuOptions := filterCPUOptions(options)
 
 			require.Len(t, cpuOptions, len(tt.expected), "Number of CPU diff options mismatch")
@@ -1225,10 +1225,9 @@ func TestBuildOptionsDiskOrdering(t *testing.T) {
 			inputs := proxmox.VMInputs{
 				Disks: tc.disks,
 			}
-			vmID := 100
 
 			// Build options
-			options := buildVMOptions(inputs, vmID)
+			options := buildVMOptions(inputs)
 
 			// Extract disk options in the order they appear
 			var actualOrder []string
@@ -1284,14 +1283,13 @@ func TestBuildOptionsConsistentOrdering(t *testing.T) {
 	inputs := proxmox.VMInputs{
 		Disks: disks,
 	}
-	vmID := 200
 
 	// Build options multiple times
 	const numIterations = 10
 	var allOrders [][]string
 
 	for i := 0; i < numIterations; i++ {
-		options := buildVMOptions(inputs, vmID)
+		options := buildVMOptions(inputs)
 
 		var order []string
 		for _, opt := range options {
@@ -1325,9 +1323,8 @@ func TestBuildOptionsEmptyDisks(t *testing.T) {
 	inputs := proxmox.VMInputs{
 		Disks: nil, // No disks
 	}
-	vmID := 300
 
-	options := buildVMOptions(inputs, vmID)
+	options := buildVMOptions(inputs)
 
 	// Should not contain any disk options
 	for _, opt := range options {
@@ -1386,7 +1383,7 @@ func TestVMCreateDiskOrderingIntegration(t *testing.T) {
 			}
 
 			// Call BuildOptions just like the Create function does (line 90 in vm.go)
-			options := buildVMOptions(inputs, *inputs.VMID)
+			options := buildVMOptions(inputs)
 
 			// Extract disk options in the order they appear
 			var actualOrder []string
@@ -1409,7 +1406,7 @@ func TestVMCreateDiskOrderingIntegration(t *testing.T) {
 
 			// Verify that the ordering is deterministic by calling multiple times
 			for i := 0; i < 3; i++ {
-				options2 := buildVMOptions(inputs, *inputs.VMID)
+				options2 := buildVMOptions(inputs)
 				var order2 []string
 				for _, opt := range options2 {
 					if isDiskInterface(opt.Name) {
@@ -1449,7 +1446,7 @@ func TestVMCreateDiskOptionsConsistency(t *testing.T) {
 	var allOrders [][]string
 
 	for i := 0; i < iterations; i++ {
-		options := buildVMOptions(inputs, *inputs.VMID)
+		options := buildVMOptions(inputs)
 		var order []string
 		for _, opt := range options {
 			if isDiskInterface(opt.Name) {
@@ -1531,7 +1528,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 		var allOrders [][]string
 
 		for i := 0; i < numCalls; i++ {
-			options := buildVMOptions(inputs, *inputs.VMID)
+			options := buildVMOptions(inputs)
 
 			var diskOrder []string
 			var diskDetails []string
@@ -1560,7 +1557,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 			"Disk ordering should exactly match input order")
 
 		// Step 5: Verify each disk configuration is correct
-		options := buildVMOptions(inputs, *inputs.VMID)
+		options := buildVMOptions(inputs)
 		diskOptionMap := make(map[string]string)
 		for _, opt := range options {
 			if isDiskInterface(opt.Name) {
@@ -1584,7 +1581,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 		// Step 6: Performance verification - ensure ordering doesn't impact performance
 		start := time.Now()
 		for i := 0; i < 1000; i++ {
-			_ = buildVMOptions(inputs, *inputs.VMID)
+			_ = buildVMOptions(inputs)
 		}
 		duration := time.Since(start)
 
@@ -1747,7 +1744,7 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 			}
 
 			// Test BuildVMOptions which is called during VM creation
-			options := buildVMOptions(inputs, *inputs.VMID)
+			options := buildVMOptions(inputs)
 
 			// Extract disk options in order
 			var actualDiskOrder []string
@@ -1795,7 +1792,7 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 
 				// Test consistency across multiple calls (like the group tests)
 				for i := 0; i < 5; i++ {
-					options2 := buildVMOptions(inputs, *inputs.VMID)
+					options2 := buildVMOptions(inputs)
 					var order2 []string
 					for _, opt := range options2 {
 						if isDiskInterface(opt.Name) {
@@ -1864,7 +1861,7 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 		var allOrders [][]string
 
 		for i := 0; i < iterations; i++ {
-			options := buildVMOptions(inputs, *inputs.VMID)
+			options := buildVMOptions(inputs)
 
 			var diskOrder []string
 			var diskConfigs []string
@@ -1977,7 +1974,7 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 					Disks: scenario.disks,
 				}
 
-				options := buildVMOptions(inputs, *inputs.VMID)
+				options := buildVMOptions(inputs)
 
 				var actualOrder []string
 				for _, opt := range options {
@@ -2174,7 +2171,7 @@ func TestBuildVMOptionsTags(t *testing.T) {
 			t.Parallel()
 
 			inputs := proxmox.VMInputs{Tags: tt.tags}
-			options := buildVMOptions(inputs, 100)
+			options := buildVMOptions(inputs)
 
 			var tagsOpt *api.VirtualMachineOption
 			for i := range options {
@@ -2274,7 +2271,7 @@ func TestBuildVMOptionsDiffTags(t *testing.T) {
 
 			newInputs := proxmox.VMInputs{Tags: tt.newTags}
 			currentInputs := proxmox.VMInputs{Tags: tt.currentTags}
-			options := buildVMOptionsDiff(newInputs, 100, &currentInputs)
+			options := buildVMOptionsDiff(newInputs, &currentInputs)
 
 			var tagsOpt *api.VirtualMachineOption
 			for i := range options {
@@ -2478,7 +2475,7 @@ func BenchmarkBuildOptionsDiskOrdering(b *testing.B) {
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				_ = buildVMOptions(inputs, *inputs.VMID)
+				_ = buildVMOptions(inputs)
 			}
 		})
 	}
@@ -2508,7 +2505,7 @@ func BenchmarkBuildOptionsConsistency(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		options := buildVMOptions(inputs, *inputs.VMID)
+		options := buildVMOptions(inputs)
 
 		// Extract disk options to simulate real usage
 		var diskOrder []string
