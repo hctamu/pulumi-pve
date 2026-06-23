@@ -71,7 +71,7 @@ func (adapter *VMAdapter) CreateVM(ctx context.Context, inputs proxmox.VMInputs)
 	vmID := *inputs.VMID
 
 	l.Infof("Create VM '%v(%v)' on '%v'", inputs.Name, vmID, nodeName)
-	options := buildVMOptions(inputs, vmID)
+	options := buildVMOptions(inputs)
 
 	node, err := adapter.client.Node(ctx, nodeName)
 	if err != nil {
@@ -176,7 +176,7 @@ func (adapter *VMAdapter) UpdateConfig(
 	}
 
 	l.Debugf("VM: %v", virtualMachine)
-	options := buildVMOptionsDiff(inputs, vmID, &stateInputs)
+	options := buildVMOptionsDiff(inputs, &stateInputs)
 	l.Debugf("Update options: %+v", options)
 
 	// Only call Config if there are options to apply; Proxmox returns 500 otherwise.
@@ -231,7 +231,7 @@ func (adapter *VMAdapter) ApplyConfig(
 		return fmt.Errorf("failed to find VM %d: %w", vmID, err)
 	}
 
-	options := buildVMOptions(inputs, vmID)
+	options := buildVMOptions(inputs)
 	if len(options) == 0 {
 		l.Debugf("No VM config options to apply; skipping Config call")
 		return nil
@@ -440,7 +440,7 @@ func convertVMConfigToInputs(
 }
 
 // buildVMOptions builds a list of VirtualMachineOption from the VMInputs.
-func buildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOption {
+func buildVMOptions(inputs proxmox.VMInputs) []api.VirtualMachineOption {
 	options := []api.VirtualMachineOption{}
 
 	if inputs.Name != "" {
@@ -502,7 +502,7 @@ func buildVMOptions(inputs proxmox.VMInputs, vmID int) []api.VirtualMachineOptio
 }
 
 // buildVMOptionsDiff builds a list of VirtualMachineOption representing the diff between inputs and currentInputs.
-func buildVMOptionsDiff(inputs proxmox.VMInputs, vmID int, currentInputs *proxmox.VMInputs) []api.VirtualMachineOption {
+func buildVMOptionsDiff(inputs proxmox.VMInputs, currentInputs *proxmox.VMInputs) []api.VirtualMachineOption {
 	options := []api.VirtualMachineOption{}
 	compareAndAddOption("name", &options, inputs.Name, currentInputs.Name)
 	compareAndAddPtrOption("memory", &options, inputs.Memory, currentInputs.Memory)
