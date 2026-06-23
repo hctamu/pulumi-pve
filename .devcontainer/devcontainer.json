@@ -12,7 +12,7 @@
 	"mounts": [
 		"source=${localEnv:HOME}/.auth_storage.json,target=/home/vscode/.auth_storage.json,type=bind",
 		"source=${localEnv:HOME}/.secrets,target=/home/vscode/.secrets,type=bind,readonly",
-		"source=${localEnv:HOME}/.local/share/opencode,target=/home/vscode/.local/share/opencode,type=bind",
+		"source=${localEnv:HOME}/.local/share/opencode,target=/home/vscode/.local/share/opencode,type=bind"
 	],
 	"remoteEnv": {
 		"XDG_CACHE_HOME": "/home/vscode/.cache",
