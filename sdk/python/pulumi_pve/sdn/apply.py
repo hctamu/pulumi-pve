@@ -24,6 +24,7 @@ class ApplyArgs:
                  triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None):
         """
         The set of arguments for constructing a Apply resource.
+
         :param pulumi.Input[_builtins.int] apply_timeout_seconds: How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         :param pulumi.Input[_builtins.int] lock_timeout_seconds: How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
         :param pulumi.Input[Mapping[str, Any]] triggers: Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
@@ -89,6 +90,7 @@ class Apply(pulumi.CustomResource):
         """
         Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
 
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.int] apply_timeout_seconds: How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
@@ -103,6 +105,7 @@ class Apply(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
+
 
         :param str resource_name: The name of the resource.
         :param ApplyArgs args: The arguments to use to populate this resource's properties.
