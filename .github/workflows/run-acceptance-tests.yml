@@ -76,7 +76,7 @@ jobs:
       with:
         repo: pulumi/schema-tools
     - name: Build codegen binaries
-      run: make codegen
+      run: env -u PROVIDER_VERSION make codegen
     - name: Build Schema
       run: make generate_schema
     - name: Build Provider
