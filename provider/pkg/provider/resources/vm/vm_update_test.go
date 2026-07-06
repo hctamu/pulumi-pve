@@ -137,6 +137,31 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
 		},
 		{
+			name: "resize disk with conflicting explicit fileID errors",
+			desiredDisks: []*proxmox.Disk{
+				{
+					DiskBase: proxmox.DiskBase{
+						Storage: "local-lvm",
+						FileID:  testutils.Ptr(fileID1),
+					},
+					Size:      50,
+					Interface: "scsi0",
+				},
+			},
+			stateDisks: []*proxmox.Disk{
+				{
+					DiskBase: proxmox.DiskBase{
+						Storage: "local-lvm",
+						FileID:  testutils.Ptr(fileID0),
+					},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantErr:         true,
+			wantErrContains: "changing the volume binding",
+		},
+		{
 			name: "dry run returns without calling any ops",
 			desiredDisks: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
@@ -338,4 +363,135 @@ func TestVMUpdateSkipsGetCurrentDisksWhenDisksUnchanged(t *testing.T) {
 	vmInstance := &vmResource.VM{VMOps: ops}
 	_, err := vmInstance.Update(context.Background(), req)
 	require.NoError(t, err, "Update must succeed without calling GetCurrentDisks")
+}
+
+// TestVMUpdateRereadsAfterDiskChange verifies that Update() re-reads the VM after a disk or
+// EFI disk add so the new FileID (filename) is present in the response immediately, without
+// needing a subsequent Read/refresh.
+func TestVMUpdateRereadsAfterDiskChange(t *testing.T) {
+	t.Parallel()
+
+	const testVMID = 100
+	testNode := testutils.Ptr("pve-node")
+	fileID0 := "local-lvm:vm-100-disk-0"
+	newFileID1 := "local-lvm:vm-100-disk-1"
+
+	tests := []struct {
+		name             string
+		inputs           proxmox.VMInputs
+		state            proxmox.VMInputs
+		getResult        proxmox.VMInputs
+		wantGetCalled    bool
+		wantDisksByIface map[string]*string // interface -> expected FileID in response.Output.Disks
+		wantEfiFileID    *string
+	}{
+		{
+			name: "disk added: Get is called and new disk's FileID is merged into output",
+			inputs: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
+				Disks: []*proxmox.Disk{
+					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 15, Interface: "scsi1"},
+				},
+			},
+			state: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+						Size:      20,
+						Interface: "scsi0",
+					},
+				},
+			},
+			getResult: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+						Size:      20,
+						Interface: "scsi0",
+					},
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(newFileID1)},
+						Size:      15,
+						Interface: "scsi1",
+					},
+				},
+			},
+			wantGetCalled: true,
+			wantDisksByIface: map[string]*string{
+				"scsi0": testutils.Ptr(fileID0),
+				"scsi1": testutils.Ptr(newFileID1),
+			},
+		},
+		{
+			name: "disks unchanged: Get is not called, no extra API round-trip",
+			inputs: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID), Memory: testutils.Ptr(4096),
+				Disks: []*proxmox.Disk{
+					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				},
+			},
+			state: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID), Memory: testutils.Ptr(2048),
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+						Size:      20,
+						Interface: "scsi0",
+					},
+				},
+			},
+			wantGetCalled: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var getCalled bool
+			ops := &mockVMOperations{
+				resizeDiskFunc: func(_ context.Context, _ int, _ *string, _ string, _ int) error { return nil },
+				removeDiskFunc: func(_ context.Context, _ int, _ *string, _ string) error { return nil },
+				updateConfigFunc: func(
+					_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ proxmox.VMInputs,
+				) error {
+					return nil
+				},
+				getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+					getCalled = true
+					return tt.getResult, nil
+				},
+			}
+
+			req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+				ID:     "test-vm",
+				Inputs: tt.inputs,
+				State:  proxmox.VMOutputs{VMInputs: tt.state},
+			}
+
+			vmInstance := &vmResource.VM{VMOps: ops}
+			resp, err := vmInstance.Update(context.Background(), req)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantGetCalled, getCalled, "Get call expectation")
+
+			if tt.wantDisksByIface != nil {
+				outByIface := make(map[string]*proxmox.Disk, len(resp.Output.Disks))
+				for _, d := range resp.Output.Disks {
+					if d != nil {
+						outByIface[d.Interface] = d
+					}
+				}
+				for iface, wantFileID := range tt.wantDisksByIface {
+					d := outByIface[iface]
+					require.NotNilf(t, d, "disk %s should be present in output", iface)
+					require.NotNilf(t, d.FileID, "FileID for disk %s should not be nil", iface)
+					assert.Equalf(t, *wantFileID, *d.FileID, "FileID for disk %s", iface)
+				}
+			}
+		})
+	}
 }

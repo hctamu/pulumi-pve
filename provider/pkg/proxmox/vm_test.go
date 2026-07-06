@@ -32,13 +32,13 @@ func TestCompareDisksByInterface(t *testing.T) {
 		name     string
 		desired  []*proxmox.Disk
 		current  []*proxmox.Disk
-		expected map[string]proxmox.DiskChangeType
+		expected map[string][]proxmox.DiskChangeType
 	}{
 		{
 			name:     "both empty",
 			desired:  []*proxmox.Disk{},
 			current:  []*proxmox.Disk{},
-			expected: map[string]proxmox.DiskChangeType{},
+			expected: map[string][]proxmox.DiskChangeType{},
 		},
 		{
 			name: "disk added",
@@ -46,7 +46,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
 			current:  []*proxmox.Disk{},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskAdded},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskAdded}},
 		},
 		{
 			name:    "disk removed",
@@ -54,7 +54,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 			current: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskRemoved},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskRemoved}},
 		},
 		{
 			name: "disk unchanged",
@@ -64,7 +64,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 			current: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskUnchanged}},
 		},
 		{
 			name: "disk resized",
@@ -74,7 +74,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 			current: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskResized},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskResized}},
 		},
 		{
 			name: "disk shrunk",
@@ -84,7 +84,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 			current: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskShrunk},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskShrunk}},
 		},
 		{
 			name: "disk storage changed",
@@ -94,7 +94,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 			current: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskStorageChanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskStorageChanged}},
 		},
 		{
 			name: "disk fileID changed",
@@ -112,7 +112,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 					Interface: "scsi0",
 				},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFileIDChanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskFileIDChanged}},
 		},
 		{
 			name: "nil desired fileID is not a change",
@@ -126,17 +126,63 @@ func TestCompareDisksByInterface(t *testing.T) {
 					Interface: "scsi0",
 				},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskUnchanged}},
 		},
 		{
-			name: "storage change takes priority over resize",
+			name: "storage change and resize are both reported",
 			desired: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "ceph-pool"}, Size: 64, Interface: "scsi0"},
 			},
 			current: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskStorageChanged},
+			expected: map[string][]proxmox.DiskChangeType{
+				"scsi0": {proxmox.DiskStorageChanged, proxmox.DiskResized},
+			},
+		},
+		{
+			name: "resize and flags changed are both reported",
+			desired: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      64,
+					Interface: "scsi0",
+					SSD:       testutils.Ptr(true),
+				},
+			},
+			current: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
+			},
+			expected: map[string][]proxmox.DiskChangeType{
+				"scsi0": {proxmox.DiskResized, proxmox.DiskFlagsChanged},
+			},
+		},
+		{
+			name: "flags changed and fileID changed are both reported",
+			desired: []*proxmox.Disk{
+				{
+					DiskBase: proxmox.DiskBase{
+						Storage: "local-lvm",
+						FileID:  testutils.Ptr("local-lvm:vm-100-disk-1"),
+					},
+					Size:      32,
+					Interface: "scsi0",
+					Cache:     testutils.Ptr("writeback"),
+				},
+			},
+			current: []*proxmox.Disk{
+				{
+					DiskBase: proxmox.DiskBase{
+						Storage: "local-lvm",
+						FileID:  testutils.Ptr("local-lvm:vm-100-disk-0"),
+					},
+					Size:      32,
+					Interface: "scsi0",
+				},
+			},
+			expected: map[string][]proxmox.DiskChangeType{
+				"scsi0": {proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged},
+			},
 		},
 		{
 			name: "mixed changes across multiple disks",
@@ -150,11 +196,11 @@ func TestCompareDisksByInterface(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi2"},    // removed
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 100, Interface: "virtio0"}, // unchanged
 			},
-			expected: map[string]proxmox.DiskChangeType{
-				"scsi0":   proxmox.DiskResized,
-				"scsi1":   proxmox.DiskAdded,
-				"scsi2":   proxmox.DiskRemoved,
-				"virtio0": proxmox.DiskUnchanged,
+			expected: map[string][]proxmox.DiskChangeType{
+				"scsi0":   {proxmox.DiskResized},
+				"scsi1":   {proxmox.DiskAdded},
+				"scsi2":   {proxmox.DiskRemoved},
+				"virtio0": {proxmox.DiskUnchanged},
 			},
 		},
 		{
@@ -167,7 +213,7 @@ func TestCompareDisksByInterface(t *testing.T) {
 				nil,
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskUnchanged}},
 		},
 	}
 
@@ -177,14 +223,15 @@ func TestCompareDisksByInterface(t *testing.T) {
 
 			changes := proxmox.CompareDisksByInterface(tt.desired, tt.current)
 
-			// Build a lookup map from interface → change type for easy assertion.
-			byInterface := func(changes []proxmox.DiskChange) map[string]proxmox.DiskChangeType {
-				m := make(map[string]proxmox.DiskChangeType, len(changes))
-				for _, c := range changes {
-					m[c.Interface] = c.Type
+			// Build a lookup map from interface → ordered list of change types for easy assertion.
+			byInterface := make(map[string][]proxmox.DiskChangeType, len(changes))
+			for iface, ifaceChanges := range changes {
+				types := make([]proxmox.DiskChangeType, 0, len(ifaceChanges))
+				for _, c := range ifaceChanges {
+					types = append(types, c.Type)
 				}
-				return m
-			}(changes)
+				byInterface[iface] = types
+			}
 
 			assert.Equal(t, tt.expected, byInterface)
 		})
@@ -331,7 +378,7 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 		name     string
 		desired  []*proxmox.Disk
 		current  []*proxmox.Disk
-		expected map[string]proxmox.DiskChangeType
+		expected map[string][]proxmox.DiskChangeType
 	}{
 		{
 			name: "bandwidth added to existing disk",
@@ -346,7 +393,7 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 			current: []*proxmox.Disk{
 				{Interface: "scsi0", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local"}},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFlagsChanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskFlagsChanged}},
 		},
 		{
 			name: "bandwidth removed from existing disk",
@@ -361,7 +408,7 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 					Bandwidth: &proxmox.DiskBandwidth{MBpsRd: f64(100)},
 				},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFlagsChanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskFlagsChanged}},
 		},
 		{
 			name: "bandwidth value changed",
@@ -381,7 +428,7 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 					Bandwidth: &proxmox.DiskBandwidth{IOPSRd: intPtr(1000)},
 				},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskFlagsChanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskFlagsChanged}},
 		},
 		{
 			name: "bandwidth identical",
@@ -401,7 +448,7 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 					Bandwidth: &proxmox.DiskBandwidth{MBpsRd: f64(100), IOPSWr: intPtr(200)},
 				},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskUnchanged}},
 		},
 		{
 			name: "both nil bandwidth",
@@ -411,7 +458,7 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 			current: []*proxmox.Disk{
 				{Interface: "scsi0", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local"}},
 			},
-			expected: map[string]proxmox.DiskChangeType{"scsi0": proxmox.DiskUnchanged},
+			expected: map[string][]proxmox.DiskChangeType{"scsi0": {proxmox.DiskUnchanged}},
 		},
 	}
 
@@ -419,9 +466,13 @@ func TestCompareDisksByInterfaceBandwidth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			changes := proxmox.CompareDisksByInterface(tt.desired, tt.current)
-			byInterface := make(map[string]proxmox.DiskChangeType, len(changes))
-			for _, c := range changes {
-				byInterface[c.Interface] = c.Type
+			byInterface := make(map[string][]proxmox.DiskChangeType, len(changes))
+			for iface, ifaceChanges := range changes {
+				types := make([]proxmox.DiskChangeType, 0, len(ifaceChanges))
+				for _, c := range ifaceChanges {
+					types = append(types, c.Type)
+				}
+				byInterface[iface] = types
 			}
 			assert.Equal(t, tt.expected, byInterface)
 		})
