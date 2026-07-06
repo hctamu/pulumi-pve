@@ -433,15 +433,15 @@ func ValidateDiskFlags(disk *Disk) error {
 	return nil
 }
 
-// CompareDisksByInterface compares desired and current disk lists keyed by Interface name
-// and returns a DiskChange entry for every interface seen in either list.
+// CompareDisksByInterface compares desired and current disk lists keyed by Interface name.
+// It returns every change detected per interface (e.g. a disk can be resized and have its
+// flags changed at once), ordered Storage > Resized/Shrunk > Flags > FileID. An unchanged
+// disk still gets a single DiskUnchanged entry, so every interface from either list is
+// present as a map key.
 //
-// Priority order when multiple fields change on the same disk:
-// StorageChanged > Resized/Shrunk > FileIDChanged > Unchanged
-//
-// FileID comparison rule: only compare FileID when desired.FileID != nil.
-// A nil desired FileID means the user did not set it (it is computed by Proxmox) — not a change.
-func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
+// FileID is only compared when desired.FileID is non-nil; nil means the user did not set it
+// (computed by Proxmox), not a change.
+func CompareDisksByInterface(desired, current []*Disk) map[string][]DiskChange {
 	desiredByIface := make(map[string]*Disk, len(desired))
 	for _, disk := range desired {
 		if disk != nil {
@@ -456,16 +456,16 @@ func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
 		}
 	}
 
-	var changes []DiskChange
+	changes := make(map[string][]DiskChange, len(desiredByIface)+len(currentByIface))
 
 	// Disks present in current but absent from desired → removed.
 	for iface, cur := range currentByIface {
 		if _, ok := desiredByIface[iface]; !ok {
-			changes = append(changes, DiskChange{
+			changes[iface] = []DiskChange{{
 				Interface: iface,
 				Type:      DiskRemoved,
 				Current:   cur,
-			})
+			}}
 		}
 	}
 
@@ -473,68 +473,67 @@ func CompareDisksByInterface(desired, current []*Disk) []DiskChange {
 	for iface, des := range desiredByIface {
 		cur, exists := currentByIface[iface]
 		if !exists {
-			changes = append(changes, DiskChange{
+			changes[iface] = []DiskChange{{
 				Interface: iface,
 				Type:      DiskAdded,
 				Desired:   des,
-			})
+			}}
 			continue
 		}
 
-		// Storage change has highest priority.
+		var ifaceChanges []DiskChange
+
 		if des.Storage != cur.Storage {
-			changes = append(changes, DiskChange{
+			ifaceChanges = append(ifaceChanges, DiskChange{
 				Interface: iface,
 				Type:      DiskStorageChanged,
 				Desired:   des,
 				Current:   cur,
 			})
-			continue
 		}
 
-		// Size change is next.
 		if des.Size != cur.Size {
 			changeType := DiskResized
 			if des.Size < cur.Size {
 				changeType = DiskShrunk
 			}
-			changes = append(changes, DiskChange{
+			ifaceChanges = append(ifaceChanges, DiskChange{
 				Interface: iface,
 				Type:      changeType,
 				Desired:   des,
 				Current:   cur,
 			})
-			continue
 		}
 
-		// Flag fields (cache, aio, discard, iothread, ssd, backup, replicate, ro).
 		if diskFlagsChanged(des, cur) {
-			changes = append(changes, DiskChange{
+			ifaceChanges = append(ifaceChanges, DiskChange{
 				Interface: iface,
 				Type:      DiskFlagsChanged,
 				Desired:   des,
 				Current:   cur,
 			})
-			continue
 		}
 
 		// Compare FileID only when desired is non-nil (nil means "let Proxmox assign it").
 		if des.FileID != nil && cur.FileID != nil && *des.FileID != *cur.FileID {
-			changes = append(changes, DiskChange{
+			ifaceChanges = append(ifaceChanges, DiskChange{
 				Interface: iface,
 				Type:      DiskFileIDChanged,
 				Desired:   des,
 				Current:   cur,
 			})
-			continue
 		}
 
-		changes = append(changes, DiskChange{
-			Interface: iface,
-			Type:      DiskUnchanged,
-			Desired:   des,
-			Current:   cur,
-		})
+		if len(ifaceChanges) == 0 {
+			ifaceChanges = append(ifaceChanges, DiskChange{
+				Interface: iface,
+				Type:      DiskUnchanged,
+				Desired:   des,
+				Current:   cur,
+			})
+		}
+
+		changes[iface] = ifaceChanges
 	}
 
 	return changes
