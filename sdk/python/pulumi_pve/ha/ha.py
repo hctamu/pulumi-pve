@@ -24,6 +24,7 @@ class HAArgs:
                  state: Optional[pulumi.Input[_builtins.str]] = None):
         """
         The set of arguments for constructing a HA resource.
+
         :param pulumi.Input[_builtins.int] resource_id: The ID of the virtual machine that will be managed by HA (required).
         :param pulumi.Input[_builtins.str] group: The HA group identifier.
         :param pulumi.Input[_builtins.str] state: The state of the HA resource (default: started).
@@ -86,6 +87,7 @@ class HA(pulumi.CustomResource):
         """
         A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
 
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] group: The HA group identifier.
@@ -100,6 +102,7 @@ class HA(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox HA resource that manages the HA configuration of a virtual machine in the Proxmox VE.
+
 
         :param str resource_name: The name of the resource.
         :param HAArgs args: The arguments to use to populate this resource's properties.

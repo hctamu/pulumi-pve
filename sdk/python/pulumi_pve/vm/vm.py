@@ -38,6 +38,7 @@ class VMArgs:
                  vm_id: Optional[pulumi.Input[_builtins.int]] = None):
         """
         The set of arguments for constructing a VM resource.
+
         :param pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]] disks: List of disk configurations attached to the virtual machine.
         :param pulumi.Input[_builtins.str] name: Name of the virtual machine.
         :param pulumi.Input[_builtins.int] autostart: Automatically start the VM when the host boots (1 to enable, 0 to disable).
@@ -304,6 +305,7 @@ class VM(pulumi.CustomResource):
                  __props__=None):
         """
         Create a VM resource with the given unique name, props, and options.
+
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.int] autostart: Automatically start the VM when the host boots (1 to enable, 0 to disable).
@@ -331,6 +333,7 @@ class VM(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         Create a VM resource with the given unique name, props, and options.
+
         :param str resource_name: The name of the resource.
         :param VMArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
