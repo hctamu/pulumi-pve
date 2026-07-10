@@ -53,6 +53,9 @@
       "pveUser": {
         "type": "string"
       },
+      "sshInterface": {
+        "type": "string"
+      },
       "sshKnownHostsPath": {
         "type": "string"
       },
@@ -291,6 +294,9 @@
       "pveUser": {
         "type": "string"
       },
+      "sshInterface": {
+        "type": "string"
+      },
       "sshKnownHostsPath": {
         "type": "string"
       },
@@ -324,6 +330,9 @@
         "type": "string"
       },
       "pveUser": {
+        "type": "string"
+      },
+      "sshInterface": {
         "type": "string"
       },
       "sshKnownHostsPath": {

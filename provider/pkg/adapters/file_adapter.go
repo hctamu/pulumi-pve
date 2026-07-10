@@ -18,6 +18,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 )
@@ -114,7 +115,11 @@ func (file *FileAdapter) Delete(ctx context.Context, outputs proxmox.FileOutputs
 		outputs.SourceRaw.FileName,
 	)
 	if _, err := file.sshClient.Run(proxmox.SSHOperationDelete, filePath); err != nil {
-		return fmt.Errorf("error removing file via SSH: %v", err)
+		errMsg := err.Error()
+		if !strings.Contains(errMsg, "No such file or directory") &&
+			!strings.Contains(errMsg, "cannot remove") {
+			return fmt.Errorf("error removing file via SSH: %v", err)
+		}
 	}
 
 	return nil

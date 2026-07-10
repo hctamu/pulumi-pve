@@ -20,10 +20,10 @@ import (
 	"encoding/json"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,6 +31,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/config"
+	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
 func TestNewSSHAdapter(t *testing.T) {
@@ -61,11 +62,11 @@ func TestNewSSHAdapter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			pxa := NewProxmoxAdapter(tt.cfg)
-			adapter := NewSSHAdapter(pxa, tt.cfg)
+			proxmoxAdapter := NewProxmoxAdapter(tt.cfg)
+			adapter := NewSSHAdapter(proxmoxAdapter, tt.cfg)
 
 			require.NotNil(t, adapter)
-			assert.Equal(t, pxa, adapter.proxmoxAdapter)
+			assert.Equal(t, proxmoxAdapter, adapter.proxmoxAdapter)
 			assert.Equal(t, tt.cfg, adapter.PVEConfig)
 		})
 	}
@@ -76,59 +77,60 @@ func TestSSHAdapterConnect(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		nodesResponse  interface{}
-		networkHandler func(w http.ResponseWriter, r *http.Request)
-		wantErr        bool
-		errContains    string
-		wantTargetIP   string
+		sshInterface   string
+		nodes          []nodeStatus
+		networksByNode map[string][]networkInterface
+		wantErr        string
 	}{
 		{
-			name: "successful connection with matching NIC",
-			nodesResponse: []map[string]interface{}{
-				{"node": "pve1", "status": "online"},
+			name:         "fails when configured interface is not found",
+			sshInterface: "vmbr9.999",
+			nodes:        []nodeStatus{{Node: "pve1"}},
+			networksByNode: map[string][]networkInterface{
+				"pve1": {
+					{Iface: "eth0", Address: "10.0.0.1"},
+				},
 			},
-			networkHandler: func(w http.ResponseWriter, r *http.Request) {
-				resp := map[string]interface{}{
-					"data": []map[string]interface{}{
-						{"iface": "eth0", "address": "10.0.0.1"},
-						{"iface": "vmbr1.606", "address": "192.168.1.100"},
-					},
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(resp)
-			},
-			wantErr:      false,
-			wantTargetIP: "192.168.1.100",
+			wantErr: "configured SSH interface \"vmbr9.999\" not found",
 		},
 		{
-			name: "successful connection with no matching NIC returns empty IP",
-			nodesResponse: []map[string]interface{}{
-				{"node": "pve1", "status": "online"},
+			name:         "fails when configured interface has no ipv4",
+			sshInterface: "vmbr1.606",
+			nodes:        []nodeStatus{{Node: "pve1"}},
+			networksByNode: map[string][]networkInterface{
+				"pve1": {
+					{Iface: "vmbr1.606", Address: "fe80::1"},
+				},
 			},
-			networkHandler: func(w http.ResponseWriter, r *http.Request) {
-				resp := map[string]interface{}{
-					"data": []map[string]interface{}{
-						{"iface": "eth0", "address": "10.0.0.1"},
-						{"iface": "vmbr0", "address": "10.0.0.2"},
-					},
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_ = json.NewEncoder(w).Encode(resp)
-			},
-			wantErr:      false,
-			wantTargetIP: "",
+			wantErr: "configured SSH interface \"vmbr1.606\" has no IPv4 address",
 		},
 		{
-			name:          "fails when no nodes found",
-			nodesResponse: []map[string]interface{}{},
-			networkHandler: func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"data": []}`))
+			name:         "fails when no interface has ipv4 and interface is not configured",
+			sshInterface: "",
+			nodes:        []nodeStatus{{Node: "pve1"}},
+			networksByNode: map[string][]networkInterface{
+				"pve1": {
+					{Iface: "vmbr1.606", Address: "fe80::1"},
+				},
 			},
-			wantErr:     true,
-			errContains: "no nodes found",
+			wantErr: "no network interface with IPv4 address found for SSH",
+		},
+		{
+			name:         "fails when no nodes found",
+			sshInterface: "",
+			nodes:        []nodeStatus{},
+			wantErr:      "no nodes found",
+		},
+		{
+			name:         "fails when candidate interface is not reachable on ssh port",
+			sshInterface: "vmbr1.606",
+			nodes:        []nodeStatus{{Node: "pve1"}},
+			networksByNode: map[string][]networkInterface{
+				"pve1": {
+					{Iface: "vmbr1.606", Address: "127.0.0.1"},
+				},
+			},
+			wantErr: "no reachable SSH interface found after 1 attempts",
 		},
 	}
 
@@ -136,21 +138,25 @@ func TestSSHAdapterConnect(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				switch {
-				case strings.HasSuffix(r.URL.Path, "/nodes") && r.Method == http.MethodGet:
-					resp := map[string]interface{}{"data": tt.nodesResponse}
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					_ = json.NewEncoder(w).Encode(resp)
-				case strings.HasSuffix(r.URL.Path, "/network") && r.Method == http.MethodGet:
-					tt.networkHandler(w, r)
-				default:
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(`{"data": null}`))
-				}
-			}))
+			server, _ := testutils.CreateMockServer(
+				t,
+				func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+					switch {
+					case r.Method == http.MethodGet && r.URL.Path == "/nodes":
+						w.Header().Set("Content-Type", "application/json")
+						_ = json.NewEncoder(w).Encode(map[string]any{"data": tt.nodes})
+					case r.Method == http.MethodGet &&
+						strings.HasPrefix(r.URL.Path, "/nodes/") &&
+						strings.HasSuffix(r.URL.Path, "/network"):
+						nodeName := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/nodes/"), "/network")
+						networks := tt.networksByNode[nodeName]
+						w.Header().Set("Content-Type", "application/json")
+						_ = json.NewEncoder(w).Encode(map[string]any{"data": networks})
+					default:
+						w.WriteHeader(http.StatusNotFound)
+					}
+				},
+			)
 			defer server.Close()
 
 			cfg := &config.Config{
@@ -159,27 +165,15 @@ func TestSSHAdapterConnect(t *testing.T) {
 				PveToken:              "test-token",
 				SSHUser:               "root",
 				SSHPass:               "password",
+				SSHInterface:          tt.sshInterface,
 				InsecureIgnoreHostKey: true,
 			}
 
-			pxa := NewProxmoxAdapter(cfg)
-			err := pxa.Connect(context.Background())
-			require.NoError(t, err)
+			adapter := NewSSHAdapter(NewProxmoxAdapter(cfg), cfg)
+			err := adapter.Connect(context.Background())
 
-			adapter := NewSSHAdapter(pxa, cfg)
-			err = adapter.Connect(context.Background())
-
-			if tt.wantErr {
-				require.Error(t, err)
-				if tt.errContains != "" {
-					assert.Contains(t, err.Error(), tt.errContains)
-				}
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.wantTargetIP, adapter.targetIP)
-				assert.NotNil(t, adapter.sshConfig)
-				assert.Equal(t, "root", adapter.sshConfig.User)
-			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
 		})
 	}
 }
@@ -187,28 +181,24 @@ func TestSSHAdapterConnect(t *testing.T) {
 func TestSSHAdapterConnectIdempotent(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/nodes"):
-			resp := map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"node": "pve1"},
-				},
-			}
+	var nodesCalls int32
+	var networksCalls int32
+
+	server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+		switch r.URL.Path {
+		case "/nodes":
+			atomic.AddInt32(&nodesCalls, 1)
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []nodeStatus{{Node: "pve1"}}})
+		case "/nodes/pve1/network":
+			atomic.AddInt32(&networksCalls, 1)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).
+				Encode(map[string]any{"data": []networkInterface{{Iface: "vmbr1.606", Address: "127.0.0.1"}}})
 		default:
-			resp := map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"iface": "vmbr1.606", "address": "192.168.1.100"},
-				},
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(resp)
+			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})
 	defer server.Close()
 
 	cfg := &config.Config{
@@ -217,35 +207,27 @@ func TestSSHAdapterConnectIdempotent(t *testing.T) {
 		PveToken:              "test-token",
 		SSHUser:               "root",
 		SSHPass:               "password",
+		SSHInterface:          "vmbr1.606",
 		InsecureIgnoreHostKey: true,
 	}
 
-	pxa := NewProxmoxAdapter(cfg)
-	err := pxa.Connect(context.Background())
-	require.NoError(t, err)
-
-	adapter := NewSSHAdapter(pxa, cfg)
-
-	// Connect multiple times
+	adapter := NewSSHAdapter(NewProxmoxAdapter(cfg), cfg)
 	err1 := adapter.Connect(context.Background())
-	require.NoError(t, err1)
-	ip1 := adapter.targetIP
-
 	err2 := adapter.Connect(context.Background())
-	require.NoError(t, err2)
-	ip2 := adapter.targetIP
 
-	// Should be the same target IP (idempotent)
-	assert.Equal(t, ip1, ip2)
+	require.Error(t, err1)
+	require.Error(t, err2)
+	assert.Equal(t, err1.Error(), err2.Error())
+	assert.Equal(t, int32(1), atomic.LoadInt32(&nodesCalls))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&networksCalls))
 }
 
 func TestSSHAdapterConnectNodeAPIError(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, _ *http.Request, _ *testutils.MockRequest) {
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"data": null}`))
-	}))
+	})
 	defer server.Close()
 
 	cfg := &config.Config{
@@ -257,12 +239,8 @@ func TestSSHAdapterConnectNodeAPIError(t *testing.T) {
 		InsecureIgnoreHostKey: true,
 	}
 
-	pxa := NewProxmoxAdapter(cfg)
-	err := pxa.Connect(context.Background())
-	require.NoError(t, err)
-
-	adapter := NewSSHAdapter(pxa, cfg)
-	err = adapter.Connect(context.Background())
+	adapter := NewSSHAdapter(NewProxmoxAdapter(cfg), cfg)
+	err := adapter.Connect(context.Background())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "error getting nodes")
 }
@@ -270,22 +248,15 @@ func TestSSHAdapterConnectNodeAPIError(t *testing.T) {
 func TestSSHAdapterConnectNetworkAPIError(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/nodes") {
-			resp := map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"node": "pve1"},
-				},
-			}
+	server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+		if r.URL.Path == "/nodes" {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": []nodeStatus{{Node: "pve1"}}})
 			return
 		}
-		// Network endpoint returns error
+
 		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"data": null}`))
-	}))
+	})
 	defer server.Close()
 
 	cfg := &config.Config{
@@ -297,14 +268,10 @@ func TestSSHAdapterConnectNetworkAPIError(t *testing.T) {
 		InsecureIgnoreHostKey: true,
 	}
 
-	pxa := NewProxmoxAdapter(cfg)
-	err := pxa.Connect(context.Background())
-	require.NoError(t, err)
-
-	adapter := NewSSHAdapter(pxa, cfg)
-	err = adapter.Connect(context.Background())
+	adapter := NewSSHAdapter(NewProxmoxAdapter(cfg), cfg)
+	err := adapter.Connect(context.Background())
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "error getting networks")
+	assert.Contains(t, err.Error(), "error getting networks for")
 }
 
 func TestSSHAdapterConnectPanicsWithNilConfigAndNoContext(t *testing.T) {
@@ -312,40 +279,28 @@ func TestSSHAdapterConnectPanicsWithNilConfigAndNoContext(t *testing.T) {
 
 	adapter := NewSSHAdapter(NewProxmoxAdapter(nil), nil)
 
-	// Attempting to connect with a plain context (no Pulumi config) should panic
 	assert.Panics(t, func() {
 		_ = adapter.Connect(context.Background())
-	}, "Expected panic when trying to get config from non-Pulumi context")
+	})
 }
 
 func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.HasSuffix(r.URL.Path, "/nodes"):
-			resp := map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"node": "pve1"},
-					{"node": "pve2"},
-					{"node": "pve3"},
-				},
-			}
+	server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
+		switch r.URL.Path {
+		case "/nodes":
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).
+				Encode(map[string]any{"data": []nodeStatus{{Node: "pve1"}, {Node: "pve2"}, {Node: "pve3"}}})
+		case "/nodes/pve1/network", "/nodes/pve2/network", "/nodes/pve3/network":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).
+				Encode(map[string]any{"data": []networkInterface{{Iface: "vmbr1.606", Address: "127.0.0.1"}}})
 		default:
-			// All nodes have vmbr1.606 with different IPs
-			resp := map[string]interface{}{
-				"data": []map[string]interface{}{
-					{"iface": "vmbr1.606", "address": "192.168.1.100"},
-				},
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(resp)
+			w.WriteHeader(http.StatusNotFound)
 		}
-	}))
+	})
 	defer server.Close()
 
 	cfg := &config.Config{
@@ -354,21 +309,20 @@ func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 		PveToken:              "test-token",
 		SSHUser:               "root",
 		SSHPass:               "password",
+		SSHInterface:          "vmbr1.606",
 		InsecureIgnoreHostKey: true,
 	}
 
-	pxa := NewProxmoxAdapter(cfg)
-	err := pxa.Connect(context.Background())
-	require.NoError(t, err)
+	adapter := NewSSHAdapter(NewProxmoxAdapter(cfg), cfg)
+	err := adapter.Connect(context.Background())
 
-	adapter := NewSSHAdapter(pxa, cfg)
-	err = adapter.Connect(context.Background())
-
-	require.NoError(t, err)
-	assert.Equal(t, "192.168.1.100", adapter.targetIP)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no reachable SSH interface found after 1 attempts")
 }
 
 func TestNewHostKeyCallback(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name                  string
 		insecureIgnoreHostKey bool
@@ -411,22 +365,18 @@ func TestNewHostKeyCallback(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			homeDir := t.TempDir()
-			t.Setenv("HOME", homeDir)
+			t.Parallel()
 
 			knownHostsPathConfig := tt.knownHostsPathConfig
-			if knownHostsPathConfig != "" {
-				knownHostsPathConfig = filepath.Join(homeDir, knownHostsPathConfig)
+			if knownHostsPathConfig == "" {
+				knownHostsPathConfig = filepath.Join(t.TempDir(), "known_hosts")
+			} else {
+				knownHostsPathConfig = filepath.Join(t.TempDir(), knownHostsPathConfig)
 			}
 
 			if tt.withKnownHosts {
-				knownHostsPath := filepath.Join(homeDir, ".ssh", "known_hosts")
-				if knownHostsPathConfig != "" {
-					knownHostsPath = knownHostsPathConfig
-				}
-
-				require.NoError(t, os.MkdirAll(filepath.Dir(knownHostsPath), 0o700))
-				require.NoError(t, os.WriteFile(knownHostsPath, []byte(""), 0o600))
+				require.NoError(t, os.MkdirAll(filepath.Dir(knownHostsPathConfig), 0o700))
+				require.NoError(t, os.WriteFile(knownHostsPathConfig, []byte(""), 0o600))
 			}
 
 			callback, err := newHostKeyCallback(tt.insecureIgnoreHostKey, knownHostsPathConfig)
@@ -452,6 +402,157 @@ func TestNewHostKeyCallback(t *testing.T) {
 				return
 			}
 			require.NoError(t, cbErr)
+		})
+	}
+}
+
+func TestSelectSSHInterfaceIPv4(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                string
+		networks            []networkInterface
+		configuredInterface string
+		expectedCandidates  []string
+		expectError         string
+	}{
+		{
+			name: "single ipv4 from configured interface",
+			networks: []networkInterface{
+				{Iface: "vlan100", Address: "192.168.1.10"},
+				{Iface: "vlan200", Address: "10.0.0.10"},
+			},
+			configuredInterface: "vlan100",
+			expectedCandidates:  []string{"192.168.1.10"},
+		},
+		{
+			name: "multiple ipv4 candidates in discovery mode",
+			networks: []networkInterface{
+				{Iface: "vlan100", Address: "192.168.1.10"},
+				{Iface: "vlan200", Address: "10.0.0.10"},
+				{Iface: "lo", Address: "127.0.0.1"},
+			},
+			configuredInterface: "",
+			expectedCandidates:  []string{"192.168.1.10", "10.0.0.10", "127.0.0.1"},
+		},
+		{
+			name: "cidr notation parsed correctly",
+			networks: []networkInterface{
+				{Iface: "vlan100", Address: "192.168.1.10/24"},
+			},
+			configuredInterface: "vlan100",
+			expectedCandidates:  []string{"192.168.1.10"},
+		},
+		{
+			name: "ipv6 skipped in discovery",
+			networks: []networkInterface{
+				{Iface: "vlan100", Address: "fe80::1"},
+				{Iface: "vlan200", Address: "192.168.1.10"},
+			},
+			configuredInterface: "",
+			expectedCandidates:  []string{"192.168.1.10"},
+		},
+		{
+			name: "configured interface not found",
+			networks: []networkInterface{
+				{Iface: "vlan100", Address: "192.168.1.10"},
+			},
+			configuredInterface: "nonexistent",
+			expectError:         "configured SSH interface \"nonexistent\" not found",
+		},
+		{
+			name: "configured interface has ipv6 only",
+			networks: []networkInterface{
+				{Iface: "vlan100", Address: "fe80::1"},
+			},
+			configuredInterface: "vlan100",
+			expectError:         "has no IPv4 address",
+		},
+		{
+			name:                "no ipv4 in discovery mode",
+			networks:            []networkInterface{{Iface: "vlan100", Address: "fe80::1"}},
+			configuredInterface: "",
+			expectError:         "no network interface with IPv4 address found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			candidates, err := selectSSHInterfaceIPv4(tt.networks, tt.configuredInterface)
+
+			if tt.expectError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectError)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedCandidates, candidates)
+		})
+	}
+}
+
+func TestFirstReachableSSHIP(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		candidates []string
+		errText    string
+	}{
+		{
+			name:       "empty candidates",
+			candidates: []string{},
+			errText:    "no reachable SSH interface found after 0 attempts",
+		},
+		{
+			name:       "unreachable localhost ssh",
+			candidates: []string{"127.0.0.1"},
+			errText:    "no reachable SSH interface found after 1 attempts",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reachableIP, err := firstReachableSSHIP(tt.candidates)
+			require.Error(t, err)
+			require.Empty(t, reachableIP)
+			require.Contains(t, err.Error(), tt.errText)
+		})
+	}
+}
+
+func TestParseIPv4Address(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		address       string
+		expectedIP    string
+		expectedValid bool
+	}{
+		{name: "plain ipv4", address: "192.168.1.10", expectedIP: "192.168.1.10", expectedValid: true},
+		{name: "cidr notation", address: "192.168.1.10/24", expectedIP: "192.168.1.10", expectedValid: true},
+		{name: "ipv6 plain", address: "fe80::1", expectedIP: "", expectedValid: false},
+		{name: "ipv6 cidr", address: "fe80::1/64", expectedIP: "", expectedValid: false},
+		{name: "empty string", address: "", expectedIP: "", expectedValid: false},
+		{name: "whitespace only", address: "   ", expectedIP: "", expectedValid: false},
+		{name: "invalid cidr", address: "192.168.1.10/", expectedIP: "", expectedValid: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ip, valid := parseIPv4Address(tt.address)
+			require.Equal(t, tt.expectedValid, valid)
+			if valid {
+				require.Equal(t, tt.expectedIP, ip)
+			}
 		})
 	}
 }

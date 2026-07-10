@@ -48,4 +48,8 @@ type Config struct {
 	// SSHKnownHostsPath is the path to the SSH known_hosts file used for host key verification.
 	// Defaults to ~/.ssh/known_hosts when not set.
 	SSHKnownHostsPath string `pulumi:"sshKnownHostsPath,optional"`
+
+	// SSHInterface is the network interface name to use for SSH connections (e.g., vmbr0).
+	// When not set, the first interface with an IPv4 address is used.
+	SSHInterface string `pulumi:"sshInterface,optional"`
 }
