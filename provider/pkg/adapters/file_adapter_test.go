@@ -251,6 +251,32 @@ func TestFileAdapter_Delete(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "error removing file via SSH")
 	})
+
+	t.Run("delete tolerates file not found error", func(t *testing.T) {
+		t.Parallel()
+		sshClient := &mockSSHClient{
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				return "", errors.New("rm: cannot remove '/mnt/pve/local/iso/test.iso': No such file or directory")
+			},
+		}
+		adapter := newTestFileAdapter(t, sshClient)
+
+		err := adapter.Delete(context.Background(), proxmox.FileOutputs{})
+		require.NoError(t, err)
+	})
+
+	t.Run("delete tolerates cannot remove error", func(t *testing.T) {
+		t.Parallel()
+		sshClient := &mockSSHClient{
+			RunFunc: func(operation proxmox.SSHOperation, path string, data ...string) (string, error) {
+				return "", errors.New("cannot remove the file at this time")
+			},
+		}
+		adapter := newTestFileAdapter(t, sshClient)
+
+		err := adapter.Delete(context.Background(), proxmox.FileOutputs{})
+		require.NoError(t, err)
+	})
 }
 
 func TestNewFileAdapter(t *testing.T) {

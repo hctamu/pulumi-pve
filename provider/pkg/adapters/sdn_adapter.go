@@ -78,6 +78,7 @@ func (adapter *SDNAdapter) Lock(ctx context.Context, retryTimeout time.Duration)
 	}
 }
 
+// sleepWithContext waits for delay or until ctx is canceled, whichever comes first.
 func sleepWithContext(ctx context.Context, delay time.Duration) error {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()

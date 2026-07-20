@@ -102,6 +102,9 @@ func (sa *SSHAdapter) Connect(ctx context.Context) error {
 	return sa.initErr
 }
 
+// newHostKeyCallback returns an SSH host key callback based on provider config.
+// If insecureIgnoreHostKey is set, host verification is skipped entirely.
+// Otherwise it reads known_hosts from the configured path or ~/.ssh/known_hosts.
 func newHostKeyCallback(insecureIgnoreHostKey bool, knownHostsPathConfig string) (ssh.HostKeyCallback, error) {
 	if insecureIgnoreHostKey {
 		//nolint:gosec // Opt-in behavior controlled by provider config.
@@ -234,10 +237,15 @@ func (sa *SSHAdapter) generateSSHHost(ctx context.Context, cfg config.Config) (s
 	return targetIP, nil
 }
 
+// selectSSHInterfaceIPv4 returns the list of IPv4 candidate addresses for SSH.
+// If configuredInterface is set, only that interface is considered and an error
+// is returned if it is absent or IPv6-only. Otherwise all IPv4 interfaces are
+// collected for reachability probing by the caller.
 func selectSSHInterfaceIPv4(networks []networkInterface, configuredInterface string) ([]string, error) {
 	configuredInterface = strings.TrimSpace(configuredInterface)
 
 	if configuredInterface != "" {
+		// Explicit interface: must exist and carry an IPv4 address.
 		for _, nic := range networks {
 			if nic.Iface != configuredInterface {
 				continue
@@ -253,6 +261,7 @@ func selectSSHInterfaceIPv4(networks []networkInterface, configuredInterface str
 		return nil, fmt.Errorf("configured SSH interface %q not found", configuredInterface)
 	}
 
+	// Discovery mode: collect every IPv4 address across all interfaces.
 	var candidates []string
 	for _, nic := range networks {
 		if ip, ok := parseIPv4Address(nic.Address); ok {
@@ -267,6 +276,8 @@ func selectSSHInterfaceIPv4(networks []networkInterface, configuredInterface str
 	return candidates, nil
 }
 
+// firstReachableSSHIP returns the first candidate IP that accepts a TCP connection
+// on port 22. Candidates are tried in order; the first reachable one wins.
 func firstReachableSSHIP(candidates []string) (string, error) {
 	for _, ip := range candidates {
 		if validateSSHIP(ip) {
@@ -277,6 +288,7 @@ func firstReachableSSHIP(candidates []string) (string, error) {
 	return "", fmt.Errorf("no reachable SSH interface found after %d attempts", len(candidates))
 }
 
+// validateSSHIP probes ip:22 with a short TCP dial to check reachability.
 func validateSSHIP(ip string) bool {
 	dialer := net.Dialer{Timeout: 5 * time.Second}
 	conn, err := dialer.Dial("tcp", net.JoinHostPort(ip, "22"))
@@ -287,12 +299,16 @@ func validateSSHIP(ip string) bool {
 	return true
 }
 
+// parseIPv4Address extracts a plain IPv4 string from either a bare address ("1.2.3.4")
+// or CIDR notation ("1.2.3.4/24"). Returns the IP string and true on success;
+// returns ("", false) for IPv6 addresses, empty input, or malformed values.
 func parseIPv4Address(address string) (string, bool) {
 	trimmedAddress := strings.TrimSpace(address)
 	if trimmedAddress == "" {
 		return "", false
 	}
 
+	// Fast path: bare IP address without a prefix length.
 	if parsedIP := net.ParseIP(trimmedAddress); parsedIP != nil {
 		if ipv4 := parsedIP.To4(); ipv4 != nil {
 			return ipv4.String(), true

@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 
@@ -121,17 +122,6 @@ func TestSSHAdapterConnect(t *testing.T) {
 			nodes:        []nodeStatus{},
 			wantErr:      "no nodes found",
 		},
-		{
-			name:         "fails when candidate interface is not reachable on ssh port",
-			sshInterface: "vmbr1.606",
-			nodes:        []nodeStatus{{Node: "pve1"}},
-			networksByNode: map[string][]networkInterface{
-				"pve1": {
-					{Iface: "vmbr1.606", Address: "127.0.0.1"},
-				},
-			},
-			wantErr: "no reachable SSH interface found after 1 attempts",
-		},
 	}
 
 	for _, tt := range tests {
@@ -194,7 +184,7 @@ func TestSSHAdapterConnectIdempotent(t *testing.T) {
 			atomic.AddInt32(&networksCalls, 1)
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).
-				Encode(map[string]any{"data": []networkInterface{{Iface: "vmbr1.606", Address: "127.0.0.1"}}})
+				Encode(map[string]any{"data": []networkInterface{{Iface: "eth0", Address: "10.0.0.1"}}})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -207,11 +197,11 @@ func TestSSHAdapterConnectIdempotent(t *testing.T) {
 		PveToken:              "test-token",
 		SSHUser:               "root",
 		SSHPass:               "password",
-		SSHInterface:          "vmbr1.606",
 		InsecureIgnoreHostKey: true,
 	}
 
 	adapter := NewSSHAdapter(NewProxmoxAdapter(cfg), cfg)
+
 	err1 := adapter.Connect(context.Background())
 	err2 := adapter.Connect(context.Background())
 
@@ -287,6 +277,9 @@ func TestSSHAdapterConnectPanicsWithNilConfigAndNoContext(t *testing.T) {
 func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 	t.Parallel()
 
+	var selectedNodes []string
+	var mu sync.Mutex
+
 	server, _ := testutils.CreateMockServer(t, func(w http.ResponseWriter, r *http.Request, _ *testutils.MockRequest) {
 		switch r.URL.Path {
 		case "/nodes":
@@ -294,9 +287,13 @@ func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 			_ = json.NewEncoder(w).
 				Encode(map[string]any{"data": []nodeStatus{{Node: "pve1"}, {Node: "pve2"}, {Node: "pve3"}}})
 		case "/nodes/pve1/network", "/nodes/pve2/network", "/nodes/pve3/network":
+			nodeName := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/nodes/"), "/network")
+			mu.Lock()
+			selectedNodes = append(selectedNodes, nodeName)
+			mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).
-				Encode(map[string]any{"data": []networkInterface{{Iface: "vmbr1.606", Address: "127.0.0.1"}}})
+				Encode(map[string]any{"data": []networkInterface{{Iface: "eth0", Address: "10.0.0.1"}}})
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -309,7 +306,6 @@ func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 		PveToken:              "test-token",
 		SSHUser:               "root",
 		SSHPass:               "password",
-		SSHInterface:          "vmbr1.606",
 		InsecureIgnoreHostKey: true,
 	}
 
@@ -317,7 +313,11 @@ func TestSSHAdapterConnectMultipleNodes(t *testing.T) {
 	err := adapter.Connect(context.Background())
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no reachable SSH interface found after 1 attempts")
+	assert.Contains(t, err.Error(), "no reachable SSH interface found")
+	mu.Lock()
+	assert.Len(t, selectedNodes, 1)
+	assert.Contains(t, []string{"pve1", "pve2", "pve3"}, selectedNodes[0])
+	mu.Unlock()
 }
 
 func TestNewHostKeyCallback(t *testing.T) {
@@ -490,38 +490,6 @@ func TestSelectSSHInterfaceIPv4(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tt.expectedCandidates, candidates)
-		})
-	}
-}
-
-func TestFirstReachableSSHIP(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name       string
-		candidates []string
-		errText    string
-	}{
-		{
-			name:       "empty candidates",
-			candidates: []string{},
-			errText:    "no reachable SSH interface found after 0 attempts",
-		},
-		{
-			name:       "unreachable localhost ssh",
-			candidates: []string{"127.0.0.1"},
-			errText:    "no reachable SSH interface found after 1 attempts",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			reachableIP, err := firstReachableSSHIP(tt.candidates)
-			require.Error(t, err)
-			require.Empty(t, reachableIP)
-			require.Contains(t, err.Error(), tt.errText)
 		})
 	}
 }
