@@ -33,7 +33,6 @@ The Pulumi PVE Provider supports the following configuration options:
 * `pve:pveToken`: The API token for authentication (marked as secret).
 * `pve:sshUser`: The SSH username for connecting to Proxmox VE.
 * `pve:sshPass`: The SSH password for connecting to Proxmox VE (marked as secret).
-* `pve:sshInterface`: The network interface name to use for SSH host selection (for example `vmbr1.606`). If unset, the provider auto-discovers IPv4 interfaces.
 
 These configurations can currently only be set using Pulumi's configuration system. Environment variable support is planned for a future release.
 

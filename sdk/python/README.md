@@ -71,6 +71,7 @@ The Pulumi Proxmox VE provider requires the following configuration settings:
 - **`pve:insecureSkipVerify`** - Disable TLS certificate verification for HTTPS connections. Defaults to `false`. ⚠️ Only use for testing with self-signed certificates.
 - **`pve:insecureIgnoreHostKey`** - Disable SSH host key verification when connecting to nodes. Defaults to `false`. ⚠️ Only use for testing environments. In production, ensure `~/.ssh/known_hosts` is properly configured.
 - **`pve:sshKnownHostsPath`** - Path to the SSH `known_hosts` file used for host key verification. Defaults to `~/.ssh/known_hosts` when unset.
+- **`pve:sshInterface`** - Network interface name to use for SSH host selection (for example `vmbr1.606`). If unset, provider discovers IPv4 interfaces automatically.
 
 ### Configuration Example
 
@@ -88,6 +89,7 @@ config:
   pve:insecureSkipVerify: false
   pve:insecureIgnoreHostKey: false
   pve:sshKnownHostsPath: /home/your-user/.ssh/known_hosts
+  pve:sshInterface: vmbr1.606
 ```
 
 Or set via environment variables:
