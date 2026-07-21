@@ -22,6 +22,9 @@ namespace Hctamu.Pve
         [Output("pveUser")]
         public Output<string> PveUser { get; private set; } = null!;
 
+        [Output("sshInterface")]
+        public Output<string?> SshInterface { get; private set; } = null!;
+
         [Output("sshKnownHostsPath")]
         public Output<string?> SshKnownHostsPath { get; private set; } = null!;
 
@@ -88,6 +91,9 @@ namespace Hctamu.Pve
 
         [Input("pveUser", required: true)]
         public Input<string> PveUser { get; set; } = null!;
+
+        [Input("sshInterface")]
+        public Input<string>? SshInterface { get; set; }
 
         [Input("sshKnownHostsPath")]
         public Input<string>? SshKnownHostsPath { get; set; }

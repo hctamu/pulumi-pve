@@ -47,6 +47,14 @@ Object.defineProperty(exports, "pveUser", {
     enumerable: true,
 });
 
+export declare const sshInterface: string | undefined;
+Object.defineProperty(exports, "sshInterface", {
+    get() {
+        return __config.get("sshInterface");
+    },
+    enumerable: true,
+});
+
 export declare const sshKnownHostsPath: string | undefined;
 Object.defineProperty(exports, "sshKnownHostsPath", {
     get() {

@@ -41,6 +41,10 @@ class _ExportableConfig(types.ModuleType):
         return __config__.get('pveUser')
 
     @_builtins.property
+    def ssh_interface(self) -> Optional[str]:
+        return __config__.get('sshInterface')
+
+    @_builtins.property
     def ssh_known_hosts_path(self) -> Optional[str]:
         return __config__.get('sshKnownHostsPath')
 

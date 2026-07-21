@@ -18,6 +18,7 @@ type Provider struct {
 	PveToken          pulumi.StringOutput    `pulumi:"pveToken"`
 	PveUrl            pulumi.StringOutput    `pulumi:"pveUrl"`
 	PveUser           pulumi.StringOutput    `pulumi:"pveUser"`
+	SshInterface      pulumi.StringPtrOutput `pulumi:"sshInterface"`
 	SshKnownHostsPath pulumi.StringPtrOutput `pulumi:"sshKnownHostsPath"`
 	SshPass           pulumi.StringOutput    `pulumi:"sshPass"`
 	SshUser           pulumi.StringOutput    `pulumi:"sshUser"`
@@ -71,6 +72,7 @@ type providerArgs struct {
 	PveToken              string  `pulumi:"pveToken"`
 	PveUrl                string  `pulumi:"pveUrl"`
 	PveUser               string  `pulumi:"pveUser"`
+	SshInterface          *string `pulumi:"sshInterface"`
 	SshKnownHostsPath     *string `pulumi:"sshKnownHostsPath"`
 	SshPass               string  `pulumi:"sshPass"`
 	SshUser               string  `pulumi:"sshUser"`
@@ -83,6 +85,7 @@ type ProviderArgs struct {
 	PveToken              pulumi.StringInput
 	PveUrl                pulumi.StringInput
 	PveUser               pulumi.StringInput
+	SshInterface          pulumi.StringPtrInput
 	SshKnownHostsPath     pulumi.StringPtrInput
 	SshPass               pulumi.StringInput
 	SshUser               pulumi.StringInput
@@ -135,6 +138,10 @@ func (o ProviderOutput) PveUrl() pulumi.StringOutput {
 
 func (o ProviderOutput) PveUser() pulumi.StringOutput {
 	return o.ApplyT(func(v *Provider) pulumi.StringOutput { return v.PveUser }).(pulumi.StringOutput)
+}
+
+func (o ProviderOutput) SshInterface() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *Provider) pulumi.StringPtrOutput { return v.SshInterface }).(pulumi.StringPtrOutput)
 }
 
 func (o ProviderOutput) SshKnownHostsPath() pulumi.StringPtrOutput {

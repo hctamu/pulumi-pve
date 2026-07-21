@@ -26,6 +26,9 @@ func GetPveUrl(ctx *pulumi.Context) string {
 func GetPveUser(ctx *pulumi.Context) string {
 	return config.Get(ctx, "pve:pveUser")
 }
+func GetSshInterface(ctx *pulumi.Context) string {
+	return config.Get(ctx, "pve:sshInterface")
+}
 func GetSshKnownHostsPath(ctx *pulumi.Context) string {
 	return config.Get(ctx, "pve:sshKnownHostsPath")
 }

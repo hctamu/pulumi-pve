@@ -24,6 +24,8 @@ pveUrl: Optional[str]
 
 pveUser: Optional[str]
 
+sshInterface: Optional[str]
+
 sshKnownHostsPath: Optional[str]
 
 sshPass: Optional[str]

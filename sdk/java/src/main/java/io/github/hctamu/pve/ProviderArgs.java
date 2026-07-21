@@ -52,6 +52,13 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
         return this.pveUser;
     }
 
+    @Import(name="sshInterface")
+    private @Nullable Output<String> sshInterface;
+
+    public Optional<Output<String>> sshInterface() {
+        return Optional.ofNullable(this.sshInterface);
+    }
+
     @Import(name="sshKnownHostsPath")
     private @Nullable Output<String> sshKnownHostsPath;
 
@@ -81,6 +88,7 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
         this.pveToken = $.pveToken;
         this.pveUrl = $.pveUrl;
         this.pveUser = $.pveUser;
+        this.sshInterface = $.sshInterface;
         this.sshKnownHostsPath = $.sshKnownHostsPath;
         this.sshPass = $.sshPass;
         this.sshUser = $.sshUser;
@@ -147,6 +155,15 @@ public final class ProviderArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder pveUser(String pveUser) {
             return pveUser(Output.of(pveUser));
+        }
+
+        public Builder sshInterface(@Nullable Output<String> sshInterface) {
+            $.sshInterface = sshInterface;
+            return this;
+        }
+
+        public Builder sshInterface(String sshInterface) {
+            return sshInterface(Output.of(sshInterface));
         }
 
         public Builder sshKnownHostsPath(@Nullable Output<String> sshKnownHostsPath) {
