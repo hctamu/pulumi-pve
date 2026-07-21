@@ -22,6 +22,7 @@ export class Provider extends pulumi.ProviderResource {
     declare public readonly pveToken: pulumi.Output<string>;
     declare public readonly pveUrl: pulumi.Output<string>;
     declare public readonly pveUser: pulumi.Output<string>;
+    declare public readonly sshInterface: pulumi.Output<string | undefined>;
     declare public readonly sshKnownHostsPath: pulumi.Output<string | undefined>;
     declare public readonly sshPass: pulumi.Output<string>;
     declare public readonly sshUser: pulumi.Output<string>;
@@ -57,6 +58,7 @@ export class Provider extends pulumi.ProviderResource {
             resourceInputs["pveToken"] = args?.pveToken ? pulumi.secret(args.pveToken) : undefined;
             resourceInputs["pveUrl"] = args?.pveUrl;
             resourceInputs["pveUser"] = args?.pveUser;
+            resourceInputs["sshInterface"] = args?.sshInterface;
             resourceInputs["sshKnownHostsPath"] = args?.sshKnownHostsPath;
             resourceInputs["sshPass"] = args?.sshPass ? pulumi.secret(args.sshPass) : undefined;
             resourceInputs["sshUser"] = args?.sshUser;
@@ -77,6 +79,7 @@ export interface ProviderArgs {
     pveToken: pulumi.Input<string>;
     pveUrl: pulumi.Input<string>;
     pveUser: pulumi.Input<string>;
+    sshInterface?: pulumi.Input<string>;
     sshKnownHostsPath?: pulumi.Input<string>;
     sshPass: pulumi.Input<string>;
     sshUser: pulumi.Input<string>;

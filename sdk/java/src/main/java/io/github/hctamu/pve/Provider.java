@@ -34,6 +34,12 @@ public class Provider extends com.pulumi.resources.ProviderResource {
     public Output<String> pveUser() {
         return this.pveUser;
     }
+    @Export(name="sshInterface", refs={String.class}, tree="[0]")
+    private Output</* @Nullable */ String> sshInterface;
+
+    public Output<Optional<String>> sshInterface() {
+        return Codegen.optional(this.sshInterface);
+    }
     @Export(name="sshKnownHostsPath", refs={String.class}, tree="[0]")
     private Output</* @Nullable */ String> sshKnownHostsPath;
 

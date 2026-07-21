@@ -26,6 +26,9 @@ public final class Config {
     public String pveUser() {
         return Codegen.stringProp("pveUser").config(config).require();
     }
+    public Optional<String> sshInterface() {
+        return Codegen.stringProp("sshInterface").config(config).get();
+    }
     public Optional<String> sshKnownHostsPath() {
         return Codegen.stringProp("sshKnownHostsPath").config(config).get();
     }

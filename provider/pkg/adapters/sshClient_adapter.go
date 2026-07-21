@@ -21,10 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -95,11 +97,14 @@ func (sa *SSHAdapter) Connect(ctx context.Context) error {
 			HostKeyCallback: hostKeyCallback,
 		}
 
-		sa.targetIP, sa.initErr = sa.generateSSHHost(ctx)
+		sa.targetIP, sa.initErr = sa.generateSSHHost(ctx, cfg)
 	})
 	return sa.initErr
 }
 
+// newHostKeyCallback returns an SSH host key callback based on provider config.
+// If insecureIgnoreHostKey is set, host verification is skipped entirely.
+// Otherwise it reads known_hosts from the configured path or ~/.ssh/known_hosts.
 func newHostKeyCallback(insecureIgnoreHostKey bool, knownHostsPathConfig string) (ssh.HostKeyCallback, error) {
 	if insecureIgnoreHostKey {
 		//nolint:gosec // Opt-in behavior controlled by provider config.
@@ -135,6 +140,11 @@ func (sa *SSHAdapter) Run(command proxmox.SSHOperation, filePath string, data ..
 	if err != nil {
 		return "", fmt.Errorf("error creating ssh client: %v", err)
 	}
+	defer func() {
+		if cerr := client.Close(); cerr != nil {
+			fmt.Printf("error closing SSH client: %v\n", cerr)
+		}
+	}()
 
 	// Create a new session for this operation.
 	session, err := client.NewSession()
@@ -183,9 +193,9 @@ func (sa *SSHAdapter) Run(command proxmox.SSHOperation, filePath string, data ..
 	return string(out), nil
 }
 
-// generateSSHHost discovers a random Proxmox node and returns its IP address
-// by querying the Proxmox API through the ProxmoxAdapter.
-func (sa *SSHAdapter) generateSSHHost(ctx context.Context) (string, error) {
+// generateSSHHost discovers a random Proxmox node and returns the first reachable IPv4
+// address based on configured interface preference and interface discovery order.
+func (sa *SSHAdapter) generateSSHHost(ctx context.Context, cfg config.Config) (string, error) {
 	if err := sa.proxmoxAdapter.Connect(ctx); err != nil {
 		return "", fmt.Errorf("error connecting proxmox adapter: %v", err)
 	}
@@ -205,16 +215,118 @@ func (sa *SSHAdapter) generateSSHHost(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("error generating secure random index: %v", err)
 	}
 	selectedNode := nodes[nBig.Int64()]
+	p.GetLogger(ctx).Debugf("SSH selection: picked node=%s", selectedNode.Node)
 
 	var networks []networkInterface
 	if err := sa.proxmoxAdapter.Get(ctx, fmt.Sprintf("/nodes/%s/network", selectedNode.Node), &networks); err != nil {
 		return "", fmt.Errorf("error getting networks for %s: %v", selectedNode.Node, err)
 	}
 
+	candidates, err := selectSSHInterfaceIPv4(networks, cfg.SSHInterface)
+	if err != nil {
+		return "", err
+	}
+
+	targetIP, err := firstReachableSSHIP(candidates)
+	if err != nil {
+		return "", err
+	}
+
+	p.GetLogger(ctx).Debugf("SSH selection: resolved node=%s ip=%s", selectedNode.Node, targetIP)
+
+	return targetIP, nil
+}
+
+// selectSSHInterfaceIPv4 returns the list of IPv4 candidate addresses for SSH.
+// If configuredInterface is set, only that interface is considered and an error
+// is returned if it is absent or IPv6-only. Otherwise all IPv4 interfaces are
+// collected for reachability probing by the caller.
+func selectSSHInterfaceIPv4(networks []networkInterface, configuredInterface string) ([]string, error) {
+	configuredInterface = strings.TrimSpace(configuredInterface)
+
+	if configuredInterface != "" {
+		// Explicit interface: must exist and carry an IPv4 address.
+		for _, nic := range networks {
+			if nic.Iface != configuredInterface {
+				continue
+			}
+
+			if ip, ok := parseIPv4Address(nic.Address); ok {
+				return []string{ip}, nil
+			}
+
+			return nil, fmt.Errorf("configured SSH interface %q has no IPv4 address", configuredInterface)
+		}
+
+		return nil, fmt.Errorf("configured SSH interface %q not found", configuredInterface)
+	}
+
+	// Discovery mode: collect every IPv4 address across all interfaces.
+	var candidates []string
 	for _, nic := range networks {
-		if nic.Iface == "vmbr1.606" {
-			return nic.Address, nil
+		if ip, ok := parseIPv4Address(nic.Address); ok {
+			candidates = append(candidates, ip)
 		}
 	}
-	return "", nil
+
+	if len(candidates) == 0 {
+		return nil, errors.New("no network interface with IPv4 address found for SSH")
+	}
+
+	return candidates, nil
+}
+
+// firstReachableSSHIP returns the first candidate IP that accepts a TCP connection
+// on port 22. Candidates are tried in order; the first reachable one wins.
+func firstReachableSSHIP(candidates []string) (string, error) {
+	for _, ip := range candidates {
+		if validateSSHIP(ip) {
+			return ip, nil
+		}
+	}
+
+	return "", fmt.Errorf("no reachable SSH interface found after %d attempts", len(candidates))
+}
+
+// validateSSHIP probes ip:22 with a short TCP dial to check reachability.
+func validateSSHIP(ip string) bool {
+	dialer := net.Dialer{Timeout: 5 * time.Second}
+	conn, err := dialer.Dial("tcp", net.JoinHostPort(ip, "22"))
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+// parseIPv4Address extracts a plain IPv4 string from either a bare address ("1.2.3.4")
+// or CIDR notation ("1.2.3.4/24"). Returns the IP string and true on success;
+// returns ("", false) for IPv6 addresses, empty input, or malformed values.
+func parseIPv4Address(address string) (string, bool) {
+	trimmedAddress := strings.TrimSpace(address)
+	if trimmedAddress == "" {
+		return "", false
+	}
+
+	// Fast path: bare IP address without a prefix length.
+	if parsedIP := net.ParseIP(trimmedAddress); parsedIP != nil {
+		if ipv4 := parsedIP.To4(); ipv4 != nil {
+			return ipv4.String(), true
+		}
+
+		return "", false
+	}
+
+	if strings.Contains(trimmedAddress, "/") {
+		parsedIP, _, err := net.ParseCIDR(trimmedAddress)
+		if err != nil {
+			return "", false
+		}
+
+		if ipv4 := parsedIP.To4(); ipv4 != nil {
+			return ipv4.String(), true
+		}
+	}
+
+	return "", false
 }

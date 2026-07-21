@@ -67,6 +67,13 @@ namespace Hctamu.Pve
             set => _pveUser.Set(value);
         }
 
+        private static readonly __Value<string?> _sshInterface = new __Value<string?>(() => __config.Get("sshInterface"));
+        public static string? SshInterface
+        {
+            get => _sshInterface.Get();
+            set => _sshInterface.Set(value);
+        }
+
         private static readonly __Value<string?> _sshKnownHostsPath = new __Value<string?>(() => __config.Get("sshKnownHostsPath"));
         public static string? SshKnownHostsPath
         {
