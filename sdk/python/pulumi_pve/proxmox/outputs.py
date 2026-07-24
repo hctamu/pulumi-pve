@@ -19,6 +19,7 @@ __all__ = [
     'CPU',
     'Clone',
     'Disk',
+    'DiskBandwidth',
     'EfiDisk',
     'FileSourceRaw',
     'NumaNode',
@@ -70,7 +71,6 @@ class CPU(dict):
                  vcpus: Optional[_builtins.int] = None):
         """
         CPU configuration for the virtual machine.
-
         :param _builtins.int cores: Number of CPU cores per socket.
         :param Sequence[_builtins.str] flags_disabled: List of CPU flags to disable.
         :param Sequence[_builtins.str] flags_enabled: List of CPU flags to enable (e.g., pcid, spec-ctrl).
@@ -253,7 +253,6 @@ class Clone(dict):
                  timeout: Optional[_builtins.int] = None):
         """
         Configuration for cloning a source virtual machine.
-
         :param _builtins.int vm_id: Source VM ID to clone from.
         :param _builtins.str data_store_id: Target storage pool for the cloned disks.
         :param _builtins.bool full_clone: Create a full independent clone instead of a linked clone.
@@ -320,26 +319,101 @@ class Disk(dict):
                  interface: _builtins.str,
                  size: _builtins.int,
                  storage: _builtins.str,
-                 filename: Optional[_builtins.str] = None):
+                 aio: Optional[_builtins.str] = None,
+                 backup: Optional[_builtins.bool] = None,
+                 bandwidth: Optional['outputs.DiskBandwidth'] = None,
+                 cache: Optional[_builtins.str] = None,
+                 discard: Optional[_builtins.str] = None,
+                 filename: Optional[_builtins.str] = None,
+                 format: Optional[_builtins.str] = None,
+                 iothread: Optional[_builtins.bool] = None,
+                 media: Optional[_builtins.str] = None,
+                 queues: Optional[_builtins.int] = None,
+                 replicate: Optional[_builtins.bool] = None,
+                 rerror: Optional[_builtins.str] = None,
+                 ro: Optional[_builtins.bool] = None,
+                 scsiblock: Optional[_builtins.bool] = None,
+                 serial: Optional[_builtins.str] = None,
+                 shared: Optional[_builtins.bool] = None,
+                 snapshot: Optional[_builtins.bool] = None,
+                 ssd: Optional[_builtins.bool] = None,
+                 werror: Optional[_builtins.str] = None,
+                 wwn: Optional[_builtins.str] = None):
         """
         Disk configuration for the virtual machine.
-
-        :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
         :param _builtins.int size: Disk size in gigabytes.
         :param _builtins.str storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
+        :param _builtins.str aio: Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+        :param _builtins.bool backup: Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+        :param 'DiskBandwidth' bandwidth: I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+        :param _builtins.str cache: Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+        :param _builtins.str discard: Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
         :param _builtins.str filename: File name of the disk image (computed by Proxmox if not provided).
+        :param _builtins.str format: Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+        :param _builtins.bool iothread: Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+        :param _builtins.str media: Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+        :param _builtins.int queues: Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+        :param _builtins.bool replicate: Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+        :param _builtins.str rerror: Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+        :param _builtins.bool ro: Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+        :param _builtins.bool scsiblock: Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+        :param _builtins.str serial: Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+        :param _builtins.bool shared: Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+        :param _builtins.bool snapshot: Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+        :param _builtins.bool ssd: Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+        :param _builtins.str werror: Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+        :param _builtins.str wwn: World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
         """
         pulumi.set(__self__, "interface", interface)
         pulumi.set(__self__, "size", size)
         pulumi.set(__self__, "storage", storage)
+        if aio is not None:
+            pulumi.set(__self__, "aio", aio)
+        if backup is not None:
+            pulumi.set(__self__, "backup", backup)
+        if bandwidth is not None:
+            pulumi.set(__self__, "bandwidth", bandwidth)
+        if cache is not None:
+            pulumi.set(__self__, "cache", cache)
+        if discard is not None:
+            pulumi.set(__self__, "discard", discard)
         if filename is not None:
             pulumi.set(__self__, "filename", filename)
+        if format is not None:
+            pulumi.set(__self__, "format", format)
+        if iothread is not None:
+            pulumi.set(__self__, "iothread", iothread)
+        if media is not None:
+            pulumi.set(__self__, "media", media)
+        if queues is not None:
+            pulumi.set(__self__, "queues", queues)
+        if replicate is not None:
+            pulumi.set(__self__, "replicate", replicate)
+        if rerror is not None:
+            pulumi.set(__self__, "rerror", rerror)
+        if ro is not None:
+            pulumi.set(__self__, "ro", ro)
+        if scsiblock is not None:
+            pulumi.set(__self__, "scsiblock", scsiblock)
+        if serial is not None:
+            pulumi.set(__self__, "serial", serial)
+        if shared is not None:
+            pulumi.set(__self__, "shared", shared)
+        if snapshot is not None:
+            pulumi.set(__self__, "snapshot", snapshot)
+        if ssd is not None:
+            pulumi.set(__self__, "ssd", ssd)
+        if werror is not None:
+            pulumi.set(__self__, "werror", werror)
+        if wwn is not None:
+            pulumi.set(__self__, "wwn", wwn)
 
     @_builtins.property
     @pulumi.getter
     def interface(self) -> _builtins.str:
         """
-        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
         """
         return pulumi.get(self, "interface")
 
@@ -361,11 +435,301 @@ class Disk(dict):
 
     @_builtins.property
     @pulumi.getter
+    def aio(self) -> Optional[_builtins.str]:
+        """
+        Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+        """
+        return pulumi.get(self, "aio")
+
+    @_builtins.property
+    @pulumi.getter
+    def backup(self) -> Optional[_builtins.bool]:
+        """
+        Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+        """
+        return pulumi.get(self, "backup")
+
+    @_builtins.property
+    @pulumi.getter
+    def bandwidth(self) -> Optional['outputs.DiskBandwidth']:
+        """
+        I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+        """
+        return pulumi.get(self, "bandwidth")
+
+    @_builtins.property
+    @pulumi.getter
+    def cache(self) -> Optional[_builtins.str]:
+        """
+        Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+        """
+        return pulumi.get(self, "cache")
+
+    @_builtins.property
+    @pulumi.getter
+    def discard(self) -> Optional[_builtins.str]:
+        """
+        Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+        """
+        return pulumi.get(self, "discard")
+
+    @_builtins.property
+    @pulumi.getter
     def filename(self) -> Optional[_builtins.str]:
         """
         File name of the disk image (computed by Proxmox if not provided).
         """
         return pulumi.get(self, "filename")
+
+    @_builtins.property
+    @pulumi.getter
+    def format(self) -> Optional[_builtins.str]:
+        """
+        Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+        """
+        return pulumi.get(self, "format")
+
+    @_builtins.property
+    @pulumi.getter
+    def iothread(self) -> Optional[_builtins.bool]:
+        """
+        Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+        """
+        return pulumi.get(self, "iothread")
+
+    @_builtins.property
+    @pulumi.getter
+    def media(self) -> Optional[_builtins.str]:
+        """
+        Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+        """
+        return pulumi.get(self, "media")
+
+    @_builtins.property
+    @pulumi.getter
+    def queues(self) -> Optional[_builtins.int]:
+        """
+        Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+        """
+        return pulumi.get(self, "queues")
+
+    @_builtins.property
+    @pulumi.getter
+    def replicate(self) -> Optional[_builtins.bool]:
+        """
+        Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+        """
+        return pulumi.get(self, "replicate")
+
+    @_builtins.property
+    @pulumi.getter
+    def rerror(self) -> Optional[_builtins.str]:
+        """
+        Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+        """
+        return pulumi.get(self, "rerror")
+
+    @_builtins.property
+    @pulumi.getter
+    def ro(self) -> Optional[_builtins.bool]:
+        """
+        Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+        """
+        return pulumi.get(self, "ro")
+
+    @_builtins.property
+    @pulumi.getter
+    def scsiblock(self) -> Optional[_builtins.bool]:
+        """
+        Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+        """
+        return pulumi.get(self, "scsiblock")
+
+    @_builtins.property
+    @pulumi.getter
+    def serial(self) -> Optional[_builtins.str]:
+        """
+        Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+        """
+        return pulumi.get(self, "serial")
+
+    @_builtins.property
+    @pulumi.getter
+    def shared(self) -> Optional[_builtins.bool]:
+        """
+        Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+        """
+        return pulumi.get(self, "shared")
+
+    @_builtins.property
+    @pulumi.getter
+    def snapshot(self) -> Optional[_builtins.bool]:
+        """
+        Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+        """
+        return pulumi.get(self, "snapshot")
+
+    @_builtins.property
+    @pulumi.getter
+    def ssd(self) -> Optional[_builtins.bool]:
+        """
+        Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+        """
+        return pulumi.get(self, "ssd")
+
+    @_builtins.property
+    @pulumi.getter
+    def werror(self) -> Optional[_builtins.str]:
+        """
+        Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+        """
+        return pulumi.get(self, "werror")
+
+    @_builtins.property
+    @pulumi.getter
+    def wwn(self) -> Optional[_builtins.str]:
+        """
+        World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+        """
+        return pulumi.get(self, "wwn")
+
+
+@pulumi.output_type
+class DiskBandwidth(dict):
+    """
+    I/O throttle limits for the disk
+    """
+    @staticmethod
+    def __key_warning(key: str):
+        suggest = None
+        if key == "iopsRd":
+            suggest = "iops_rd"
+        elif key == "iopsRdMax":
+            suggest = "iops_rd_max"
+        elif key == "iopsWr":
+            suggest = "iops_wr"
+        elif key == "iopsWrMax":
+            suggest = "iops_wr_max"
+        elif key == "mbpsRd":
+            suggest = "mbps_rd"
+        elif key == "mbpsRdMax":
+            suggest = "mbps_rd_max"
+        elif key == "mbpsWr":
+            suggest = "mbps_wr"
+        elif key == "mbpsWrMax":
+            suggest = "mbps_wr_max"
+
+        if suggest:
+            pulumi.log.warn(f"Key '{key}' not found in DiskBandwidth. Access the value via the '{suggest}' property getter instead.")
+
+    def __getitem__(self, key: str) -> Any:
+        DiskBandwidth.__key_warning(key)
+        return super().__getitem__(key)
+
+    def get(self, key: str, default = None) -> Any:
+        DiskBandwidth.__key_warning(key)
+        return super().get(key, default)
+
+    def __init__(__self__, *,
+                 iops_rd: Optional[_builtins.int] = None,
+                 iops_rd_max: Optional[_builtins.int] = None,
+                 iops_wr: Optional[_builtins.int] = None,
+                 iops_wr_max: Optional[_builtins.int] = None,
+                 mbps_rd: Optional[_builtins.float] = None,
+                 mbps_rd_max: Optional[_builtins.float] = None,
+                 mbps_wr: Optional[_builtins.float] = None,
+                 mbps_wr_max: Optional[_builtins.float] = None):
+        """
+        I/O throttle limits for the disk
+        :param _builtins.int iops_rd: Read I/O operations per second limit (0 = unlimited).
+        :param _builtins.int iops_rd_max: Read burst I/O operations per second limit.
+        :param _builtins.int iops_wr: Write I/O operations per second limit (0 = unlimited).
+        :param _builtins.int iops_wr_max: Write burst I/O operations per second limit.
+        :param _builtins.float mbps_rd: Read throughput limit in MB/s (0 = unlimited).
+        :param _builtins.float mbps_rd_max: Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+        :param _builtins.float mbps_wr: Write throughput limit in MB/s (0 = unlimited).
+        :param _builtins.float mbps_wr_max: Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+        """
+        if iops_rd is not None:
+            pulumi.set(__self__, "iops_rd", iops_rd)
+        if iops_rd_max is not None:
+            pulumi.set(__self__, "iops_rd_max", iops_rd_max)
+        if iops_wr is not None:
+            pulumi.set(__self__, "iops_wr", iops_wr)
+        if iops_wr_max is not None:
+            pulumi.set(__self__, "iops_wr_max", iops_wr_max)
+        if mbps_rd is not None:
+            pulumi.set(__self__, "mbps_rd", mbps_rd)
+        if mbps_rd_max is not None:
+            pulumi.set(__self__, "mbps_rd_max", mbps_rd_max)
+        if mbps_wr is not None:
+            pulumi.set(__self__, "mbps_wr", mbps_wr)
+        if mbps_wr_max is not None:
+            pulumi.set(__self__, "mbps_wr_max", mbps_wr_max)
+
+    @_builtins.property
+    @pulumi.getter(name="iopsRd")
+    def iops_rd(self) -> Optional[_builtins.int]:
+        """
+        Read I/O operations per second limit (0 = unlimited).
+        """
+        return pulumi.get(self, "iops_rd")
+
+    @_builtins.property
+    @pulumi.getter(name="iopsRdMax")
+    def iops_rd_max(self) -> Optional[_builtins.int]:
+        """
+        Read burst I/O operations per second limit.
+        """
+        return pulumi.get(self, "iops_rd_max")
+
+    @_builtins.property
+    @pulumi.getter(name="iopsWr")
+    def iops_wr(self) -> Optional[_builtins.int]:
+        """
+        Write I/O operations per second limit (0 = unlimited).
+        """
+        return pulumi.get(self, "iops_wr")
+
+    @_builtins.property
+    @pulumi.getter(name="iopsWrMax")
+    def iops_wr_max(self) -> Optional[_builtins.int]:
+        """
+        Write burst I/O operations per second limit.
+        """
+        return pulumi.get(self, "iops_wr_max")
+
+    @_builtins.property
+    @pulumi.getter(name="mbpsRd")
+    def mbps_rd(self) -> Optional[_builtins.float]:
+        """
+        Read throughput limit in MB/s (0 = unlimited).
+        """
+        return pulumi.get(self, "mbps_rd")
+
+    @_builtins.property
+    @pulumi.getter(name="mbpsRdMax")
+    def mbps_rd_max(self) -> Optional[_builtins.float]:
+        """
+        Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+        """
+        return pulumi.get(self, "mbps_rd_max")
+
+    @_builtins.property
+    @pulumi.getter(name="mbpsWr")
+    def mbps_wr(self) -> Optional[_builtins.float]:
+        """
+        Write throughput limit in MB/s (0 = unlimited).
+        """
+        return pulumi.get(self, "mbps_wr")
+
+    @_builtins.property
+    @pulumi.getter(name="mbpsWrMax")
+    def mbps_wr_max(self) -> Optional[_builtins.float]:
+        """
+        Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+        """
+        return pulumi.get(self, "mbps_wr_max")
 
 
 @pulumi.output_type
@@ -397,7 +761,6 @@ class EfiDisk(dict):
                  pre_enrolled_keys: Optional[_builtins.bool] = None):
         """
         EFI disk configuration for the virtual machine.
-
         :param _builtins.str efitype: EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
         :param _builtins.str storage: Target storage pool for the EFI disk (e.g., local-lvm).
         :param _builtins.str filename: File name of the EFI disk image (computed by Proxmox if not provided).
@@ -520,7 +883,6 @@ class NumaNode(dict):
                  policy: Optional[_builtins.str] = None):
         """
         NUMA node topology configuration for the virtual machine.
-
         :param _builtins.str cpus: CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
         :param _builtins.str host_nodes: Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
         :param _builtins.int memory: Memory in megabytes allocated to this NUMA node.

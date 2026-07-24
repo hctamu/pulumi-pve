@@ -627,14 +627,52 @@ func (o ClonePtrOutput) VmId() pulumi.IntPtrOutput {
 
 // Disk configuration for the virtual machine.
 type Disk struct {
+	// Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+	Aio *string `pulumi:"aio"`
+	// Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+	Backup *bool `pulumi:"backup"`
+	// I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+	Bandwidth *DiskBandwidth `pulumi:"bandwidth"`
+	// Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+	Cache *string `pulumi:"cache"`
+	// Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+	Discard *string `pulumi:"discard"`
 	// File name of the disk image (computed by Proxmox if not provided).
 	Filename *string `pulumi:"filename"`
-	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+	// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+	Format *string `pulumi:"format"`
+	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
 	Interface string `pulumi:"interface"`
+	// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+	Iothread *bool `pulumi:"iothread"`
+	// Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+	Media *string `pulumi:"media"`
+	// Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+	Queues *int `pulumi:"queues"`
+	// Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+	Replicate *bool `pulumi:"replicate"`
+	// Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+	Rerror *string `pulumi:"rerror"`
+	// Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+	Ro *bool `pulumi:"ro"`
+	// Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+	Scsiblock *bool `pulumi:"scsiblock"`
+	// Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+	Serial *string `pulumi:"serial"`
+	// Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+	Shared *bool `pulumi:"shared"`
 	// Disk size in gigabytes.
 	Size int `pulumi:"size"`
+	// Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+	Snapshot *bool `pulumi:"snapshot"`
+	// Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+	Ssd *bool `pulumi:"ssd"`
 	// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
 	Storage string `pulumi:"storage"`
+	// Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+	Werror *string `pulumi:"werror"`
+	// World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+	Wwn *string `pulumi:"wwn"`
 }
 
 // DiskInput is an input type that accepts DiskArgs and DiskOutput values.
@@ -650,14 +688,52 @@ type DiskInput interface {
 
 // Disk configuration for the virtual machine.
 type DiskArgs struct {
+	// Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+	Aio pulumi.StringPtrInput `pulumi:"aio"`
+	// Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+	Backup pulumi.BoolPtrInput `pulumi:"backup"`
+	// I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+	Bandwidth DiskBandwidthPtrInput `pulumi:"bandwidth"`
+	// Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+	Cache pulumi.StringPtrInput `pulumi:"cache"`
+	// Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+	Discard pulumi.StringPtrInput `pulumi:"discard"`
 	// File name of the disk image (computed by Proxmox if not provided).
 	Filename pulumi.StringPtrInput `pulumi:"filename"`
-	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+	// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+	Format pulumi.StringPtrInput `pulumi:"format"`
+	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
 	Interface pulumi.StringInput `pulumi:"interface"`
+	// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+	Iothread pulumi.BoolPtrInput `pulumi:"iothread"`
+	// Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+	Media pulumi.StringPtrInput `pulumi:"media"`
+	// Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+	Queues pulumi.IntPtrInput `pulumi:"queues"`
+	// Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+	Replicate pulumi.BoolPtrInput `pulumi:"replicate"`
+	// Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+	Rerror pulumi.StringPtrInput `pulumi:"rerror"`
+	// Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+	Ro pulumi.BoolPtrInput `pulumi:"ro"`
+	// Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+	Scsiblock pulumi.BoolPtrInput `pulumi:"scsiblock"`
+	// Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+	Serial pulumi.StringPtrInput `pulumi:"serial"`
+	// Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+	Shared pulumi.BoolPtrInput `pulumi:"shared"`
 	// Disk size in gigabytes.
 	Size pulumi.IntInput `pulumi:"size"`
+	// Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+	Snapshot pulumi.BoolPtrInput `pulumi:"snapshot"`
+	// Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+	Ssd pulumi.BoolPtrInput `pulumi:"ssd"`
 	// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
 	Storage pulumi.StringInput `pulumi:"storage"`
+	// Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+	Werror pulumi.StringPtrInput `pulumi:"werror"`
+	// World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+	Wwn pulumi.StringPtrInput `pulumi:"wwn"`
 }
 
 func (DiskArgs) ElementType() reflect.Type {
@@ -712,14 +788,89 @@ func (o DiskOutput) ToDiskOutputWithContext(ctx context.Context) DiskOutput {
 	return o
 }
 
+// Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+func (o DiskOutput) Aio() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Aio }).(pulumi.StringPtrOutput)
+}
+
+// Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+func (o DiskOutput) Backup() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Backup }).(pulumi.BoolPtrOutput)
+}
+
+// I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+func (o DiskOutput) Bandwidth() DiskBandwidthPtrOutput {
+	return o.ApplyT(func(v Disk) *DiskBandwidth { return v.Bandwidth }).(DiskBandwidthPtrOutput)
+}
+
+// Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+func (o DiskOutput) Cache() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Cache }).(pulumi.StringPtrOutput)
+}
+
+// Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+func (o DiskOutput) Discard() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Discard }).(pulumi.StringPtrOutput)
+}
+
 // File name of the disk image (computed by Proxmox if not provided).
 func (o DiskOutput) Filename() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Disk) *string { return v.Filename }).(pulumi.StringPtrOutput)
 }
 
-// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+func (o DiskOutput) Format() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Format }).(pulumi.StringPtrOutput)
+}
+
+// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
 func (o DiskOutput) Interface() pulumi.StringOutput {
 	return o.ApplyT(func(v Disk) string { return v.Interface }).(pulumi.StringOutput)
+}
+
+// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+func (o DiskOutput) Iothread() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Iothread }).(pulumi.BoolPtrOutput)
+}
+
+// Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+func (o DiskOutput) Media() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Media }).(pulumi.StringPtrOutput)
+}
+
+// Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+func (o DiskOutput) Queues() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v Disk) *int { return v.Queues }).(pulumi.IntPtrOutput)
+}
+
+// Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+func (o DiskOutput) Replicate() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Replicate }).(pulumi.BoolPtrOutput)
+}
+
+// Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+func (o DiskOutput) Rerror() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Rerror }).(pulumi.StringPtrOutput)
+}
+
+// Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+func (o DiskOutput) Ro() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Ro }).(pulumi.BoolPtrOutput)
+}
+
+// Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+func (o DiskOutput) Scsiblock() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Scsiblock }).(pulumi.BoolPtrOutput)
+}
+
+// Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+func (o DiskOutput) Serial() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Serial }).(pulumi.StringPtrOutput)
+}
+
+// Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+func (o DiskOutput) Shared() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Shared }).(pulumi.BoolPtrOutput)
 }
 
 // Disk size in gigabytes.
@@ -727,9 +878,29 @@ func (o DiskOutput) Size() pulumi.IntOutput {
 	return o.ApplyT(func(v Disk) int { return v.Size }).(pulumi.IntOutput)
 }
 
+// Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+func (o DiskOutput) Snapshot() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Snapshot }).(pulumi.BoolPtrOutput)
+}
+
+// Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+func (o DiskOutput) Ssd() pulumi.BoolPtrOutput {
+	return o.ApplyT(func(v Disk) *bool { return v.Ssd }).(pulumi.BoolPtrOutput)
+}
+
 // Target storage pool for the disk (e.g., local-lvm, ceph-pool).
 func (o DiskOutput) Storage() pulumi.StringOutput {
 	return o.ApplyT(func(v Disk) string { return v.Storage }).(pulumi.StringOutput)
+}
+
+// Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+func (o DiskOutput) Werror() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Werror }).(pulumi.StringPtrOutput)
+}
+
+// World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+func (o DiskOutput) Wwn() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v Disk) *string { return v.Wwn }).(pulumi.StringPtrOutput)
 }
 
 type DiskArrayOutput struct{ *pulumi.OutputState }
@@ -750,6 +921,279 @@ func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
 	return pulumi.All(o, i).ApplyT(func(vs []interface{}) Disk {
 		return vs[0].([]Disk)[vs[1].(int)]
 	}).(DiskOutput)
+}
+
+// I/O throttle limits for the disk
+type DiskBandwidth struct {
+	// Read I/O operations per second limit (0 = unlimited).
+	IopsRd *int `pulumi:"iopsRd"`
+	// Read burst I/O operations per second limit.
+	IopsRdMax *int `pulumi:"iopsRdMax"`
+	// Write I/O operations per second limit (0 = unlimited).
+	IopsWr *int `pulumi:"iopsWr"`
+	// Write burst I/O operations per second limit.
+	IopsWrMax *int `pulumi:"iopsWrMax"`
+	// Read throughput limit in MB/s (0 = unlimited).
+	MbpsRd *float64 `pulumi:"mbpsRd"`
+	// Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+	MbpsRdMax *float64 `pulumi:"mbpsRdMax"`
+	// Write throughput limit in MB/s (0 = unlimited).
+	MbpsWr *float64 `pulumi:"mbpsWr"`
+	// Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+	MbpsWrMax *float64 `pulumi:"mbpsWrMax"`
+}
+
+// DiskBandwidthInput is an input type that accepts DiskBandwidthArgs and DiskBandwidthOutput values.
+// You can construct a concrete instance of `DiskBandwidthInput` via:
+//
+//	DiskBandwidthArgs{...}
+type DiskBandwidthInput interface {
+	pulumi.Input
+
+	ToDiskBandwidthOutput() DiskBandwidthOutput
+	ToDiskBandwidthOutputWithContext(context.Context) DiskBandwidthOutput
+}
+
+// I/O throttle limits for the disk
+type DiskBandwidthArgs struct {
+	// Read I/O operations per second limit (0 = unlimited).
+	IopsRd pulumi.IntPtrInput `pulumi:"iopsRd"`
+	// Read burst I/O operations per second limit.
+	IopsRdMax pulumi.IntPtrInput `pulumi:"iopsRdMax"`
+	// Write I/O operations per second limit (0 = unlimited).
+	IopsWr pulumi.IntPtrInput `pulumi:"iopsWr"`
+	// Write burst I/O operations per second limit.
+	IopsWrMax pulumi.IntPtrInput `pulumi:"iopsWrMax"`
+	// Read throughput limit in MB/s (0 = unlimited).
+	MbpsRd pulumi.Float64PtrInput `pulumi:"mbpsRd"`
+	// Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+	MbpsRdMax pulumi.Float64PtrInput `pulumi:"mbpsRdMax"`
+	// Write throughput limit in MB/s (0 = unlimited).
+	MbpsWr pulumi.Float64PtrInput `pulumi:"mbpsWr"`
+	// Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+	MbpsWrMax pulumi.Float64PtrInput `pulumi:"mbpsWrMax"`
+}
+
+func (DiskBandwidthArgs) ElementType() reflect.Type {
+	return reflect.TypeOf((*DiskBandwidth)(nil)).Elem()
+}
+
+func (i DiskBandwidthArgs) ToDiskBandwidthOutput() DiskBandwidthOutput {
+	return i.ToDiskBandwidthOutputWithContext(context.Background())
+}
+
+func (i DiskBandwidthArgs) ToDiskBandwidthOutputWithContext(ctx context.Context) DiskBandwidthOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DiskBandwidthOutput)
+}
+
+func (i DiskBandwidthArgs) ToDiskBandwidthPtrOutput() DiskBandwidthPtrOutput {
+	return i.ToDiskBandwidthPtrOutputWithContext(context.Background())
+}
+
+func (i DiskBandwidthArgs) ToDiskBandwidthPtrOutputWithContext(ctx context.Context) DiskBandwidthPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DiskBandwidthOutput).ToDiskBandwidthPtrOutputWithContext(ctx)
+}
+
+// DiskBandwidthPtrInput is an input type that accepts DiskBandwidthArgs, DiskBandwidthPtr and DiskBandwidthPtrOutput values.
+// You can construct a concrete instance of `DiskBandwidthPtrInput` via:
+//
+//	        DiskBandwidthArgs{...}
+//
+//	or:
+//
+//	        nil
+type DiskBandwidthPtrInput interface {
+	pulumi.Input
+
+	ToDiskBandwidthPtrOutput() DiskBandwidthPtrOutput
+	ToDiskBandwidthPtrOutputWithContext(context.Context) DiskBandwidthPtrOutput
+}
+
+type diskBandwidthPtrType DiskBandwidthArgs
+
+func DiskBandwidthPtr(v *DiskBandwidthArgs) DiskBandwidthPtrInput {
+	return (*diskBandwidthPtrType)(v)
+}
+
+func (*diskBandwidthPtrType) ElementType() reflect.Type {
+	return reflect.TypeOf((**DiskBandwidth)(nil)).Elem()
+}
+
+func (i *diskBandwidthPtrType) ToDiskBandwidthPtrOutput() DiskBandwidthPtrOutput {
+	return i.ToDiskBandwidthPtrOutputWithContext(context.Background())
+}
+
+func (i *diskBandwidthPtrType) ToDiskBandwidthPtrOutputWithContext(ctx context.Context) DiskBandwidthPtrOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DiskBandwidthPtrOutput)
+}
+
+// I/O throttle limits for the disk
+type DiskBandwidthOutput struct{ *pulumi.OutputState }
+
+func (DiskBandwidthOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*DiskBandwidth)(nil)).Elem()
+}
+
+func (o DiskBandwidthOutput) ToDiskBandwidthOutput() DiskBandwidthOutput {
+	return o
+}
+
+func (o DiskBandwidthOutput) ToDiskBandwidthOutputWithContext(ctx context.Context) DiskBandwidthOutput {
+	return o
+}
+
+func (o DiskBandwidthOutput) ToDiskBandwidthPtrOutput() DiskBandwidthPtrOutput {
+	return o.ToDiskBandwidthPtrOutputWithContext(context.Background())
+}
+
+func (o DiskBandwidthOutput) ToDiskBandwidthPtrOutputWithContext(ctx context.Context) DiskBandwidthPtrOutput {
+	return o.ApplyTWithContext(ctx, func(_ context.Context, v DiskBandwidth) *DiskBandwidth {
+		return &v
+	}).(DiskBandwidthPtrOutput)
+}
+
+// Read I/O operations per second limit (0 = unlimited).
+func (o DiskBandwidthOutput) IopsRd() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *int { return v.IopsRd }).(pulumi.IntPtrOutput)
+}
+
+// Read burst I/O operations per second limit.
+func (o DiskBandwidthOutput) IopsRdMax() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *int { return v.IopsRdMax }).(pulumi.IntPtrOutput)
+}
+
+// Write I/O operations per second limit (0 = unlimited).
+func (o DiskBandwidthOutput) IopsWr() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *int { return v.IopsWr }).(pulumi.IntPtrOutput)
+}
+
+// Write burst I/O operations per second limit.
+func (o DiskBandwidthOutput) IopsWrMax() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *int { return v.IopsWrMax }).(pulumi.IntPtrOutput)
+}
+
+// Read throughput limit in MB/s (0 = unlimited).
+func (o DiskBandwidthOutput) MbpsRd() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *float64 { return v.MbpsRd }).(pulumi.Float64PtrOutput)
+}
+
+// Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+func (o DiskBandwidthOutput) MbpsRdMax() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *float64 { return v.MbpsRdMax }).(pulumi.Float64PtrOutput)
+}
+
+// Write throughput limit in MB/s (0 = unlimited).
+func (o DiskBandwidthOutput) MbpsWr() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *float64 { return v.MbpsWr }).(pulumi.Float64PtrOutput)
+}
+
+// Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+func (o DiskBandwidthOutput) MbpsWrMax() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v DiskBandwidth) *float64 { return v.MbpsWrMax }).(pulumi.Float64PtrOutput)
+}
+
+type DiskBandwidthPtrOutput struct{ *pulumi.OutputState }
+
+func (DiskBandwidthPtrOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((**DiskBandwidth)(nil)).Elem()
+}
+
+func (o DiskBandwidthPtrOutput) ToDiskBandwidthPtrOutput() DiskBandwidthPtrOutput {
+	return o
+}
+
+func (o DiskBandwidthPtrOutput) ToDiskBandwidthPtrOutputWithContext(ctx context.Context) DiskBandwidthPtrOutput {
+	return o
+}
+
+func (o DiskBandwidthPtrOutput) Elem() DiskBandwidthOutput {
+	return o.ApplyT(func(v *DiskBandwidth) DiskBandwidth {
+		if v != nil {
+			return *v
+		}
+		var ret DiskBandwidth
+		return ret
+	}).(DiskBandwidthOutput)
+}
+
+// Read I/O operations per second limit (0 = unlimited).
+func (o DiskBandwidthPtrOutput) IopsRd() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *int {
+		if v == nil {
+			return nil
+		}
+		return v.IopsRd
+	}).(pulumi.IntPtrOutput)
+}
+
+// Read burst I/O operations per second limit.
+func (o DiskBandwidthPtrOutput) IopsRdMax() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *int {
+		if v == nil {
+			return nil
+		}
+		return v.IopsRdMax
+	}).(pulumi.IntPtrOutput)
+}
+
+// Write I/O operations per second limit (0 = unlimited).
+func (o DiskBandwidthPtrOutput) IopsWr() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *int {
+		if v == nil {
+			return nil
+		}
+		return v.IopsWr
+	}).(pulumi.IntPtrOutput)
+}
+
+// Write burst I/O operations per second limit.
+func (o DiskBandwidthPtrOutput) IopsWrMax() pulumi.IntPtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *int {
+		if v == nil {
+			return nil
+		}
+		return v.IopsWrMax
+	}).(pulumi.IntPtrOutput)
+}
+
+// Read throughput limit in MB/s (0 = unlimited).
+func (o DiskBandwidthPtrOutput) MbpsRd() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *float64 {
+		if v == nil {
+			return nil
+		}
+		return v.MbpsRd
+	}).(pulumi.Float64PtrOutput)
+}
+
+// Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+func (o DiskBandwidthPtrOutput) MbpsRdMax() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *float64 {
+		if v == nil {
+			return nil
+		}
+		return v.MbpsRdMax
+	}).(pulumi.Float64PtrOutput)
+}
+
+// Write throughput limit in MB/s (0 = unlimited).
+func (o DiskBandwidthPtrOutput) MbpsWr() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *float64 {
+		if v == nil {
+			return nil
+		}
+		return v.MbpsWr
+	}).(pulumi.Float64PtrOutput)
+}
+
+// Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+func (o DiskBandwidthPtrOutput) MbpsWrMax() pulumi.Float64PtrOutput {
+	return o.ApplyT(func(v *DiskBandwidth) *float64 {
+		if v == nil {
+			return nil
+		}
+		return v.MbpsWrMax
+	}).(pulumi.Float64PtrOutput)
 }
 
 // EFI disk configuration for the virtual machine.
@@ -1144,6 +1588,8 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*DiskBandwidthInput)(nil)).Elem(), DiskBandwidthArgs{})
+	pulumi.RegisterInputType(reflect.TypeOf((*DiskBandwidthPtrInput)(nil)).Elem(), DiskBandwidthArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskInput)(nil)).Elem(), EfiDiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskPtrInput)(nil)).Elem(), EfiDiskArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*FileSourceRawInput)(nil)).Elem(), FileSourceRawArgs{})
@@ -1155,6 +1601,8 @@ func init() {
 	pulumi.RegisterOutputType(ClonePtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
 	pulumi.RegisterOutputType(DiskArrayOutput{})
+	pulumi.RegisterOutputType(DiskBandwidthOutput{})
+	pulumi.RegisterOutputType(DiskBandwidthPtrOutput{})
 	pulumi.RegisterOutputType(EfiDiskOutput{})
 	pulumi.RegisterOutputType(EfiDiskPtrOutput{})
 	pulumi.RegisterOutputType(FileSourceRawOutput{})

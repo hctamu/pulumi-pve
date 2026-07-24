@@ -54,7 +54,7 @@ export class VM extends pulumi.CustomResource {
      */
     declare public readonly description: pulumi.Output<string | undefined>;
     /**
-     * List of disk configurations attached to the virtual machine.
+     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
      */
     declare public readonly disks: pulumi.Output<outputs.proxmox.Disk[]>;
     /**
@@ -181,7 +181,7 @@ export interface VMArgs {
      */
     description?: pulumi.Input<string>;
     /**
-     * List of disk configurations attached to the virtual machine.
+     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
      */
     disks: pulumi.Input<pulumi.Input<inputs.proxmox.DiskArgs>[]>;
     /**

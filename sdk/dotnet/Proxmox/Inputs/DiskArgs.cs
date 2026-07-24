@@ -17,16 +17,106 @@ namespace Hctamu.Pve.Proxmox.Inputs
     public sealed class DiskArgs : global::Pulumi.ResourceArgs
     {
         /// <summary>
+        /// Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+        /// </summary>
+        [Input("aio")]
+        public Input<string>? Aio { get; set; }
+
+        /// <summary>
+        /// Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+        /// </summary>
+        [Input("backup")]
+        public Input<bool>? Backup { get; set; }
+
+        /// <summary>
+        /// I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+        /// </summary>
+        [Input("bandwidth")]
+        public Input<Inputs.DiskBandwidthArgs>? Bandwidth { get; set; }
+
+        /// <summary>
+        /// Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+        /// </summary>
+        [Input("cache")]
+        public Input<string>? Cache { get; set; }
+
+        /// <summary>
+        /// Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+        /// </summary>
+        [Input("discard")]
+        public Input<string>? Discard { get; set; }
+
+        /// <summary>
         /// File name of the disk image (computed by Proxmox if not provided).
         /// </summary>
         [Input("filename")]
         public Input<string>? Filename { get; set; }
 
         /// <summary>
-        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        /// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+        /// </summary>
+        [Input("format")]
+        public Input<string>? Format { get; set; }
+
+        /// <summary>
+        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
         /// </summary>
         [Input("interface", required: true)]
         public Input<string> Interface { get; set; } = null!;
+
+        /// <summary>
+        /// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+        /// </summary>
+        [Input("iothread")]
+        public Input<bool>? Iothread { get; set; }
+
+        /// <summary>
+        /// Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+        /// </summary>
+        [Input("media")]
+        public Input<string>? Media { get; set; }
+
+        /// <summary>
+        /// Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+        /// </summary>
+        [Input("queues")]
+        public Input<int>? Queues { get; set; }
+
+        /// <summary>
+        /// Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+        /// </summary>
+        [Input("replicate")]
+        public Input<bool>? Replicate { get; set; }
+
+        /// <summary>
+        /// Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+        /// </summary>
+        [Input("rerror")]
+        public Input<string>? Rerror { get; set; }
+
+        /// <summary>
+        /// Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+        /// </summary>
+        [Input("ro")]
+        public Input<bool>? Ro { get; set; }
+
+        /// <summary>
+        /// Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+        /// </summary>
+        [Input("scsiblock")]
+        public Input<bool>? Scsiblock { get; set; }
+
+        /// <summary>
+        /// Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+        /// </summary>
+        [Input("serial")]
+        public Input<string>? Serial { get; set; }
+
+        /// <summary>
+        /// Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+        /// </summary>
+        [Input("shared")]
+        public Input<bool>? Shared { get; set; }
 
         /// <summary>
         /// Disk size in gigabytes.
@@ -35,10 +125,34 @@ namespace Hctamu.Pve.Proxmox.Inputs
         public Input<int> Size { get; set; } = null!;
 
         /// <summary>
+        /// Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+        /// </summary>
+        [Input("snapshot")]
+        public Input<bool>? Snapshot { get; set; }
+
+        /// <summary>
+        /// Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+        /// </summary>
+        [Input("ssd")]
+        public Input<bool>? Ssd { get; set; }
+
+        /// <summary>
         /// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
         /// </summary>
         [Input("storage", required: true)]
         public Input<string> Storage { get; set; } = null!;
+
+        /// <summary>
+        /// Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+        /// </summary>
+        [Input("werror")]
+        public Input<string>? Werror { get; set; }
+
+        /// <summary>
+        /// World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+        /// </summary>
+        [Input("wwn")]
+        public Input<string>? Wwn { get; set; }
 
         public DiskArgs()
         {

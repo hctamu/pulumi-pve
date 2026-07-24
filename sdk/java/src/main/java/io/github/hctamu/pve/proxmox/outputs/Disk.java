@@ -5,6 +5,8 @@ package io.github.hctamu.pve.proxmox.outputs;
 
 import com.pulumi.core.annotations.CustomType;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import io.github.hctamu.pve.proxmox.outputs.DiskBandwidth;
+import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.Objects;
@@ -14,27 +16,157 @@ import javax.annotation.Nullable;
 @CustomType
 public final class Disk {
     /**
+     * @return Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+     * 
+     */
+    private @Nullable String aio;
+    /**
+     * @return Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+     * 
+     */
+    private @Nullable Boolean backup;
+    /**
+     * @return I/O throttle limits for this disk (Proxmox GUI &#39;Bandwidth&#39; section). Omit to apply no throttling.
+     * 
+     */
+    private @Nullable DiskBandwidth bandwidth;
+    /**
+     * @return Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+     * 
+     */
+    private @Nullable String cache;
+    /**
+     * @return Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+     * 
+     */
+    private @Nullable String discard;
+    /**
      * @return File name of the disk image (computed by Proxmox if not provided).
      * 
      */
     private @Nullable String filename;
     /**
-     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * @return Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+     * 
+     */
+    private @Nullable String format;
+    /**
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
      * 
      */
     private String interface_;
+    /**
+     * @return Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    private @Nullable Boolean iothread;
+    /**
+     * @return Media type: &#39;disk&#39; (default) or &#39;cdrom&#39;. Supported on all disk interfaces.
+     * 
+     */
+    private @Nullable String media;
+    /**
+     * @return Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+     * 
+     */
+    private @Nullable Integer queues;
+    /**
+     * @return Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+     * 
+     */
+    private @Nullable Boolean replicate;
+    /**
+     * @return Action on read I/O errors: &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;report&#39;. Supported on all disk interfaces.
+     * 
+     */
+    private @Nullable String rerror;
+    /**
+     * @return Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    private @Nullable Boolean ro;
+    /**
+     * @return Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+     * 
+     */
+    private @Nullable Boolean scsiblock;
+    /**
+     * @return Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+     * 
+     */
+    private @Nullable String serial;
+    /**
+     * @return Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+     * 
+     */
+    private @Nullable Boolean shared;
     /**
      * @return Disk size in gigabytes.
      * 
      */
     private Integer size;
     /**
+     * @return Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+     * 
+     */
+    private @Nullable Boolean snapshot;
+    /**
+     * @return Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+     * 
+     */
+    private @Nullable Boolean ssd;
+    /**
      * @return Target storage pool for the disk (e.g., local-lvm, ceph-pool).
      * 
      */
     private String storage;
+    /**
+     * @return Action on write I/O errors: &#39;enospc&#39;, &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;enospc&#39;. Supported on all disk interfaces.
+     * 
+     */
+    private @Nullable String werror;
+    /**
+     * @return World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with &#39;0x&#39;, e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+     * 
+     */
+    private @Nullable String wwn;
 
     private Disk() {}
+    /**
+     * @return Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+     * 
+     */
+    public Optional<String> aio() {
+        return Optional.ofNullable(this.aio);
+    }
+    /**
+     * @return Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+     * 
+     */
+    public Optional<Boolean> backup() {
+        return Optional.ofNullable(this.backup);
+    }
+    /**
+     * @return I/O throttle limits for this disk (Proxmox GUI &#39;Bandwidth&#39; section). Omit to apply no throttling.
+     * 
+     */
+    public Optional<DiskBandwidth> bandwidth() {
+        return Optional.ofNullable(this.bandwidth);
+    }
+    /**
+     * @return Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+     * 
+     */
+    public Optional<String> cache() {
+        return Optional.ofNullable(this.cache);
+    }
+    /**
+     * @return Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+     * 
+     */
+    public Optional<String> discard() {
+        return Optional.ofNullable(this.discard);
+    }
     /**
      * @return File name of the disk image (computed by Proxmox if not provided).
      * 
@@ -43,11 +175,81 @@ public final class Disk {
         return Optional.ofNullable(this.filename);
     }
     /**
-     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * @return Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+     * 
+     */
+    public Optional<String> format() {
+        return Optional.ofNullable(this.format);
+    }
+    /**
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
      * 
      */
     public String interface_() {
         return this.interface_;
+    }
+    /**
+     * @return Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    public Optional<Boolean> iothread() {
+        return Optional.ofNullable(this.iothread);
+    }
+    /**
+     * @return Media type: &#39;disk&#39; (default) or &#39;cdrom&#39;. Supported on all disk interfaces.
+     * 
+     */
+    public Optional<String> media() {
+        return Optional.ofNullable(this.media);
+    }
+    /**
+     * @return Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+     * 
+     */
+    public Optional<Integer> queues() {
+        return Optional.ofNullable(this.queues);
+    }
+    /**
+     * @return Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+     * 
+     */
+    public Optional<Boolean> replicate() {
+        return Optional.ofNullable(this.replicate);
+    }
+    /**
+     * @return Action on read I/O errors: &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;report&#39;. Supported on all disk interfaces.
+     * 
+     */
+    public Optional<String> rerror() {
+        return Optional.ofNullable(this.rerror);
+    }
+    /**
+     * @return Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    public Optional<Boolean> ro() {
+        return Optional.ofNullable(this.ro);
+    }
+    /**
+     * @return Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+     * 
+     */
+    public Optional<Boolean> scsiblock() {
+        return Optional.ofNullable(this.scsiblock);
+    }
+    /**
+     * @return Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+     * 
+     */
+    public Optional<String> serial() {
+        return Optional.ofNullable(this.serial);
+    }
+    /**
+     * @return Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+     * 
+     */
+    public Optional<Boolean> shared() {
+        return Optional.ofNullable(this.shared);
     }
     /**
      * @return Disk size in gigabytes.
@@ -57,11 +259,39 @@ public final class Disk {
         return this.size;
     }
     /**
+     * @return Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+     * 
+     */
+    public Optional<Boolean> snapshot() {
+        return Optional.ofNullable(this.snapshot);
+    }
+    /**
+     * @return Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+     * 
+     */
+    public Optional<Boolean> ssd() {
+        return Optional.ofNullable(this.ssd);
+    }
+    /**
      * @return Target storage pool for the disk (e.g., local-lvm, ceph-pool).
      * 
      */
     public String storage() {
         return this.storage;
+    }
+    /**
+     * @return Action on write I/O errors: &#39;enospc&#39;, &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;enospc&#39;. Supported on all disk interfaces.
+     * 
+     */
+    public Optional<String> werror() {
+        return Optional.ofNullable(this.werror);
+    }
+    /**
+     * @return World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with &#39;0x&#39;, e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+     * 
+     */
+    public Optional<String> wwn() {
+        return Optional.ofNullable(this.wwn);
     }
 
     public static Builder builder() {
@@ -73,23 +303,97 @@ public final class Disk {
     }
     @CustomType.Builder
     public static final class Builder {
+        private @Nullable String aio;
+        private @Nullable Boolean backup;
+        private @Nullable DiskBandwidth bandwidth;
+        private @Nullable String cache;
+        private @Nullable String discard;
         private @Nullable String filename;
+        private @Nullable String format;
         private String interface_;
+        private @Nullable Boolean iothread;
+        private @Nullable String media;
+        private @Nullable Integer queues;
+        private @Nullable Boolean replicate;
+        private @Nullable String rerror;
+        private @Nullable Boolean ro;
+        private @Nullable Boolean scsiblock;
+        private @Nullable String serial;
+        private @Nullable Boolean shared;
         private Integer size;
+        private @Nullable Boolean snapshot;
+        private @Nullable Boolean ssd;
         private String storage;
+        private @Nullable String werror;
+        private @Nullable String wwn;
         public Builder() {}
         public Builder(Disk defaults) {
     	      Objects.requireNonNull(defaults);
+    	      this.aio = defaults.aio;
+    	      this.backup = defaults.backup;
+    	      this.bandwidth = defaults.bandwidth;
+    	      this.cache = defaults.cache;
+    	      this.discard = defaults.discard;
     	      this.filename = defaults.filename;
+    	      this.format = defaults.format;
     	      this.interface_ = defaults.interface_;
+    	      this.iothread = defaults.iothread;
+    	      this.media = defaults.media;
+    	      this.queues = defaults.queues;
+    	      this.replicate = defaults.replicate;
+    	      this.rerror = defaults.rerror;
+    	      this.ro = defaults.ro;
+    	      this.scsiblock = defaults.scsiblock;
+    	      this.serial = defaults.serial;
+    	      this.shared = defaults.shared;
     	      this.size = defaults.size;
+    	      this.snapshot = defaults.snapshot;
+    	      this.ssd = defaults.ssd;
     	      this.storage = defaults.storage;
+    	      this.werror = defaults.werror;
+    	      this.wwn = defaults.wwn;
         }
 
+        @CustomType.Setter
+        public Builder aio(@Nullable String aio) {
+
+            this.aio = aio;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder backup(@Nullable Boolean backup) {
+
+            this.backup = backup;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder bandwidth(@Nullable DiskBandwidth bandwidth) {
+
+            this.bandwidth = bandwidth;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder cache(@Nullable String cache) {
+
+            this.cache = cache;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder discard(@Nullable String discard) {
+
+            this.discard = discard;
+            return this;
+        }
         @CustomType.Setter
         public Builder filename(@Nullable String filename) {
 
             this.filename = filename;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder format(@Nullable String format) {
+
+            this.format = format;
             return this;
         }
         @CustomType.Setter("interface")
@@ -101,11 +405,77 @@ public final class Disk {
             return this;
         }
         @CustomType.Setter
+        public Builder iothread(@Nullable Boolean iothread) {
+
+            this.iothread = iothread;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder media(@Nullable String media) {
+
+            this.media = media;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder queues(@Nullable Integer queues) {
+
+            this.queues = queues;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder replicate(@Nullable Boolean replicate) {
+
+            this.replicate = replicate;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder rerror(@Nullable String rerror) {
+
+            this.rerror = rerror;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder ro(@Nullable Boolean ro) {
+
+            this.ro = ro;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder scsiblock(@Nullable Boolean scsiblock) {
+
+            this.scsiblock = scsiblock;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder serial(@Nullable String serial) {
+
+            this.serial = serial;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder shared(@Nullable Boolean shared) {
+
+            this.shared = shared;
+            return this;
+        }
+        @CustomType.Setter
         public Builder size(Integer size) {
             if (size == null) {
               throw new MissingRequiredPropertyException("Disk", "size");
             }
             this.size = size;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder snapshot(@Nullable Boolean snapshot) {
+
+            this.snapshot = snapshot;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder ssd(@Nullable Boolean ssd) {
+
+            this.ssd = ssd;
             return this;
         }
         @CustomType.Setter
@@ -116,12 +486,43 @@ public final class Disk {
             this.storage = storage;
             return this;
         }
+        @CustomType.Setter
+        public Builder werror(@Nullable String werror) {
+
+            this.werror = werror;
+            return this;
+        }
+        @CustomType.Setter
+        public Builder wwn(@Nullable String wwn) {
+
+            this.wwn = wwn;
+            return this;
+        }
         public Disk build() {
             final var _resultValue = new Disk();
+            _resultValue.aio = aio;
+            _resultValue.backup = backup;
+            _resultValue.bandwidth = bandwidth;
+            _resultValue.cache = cache;
+            _resultValue.discard = discard;
             _resultValue.filename = filename;
+            _resultValue.format = format;
             _resultValue.interface_ = interface_;
+            _resultValue.iothread = iothread;
+            _resultValue.media = media;
+            _resultValue.queues = queues;
+            _resultValue.replicate = replicate;
+            _resultValue.rerror = rerror;
+            _resultValue.ro = ro;
+            _resultValue.scsiblock = scsiblock;
+            _resultValue.serial = serial;
+            _resultValue.shared = shared;
             _resultValue.size = size;
+            _resultValue.snapshot = snapshot;
+            _resultValue.ssd = ssd;
             _resultValue.storage = storage;
+            _resultValue.werror = werror;
+            _resultValue.wwn = wwn;
             return _resultValue;
         }
     }

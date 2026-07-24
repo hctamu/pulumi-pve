@@ -106,21 +106,135 @@ export namespace proxmox {
      */
     export interface DiskArgs {
         /**
+         * Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+         */
+        aio?: pulumi.Input<string>;
+        /**
+         * Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+         */
+        backup?: pulumi.Input<boolean>;
+        /**
+         * I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+         */
+        bandwidth?: pulumi.Input<inputs.proxmox.DiskBandwidthArgs>;
+        /**
+         * Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+         */
+        cache?: pulumi.Input<string>;
+        /**
+         * Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+         */
+        discard?: pulumi.Input<string>;
+        /**
          * File name of the disk image (computed by Proxmox if not provided).
          */
         filename?: pulumi.Input<string>;
         /**
-         * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         * Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+         */
+        format?: pulumi.Input<string>;
+        /**
+         * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
          */
         interface: pulumi.Input<string>;
+        /**
+         * Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+         */
+        iothread?: pulumi.Input<boolean>;
+        /**
+         * Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+         */
+        media?: pulumi.Input<string>;
+        /**
+         * Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+         */
+        queues?: pulumi.Input<number>;
+        /**
+         * Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+         */
+        replicate?: pulumi.Input<boolean>;
+        /**
+         * Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+         */
+        rerror?: pulumi.Input<string>;
+        /**
+         * Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+         */
+        ro?: pulumi.Input<boolean>;
+        /**
+         * Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+         */
+        scsiblock?: pulumi.Input<boolean>;
+        /**
+         * Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+         */
+        serial?: pulumi.Input<string>;
+        /**
+         * Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+         */
+        shared?: pulumi.Input<boolean>;
         /**
          * Disk size in gigabytes.
          */
         size: pulumi.Input<number>;
         /**
+         * Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+         */
+        snapshot?: pulumi.Input<boolean>;
+        /**
+         * Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+         */
+        ssd?: pulumi.Input<boolean>;
+        /**
          * Target storage pool for the disk (e.g., local-lvm, ceph-pool).
          */
         storage: pulumi.Input<string>;
+        /**
+         * Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+         */
+        werror?: pulumi.Input<string>;
+        /**
+         * World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+         */
+        wwn?: pulumi.Input<string>;
+    }
+
+    /**
+     * I/O throttle limits for the disk
+     */
+    export interface DiskBandwidthArgs {
+        /**
+         * Read I/O operations per second limit (0 = unlimited).
+         */
+        iopsRd?: pulumi.Input<number>;
+        /**
+         * Read burst I/O operations per second limit.
+         */
+        iopsRdMax?: pulumi.Input<number>;
+        /**
+         * Write I/O operations per second limit (0 = unlimited).
+         */
+        iopsWr?: pulumi.Input<number>;
+        /**
+         * Write burst I/O operations per second limit.
+         */
+        iopsWrMax?: pulumi.Input<number>;
+        /**
+         * Read throughput limit in MB/s (0 = unlimited).
+         */
+        mbpsRd?: pulumi.Input<number>;
+        /**
+         * Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
+         */
+        mbpsRdMax?: pulumi.Input<number>;
+        /**
+         * Write throughput limit in MB/s (0 = unlimited).
+         */
+        mbpsWr?: pulumi.Input<number>;
+        /**
+         * Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
+         */
+        mbpsWrMax?: pulumi.Input<number>;
     }
 
     /**

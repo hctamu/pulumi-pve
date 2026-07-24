@@ -44,7 +44,7 @@ namespace Hctamu.Pve.Vm
         public Output<string?> Description { get; private set; } = null!;
 
         /// <summary>
-        /// List of disk configurations attached to the virtual machine.
+        /// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
         /// </summary>
         [Output("disks")]
         public Output<ImmutableArray<Hctamu.Pve.Proxmox.Outputs.Disk>> Disks { get; private set; } = null!;
@@ -193,7 +193,7 @@ namespace Hctamu.Pve.Vm
         private InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>? _disks;
 
         /// <summary>
-        /// List of disk configurations attached to the virtual machine.
+        /// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
         /// </summary>
         public InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs> Disks
         {

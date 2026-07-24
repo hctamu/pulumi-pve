@@ -92,14 +92,14 @@ public class VM extends com.pulumi.resources.CustomResource {
         return Codegen.optional(this.description);
     }
     /**
-     * List of disk configurations attached to the virtual machine.
+     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
      * 
      */
     @Export(name="disks", refs={List.class,Disk.class}, tree="[0,1]")
     private Output<List<Disk>> disks;
 
     /**
-     * @return List of disk configurations attached to the virtual machine.
+     * @return List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
      * 
      */
     public Output<List<Disk>> disks() {
@@ -286,9 +286,6 @@ public class VM extends com.pulumi.resources.CustomResource {
         var defaultOptions = com.pulumi.resources.CustomResourceOptions.builder()
             .version(Utilities.getVersion())
             .pluginDownloadURL("github://api.github.com/hctamu/pulumi-pve")
-            .replaceOnChanges(List.of(
-                "vmId"
-            ))
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }
