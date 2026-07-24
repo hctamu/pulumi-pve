@@ -140,7 +140,8 @@ func TestPublicVMSerializers(t *testing.T) {
 				})
 				return config
 			}(),
-			expected: "file=local-lvm:20,size=20,cache=writeback,iothread=1,mbps_rd=100.5,iops_wr=500,serial=disk-serial,scsiblock=0",
+			expected: "file=local-lvm:20,size=20,cache=writeback,iothread=1,mbps_rd=100.5," +
+				"iops_wr=500,serial=disk-serial,scsiblock=0",
 		},
 	}
 
@@ -160,8 +161,9 @@ func TestPublicDiskParser(t *testing.T) {
 		config string
 	}{
 		{
-			name:   "flags bandwidth and misc",
-			config: "local-lvm:vm-100-disk-0,size=20G,cache=writeback,iothread=1,mbps_rd=100.5,iops_wr=500,serial=disk-serial,scsiblock=0",
+			name: "flags bandwidth and misc",
+			config: "local-lvm:vm-100-disk-0,size=20G,cache=writeback,iothread=1,mbps_rd=100.5," +
+				"iops_wr=500,serial=disk-serial,scsiblock=0",
 		},
 	}
 

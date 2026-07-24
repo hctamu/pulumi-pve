@@ -6,6 +6,8 @@ package io.github.hctamu.pve.proxmox.inputs;
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
+import io.github.hctamu.pve.proxmox.inputs.DiskBandwidthArgs;
+import java.lang.Boolean;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.Objects;
@@ -20,6 +22,81 @@ import javax.annotation.Nullable;
 public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
 
     public static final DiskArgs Empty = new DiskArgs();
+
+    /**
+     * Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+     * 
+     */
+    @Import(name="aio")
+    private @Nullable Output<String> aio;
+
+    /**
+     * @return Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+     * 
+     */
+    public Optional<Output<String>> aio() {
+        return Optional.ofNullable(this.aio);
+    }
+
+    /**
+     * Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+     * 
+     */
+    @Import(name="backup")
+    private @Nullable Output<Boolean> backup;
+
+    /**
+     * @return Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+     * 
+     */
+    public Optional<Output<Boolean>> backup() {
+        return Optional.ofNullable(this.backup);
+    }
+
+    /**
+     * I/O throttle limits for this disk (Proxmox GUI &#39;Bandwidth&#39; section). Omit to apply no throttling.
+     * 
+     */
+    @Import(name="bandwidth")
+    private @Nullable Output<DiskBandwidthArgs> bandwidth;
+
+    /**
+     * @return I/O throttle limits for this disk (Proxmox GUI &#39;Bandwidth&#39; section). Omit to apply no throttling.
+     * 
+     */
+    public Optional<Output<DiskBandwidthArgs>> bandwidth() {
+        return Optional.ofNullable(this.bandwidth);
+    }
+
+    /**
+     * Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+     * 
+     */
+    @Import(name="cache")
+    private @Nullable Output<String> cache;
+
+    /**
+     * @return Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+     * 
+     */
+    public Optional<Output<String>> cache() {
+        return Optional.ofNullable(this.cache);
+    }
+
+    /**
+     * Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+     * 
+     */
+    @Import(name="discard")
+    private @Nullable Output<String> discard;
+
+    /**
+     * @return Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+     * 
+     */
+    public Optional<Output<String>> discard() {
+        return Optional.ofNullable(this.discard);
+    }
 
     /**
      * File name of the disk image (computed by Proxmox if not provided).
@@ -37,18 +114,168 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+     * 
+     */
+    @Import(name="format")
+    private @Nullable Output<String> format;
+
+    /**
+     * @return Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+     * 
+     */
+    public Optional<Output<String>> format() {
+        return Optional.ofNullable(this.format);
+    }
+
+    /**
+     * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
      * 
      */
     @Import(name="interface", required=true)
     private Output<String> interface_;
 
     /**
-     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
      * 
      */
     public Output<String> interface_() {
         return this.interface_;
+    }
+
+    /**
+     * Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    @Import(name="iothread")
+    private @Nullable Output<Boolean> iothread;
+
+    /**
+     * @return Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    public Optional<Output<Boolean>> iothread() {
+        return Optional.ofNullable(this.iothread);
+    }
+
+    /**
+     * Media type: &#39;disk&#39; (default) or &#39;cdrom&#39;. Supported on all disk interfaces.
+     * 
+     */
+    @Import(name="media")
+    private @Nullable Output<String> media;
+
+    /**
+     * @return Media type: &#39;disk&#39; (default) or &#39;cdrom&#39;. Supported on all disk interfaces.
+     * 
+     */
+    public Optional<Output<String>> media() {
+        return Optional.ofNullable(this.media);
+    }
+
+    /**
+     * Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+     * 
+     */
+    @Import(name="queues")
+    private @Nullable Output<Integer> queues;
+
+    /**
+     * @return Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+     * 
+     */
+    public Optional<Output<Integer>> queues() {
+        return Optional.ofNullable(this.queues);
+    }
+
+    /**
+     * Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+     * 
+     */
+    @Import(name="replicate")
+    private @Nullable Output<Boolean> replicate;
+
+    /**
+     * @return Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+     * 
+     */
+    public Optional<Output<Boolean>> replicate() {
+        return Optional.ofNullable(this.replicate);
+    }
+
+    /**
+     * Action on read I/O errors: &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;report&#39;. Supported on all disk interfaces.
+     * 
+     */
+    @Import(name="rerror")
+    private @Nullable Output<String> rerror;
+
+    /**
+     * @return Action on read I/O errors: &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;report&#39;. Supported on all disk interfaces.
+     * 
+     */
+    public Optional<Output<String>> rerror() {
+        return Optional.ofNullable(this.rerror);
+    }
+
+    /**
+     * Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    @Import(name="ro")
+    private @Nullable Output<Boolean> ro;
+
+    /**
+     * @return Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+     * 
+     */
+    public Optional<Output<Boolean>> ro() {
+        return Optional.ofNullable(this.ro);
+    }
+
+    /**
+     * Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+     * 
+     */
+    @Import(name="scsiblock")
+    private @Nullable Output<Boolean> scsiblock;
+
+    /**
+     * @return Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+     * 
+     */
+    public Optional<Output<Boolean>> scsiblock() {
+        return Optional.ofNullable(this.scsiblock);
+    }
+
+    /**
+     * Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+     * 
+     */
+    @Import(name="serial")
+    private @Nullable Output<String> serial;
+
+    /**
+     * @return Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+     * 
+     */
+    public Optional<Output<String>> serial() {
+        return Optional.ofNullable(this.serial);
+    }
+
+    /**
+     * Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+     * 
+     */
+    @Import(name="shared")
+    private @Nullable Output<Boolean> shared;
+
+    /**
+     * @return Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+     * 
+     */
+    public Optional<Output<Boolean>> shared() {
+        return Optional.ofNullable(this.shared);
     }
 
     /**
@@ -67,6 +294,36 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
+     * Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+     * 
+     */
+    @Import(name="snapshot")
+    private @Nullable Output<Boolean> snapshot;
+
+    /**
+     * @return Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+     * 
+     */
+    public Optional<Output<Boolean>> snapshot() {
+        return Optional.ofNullable(this.snapshot);
+    }
+
+    /**
+     * Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+     * 
+     */
+    @Import(name="ssd")
+    private @Nullable Output<Boolean> ssd;
+
+    /**
+     * @return Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+     * 
+     */
+    public Optional<Output<Boolean>> ssd() {
+        return Optional.ofNullable(this.ssd);
+    }
+
+    /**
      * Target storage pool for the disk (e.g., local-lvm, ceph-pool).
      * 
      */
@@ -81,13 +338,62 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
         return this.storage;
     }
 
+    /**
+     * Action on write I/O errors: &#39;enospc&#39;, &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;enospc&#39;. Supported on all disk interfaces.
+     * 
+     */
+    @Import(name="werror")
+    private @Nullable Output<String> werror;
+
+    /**
+     * @return Action on write I/O errors: &#39;enospc&#39;, &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;enospc&#39;. Supported on all disk interfaces.
+     * 
+     */
+    public Optional<Output<String>> werror() {
+        return Optional.ofNullable(this.werror);
+    }
+
+    /**
+     * World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with &#39;0x&#39;, e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+     * 
+     */
+    @Import(name="wwn")
+    private @Nullable Output<String> wwn;
+
+    /**
+     * @return World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with &#39;0x&#39;, e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+     * 
+     */
+    public Optional<Output<String>> wwn() {
+        return Optional.ofNullable(this.wwn);
+    }
+
     private DiskArgs() {}
 
     private DiskArgs(DiskArgs $) {
+        this.aio = $.aio;
+        this.backup = $.backup;
+        this.bandwidth = $.bandwidth;
+        this.cache = $.cache;
+        this.discard = $.discard;
         this.filename = $.filename;
+        this.format = $.format;
         this.interface_ = $.interface_;
+        this.iothread = $.iothread;
+        this.media = $.media;
+        this.queues = $.queues;
+        this.replicate = $.replicate;
+        this.rerror = $.rerror;
+        this.ro = $.ro;
+        this.scsiblock = $.scsiblock;
+        this.serial = $.serial;
+        this.shared = $.shared;
         this.size = $.size;
+        this.snapshot = $.snapshot;
+        this.ssd = $.ssd;
         this.storage = $.storage;
+        this.werror = $.werror;
+        this.wwn = $.wwn;
     }
 
     public static Builder builder() {
@@ -106,6 +412,111 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
 
         public Builder(DiskArgs defaults) {
             $ = new DiskArgs(Objects.requireNonNull(defaults));
+        }
+
+        /**
+         * @param aio Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder aio(@Nullable Output<String> aio) {
+            $.aio = aio;
+            return this;
+        }
+
+        /**
+         * @param aio Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder aio(String aio) {
+            return aio(Output.of(aio));
+        }
+
+        /**
+         * @param backup Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder backup(@Nullable Output<Boolean> backup) {
+            $.backup = backup;
+            return this;
+        }
+
+        /**
+         * @param backup Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder backup(Boolean backup) {
+            return backup(Output.of(backup));
+        }
+
+        /**
+         * @param bandwidth I/O throttle limits for this disk (Proxmox GUI &#39;Bandwidth&#39; section). Omit to apply no throttling.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder bandwidth(@Nullable Output<DiskBandwidthArgs> bandwidth) {
+            $.bandwidth = bandwidth;
+            return this;
+        }
+
+        /**
+         * @param bandwidth I/O throttle limits for this disk (Proxmox GUI &#39;Bandwidth&#39; section). Omit to apply no throttling.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder bandwidth(DiskBandwidthArgs bandwidth) {
+            return bandwidth(Output.of(bandwidth));
+        }
+
+        /**
+         * @param cache Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+         * 
+         * @return builder
+         * 
+         */
+        public Builder cache(@Nullable Output<String> cache) {
+            $.cache = cache;
+            return this;
+        }
+
+        /**
+         * @param cache Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+         * 
+         * @return builder
+         * 
+         */
+        public Builder cache(String cache) {
+            return cache(Output.of(cache));
+        }
+
+        /**
+         * @param discard Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder discard(@Nullable Output<String> discard) {
+            $.discard = discard;
+            return this;
+        }
+
+        /**
+         * @param discard Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder discard(String discard) {
+            return discard(Output.of(discard));
         }
 
         /**
@@ -130,7 +541,28 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         * @param format Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder format(@Nullable Output<String> format) {
+            $.format = format;
+            return this;
+        }
+
+        /**
+         * @param format Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder format(String format) {
+            return format(Output.of(format));
+        }
+
+        /**
+         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
          * 
          * @return builder
          * 
@@ -141,13 +573,202 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
          * 
          * @return builder
          * 
          */
         public Builder interface_(String interface_) {
             return interface_(Output.of(interface_));
+        }
+
+        /**
+         * @param iothread Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder iothread(@Nullable Output<Boolean> iothread) {
+            $.iothread = iothread;
+            return this;
+        }
+
+        /**
+         * @param iothread Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder iothread(Boolean iothread) {
+            return iothread(Output.of(iothread));
+        }
+
+        /**
+         * @param media Media type: &#39;disk&#39; (default) or &#39;cdrom&#39;. Supported on all disk interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder media(@Nullable Output<String> media) {
+            $.media = media;
+            return this;
+        }
+
+        /**
+         * @param media Media type: &#39;disk&#39; (default) or &#39;cdrom&#39;. Supported on all disk interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder media(String media) {
+            return media(Output.of(media));
+        }
+
+        /**
+         * @param queues Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder queues(@Nullable Output<Integer> queues) {
+            $.queues = queues;
+            return this;
+        }
+
+        /**
+         * @param queues Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder queues(Integer queues) {
+            return queues(Output.of(queues));
+        }
+
+        /**
+         * @param replicate Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder replicate(@Nullable Output<Boolean> replicate) {
+            $.replicate = replicate;
+            return this;
+        }
+
+        /**
+         * @param replicate Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder replicate(Boolean replicate) {
+            return replicate(Output.of(replicate));
+        }
+
+        /**
+         * @param rerror Action on read I/O errors: &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;report&#39;. Supported on all disk interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder rerror(@Nullable Output<String> rerror) {
+            $.rerror = rerror;
+            return this;
+        }
+
+        /**
+         * @param rerror Action on read I/O errors: &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;report&#39;. Supported on all disk interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder rerror(String rerror) {
+            return rerror(Output.of(rerror));
+        }
+
+        /**
+         * @param ro Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder ro(@Nullable Output<Boolean> ro) {
+            $.ro = ro;
+            return this;
+        }
+
+        /**
+         * @param ro Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder ro(Boolean ro) {
+            return ro(Output.of(ro));
+        }
+
+        /**
+         * @param scsiblock Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder scsiblock(@Nullable Output<Boolean> scsiblock) {
+            $.scsiblock = scsiblock;
+            return this;
+        }
+
+        /**
+         * @param scsiblock Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder scsiblock(Boolean scsiblock) {
+            return scsiblock(Output.of(scsiblock));
+        }
+
+        /**
+         * @param serial Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder serial(@Nullable Output<String> serial) {
+            $.serial = serial;
+            return this;
+        }
+
+        /**
+         * @param serial Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder serial(String serial) {
+            return serial(Output.of(serial));
+        }
+
+        /**
+         * @param shared Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder shared(@Nullable Output<Boolean> shared) {
+            $.shared = shared;
+            return this;
+        }
+
+        /**
+         * @param shared Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder shared(Boolean shared) {
+            return shared(Output.of(shared));
         }
 
         /**
@@ -172,6 +793,48 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
+         * @param snapshot Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder snapshot(@Nullable Output<Boolean> snapshot) {
+            $.snapshot = snapshot;
+            return this;
+        }
+
+        /**
+         * @param snapshot Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder snapshot(Boolean snapshot) {
+            return snapshot(Output.of(snapshot));
+        }
+
+        /**
+         * @param ssd Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder ssd(@Nullable Output<Boolean> ssd) {
+            $.ssd = ssd;
+            return this;
+        }
+
+        /**
+         * @param ssd Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder ssd(Boolean ssd) {
+            return ssd(Output.of(ssd));
+        }
+
+        /**
          * @param storage Target storage pool for the disk (e.g., local-lvm, ceph-pool).
          * 
          * @return builder
@@ -190,6 +853,48 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
          */
         public Builder storage(String storage) {
             return storage(Output.of(storage));
+        }
+
+        /**
+         * @param werror Action on write I/O errors: &#39;enospc&#39;, &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;enospc&#39;. Supported on all disk interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder werror(@Nullable Output<String> werror) {
+            $.werror = werror;
+            return this;
+        }
+
+        /**
+         * @param werror Action on write I/O errors: &#39;enospc&#39;, &#39;ignore&#39;, &#39;report&#39;, or &#39;stop&#39;. Proxmox default is &#39;enospc&#39;. Supported on all disk interfaces.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder werror(String werror) {
+            return werror(Output.of(werror));
+        }
+
+        /**
+         * @param wwn World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with &#39;0x&#39;, e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder wwn(@Nullable Output<String> wwn) {
+            $.wwn = wwn;
+            return this;
+        }
+
+        /**
+         * @param wwn World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with &#39;0x&#39;, e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+         * 
+         * @return builder
+         * 
+         */
+        public Builder wwn(String wwn) {
+            return wwn(Output.of(wwn));
         }
 
         public DiskArgs build() {

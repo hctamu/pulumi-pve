@@ -11,7 +11,6 @@ import io.github.hctamu.pve.Utilities;
 import io.github.hctamu.pve.file.FileArgs;
 import io.github.hctamu.pve.proxmox.outputs.FileSourceRaw;
 import java.lang.String;
-import java.util.List;
 import javax.annotation.Nullable;
 
 /**
@@ -103,11 +102,6 @@ public class File extends com.pulumi.resources.CustomResource {
         var defaultOptions = com.pulumi.resources.CustomResourceOptions.builder()
             .version(Utilities.getVersion())
             .pluginDownloadURL("github://api.github.com/hctamu/pulumi-pve")
-            .replaceOnChanges(List.of(
-                "contentType",
-                "datastoreId",
-                "sourceRaw"
-            ))
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }

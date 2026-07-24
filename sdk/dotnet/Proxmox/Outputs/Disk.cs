@@ -18,36 +18,169 @@ namespace Hctamu.Pve.Proxmox.Outputs
     public sealed class Disk
     {
         /// <summary>
+        /// Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
+        /// </summary>
+        public readonly string? Aio;
+        /// <summary>
+        /// Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
+        /// </summary>
+        public readonly bool? Backup;
+        /// <summary>
+        /// I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
+        /// </summary>
+        public readonly Outputs.DiskBandwidth? Bandwidth;
+        /// <summary>
+        /// Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
+        /// </summary>
+        public readonly string? Cache;
+        /// <summary>
+        /// Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
+        /// </summary>
+        public readonly string? Discard;
+        /// <summary>
         /// File name of the disk image (computed by Proxmox if not provided).
         /// </summary>
         public readonly string? Filename;
         /// <summary>
-        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2).
+        /// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
+        /// </summary>
+        public readonly string? Format;
+        /// <summary>
+        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
         /// </summary>
         public readonly string Interface;
+        /// <summary>
+        /// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
+        /// </summary>
+        public readonly bool? Iothread;
+        /// <summary>
+        /// Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
+        /// </summary>
+        public readonly string? Media;
+        /// <summary>
+        /// Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
+        /// </summary>
+        public readonly int? Queues;
+        /// <summary>
+        /// Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
+        /// </summary>
+        public readonly bool? Replicate;
+        /// <summary>
+        /// Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
+        /// </summary>
+        public readonly string? Rerror;
+        /// <summary>
+        /// Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
+        /// </summary>
+        public readonly bool? Ro;
+        /// <summary>
+        /// Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
+        /// </summary>
+        public readonly bool? Scsiblock;
+        /// <summary>
+        /// Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
+        /// </summary>
+        public readonly string? Serial;
+        /// <summary>
+        /// Mark this disk as shared across cluster nodes. Required for live migration with local storage.
+        /// </summary>
+        public readonly bool? Shared;
         /// <summary>
         /// Disk size in gigabytes.
         /// </summary>
         public readonly int Size;
         /// <summary>
+        /// Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
+        /// </summary>
+        public readonly bool? Snapshot;
+        /// <summary>
+        /// Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
+        /// </summary>
+        public readonly bool? Ssd;
+        /// <summary>
         /// Target storage pool for the disk (e.g., local-lvm, ceph-pool).
         /// </summary>
         public readonly string Storage;
+        /// <summary>
+        /// Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
+        /// </summary>
+        public readonly string? Werror;
+        /// <summary>
+        /// World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
+        /// </summary>
+        public readonly string? Wwn;
 
         [OutputConstructor]
         private Disk(
+            string? aio,
+
+            bool? backup,
+
+            Outputs.DiskBandwidth? bandwidth,
+
+            string? cache,
+
+            string? discard,
+
             string? filename,
+
+            string? format,
 
             string @interface,
 
+            bool? iothread,
+
+            string? media,
+
+            int? queues,
+
+            bool? replicate,
+
+            string? rerror,
+
+            bool? ro,
+
+            bool? scsiblock,
+
+            string? serial,
+
+            bool? shared,
+
             int size,
 
-            string storage)
+            bool? snapshot,
+
+            bool? ssd,
+
+            string storage,
+
+            string? werror,
+
+            string? wwn)
         {
+            Aio = aio;
+            Backup = backup;
+            Bandwidth = bandwidth;
+            Cache = cache;
+            Discard = discard;
             Filename = filename;
+            Format = format;
             Interface = @interface;
+            Iothread = iothread;
+            Media = media;
+            Queues = queues;
+            Replicate = replicate;
+            Rerror = rerror;
+            Ro = ro;
+            Scsiblock = scsiblock;
+            Serial = serial;
+            Shared = shared;
             Size = size;
+            Snapshot = snapshot;
+            Ssd = ssd;
             Storage = storage;
+            Werror = werror;
+            Wwn = wwn;
         }
     }
 }

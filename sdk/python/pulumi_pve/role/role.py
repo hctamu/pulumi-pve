@@ -23,7 +23,6 @@ class RoleArgs:
                  privileges: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None):
         """
         The set of arguments for constructing a Role resource.
-
         :param pulumi.Input[_builtins.str] name: The name of the Proxmox role.
         :param pulumi.Input[Sequence[pulumi.Input[_builtins.str]]] privileges: A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt').
         """
@@ -68,7 +67,6 @@ class Role(pulumi.CustomResource):
         """
         A Proxmox role resource that represents a role in the Proxmox VE.
 
-
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
         :param pulumi.Input[_builtins.str] name: The name of the Proxmox role.
@@ -82,7 +80,6 @@ class Role(pulumi.CustomResource):
                  opts: Optional[pulumi.ResourceOptions] = None):
         """
         A Proxmox role resource that represents a role in the Proxmox VE.
-
 
         :param str resource_name: The name of the resource.
         :param RoleArgs args: The arguments to use to populate this resource's properties.

@@ -2521,42 +2521,6 @@ func BenchmarkWhiteboxBuildOptionsConsistency(b *testing.B) {
 
 // TestVMCreateDiskOrderingEndToEnd provides a comprehensive test of disk ordering
 
-// buildMockVMConfig builds an api.VirtualMachine from plain parameters.
-// Used to call convertVMConfigToInputs without leaking api types outside this package.
-func buildMockVMConfig(
-	node string,
-	vmid uint64,
-	diskConfigs map[string]string,
-	efi string,
-) *api.VirtualMachine {
-	cfg := &api.VirtualMachineConfig{
-		Name:        "test-vm",
-		Description: "desc",
-	}
-	for iface, conf := range diskConfigs {
-		switch iface {
-		case "scsi0":
-			cfg.SCSI0 = conf
-		case "scsi1":
-			cfg.SCSI1 = conf
-		case "virtio0":
-			cfg.VirtIO0 = conf
-		case "ide2":
-			cfg.IDE2 = conf
-		case "sata0":
-			cfg.SATA0 = conf
-		}
-	}
-	if efi != "" {
-		cfg.EFIDisk0 = efi
-	}
-	return &api.VirtualMachine{
-		Node:                 node,
-		VMID:                 api.StringOrUint64(vmid),
-		VirtualMachineConfig: cfg,
-	}
-}
-
 func TestWhiteboxBuildVMOptionsDiskSerialization(t *testing.T) {
 	t.Parallel()
 
@@ -2580,7 +2544,8 @@ func TestWhiteboxBuildVMOptionsDiskSerialization(t *testing.T) {
 				Replicate: testutils.Ptr(false),
 				ReadOnly:  testutils.Ptr(true),
 			},
-			expected: "file=local-lvm:20,size=20,cache=writeback,aio=io_uring,discard=on,iothread=1,ssd=1,backup=0,replicate=0,ro=1",
+			expected: "file=local-lvm:20,size=20,cache=writeback,aio=io_uring,discard=on," +
+				"iothread=1,ssd=1,backup=0,replicate=0,ro=1",
 		},
 		{
 			name: "bandwidth and misc",

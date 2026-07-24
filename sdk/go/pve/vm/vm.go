@@ -26,7 +26,7 @@ type VM struct {
 	Cpu proxmox.CPUPtrOutput `pulumi:"cpu"`
 	// Description or notes for the virtual machine.
 	Description pulumi.StringPtrOutput `pulumi:"description"`
-	// List of disk configurations attached to the virtual machine.
+	// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
 	Disks proxmox.DiskArrayOutput `pulumi:"disks"`
 	// EFI disk configuration (required when bios is set to ovmf).
 	Efidisk proxmox.EfiDiskPtrOutput `pulumi:"efidisk"`
@@ -113,7 +113,7 @@ type vmArgs struct {
 	Cpu *proxmox.CPU `pulumi:"cpu"`
 	// Description or notes for the virtual machine.
 	Description *string `pulumi:"description"`
-	// List of disk configurations attached to the virtual machine.
+	// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
 	Disks []proxmox.Disk `pulumi:"disks"`
 	// EFI disk configuration (required when bios is set to ovmf).
 	Efidisk *proxmox.EfiDisk `pulumi:"efidisk"`
@@ -149,7 +149,7 @@ type VMArgs struct {
 	Cpu proxmox.CPUPtrInput
 	// Description or notes for the virtual machine.
 	Description pulumi.StringPtrInput
-	// List of disk configurations attached to the virtual machine.
+	// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
 	Disks proxmox.DiskArrayInput
 	// EFI disk configuration (required when bios is set to ovmf).
 	Efidisk proxmox.EfiDiskPtrInput
@@ -285,7 +285,7 @@ func (o VMOutput) Description() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Description }).(pulumi.StringPtrOutput)
 }
 
-// List of disk configurations attached to the virtual machine.
+// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
 func (o VMOutput) Disks() proxmox.DiskArrayOutput {
 	return o.ApplyT(func(v *VM) proxmox.DiskArrayOutput { return v.Disks }).(proxmox.DiskArrayOutput)
 }

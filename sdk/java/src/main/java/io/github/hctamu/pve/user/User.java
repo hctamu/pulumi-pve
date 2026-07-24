@@ -206,10 +206,6 @@ public class User extends com.pulumi.resources.CustomResource {
             .additionalSecretOutputs(List.of(
                 "password"
             ))
-            .replaceOnChanges(List.of(
-                "password",
-                "userid"
-            ))
             .build();
         return com.pulumi.resources.CustomResourceOptions.merge(defaultOptions, options, id);
     }
