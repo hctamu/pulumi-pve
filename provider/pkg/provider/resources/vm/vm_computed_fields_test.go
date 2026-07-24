@@ -695,7 +695,7 @@ func TestPreserveInputs_ZeroValueFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			preserved := PreserveInputs(tt.state, tt.userInputs)
+			preserved := preserveInputs(tt.state, tt.userInputs)
 			tt.check(t, preserved)
 		})
 	}
@@ -919,7 +919,7 @@ func TestPreserveCreateState_KeepsFileIDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := PreserveCreateState(tt.state, tt.userInputs)
+			result := preserveCreateState(tt.state, tt.userInputs)
 			tt.check(t, result)
 		})
 	}
@@ -1045,7 +1045,7 @@ func TestPreserveInputs_ClearsFileIDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := PreserveInputs(tt.state, tt.userInputs)
+			result := preserveInputs(tt.state, tt.userInputs)
 			tt.check(t, result)
 		})
 	}
