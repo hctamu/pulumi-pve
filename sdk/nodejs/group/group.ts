@@ -77,7 +77,7 @@ export interface GroupArgs {
     /**
      * An optional comment for the group. If not provided, defaults to 'Default group comment'.
      */
-    comment?: pulumi.Input<string>;
+    comment?: pulumi.Input<string | undefined>;
     /**
      * The name of the Proxmox group.
      */

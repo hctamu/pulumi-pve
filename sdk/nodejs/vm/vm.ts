@@ -118,7 +118,7 @@ export class VM extends pulumi.CustomResource {
             resourceInputs["autostart"] = args?.autostart;
             resourceInputs["balloon"] = args?.balloon;
             resourceInputs["clone"] = args?.clone;
-            resourceInputs["cpu"] = args ? (args.cpu ? pulumi.output(args.cpu).apply(inputs.proxmox.cpuargsProvideDefaults) : undefined) : undefined;
+            resourceInputs["cpu"] = args ? pulumi.output(args.cpu).apply(v => v === undefined ? undefined : inputs.proxmox.cpuargsProvideDefaults(v)) : undefined;
             resourceInputs["description"] = args?.description;
             resourceInputs["disks"] = args?.disks;
             resourceInputs["efidisk"] = args?.efidisk;
@@ -163,23 +163,23 @@ export interface VMArgs {
     /**
      * Automatically start the VM when the host boots (1 to enable, 0 to disable).
      */
-    autostart?: pulumi.Input<number>;
+    autostart?: pulumi.Input<number | undefined>;
     /**
      * Minimum memory for ballooning in megabytes (0 disables the balloon device).
      */
-    balloon?: pulumi.Input<number>;
+    balloon?: pulumi.Input<number | undefined>;
     /**
      * Clone configuration for creating the VM from a source template or VM.
      */
-    clone?: pulumi.Input<inputs.proxmox.CloneArgs>;
+    clone?: pulumi.Input<inputs.proxmox.CloneArgs | undefined>;
     /**
      * CPU configuration including type, topology, and feature flags.
      */
-    cpu?: pulumi.Input<inputs.proxmox.CPUArgs>;
+    cpu?: pulumi.Input<inputs.proxmox.CPUArgs | undefined>;
     /**
      * Description or notes for the virtual machine.
      */
-    description?: pulumi.Input<string>;
+    description?: pulumi.Input<string | undefined>;
     /**
      * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
      */
@@ -187,19 +187,19 @@ export interface VMArgs {
     /**
      * EFI disk configuration (required when bios is set to ovmf).
      */
-    efidisk?: pulumi.Input<inputs.proxmox.EfiDiskArgs>;
+    efidisk?: pulumi.Input<inputs.proxmox.EfiDiskArgs | undefined>;
     /**
      * Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
      */
-    hotplug?: pulumi.Input<string>;
+    hotplug?: pulumi.Input<string | undefined>;
     /**
      * Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
      */
-    machine?: pulumi.Input<string>;
+    machine?: pulumi.Input<string | undefined>;
     /**
      * Memory size in megabytes.
      */
-    memory?: pulumi.Input<number>;
+    memory?: pulumi.Input<number | undefined>;
     /**
      * Name of the virtual machine.
      */
@@ -207,21 +207,21 @@ export interface VMArgs {
     /**
      * Proxmox node where the VM resides.
      */
-    node?: pulumi.Input<string>;
+    node?: pulumi.Input<string | undefined>;
     /**
      * Guest operating system type (e.g., l26, win11, other).
      */
-    ostype?: pulumi.Input<string>;
+    ostype?: pulumi.Input<string | undefined>;
     /**
      * Tags associated with the virtual machine.
      */
-    tags?: pulumi.Input<pulumi.Input<string>[]>;
+    tags?: pulumi.Input<pulumi.Input<string>[] | undefined>;
     /**
      * Mark the VM as a template (1) or a regular VM (0).
      */
-    template?: pulumi.Input<number>;
+    template?: pulumi.Input<number | undefined>;
     /**
      * Unique numeric identifier for the virtual machine (auto-assigned if omitted).
      */
-    vmId?: pulumi.Input<number>;
+    vmId?: pulumi.Input<number | undefined>;
 }

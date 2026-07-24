@@ -19,11 +19,12 @@ __all__ = ['ApplyArgs', 'Apply']
 @pulumi.input_type
 class ApplyArgs:
     def __init__(__self__, *,
-                 apply_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
-                 lock_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
-                 triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None):
+                 apply_timeout_seconds: pulumi.Input[Optional[_builtins.int]] = None,
+                 lock_timeout_seconds: pulumi.Input[Optional[_builtins.int]] = None,
+                 triggers: pulumi.Input[Optional[Mapping[str, Any]]] = None):
         """
         The set of arguments for constructing a Apply resource.
+
         :param pulumi.Input[_builtins.int] apply_timeout_seconds: How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         :param pulumi.Input[_builtins.int] lock_timeout_seconds: How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
         :param pulumi.Input[Mapping[str, Any]] triggers: Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
@@ -41,38 +42,38 @@ class ApplyArgs:
 
     @_builtins.property
     @pulumi.getter(name="applyTimeoutSeconds")
-    def apply_timeout_seconds(self) -> Optional[pulumi.Input[_builtins.int]]:
+    def apply_timeout_seconds(self) -> pulumi.Input[Optional[_builtins.int]]:
         """
         How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
         """
         return pulumi.get(self, "apply_timeout_seconds")
 
     @apply_timeout_seconds.setter
-    def apply_timeout_seconds(self, value: Optional[pulumi.Input[_builtins.int]]):
+    def apply_timeout_seconds(self, value: pulumi.Input[Optional[_builtins.int]]):
         pulumi.set(self, "apply_timeout_seconds", value)
 
     @_builtins.property
     @pulumi.getter(name="lockTimeoutSeconds")
-    def lock_timeout_seconds(self) -> Optional[pulumi.Input[_builtins.int]]:
+    def lock_timeout_seconds(self) -> pulumi.Input[Optional[_builtins.int]]:
         """
         How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
         """
         return pulumi.get(self, "lock_timeout_seconds")
 
     @lock_timeout_seconds.setter
-    def lock_timeout_seconds(self, value: Optional[pulumi.Input[_builtins.int]]):
+    def lock_timeout_seconds(self, value: pulumi.Input[Optional[_builtins.int]]):
         pulumi.set(self, "lock_timeout_seconds", value)
 
     @_builtins.property
     @pulumi.getter
-    def triggers(self) -> Optional[pulumi.Input[Mapping[str, Any]]]:
+    def triggers(self) -> pulumi.Input[Optional[Mapping[str, Any]]]:
         """
         Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
         """
         return pulumi.get(self, "triggers")
 
     @triggers.setter
-    def triggers(self, value: Optional[pulumi.Input[Mapping[str, Any]]]):
+    def triggers(self, value: pulumi.Input[Optional[Mapping[str, Any]]]):
         pulumi.set(self, "triggers", value)
 
 
@@ -82,12 +83,13 @@ class Apply(pulumi.CustomResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 apply_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
-                 lock_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
-                 triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None,
+                 apply_timeout_seconds: pulumi.Input[Optional[_builtins.int]] = None,
+                 lock_timeout_seconds: pulumi.Input[Optional[_builtins.int]] = None,
+                 triggers: pulumi.Input[Optional[Mapping[str, Any]]] = None,
                  __props__=None):
         """
         Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
+
 
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -104,6 +106,7 @@ class Apply(pulumi.CustomResource):
         """
         Applies pending SDN configuration changes in Proxmox VE via PUT /cluster/sdn. Re-runs whenever any trigger value changes.
 
+
         :param str resource_name: The name of the resource.
         :param ApplyArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -119,9 +122,9 @@ class Apply(pulumi.CustomResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 apply_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
-                 lock_timeout_seconds: Optional[pulumi.Input[_builtins.int]] = None,
-                 triggers: Optional[pulumi.Input[Mapping[str, Any]]] = None,
+                 apply_timeout_seconds: pulumi.Input[Optional[_builtins.int]] = None,
+                 lock_timeout_seconds: pulumi.Input[Optional[_builtins.int]] = None,
+                 triggers: pulumi.Input[Optional[Mapping[str, Any]]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
         if not isinstance(opts, pulumi.ResourceOptions):

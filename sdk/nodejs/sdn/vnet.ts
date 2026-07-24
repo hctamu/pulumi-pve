@@ -119,11 +119,11 @@ export interface VnetArgs {
     /**
      * An optional descriptive alias for the VNet.
      */
-    alias?: pulumi.Input<string>;
+    alias?: pulumi.Input<string | undefined>;
     /**
      * If true, sets the isolated property for all interfaces on the bridge of this VNet.
      */
-    isolatePorts?: pulumi.Input<boolean>;
+    isolatePorts?: pulumi.Input<boolean | undefined>;
     /**
      * The unique VNI/VLAN tag for this VNet (convention: 10000 + pool number).
      */
@@ -131,7 +131,7 @@ export interface VnetArgs {
     /**
      * If true, allow guest VLANs to pass through (trunk) this VNet.
      */
-    vlanaware?: pulumi.Input<boolean>;
+    vlanaware?: pulumi.Input<boolean | undefined>;
     /**
      * The VNet identifier/name (max 8 alphanumeric characters). This is the bridge name VMs reference.
      */

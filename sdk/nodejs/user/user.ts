@@ -127,39 +127,39 @@ export interface UserArgs {
     /**
      * An optional comment for the user.
      */
-    comment?: pulumi.Input<string>;
+    comment?: pulumi.Input<string | undefined>;
     /**
      * An optional email address for the user.
      */
-    email?: pulumi.Input<string>;
+    email?: pulumi.Input<string | undefined>;
     /**
      * Whether the user is enabled. Defaults to true.
      */
-    enable?: pulumi.Input<boolean>;
+    enable?: pulumi.Input<boolean | undefined>;
     /**
      * The expiration time for the user as a Unix timestamp.
      */
-    expire?: pulumi.Input<number>;
+    expire?: pulumi.Input<number | undefined>;
     /**
      * The first name of the user.
      */
-    firstname?: pulumi.Input<string>;
+    firstname?: pulumi.Input<string | undefined>;
     /**
      * A list of groups the user belongs to.
      */
-    groups?: pulumi.Input<pulumi.Input<string>[]>;
+    groups?: pulumi.Input<pulumi.Input<string>[] | undefined>;
     /**
      * A list of SSH keys associated with the user.
      */
-    keys?: pulumi.Input<pulumi.Input<string>[]>;
+    keys?: pulumi.Input<pulumi.Input<string>[] | undefined>;
     /**
      * The last name of the user.
      */
-    lastname?: pulumi.Input<string>;
+    lastname?: pulumi.Input<string | undefined>;
     /**
      * The password for the user. This field is treated as a secret.
      */
-    password?: pulumi.Input<string>;
+    password?: pulumi.Input<string | undefined>;
     /**
      * The user ID of the Proxmox user, including the realm (e.g., 'user@pve').
      */

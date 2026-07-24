@@ -15,55 +15,55 @@ export namespace proxmox {
         /**
          * Number of CPU cores per socket.
          */
-        cores?: pulumi.Input<number>;
+        cores?: pulumi.Input<number | undefined>;
         /**
          * List of CPU flags to disable.
          */
-        flagsDisabled?: pulumi.Input<pulumi.Input<string>[]>;
+        flagsDisabled?: pulumi.Input<pulumi.Input<string>[] | undefined>;
         /**
          * List of CPU flags to enable (e.g., pcid, spec-ctrl).
          */
-        flagsEnabled?: pulumi.Input<pulumi.Input<string>[]>;
+        flagsEnabled?: pulumi.Input<pulumi.Input<string>[] | undefined>;
         /**
          * Hide VM CPU type from the guest operating system.
          */
-        hidden?: pulumi.Input<boolean>;
+        hidden?: pulumi.Input<boolean | undefined>;
         /**
          * Hyper-V vendor ID presented to the guest (up to 12 characters).
          */
-        hvVendorId?: pulumi.Input<string>;
+        hvVendorId?: pulumi.Input<string | undefined>;
         /**
          * CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).
          */
-        limit?: pulumi.Input<number>;
+        limit?: pulumi.Input<number | undefined>;
         /**
          * Enable NUMA topology.
          */
-        numa?: pulumi.Input<boolean>;
+        numa?: pulumi.Input<boolean | undefined>;
         /**
          * NUMA node topology configuration.
          */
-        numaNodes?: pulumi.Input<pulumi.Input<inputs.proxmox.NumaNodeArgs>[]>;
+        numaNodes?: pulumi.Input<pulumi.Input<inputs.proxmox.NumaNodeArgs>[] | undefined>;
         /**
          * Number of physical address bits exposed to the guest (e.g., 36, 40, 48).
          */
-        physBits?: pulumi.Input<string>;
+        physBits?: pulumi.Input<string | undefined>;
         /**
          * Number of CPU sockets.
          */
-        sockets?: pulumi.Input<number>;
+        sockets?: pulumi.Input<number | undefined>;
         /**
          * CPU type (e.g., host, kvm64, x86-64-v2-AES).
          */
-        type?: pulumi.Input<string>;
+        type?: pulumi.Input<string | undefined>;
         /**
          * CPU weight for the scheduler relative to other VMs (higher = more CPU time).
          */
-        units?: pulumi.Input<number>;
+        units?: pulumi.Input<number | undefined>;
         /**
          * Number of hotplugged vCPUs (must be <= cores * sockets).
          */
-        vcpus?: pulumi.Input<number>;
+        vcpus?: pulumi.Input<number | undefined>;
     }
     /**
      * cpuargsProvideDefaults sets the appropriate defaults for CPUArgs
@@ -82,19 +82,19 @@ export namespace proxmox {
         /**
          * Target storage pool for the cloned disks.
          */
-        dataStoreId?: pulumi.Input<string>;
+        dataStoreId?: pulumi.Input<string | undefined>;
         /**
          * Create a full independent clone instead of a linked clone.
          */
-        fullClone?: pulumi.Input<boolean>;
+        fullClone?: pulumi.Input<boolean | undefined>;
         /**
          * Target Proxmox node for the clone operation.
          */
-        node?: pulumi.Input<string>;
+        node?: pulumi.Input<string | undefined>;
         /**
          * Timeout in seconds for the clone operation.
          */
-        timeout?: pulumi.Input<number>;
+        timeout?: pulumi.Input<number | undefined>;
         /**
          * Source VM ID to clone from.
          */
@@ -108,31 +108,31 @@ export namespace proxmox {
         /**
          * Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
          */
-        aio?: pulumi.Input<string>;
+        aio?: pulumi.Input<string | undefined>;
         /**
          * Include this disk in Proxmox backups. Defaults to true when omitted; set to false to exclude the disk from backups.
          */
-        backup?: pulumi.Input<boolean>;
+        backup?: pulumi.Input<boolean | undefined>;
         /**
          * I/O throttle limits for this disk (Proxmox GUI 'Bandwidth' section). Omit to apply no throttling.
          */
-        bandwidth?: pulumi.Input<inputs.proxmox.DiskBandwidthArgs>;
+        bandwidth?: pulumi.Input<inputs.proxmox.DiskBandwidthArgs | undefined>;
         /**
          * Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. Omit to use the Proxmox default (no explicit cache setting).
          */
-        cache?: pulumi.Input<string>;
+        cache?: pulumi.Input<string | undefined>;
         /**
          * Discard/TRIM support: ignore (default) or on. Enable for thin-provisioned storage and SSDs to reclaim freed blocks.
          */
-        discard?: pulumi.Input<string>;
+        discard?: pulumi.Input<string | undefined>;
         /**
          * File name of the disk image (computed by Proxmox if not provided).
          */
-        filename?: pulumi.Input<string>;
+        filename?: pulumi.Input<string | undefined>;
         /**
          * Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
          */
-        format?: pulumi.Input<string>;
+        format?: pulumi.Input<string | undefined>;
         /**
          * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
          */
@@ -140,39 +140,39 @@ export namespace proxmox {
         /**
          * Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
          */
-        iothread?: pulumi.Input<boolean>;
+        iothread?: pulumi.Input<boolean | undefined>;
         /**
          * Media type: 'disk' (default) or 'cdrom'. Supported on all disk interfaces.
          */
-        media?: pulumi.Input<string>;
+        media?: pulumi.Input<string | undefined>;
         /**
          * Number of I/O queues for this disk. Only supported on scsi and virtio interfaces. Minimum value is 2 (enforced by Proxmox); there is no enforced upper bound.
          */
-        queues?: pulumi.Input<number>;
+        queues?: pulumi.Input<number | undefined>;
         /**
          * Include this disk in Proxmox storage replication. Defaults to true when omitted; set to false to exclude the disk from replication.
          */
-        replicate?: pulumi.Input<boolean>;
+        replicate?: pulumi.Input<boolean | undefined>;
         /**
          * Action on read I/O errors: 'ignore', 'report', or 'stop'. Proxmox default is 'report'. Supported on all disk interfaces.
          */
-        rerror?: pulumi.Input<string>;
+        rerror?: pulumi.Input<string | undefined>;
         /**
          * Mount this disk as read-only inside the guest. Only supported on scsi and virtio interfaces.
          */
-        ro?: pulumi.Input<boolean>;
+        ro?: pulumi.Input<boolean | undefined>;
         /**
          * Use the scsi-block I/O path instead of virtio-scsi. Only supported on scsi interfaces. May improve performance for some workloads.
          */
-        scsiblock?: pulumi.Input<boolean>;
+        scsiblock?: pulumi.Input<boolean | undefined>;
         /**
          * Serial number string exposed to the guest OS. Up to 60 characters; alphanumeric characters, hyphens, underscores, and dots are accepted. Commas and equals signs are rejected by Proxmox. Validated and enforced by the provider.
          */
-        serial?: pulumi.Input<string>;
+        serial?: pulumi.Input<string | undefined>;
         /**
          * Mark this disk as shared across cluster nodes. Required for live migration with local storage.
          */
-        shared?: pulumi.Input<boolean>;
+        shared?: pulumi.Input<boolean | undefined>;
         /**
          * Disk size in gigabytes.
          */
@@ -180,11 +180,11 @@ export namespace proxmox {
         /**
          * Disk is part of a Proxmox snapshot chain. This field is normally managed by Proxmox and should not be set manually.
          */
-        snapshot?: pulumi.Input<boolean>;
+        snapshot?: pulumi.Input<boolean | undefined>;
         /**
          * Emulate a solid-state drive for the guest OS (affects rotation rate hints). Supported on ide, sata, and scsi interfaces; not valid for virtio.
          */
-        ssd?: pulumi.Input<boolean>;
+        ssd?: pulumi.Input<boolean | undefined>;
         /**
          * Target storage pool for the disk (e.g., local-lvm, ceph-pool).
          */
@@ -192,11 +192,11 @@ export namespace proxmox {
         /**
          * Action on write I/O errors: 'enospc', 'ignore', 'report', or 'stop'. Proxmox default is 'enospc'. Supported on all disk interfaces.
          */
-        werror?: pulumi.Input<string>;
+        werror?: pulumi.Input<string | undefined>;
         /**
          * World Wide Name (unique disk identifier). Must be exactly 16 lowercase hex digits prefixed with '0x', e.g. 0x500a0000deadbeef. Proxmox enforces the format with a regex; invalid values are rejected at apply time.
          */
-        wwn?: pulumi.Input<string>;
+        wwn?: pulumi.Input<string | undefined>;
     }
 
     /**
@@ -206,35 +206,35 @@ export namespace proxmox {
         /**
          * Read I/O operations per second limit (0 = unlimited).
          */
-        iopsRd?: pulumi.Input<number>;
+        iopsRd?: pulumi.Input<number | undefined>;
         /**
          * Read burst I/O operations per second limit.
          */
-        iopsRdMax?: pulumi.Input<number>;
+        iopsRdMax?: pulumi.Input<number | undefined>;
         /**
          * Write I/O operations per second limit (0 = unlimited).
          */
-        iopsWr?: pulumi.Input<number>;
+        iopsWr?: pulumi.Input<number | undefined>;
         /**
          * Write burst I/O operations per second limit.
          */
-        iopsWrMax?: pulumi.Input<number>;
+        iopsWrMax?: pulumi.Input<number | undefined>;
         /**
          * Read throughput limit in MB/s (0 = unlimited).
          */
-        mbpsRd?: pulumi.Input<number>;
+        mbpsRd?: pulumi.Input<number | undefined>;
         /**
          * Read burst throughput limit in MB/s; allows temporary bursts above MBpsRd.
          */
-        mbpsRdMax?: pulumi.Input<number>;
+        mbpsRdMax?: pulumi.Input<number | undefined>;
         /**
          * Write throughput limit in MB/s (0 = unlimited).
          */
-        mbpsWr?: pulumi.Input<number>;
+        mbpsWr?: pulumi.Input<number | undefined>;
         /**
          * Write burst throughput limit in MB/s; allows temporary bursts above MBpsWr.
          */
-        mbpsWrMax?: pulumi.Input<number>;
+        mbpsWrMax?: pulumi.Input<number | undefined>;
     }
 
     /**
@@ -248,11 +248,11 @@ export namespace proxmox {
         /**
          * File name of the EFI disk image (computed by Proxmox if not provided).
          */
-        filename?: pulumi.Input<string>;
+        filename?: pulumi.Input<string | undefined>;
         /**
          * Pre-enroll Microsoft and standard UEFI keys into the EFI firmware.
          */
-        preEnrolledKeys?: pulumi.Input<boolean>;
+        preEnrolledKeys?: pulumi.Input<boolean | undefined>;
         /**
          * Target storage pool for the EFI disk (e.g., local-lvm).
          */
@@ -281,14 +281,14 @@ export namespace proxmox {
         /**
          * Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
          */
-        hostNodes?: pulumi.Input<string>;
+        hostNodes?: pulumi.Input<string | undefined>;
         /**
          * Memory in megabytes allocated to this NUMA node.
          */
-        memory?: pulumi.Input<number>;
+        memory?: pulumi.Input<number | undefined>;
         /**
          * NUMA memory allocation policy (preferred, bind, interleave, or mpol).
          */
-        policy?: pulumi.Input<string>;
+        policy?: pulumi.Input<string | undefined>;
     }
 }

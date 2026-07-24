@@ -78,13 +78,13 @@ export interface ApplyArgs {
     /**
      * How long to wait for the SDN apply task to complete, in seconds. Defaults to 60.
      */
-    applyTimeoutSeconds?: pulumi.Input<number>;
+    applyTimeoutSeconds?: pulumi.Input<number | undefined>;
     /**
      * How long to keep retrying SDN lock acquisition before failing, in seconds. Defaults to 60.
      */
-    lockTimeoutSeconds?: pulumi.Input<number>;
+    lockTimeoutSeconds?: pulumi.Input<number | undefined>;
     /**
      * Arbitrary key-value pairs that can include resource outputs or complex objects. When any trigger value changes, the SDN apply is re-executed.
      */
-    triggers?: pulumi.Input<{[key: string]: any}>;
+    triggers?: pulumi.Input<{[key: string]: any} | undefined>;
 }

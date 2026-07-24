@@ -81,5 +81,5 @@ export interface RoleArgs {
     /**
      * A list of privileges assigned to this role. Each privilege should be a string identifier (e.g., 'VM.PowerMgmt').
      */
-    privileges?: pulumi.Input<pulumi.Input<string>[]>;
+    privileges?: pulumi.Input<pulumi.Input<string>[] | undefined>;
 }

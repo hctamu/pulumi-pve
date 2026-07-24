@@ -108,7 +108,7 @@ export interface ACLArgs {
     /**
      * Whether the ACL should propagate to child objects.
      */
-    propagate?: pulumi.Input<boolean>;
+    propagate?: pulumi.Input<boolean | undefined>;
     /**
      * The role ID of the ACL.
      */

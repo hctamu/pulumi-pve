@@ -128,15 +128,15 @@ export interface VxlanZoneArgs {
     /**
      * DNS plugin ID associated with this zone.
      */
-    dns?: pulumi.Input<string>;
+    dns?: pulumi.Input<string | undefined>;
     /**
      * DNS zone/domain name used for host registrations.
      */
-    dnsZone?: pulumi.Input<string>;
+    dnsZone?: pulumi.Input<string | undefined>;
     /**
      * SDN fabric identifier used to connect this VXLAN zone to an EVPN fabric.
      */
-    fabric?: pulumi.Input<string>;
+    fabric?: pulumi.Input<string | undefined>;
     /**
      * IPAM plugin ID associated with this zone.
      */
@@ -144,7 +144,7 @@ export interface VxlanZoneArgs {
     /**
      * MTU for the VXLAN zone. If unset, Proxmox uses its automatic/default MTU.
      */
-    mtu?: pulumi.Input<number>;
+    mtu?: pulumi.Input<number | undefined>;
     /**
      * The unique VXLAN zone name.
      */
@@ -152,17 +152,17 @@ export interface VxlanZoneArgs {
     /**
      * Cluster nodes where this zone is active.
      */
-    nodes?: pulumi.Input<pulumi.Input<string>[]>;
+    nodes?: pulumi.Input<pulumi.Input<string>[] | undefined>;
     /**
      * A list of peer IP addresses in the VXLAN underlay network. Note: peers are not returned by the Proxmox API on read and will not be refreshed by `pulumi refresh`.
      */
-    peers?: pulumi.Input<pulumi.Input<string>[]>;
+    peers?: pulumi.Input<pulumi.Input<string>[] | undefined>;
     /**
      * Reverse DNS plugin ID associated with this zone.
      */
-    reverseDns?: pulumi.Input<string>;
+    reverseDns?: pulumi.Input<string | undefined>;
     /**
      * UDP destination port used for VXLAN encapsulation.
      */
-    vxlanPort?: pulumi.Input<number>;
+    vxlanPort?: pulumi.Input<number | undefined>;
 }
