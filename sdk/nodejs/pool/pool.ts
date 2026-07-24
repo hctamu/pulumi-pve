@@ -89,7 +89,7 @@ export interface PoolArgs {
     /**
      * An optional comment for the pool
      */
-    comment?: pulumi.Input<string>;
+    comment?: pulumi.Input<string | undefined>;
     /**
      * The name of the Proxmox pool.
      */
@@ -97,9 +97,9 @@ export interface PoolArgs {
     /**
      * An optional list of storage names to assign to the pool.
      */
-    storage?: pulumi.Input<pulumi.Input<string>[]>;
+    storage?: pulumi.Input<pulumi.Input<string>[] | undefined>;
     /**
      * An optional list of VM IDs to assign to the pool.
      */
-    vms?: pulumi.Input<pulumi.Input<number>[]>;
+    vms?: pulumi.Input<pulumi.Input<number>[] | undefined>;
 }

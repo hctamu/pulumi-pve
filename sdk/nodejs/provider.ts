@@ -74,13 +74,13 @@ export class Provider extends pulumi.ProviderResource {
  * The set of arguments for constructing a Provider resource.
  */
 export interface ProviderArgs {
-    insecureIgnoreHostKey?: pulumi.Input<boolean>;
-    insecureSkipVerify?: pulumi.Input<boolean>;
+    insecureIgnoreHostKey?: pulumi.Input<boolean | undefined>;
+    insecureSkipVerify?: pulumi.Input<boolean | undefined>;
     pveToken: pulumi.Input<string>;
     pveUrl: pulumi.Input<string>;
     pveUser: pulumi.Input<string>;
-    sshInterface?: pulumi.Input<string>;
-    sshKnownHostsPath?: pulumi.Input<string>;
+    sshInterface?: pulumi.Input<string | undefined>;
+    sshKnownHostsPath?: pulumi.Input<string | undefined>;
     sshPass: pulumi.Input<string>;
     sshUser: pulumi.Input<string>;
 }

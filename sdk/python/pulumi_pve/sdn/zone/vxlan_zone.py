@@ -21,16 +21,17 @@ class VxlanZoneArgs:
     def __init__(__self__, *,
                  ipam: pulumi.Input[_builtins.str],
                  name: pulumi.Input[_builtins.str],
-                 dns: Optional[pulumi.Input[_builtins.str]] = None,
-                 dns_zone: Optional[pulumi.Input[_builtins.str]] = None,
-                 fabric: Optional[pulumi.Input[_builtins.str]] = None,
-                 mtu: Optional[pulumi.Input[_builtins.int]] = None,
-                 nodes: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
-                 peers: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
-                 reverse_dns: Optional[pulumi.Input[_builtins.str]] = None,
-                 vxlan_port: Optional[pulumi.Input[_builtins.int]] = None):
+                 dns: pulumi.Input[Optional[_builtins.str]] = None,
+                 dns_zone: pulumi.Input[Optional[_builtins.str]] = None,
+                 fabric: pulumi.Input[Optional[_builtins.str]] = None,
+                 mtu: pulumi.Input[Optional[_builtins.int]] = None,
+                 nodes: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 peers: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 reverse_dns: pulumi.Input[Optional[_builtins.str]] = None,
+                 vxlan_port: pulumi.Input[Optional[_builtins.int]] = None):
         """
         The set of arguments for constructing a VxlanZone resource.
+
         :param pulumi.Input[_builtins.str] ipam: IPAM plugin ID associated with this zone.
         :param pulumi.Input[_builtins.str] name: The unique VXLAN zone name.
         :param pulumi.Input[_builtins.str] dns: DNS plugin ID associated with this zone.
@@ -89,98 +90,98 @@ class VxlanZoneArgs:
 
     @_builtins.property
     @pulumi.getter
-    def dns(self) -> Optional[pulumi.Input[_builtins.str]]:
+    def dns(self) -> pulumi.Input[Optional[_builtins.str]]:
         """
         DNS plugin ID associated with this zone.
         """
         return pulumi.get(self, "dns")
 
     @dns.setter
-    def dns(self, value: Optional[pulumi.Input[_builtins.str]]):
+    def dns(self, value: pulumi.Input[Optional[_builtins.str]]):
         pulumi.set(self, "dns", value)
 
     @_builtins.property
     @pulumi.getter(name="dnsZone")
-    def dns_zone(self) -> Optional[pulumi.Input[_builtins.str]]:
+    def dns_zone(self) -> pulumi.Input[Optional[_builtins.str]]:
         """
         DNS zone/domain name used for host registrations.
         """
         return pulumi.get(self, "dns_zone")
 
     @dns_zone.setter
-    def dns_zone(self, value: Optional[pulumi.Input[_builtins.str]]):
+    def dns_zone(self, value: pulumi.Input[Optional[_builtins.str]]):
         pulumi.set(self, "dns_zone", value)
 
     @_builtins.property
     @pulumi.getter
-    def fabric(self) -> Optional[pulumi.Input[_builtins.str]]:
+    def fabric(self) -> pulumi.Input[Optional[_builtins.str]]:
         """
         SDN fabric identifier used to connect this VXLAN zone to an EVPN fabric.
         """
         return pulumi.get(self, "fabric")
 
     @fabric.setter
-    def fabric(self, value: Optional[pulumi.Input[_builtins.str]]):
+    def fabric(self, value: pulumi.Input[Optional[_builtins.str]]):
         pulumi.set(self, "fabric", value)
 
     @_builtins.property
     @pulumi.getter
-    def mtu(self) -> Optional[pulumi.Input[_builtins.int]]:
+    def mtu(self) -> pulumi.Input[Optional[_builtins.int]]:
         """
         MTU for the VXLAN zone. If unset, Proxmox uses its automatic/default MTU.
         """
         return pulumi.get(self, "mtu")
 
     @mtu.setter
-    def mtu(self, value: Optional[pulumi.Input[_builtins.int]]):
+    def mtu(self, value: pulumi.Input[Optional[_builtins.int]]):
         pulumi.set(self, "mtu", value)
 
     @_builtins.property
     @pulumi.getter
-    def nodes(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+    def nodes(self) -> pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]]:
         """
         Cluster nodes where this zone is active.
         """
         return pulumi.get(self, "nodes")
 
     @nodes.setter
-    def nodes(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]):
+    def nodes(self, value: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]]):
         pulumi.set(self, "nodes", value)
 
     @_builtins.property
     @pulumi.getter
-    def peers(self) -> Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]:
+    def peers(self) -> pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]]:
         """
         A list of peer IP addresses in the VXLAN underlay network. Note: peers are not returned by the Proxmox API on read and will not be refreshed by `pulumi refresh`.
         """
         return pulumi.get(self, "peers")
 
     @peers.setter
-    def peers(self, value: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]]):
+    def peers(self, value: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]]):
         pulumi.set(self, "peers", value)
 
     @_builtins.property
     @pulumi.getter(name="reverseDns")
-    def reverse_dns(self) -> Optional[pulumi.Input[_builtins.str]]:
+    def reverse_dns(self) -> pulumi.Input[Optional[_builtins.str]]:
         """
         Reverse DNS plugin ID associated with this zone.
         """
         return pulumi.get(self, "reverse_dns")
 
     @reverse_dns.setter
-    def reverse_dns(self, value: Optional[pulumi.Input[_builtins.str]]):
+    def reverse_dns(self, value: pulumi.Input[Optional[_builtins.str]]):
         pulumi.set(self, "reverse_dns", value)
 
     @_builtins.property
     @pulumi.getter(name="vxlanPort")
-    def vxlan_port(self) -> Optional[pulumi.Input[_builtins.int]]:
+    def vxlan_port(self) -> pulumi.Input[Optional[_builtins.int]]:
         """
         UDP destination port used for VXLAN encapsulation.
         """
         return pulumi.get(self, "vxlan_port")
 
     @vxlan_port.setter
-    def vxlan_port(self, value: Optional[pulumi.Input[_builtins.int]]):
+    def vxlan_port(self, value: pulumi.Input[Optional[_builtins.int]]):
         pulumi.set(self, "vxlan_port", value)
 
 
@@ -190,19 +191,20 @@ class VxlanZone(pulumi.CustomResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 dns: Optional[pulumi.Input[_builtins.str]] = None,
-                 dns_zone: Optional[pulumi.Input[_builtins.str]] = None,
-                 fabric: Optional[pulumi.Input[_builtins.str]] = None,
-                 ipam: Optional[pulumi.Input[_builtins.str]] = None,
-                 mtu: Optional[pulumi.Input[_builtins.int]] = None,
-                 name: Optional[pulumi.Input[_builtins.str]] = None,
-                 nodes: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
-                 peers: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
-                 reverse_dns: Optional[pulumi.Input[_builtins.str]] = None,
-                 vxlan_port: Optional[pulumi.Input[_builtins.int]] = None,
+                 dns: pulumi.Input[Optional[_builtins.str]] = None,
+                 dns_zone: pulumi.Input[Optional[_builtins.str]] = None,
+                 fabric: pulumi.Input[Optional[_builtins.str]] = None,
+                 ipam: pulumi.Input[Optional[_builtins.str]] = None,
+                 mtu: pulumi.Input[Optional[_builtins.int]] = None,
+                 name: pulumi.Input[Optional[_builtins.str]] = None,
+                 nodes: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 peers: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 reverse_dns: pulumi.Input[Optional[_builtins.str]] = None,
+                 vxlan_port: pulumi.Input[Optional[_builtins.int]] = None,
                  __props__=None):
         """
         A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.
+
 
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -226,6 +228,7 @@ class VxlanZone(pulumi.CustomResource):
         """
         A Proxmox SDN VXLAN zone resource managed via /cluster/sdn/zones.
 
+
         :param str resource_name: The name of the resource.
         :param VxlanZoneArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -241,16 +244,16 @@ class VxlanZone(pulumi.CustomResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 dns: Optional[pulumi.Input[_builtins.str]] = None,
-                 dns_zone: Optional[pulumi.Input[_builtins.str]] = None,
-                 fabric: Optional[pulumi.Input[_builtins.str]] = None,
-                 ipam: Optional[pulumi.Input[_builtins.str]] = None,
-                 mtu: Optional[pulumi.Input[_builtins.int]] = None,
-                 name: Optional[pulumi.Input[_builtins.str]] = None,
-                 nodes: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
-                 peers: Optional[pulumi.Input[Sequence[pulumi.Input[_builtins.str]]]] = None,
-                 reverse_dns: Optional[pulumi.Input[_builtins.str]] = None,
-                 vxlan_port: Optional[pulumi.Input[_builtins.int]] = None,
+                 dns: pulumi.Input[Optional[_builtins.str]] = None,
+                 dns_zone: pulumi.Input[Optional[_builtins.str]] = None,
+                 fabric: pulumi.Input[Optional[_builtins.str]] = None,
+                 ipam: pulumi.Input[Optional[_builtins.str]] = None,
+                 mtu: pulumi.Input[Optional[_builtins.int]] = None,
+                 name: pulumi.Input[Optional[_builtins.str]] = None,
+                 nodes: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 peers: pulumi.Input[Optional[Sequence[pulumi.Input[_builtins.str]]]] = None,
+                 reverse_dns: pulumi.Input[Optional[_builtins.str]] = None,
+                 vxlan_port: pulumi.Input[Optional[_builtins.int]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
         if not isinstance(opts, pulumi.ResourceOptions):

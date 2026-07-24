@@ -71,6 +71,7 @@ class CPU(dict):
                  vcpus: Optional[_builtins.int] = None):
         """
         CPU configuration for the virtual machine.
+
         :param _builtins.int cores: Number of CPU cores per socket.
         :param Sequence[_builtins.str] flags_disabled: List of CPU flags to disable.
         :param Sequence[_builtins.str] flags_enabled: List of CPU flags to enable (e.g., pcid, spec-ctrl).
@@ -253,6 +254,7 @@ class Clone(dict):
                  timeout: Optional[_builtins.int] = None):
         """
         Configuration for cloning a source virtual machine.
+
         :param _builtins.int vm_id: Source VM ID to clone from.
         :param _builtins.str data_store_id: Target storage pool for the cloned disks.
         :param _builtins.bool full_clone: Create a full independent clone instead of a linked clone.
@@ -341,6 +343,7 @@ class Disk(dict):
                  wwn: Optional[_builtins.str] = None):
         """
         Disk configuration for the virtual machine.
+
         :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
         :param _builtins.int size: Disk size in gigabytes.
         :param _builtins.str storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
@@ -641,6 +644,7 @@ class DiskBandwidth(dict):
                  mbps_wr_max: Optional[_builtins.float] = None):
         """
         I/O throttle limits for the disk
+
         :param _builtins.int iops_rd: Read I/O operations per second limit (0 = unlimited).
         :param _builtins.int iops_rd_max: Read burst I/O operations per second limit.
         :param _builtins.int iops_wr: Write I/O operations per second limit (0 = unlimited).
@@ -761,6 +765,7 @@ class EfiDisk(dict):
                  pre_enrolled_keys: Optional[_builtins.bool] = None):
         """
         EFI disk configuration for the virtual machine.
+
         :param _builtins.str efitype: EFI firmware size: '2m' (2 MB, legacy) or '4m' (4 MB, supports Secure Boot).
         :param _builtins.str storage: Target storage pool for the EFI disk (e.g., local-lvm).
         :param _builtins.str filename: File name of the EFI disk image (computed by Proxmox if not provided).
@@ -883,6 +888,7 @@ class NumaNode(dict):
                  policy: Optional[_builtins.str] = None):
         """
         NUMA node topology configuration for the virtual machine.
+
         :param _builtins.str cpus: CPUs (and optionally threads) assigned to this NUMA node (e.g., 0-3).
         :param _builtins.str host_nodes: Host NUMA nodes to map to this virtual NUMA node (e.g., 0-1).
         :param _builtins.int memory: Memory in megabytes allocated to this NUMA node.

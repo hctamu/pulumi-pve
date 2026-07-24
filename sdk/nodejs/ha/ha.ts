@@ -83,7 +83,7 @@ export interface HAArgs {
     /**
      * The HA group identifier.
      */
-    group?: pulumi.Input<string>;
+    group?: pulumi.Input<string | undefined>;
     /**
      * The ID of the virtual machine that will be managed by HA (required).
      */
@@ -91,5 +91,5 @@ export interface HAArgs {
     /**
      * The state of the HA resource (default: started).
      */
-    state?: pulumi.Input<string>;
+    state?: pulumi.Input<string | undefined>;
 }

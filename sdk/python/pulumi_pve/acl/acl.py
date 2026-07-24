@@ -23,9 +23,10 @@ class ACLArgs:
                  roleid: pulumi.Input[_builtins.str],
                  type: pulumi.Input[_builtins.str],
                  ugid: pulumi.Input[_builtins.str],
-                 propagate: Optional[pulumi.Input[_builtins.bool]] = None):
+                 propagate: pulumi.Input[Optional[_builtins.bool]] = None):
         """
         The set of arguments for constructing a ACL resource.
+
         :param pulumi.Input[_builtins.str] path: The path of the ACL.
         :param pulumi.Input[_builtins.str] roleid: The role ID of the ACL.
         :param pulumi.Input[_builtins.str] type: The type of the ACL. Must be one of 'user', 'group', or 'token'.
@@ -89,14 +90,14 @@ class ACLArgs:
 
     @_builtins.property
     @pulumi.getter
-    def propagate(self) -> Optional[pulumi.Input[_builtins.bool]]:
+    def propagate(self) -> pulumi.Input[Optional[_builtins.bool]]:
         """
         Whether the ACL should propagate to child objects.
         """
         return pulumi.get(self, "propagate")
 
     @propagate.setter
-    def propagate(self, value: Optional[pulumi.Input[_builtins.bool]]):
+    def propagate(self, value: pulumi.Input[Optional[_builtins.bool]]):
         pulumi.set(self, "propagate", value)
 
 
@@ -106,14 +107,15 @@ class ACL(pulumi.CustomResource):
     def __init__(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 path: Optional[pulumi.Input[_builtins.str]] = None,
-                 propagate: Optional[pulumi.Input[_builtins.bool]] = None,
-                 roleid: Optional[pulumi.Input[_builtins.str]] = None,
-                 type: Optional[pulumi.Input[_builtins.str]] = None,
-                 ugid: Optional[pulumi.Input[_builtins.str]] = None,
+                 path: pulumi.Input[Optional[_builtins.str]] = None,
+                 propagate: pulumi.Input[Optional[_builtins.bool]] = None,
+                 roleid: pulumi.Input[Optional[_builtins.str]] = None,
+                 type: pulumi.Input[Optional[_builtins.str]] = None,
+                 ugid: pulumi.Input[Optional[_builtins.str]] = None,
                  __props__=None):
         """
         A Proxmox ACL resource that controls access to Proxmox objects.
+
 
         :param str resource_name: The name of the resource.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -132,6 +134,7 @@ class ACL(pulumi.CustomResource):
         """
         A Proxmox ACL resource that controls access to Proxmox objects.
 
+
         :param str resource_name: The name of the resource.
         :param ACLArgs args: The arguments to use to populate this resource's properties.
         :param pulumi.ResourceOptions opts: Options for the resource.
@@ -147,11 +150,11 @@ class ACL(pulumi.CustomResource):
     def _internal_init(__self__,
                  resource_name: str,
                  opts: Optional[pulumi.ResourceOptions] = None,
-                 path: Optional[pulumi.Input[_builtins.str]] = None,
-                 propagate: Optional[pulumi.Input[_builtins.bool]] = None,
-                 roleid: Optional[pulumi.Input[_builtins.str]] = None,
-                 type: Optional[pulumi.Input[_builtins.str]] = None,
-                 ugid: Optional[pulumi.Input[_builtins.str]] = None,
+                 path: pulumi.Input[Optional[_builtins.str]] = None,
+                 propagate: pulumi.Input[Optional[_builtins.bool]] = None,
+                 roleid: pulumi.Input[Optional[_builtins.str]] = None,
+                 type: pulumi.Input[Optional[_builtins.str]] = None,
+                 ugid: pulumi.Input[Optional[_builtins.str]] = None,
                  __props__=None):
         opts = pulumi.ResourceOptions.merge(_utilities.get_resource_opts_defaults(), opts)
         if not isinstance(opts, pulumi.ResourceOptions):
