@@ -23,26 +23,35 @@ The devcontainer is defined by `Dockerfile` (repo root) + `.devcontainer/devcont
 
 Copilot works from within the container (VSCode → "Reopen in Container"). All commands run directly in the integrated terminal with no extra setup.
 
-### OpenCode — runs on the host, shells into the container for commands
+### OpenCode — runs on host or inside devcontainer
 
-OpenCode runs on the host machine, not inside the container. To execute any build/test/lint command, prefix it with `docker exec`:
+OpenCode may run either on host or inside `pulumi-pve` devcontainer. Detect execution environment before running build, test, or lint commands:
+
+- Inside container: run commands directly from `/workspaces/pulumi-pve`.
+- On host: start container if needed, then prefix commands with `docker exec`.
 
 ```bash
-# Start the container if it isn't running (idempotent)
+# Host only: start container if it isn't running (idempotent)
 docker start pulumi-pve
 
-# Run any make/go command inside the container
+# Host: run any make/go command inside container
 docker exec -w /workspaces/pulumi-pve pulumi-pve make provider
 docker exec -w /workspaces/pulumi-pve pulumi-pve make lint
 docker exec -w /workspaces/pulumi-pve pulumi-pve make test_provider
 
+# Inside devcontainer: run commands directly
+make provider
+make lint
+make test_provider
+
 # Interactive shell (for debugging)
+# Host only:
 docker exec -it -w /workspaces/pulumi-pve pulumi-pve bash
 ```
 
-Source files are edited on the host (they are bind-mounted into the container), so file edits take effect immediately for the next `docker exec` command.
+Source files may be edited on host or inside devcontainer. Host edits are bind-mounted into container and take effect immediately for the next command.
 
-**`go.mod` lives at `provider/go.mod`**, not the repo root — all direct `go` commands must be run from `provider/` (or via `docker exec ... bash -c "cd provider && go ..."`).
+**`go.mod` lives at `provider/go.mod`**, not repo root. Run direct `go` commands from `provider/`; on host, use `docker exec ... bash -c "cd provider && go ..."`.
 
 ### On-save formatter (inside the container / VS Code only)
 
