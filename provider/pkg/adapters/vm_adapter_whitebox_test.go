@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	vmresource "github.com/hctamu/pulumi-pve/provider/pkg/provider/resources/vm"
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
@@ -837,7 +836,7 @@ func TestAddCPUDiff(t *testing.T) {
 	}
 }
 
-func TestParseCPUFromVMConfig(t *testing.T) {
+func TestWhiteboxParseCPUFromVMConfig(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -1143,7 +1142,7 @@ func TestParseCPUFromVMConfig(t *testing.T) {
 }
 
 // TestCPUAnnotate verifies that CPU.Annotate method exists and has the correct signature
-func TestBuildOptionsDiskOrdering(t *testing.T) {
+func TestWhiteboxBuildOptionsDiskOrdering(t *testing.T) {
 	t.Parallel()
 
 	// Test case with multiple disks in specific order
@@ -1267,7 +1266,7 @@ func TestBuildOptionsDiskOrdering(t *testing.T) {
 }
 
 // TestBuildOptionsConsistentOrdering verifies that multiple calls to BuildOptions
-func TestBuildOptionsConsistentOrdering(t *testing.T) {
+func TestWhiteboxBuildOptionsConsistentOrdering(t *testing.T) {
 	t.Parallel()
 
 	// Create a complex disk configuration
@@ -1317,7 +1316,7 @@ func TestBuildOptionsConsistentOrdering(t *testing.T) {
 }
 
 // TestBuildOptionsEmptyDisks verifies behavior with no disks
-func TestBuildOptionsEmptyDisks(t *testing.T) {
+func TestWhiteboxBuildOptionsEmptyDisks(t *testing.T) {
 	t.Parallel()
 
 	inputs := proxmox.VMInputs{
@@ -1334,7 +1333,7 @@ func TestBuildOptionsEmptyDisks(t *testing.T) {
 }
 
 // TestBuildOptionsDiskConfiguration verifies that disk configurations are correctly built
-func TestVMCreateDiskOrderingIntegration(t *testing.T) {
+func TestWhiteboxVMCreateDiskOrderingIntegration(t *testing.T) {
 	t.Parallel()
 
 	// Test that simulates how Create function processes disk ordering
@@ -1421,7 +1420,7 @@ func TestVMCreateDiskOrderingIntegration(t *testing.T) {
 }
 
 // TestVMCreateDiskOptionsConsistency verifies that disk options are consistently
-func TestVMCreateDiskOptionsConsistency(t *testing.T) {
+func TestWhiteboxVMCreateDiskOptionsConsistency(t *testing.T) {
 	t.Parallel()
 
 	// Complex disk configuration similar to real-world scenarios
@@ -1475,7 +1474,7 @@ func TestVMCreateDiskOptionsConsistency(t *testing.T) {
 // Benchmark tests for VM creation disk ordering
 
 // BenchmarkBuildOptionsDiskOrdering benchmarks the BuildOptions method with various disk counts
-func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
+func TestWhiteboxVMCreateDiskOrderingEndToEnd(t *testing.T) {
 	t.Parallel()
 
 	// This test simulates a real-world VM configuration that would be used
@@ -1594,7 +1593,7 @@ func TestVMCreateDiskOrderingEndToEnd(t *testing.T) {
 	})
 }
 
-func TestVMCreateDiskOrderPreservation(t *testing.T) {
+func TestWhiteboxVMCreateDiskOrderPreservation(t *testing.T) {
 	t.Parallel()
 
 	// Test cases with various disk ordering scenarios
@@ -1811,7 +1810,7 @@ func TestVMCreateDiskOrderPreservation(t *testing.T) {
 // following the pattern from group_test.go but focused on BuildOptions method
 //
 //nolint:paralleltest // mutates seam
-func TestVMCreateDiskOrderWithSeam(t *testing.T) {
+func TestWhiteboxVMCreateDiskOrderWithSeam(t *testing.T) {
 	// Test BuildOptions method directly to avoid provider context issues
 	t.Run("build_options_preserves_order", func(t *testing.T) {
 		t.Parallel()
@@ -1992,7 +1991,7 @@ func TestVMCreateDiskOrderWithSeam(t *testing.T) {
 
 // TestVMReadDiskOrderPreservation tests that VM Read operation preserves disk ordering
 // when calling ConvertVMConfigToInputs with currentInput parameter
-func TestVMReadDiskOrderPreservation(t *testing.T) {
+func TestWhiteboxVMReadDiskOrderPreservation(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -2131,7 +2130,7 @@ func TestVMReadDiskOrderPreservation(t *testing.T) {
 	}
 }
 
-func TestBuildVMOptionsTags(t *testing.T) {
+func TestWhiteboxBuildVMOptionsTags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -2194,7 +2193,7 @@ func TestBuildVMOptionsTags(t *testing.T) {
 	}
 }
 
-func TestBuildVMOptionsDiffTags(t *testing.T) {
+func TestWhiteboxBuildVMOptionsDiffTags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -2294,7 +2293,7 @@ func TestBuildVMOptionsDiffTags(t *testing.T) {
 	}
 }
 
-func TestVMReadTags(t *testing.T) {
+func TestWhiteboxVMReadTags(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -2343,7 +2342,7 @@ func TestVMReadTags(t *testing.T) {
 // Tags string (which happens for VMs created without tags), the resulting state has nil
 // tags rather than a slice containing a whitespace element.
 // Proxmox returns " " (a single space) for VMs with no tags; this must be normalised to nil.
-func TestVMReadTagsWhitespaceFromAPI(t *testing.T) {
+func TestWhiteboxVMReadTagsWhitespaceFromAPI(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -2380,7 +2379,7 @@ func TestVMReadTagsWhitespaceFromAPI(t *testing.T) {
 	}
 }
 
-func TestBuildOptionsDiskConfiguration(t *testing.T) {
+func TestWhiteboxBuildOptionsDiskConfiguration(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -2434,7 +2433,7 @@ func TestBuildOptionsDiskConfiguration(t *testing.T) {
 }
 
 // Helper functions
-func BenchmarkBuildOptionsDiskOrdering(b *testing.B) {
+func BenchmarkWhiteboxBuildOptionsDiskOrdering(b *testing.B) {
 	benchmarks := []struct {
 		name      string
 		diskCount int
@@ -2482,7 +2481,7 @@ func BenchmarkBuildOptionsDiskOrdering(b *testing.B) {
 }
 
 // BenchmarkBuildOptionsConsistency benchmarks multiple BuildOptions calls for consistency
-func BenchmarkBuildOptionsConsistency(b *testing.B) {
+func BenchmarkWhiteboxBuildOptionsConsistency(b *testing.B) {
 	// Create a realistic disk configuration
 	disks := []*proxmox.Disk{
 		createTestDisk("virtio0", "local-lvm", 32),
@@ -2558,83 +2557,138 @@ func buildMockVMConfig(
 	}
 }
 
-func TestConvertAndPreserve_NoVMIDOrNodeInPrev(t *testing.T) {
+func TestWhiteboxBuildVMOptionsDiskSerialization(t *testing.T) {
 	t.Parallel()
 
-	prev := proxmox.VMInputs{
-		Disks: []*proxmox.Disk{{
-			DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-			Interface: "scsi0",
-			Size:      32,
-		}},
+	tests := []struct {
+		name     string
+		disk     proxmox.Disk
+		expected string
+	}{
+		{
+			name: "flags",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+				Size:      20,
+				Cache:     testutils.Ptr("writeback"),
+				Aio:       testutils.Ptr("io_uring"),
+				Discard:   testutils.Ptr("on"),
+				IOThread:  testutils.Ptr(true),
+				SSD:       testutils.Ptr(true),
+				Backup:    testutils.Ptr(false),
+				Replicate: testutils.Ptr(false),
+				ReadOnly:  testutils.Ptr(true),
+			},
+			expected: "file=local-lvm:20,size=20,cache=writeback,aio=io_uring,discard=on,iothread=1,ssd=1,backup=0,replicate=0,ro=1",
+		},
+		{
+			name: "bandwidth and misc",
+			disk: proxmox.Disk{
+				Interface: "scsi0",
+				DiskBase:  proxmox.DiskBase{Storage: "local", FileID: testutils.Ptr("vm-100-disk-0.qcow2")},
+				Size:      50,
+				Bandwidth: &proxmox.DiskBandwidth{
+					MBpsRd:    testutils.Ptr(100.5),
+					MBpsRdMax: testutils.Ptr(200.0),
+					MBpsWr:    testutils.Ptr(50.0),
+					MBpsWrMax: testutils.Ptr(75.25),
+					IOPSRd:    testutils.Ptr(1000),
+					IOPSRdMax: testutils.Ptr(2000),
+					IOPSWr:    testutils.Ptr(500),
+					IOPSWrMax: testutils.Ptr(750),
+				},
+				Format:    testutils.Ptr("qcow2"),
+				Serial:    testutils.Ptr("DISK001"),
+				WWN:       testutils.Ptr("0x5000000000000001"),
+				Media:     testutils.Ptr("disk"),
+				Queues:    testutils.Ptr(8),
+				Snapshot:  testutils.Ptr(false),
+				Shared:    testutils.Ptr(true),
+				RError:    testutils.Ptr("report"),
+				WError:    testutils.Ptr("enospc"),
+				ScsiBlock: testutils.Ptr(false),
+			},
+			expected: "file=local:vm-100-disk-0.qcow2,size=50,mbps_rd=100.5,mbps_rd_max=200,mbps_wr=50," +
+				"mbps_wr_max=75.25,iops_rd=1000,iops_rd_max=2000,iops_wr=500,iops_wr_max=750,format=qcow2," +
+				"serial=DISK001,wwn=0x5000000000000001,media=disk,queues=8,snapshot=0,shared=1,rerror=report," +
+				"werror=enospc,scsiblock=0",
+		},
 	}
 
-	vm := buildMockVMConfig(
-		"pve-node1",
-		100,
-		map[string]string{"scsi0": "local-lvm:vm-100-disk-0,size=32G"},
-		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=0",
-	)
-	computed, err := convertVMConfigToInputs(vm, prev.Disks)
-	require.NoError(t, err)
-
-	preserved := vmresource.PreserveInputs(computed, prev)
-
-	require.NotNil(t, computed.VMID)
-	assert.Equal(t, 100, *computed.VMID)
-	require.NotNil(t, computed.Node)
-	assert.Equal(t, "pve-node1", *computed.Node)
-	require.Len(t, computed.Disks, 1)
-	require.NotNil(t, computed.Disks[0].FileID)
-	assert.Equal(t, "vm-100-disk-0", *computed.Disks[0].FileID)
-	require.NotNil(t, computed.EfiDisk)
-	require.NotNil(t, computed.EfiDisk.FileID)
-
-	assert.Nil(t, preserved.VMID)
-	assert.Nil(t, preserved.Node)
-	require.Len(t, preserved.Disks, 1)
-	assert.Nil(t, preserved.Disks[0].FileID)
-	require.NotNil(t, preserved.EfiDisk)
-	require.NotNil(t, preserved.EfiDisk.FileID)
-	assert.Equal(t, "vm-100-efidisk", *preserved.EfiDisk.FileID)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			options := buildVMOptions(proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.disk}})
+			require.Len(t, options, 1)
+			assert.Equal(t, tt.disk.Interface, options[0].Name)
+			assert.Equal(t, tt.expected, options[0].Value)
+		})
+	}
 }
 
-func TestConvertAndPreserve_WithVMIDAndNodeInPrev(t *testing.T) {
+func TestWhiteboxBuildVMOptionsDiffDiskChanges(t *testing.T) {
 	t.Parallel()
 
-	vmid := 100
-	node := "pve-node1"
-	prev := proxmox.VMInputs{
-		VMID: &vmid,
-		Node: &node,
-		EfiDisk: &proxmox.EfiDisk{
-			DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
-			EfiType:  proxmox.EfiType4M,
+	fileID := testutils.Ptr("vm-100-disk-0")
+	tests := []struct {
+		name       string
+		desired    proxmox.Disk
+		current    proxmox.Disk
+		wantOption bool
+		wantValue  string
+	}{
+		{
+			name: "unchanged disk omitted",
+			desired: proxmox.Disk{
+				Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: fileID}, Size: 20,
+			},
+			current: proxmox.Disk{
+				Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: fileID}, Size: 20,
+			},
 		},
-		Disks: []*proxmox.Disk{{
-			DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-			Interface: "scsi0",
-			Size:      32,
-		}},
+		{
+			name: "flag change emitted",
+			desired: proxmox.Disk{
+				Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: fileID}, Size: 20,
+				Cache: testutils.Ptr("writeback"),
+			},
+			current: proxmox.Disk{
+				Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: fileID}, Size: 20,
+			},
+			wantOption: true,
+			wantValue:  "file=local-lvm:vm-100-disk-0,size=20,cache=writeback",
+		},
+		{
+			name: "bandwidth and misc changes emitted",
+			desired: proxmox.Disk{
+				Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: fileID}, Size: 20,
+				Bandwidth: &proxmox.DiskBandwidth{MBpsRd: testutils.Ptr(100.5), IOPSWr: testutils.Ptr(500)},
+				Serial:    testutils.Ptr("DISK001"),
+				ScsiBlock: testutils.Ptr(true),
+			},
+			current: proxmox.Disk{
+				Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: fileID}, Size: 20,
+			},
+			wantOption: true,
+			wantValue:  "file=local-lvm:vm-100-disk-0,size=20,mbps_rd=100.5,iops_wr=500,serial=DISK001,scsiblock=1",
+		},
 	}
 
-	vm := buildMockVMConfig(
-		node,
-		100,
-		map[string]string{"scsi0": "local-lvm:vm-100-disk-0,size=32G"},
-		"local-lvm:vm-100-efidisk,size=1G,efitype=4m,pre-enrolled-keys=1",
-	)
-	computed, err := convertVMConfigToInputs(vm, prev.Disks)
-	require.NoError(t, err)
-
-	preserved := vmresource.PreserveInputs(computed, prev)
-
-	require.NotNil(t, preserved.VMID)
-	assert.Equal(t, vmid, *preserved.VMID)
-	require.NotNil(t, preserved.Node)
-	assert.Equal(t, node, *preserved.Node)
-	require.Len(t, preserved.Disks, 1)
-	assert.Nil(t, preserved.Disks[0].FileID)
-	require.NotNil(t, preserved.EfiDisk)
-	assert.Nil(t, preserved.EfiDisk.FileID)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			options := buildVMOptionsDiff(
+				proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.desired}},
+				&proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.current}},
+			)
+			if !tt.wantOption {
+				assert.Empty(t, options)
+				return
+			}
+			require.Len(t, options, 1)
+			assert.Equal(t, "scsi0", options[0].Name)
+			assert.Equal(t, tt.wantValue, options[0].Value)
+		})
+	}
 }

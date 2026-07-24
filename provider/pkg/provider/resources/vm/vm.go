@@ -151,7 +151,7 @@ func (vm *VM) Create(
 	}
 
 	// Build Create output from full API state, preserving computed FileIDs in the stack.
-	response.Output = proxmox.VMOutputs{VMInputs: PreserveCreateState(stateInputs, request.Inputs)}
+	response.Output = proxmox.VMOutputs{VMInputs: preserveCreateState(stateInputs, request.Inputs)}
 
 	return response, nil
 }
@@ -287,7 +287,7 @@ func (vm *VM) Read(
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, err
 	}
 
-	preservedInputs := PreserveInputs(stateInputs, request.Inputs)
+	preservedInputs := preserveInputs(stateInputs, request.Inputs)
 
 	response := infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{
 		ID:     request.ID,
