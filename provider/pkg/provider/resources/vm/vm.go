@@ -528,7 +528,7 @@ func copyMissingDiskFileIDs(inputs *proxmox.VMInputs, state proxmox.VMInputs) {
 }
 
 // buildOutputWithComputedFromState constructs VMOutputs by copying computed values (VMID, Node, FileIDs)
-// from prior state when omitted by user, and normalizing zero-valued fields to nil.
+// from prior state when omitted by user.
 func buildOutputWithComputedFromState(newInputs, oldState proxmox.VMInputs) proxmox.VMOutputs {
 	out := proxmox.VMOutputs{VMInputs: newInputs}
 
@@ -542,17 +542,6 @@ func buildOutputWithComputedFromState(newInputs, oldState proxmox.VMInputs) prox
 	merged := out.VMInputs
 	copyMissingDiskFileIDs(&merged, oldState)
 	out.VMInputs = merged
-
-	// Normalize zero-valued fields to nil (Proxmox omits them in GET responses).
-	if out.Autostart != nil && *out.Autostart == 0 {
-		out.Autostart = nil
-	}
-	if out.Balloon != nil && *out.Balloon == 0 {
-		out.Balloon = nil
-	}
-	if out.Template != nil && *out.Template == 0 {
-		out.Template = nil
-	}
 
 	return out
 }

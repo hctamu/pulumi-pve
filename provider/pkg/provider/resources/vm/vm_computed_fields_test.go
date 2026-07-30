@@ -167,6 +167,67 @@ func TestUpdateCopiesVMIDAndNodeFromState(t *testing.T) {
 	assert.Equal(t, stateNode, *resp.Output.Node)
 }
 
+// TestUpdatePreservesExplicitZeroValues verifies that explicitly setting Autostart,
+// Balloon, or Template to 0 is not silently discarded on Update. Regression test: an
+// earlier version normalized these fields to nil unconditionally, which meant an
+// explicit 0 differed from the persisted nil on every subsequent plan/up, showing a
+// perpetual (spurious) diff.
+func TestUpdatePreservesExplicitZeroValues(t *testing.T) {
+	t.Parallel()
+
+	stateVMID := 123
+	stateNode := "pve-node1"
+
+	tests := []struct {
+		name   string
+		inputs proxmox.VMInputs
+		check  func(t *testing.T, out proxmox.VMOutputs)
+	}{
+		{
+			name:   "autostart explicitly 0 is kept, not nilled",
+			inputs: proxmox.VMInputs{Autostart: testutils.Ptr(0)},
+			check: func(t *testing.T, out proxmox.VMOutputs) {
+				require.NotNil(t, out.Autostart, "autostart=0 must be preserved, not normalized to nil")
+				assert.Equal(t, 0, *out.Autostart)
+			},
+		},
+		{
+			name:   "balloon explicitly 0 is kept, not nilled",
+			inputs: proxmox.VMInputs{Balloon: testutils.Ptr(0)},
+			check: func(t *testing.T, out proxmox.VMOutputs) {
+				require.NotNil(t, out.Balloon, "balloon=0 must be preserved, not normalized to nil")
+				assert.Equal(t, 0, *out.Balloon)
+			},
+		},
+		{
+			name:   "template explicitly 0 is kept, not nilled",
+			inputs: proxmox.VMInputs{Template: testutils.Ptr(0)},
+			check: func(t *testing.T, out proxmox.VMOutputs) {
+				require.NotNil(t, out.Template, "template=0 must be preserved, not normalized to nil")
+				assert.Equal(t, 0, *out.Template)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{}
+			req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+				ID:     "vm-123",
+				DryRun: true,
+				Inputs: tt.inputs,
+				State:  proxmox.VMOutputs{VMInputs: proxmox.VMInputs{VMID: &stateVMID, Node: &stateNode}},
+			}
+
+			resp, err := vm.Update(context.Background(), req)
+			require.NoError(t, err)
+			tt.check(t, resp.Output)
+		})
+	}
+}
+
 func TestUpdateCopiesDiskFileIDsFromState(t *testing.T) {
 	t.Parallel()
 

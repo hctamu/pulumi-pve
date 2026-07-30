@@ -891,10 +891,13 @@ func TestVMAutostartLifeCycle(t *testing.T) {
 				"disks":     emptyDisks,
 			}),
 			Hook: func(_, out property.Map) {
-				// After update, output comes from re-reading Proxmox. Proxmox omits
-				// autostart=0 in GET responses (json:",omitempty"), so the field is null.
+				// No disks changed, so Update does not re-read from Proxmox; output is
+				// built directly from the user's inputs. autostart=0 must be preserved
+				// as-is (not normalized to null), otherwise the next plan would show a
+				// perpetual spurious diff against the user's explicit autostart=0.
 				outAutostart := out.Get("autostart")
-				assert.True(t, outAutostart.IsNull(), "expected autostart to be null in update output (Proxmox omits 0)")
+				require.False(t, outAutostart.IsNull(), "expected autostart=0 to be preserved in update output")
+				assert.Equal(t, float64(0), outAutostart.AsNumber())
 			},
 		}},
 	}.Run(t, pulumiServer)
