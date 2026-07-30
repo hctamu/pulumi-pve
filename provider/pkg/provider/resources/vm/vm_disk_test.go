@@ -38,7 +38,6 @@ func TestVMDiffDisksChange(t *testing.T) {
 		inputDisks     []*proxmox.Disk
 		stateDisks     []*proxmox.Disk
 		expectChange   bool
-		expectError    bool
 		expectDiffKeys map[string]p.DiffKind
 	}{
 		{
@@ -183,17 +182,18 @@ func TestVMDiffDisksChange(t *testing.T) {
 			expectChange: false,
 		},
 		{
-			name: "disk shrunk returns error at diff time",
+			name: "disk shrunk is a normal diff, not a Diff-time error",
 			inputDisks: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
 			},
 			stateDisks: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
-			expectError: true,
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks[0].size": p.Update},
 		},
 		{
-			name: "disk storage changed returns error at diff time",
+			name: "disk storage changed is a normal diff, not a Diff-time error",
 			inputDisks: []*proxmox.Disk{{
 				DiskBase:  proxmox.DiskBase{Storage: "ceph-pool"},
 				Size:      40,
@@ -204,7 +204,8 @@ func TestVMDiffDisksChange(t *testing.T) {
 				Size:      40,
 				Interface: "scsi0",
 			}},
-			expectError: true,
+			expectChange:   true,
+			expectDiffKeys: map[string]p.DiffKind{"disks[0].storage": p.Update},
 		},
 	}
 
@@ -228,11 +229,6 @@ func TestVMDiffDisksChange(t *testing.T) {
 			}
 
 			resp, err := vmInstance.Diff(context.Background(), req)
-			if tt.expectError {
-				require.Error(t, err)
-				return
-			}
-
 			require.NoError(t, err)
 
 			if tt.expectChange {

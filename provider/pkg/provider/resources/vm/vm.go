@@ -70,7 +70,81 @@ func (vm *VM) Check(
 		}
 	}
 
+	failures = append(failures, checkDuplicateDiskInterfaces(inputs.Disks)...)
+
+	oldInputs, _, _ := infer.DefaultCheck[proxmox.VMInputs](context.Background(), req.OldInputs)
+	failures = append(failures, checkDiskShrink(inputs.Disks, oldInputs.Disks)...)
+	failures = append(failures, checkDiskFileIDConflict(inputs.Disks, oldInputs.Disks)...)
+
 	return infer.CheckResponse[proxmox.VMInputs]{Inputs: inputs, Failures: failures}, nil
+}
+
+// checkDuplicateDiskInterfaces returns a CheckFailure for every disk whose Interface
+// repeats one already seen. Duplicate interfaces would silently collide when keyed by
+// interface during diffing and reconciliation (only the last one survives).
+func checkDuplicateDiskInterfaces(disks []*proxmox.Disk) []p.CheckFailure {
+	seen := make(map[string]struct{}, len(disks))
+	var failures []p.CheckFailure
+	for _, disk := range disks {
+		if disk == nil {
+			continue
+		}
+		if _, ok := seen[disk.Interface]; ok {
+			failures = append(failures, p.CheckFailure{
+				Property: "disks",
+				Reason: fmt.Sprintf(
+					"duplicate disk interface %q: each disk must have a unique interface",
+					disk.Interface,
+				),
+			})
+			continue
+		}
+		seen[disk.Interface] = struct{}{}
+	}
+	return failures
+}
+
+// checkDiskFileIDConflict returns a CheckFailure for every disk whose explicit FileID
+// differs from its current (state) FileID. Changing a disk's underlying volume binding
+// is not supported; the disk must be recreated instead.
+func checkDiskFileIDConflict(desired, current []*proxmox.Disk) []p.CheckFailure {
+	var failures []p.CheckFailure
+	for iface, ifaceChanges := range proxmox.CompareDisksByInterface(desired, current) {
+		for _, change := range ifaceChanges {
+			if change.Type == proxmox.DiskFileIDChanged {
+				failures = append(failures, p.CheckFailure{
+					Property: "disks",
+					Reason: fmt.Sprintf(
+						"disk %s: changing the volume binding (fileID) is not supported; "+
+							"remove the fileId field or recreate the disk",
+						iface,
+					),
+				})
+			}
+		}
+	}
+	return failures
+}
+
+// checkDiskShrink returns a CheckFailure for every disk whose desired size is smaller than
+// its current size. Proxmox does not support shrinking a disk in place.
+func checkDiskShrink(desired, current []*proxmox.Disk) []p.CheckFailure {
+	var failures []p.CheckFailure
+	for iface, ifaceChanges := range proxmox.CompareDisksByInterface(desired, current) {
+		for _, change := range ifaceChanges {
+			if change.Type == proxmox.DiskShrunk {
+				failures = append(failures, p.CheckFailure{
+					Property: "disks",
+					Reason: fmt.Sprintf(
+						"disk %s: shrinking disks is not supported by Proxmox; "+
+							"increase the size or replace the resource",
+						iface,
+					),
+				})
+			}
+		}
+	}
+	return failures
 }
 
 // Create creates a new virtual machine based on the provided inputs.
@@ -224,6 +298,11 @@ func (vm *VM) reconcileDisks(
 	for _, ifaceChanges := range changes {
 		for i := range ifaceChanges {
 			change := &ifaceChanges[i]
+			// Validate before any mutating call below: a rejected FileID change must
+			// not leave a resize (or other API call) already applied.
+			if err := propagateFileID(change); err != nil {
+				return err
+			}
 			switch change.Type {
 			case proxmox.DiskShrunk:
 				return fmt.Errorf(
@@ -246,9 +325,6 @@ func (vm *VM) reconcileDisks(
 					return fmt.Errorf("failed to resize disk %s: %w", change.Interface, err)
 				}
 			case proxmox.DiskAdded, proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged, proxmox.DiskUnchanged:
-			}
-			if err := propagateFileID(change); err != nil {
-				return err
 			}
 		}
 	}
@@ -588,13 +664,14 @@ func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
 	return false
 }
 
-// disksDiff compares desired and current disk slices using interface-based identity.
-// It returns a map of property diffs keyed by "disks[N]" or "disks[N].property",
-// and returns an error for unsupported operations (shrink, storage migration).
+// disksDiff compares desired and current disk slices using interface-based identity and
+// returns a map of property diffs keyed by "disks[N]" or "disks[N].property". Unsupported
+// operations (shrink, storage migration) are surfaced as normal diffs here; rejecting them
+// is Check's responsibility, not Diff's.
 //
 // Per-property diffs are emitted for changed disks so that Pulumi does not treat
 // computed fields (e.g. filename) as removed when the user omits them from inputs.
-func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDiff, error) {
+func disksDiff(inputDisks, stateDisks []*proxmox.Disk) map[string]p.PropertyDiff {
 	// Build interface → index maps for both slices so we can emit "disks[N]" keys.
 	inputIdxByIface := make(map[string]int, len(inputDisks))
 	for idx, disk := range inputDisks {
@@ -612,8 +689,11 @@ func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDif
 	changes := proxmox.CompareDisksByInterface(inputDisks, stateDisks)
 	diffs := make(map[string]p.PropertyDiff)
 
-	// Removed disks are processed first so an interface rename (remove+add landing on the
-	// same "disks[N]" index) resolves deterministically with Add winning.
+	// Different interfaces can collide on the same "disks[N]" key when an interface is
+	// renamed: e.g. scsi0 (removed, was index 0 in state) -> scsi1 (added, index 0 in
+	// inputs) both target "disks[0]". Since changes is a map, iteration order across the
+	// two interfaces is random; writing all Deletes first and Adds second (below)
+	// guarantees Add always wins the collision instead of it being non-deterministic.
 	for iface, ifaceChanges := range changes {
 		for _, change := range ifaceChanges {
 			if change.Type == proxmox.DiskRemoved {
@@ -632,19 +712,8 @@ func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDif
 			case proxmox.DiskAdded:
 				idx := inputIdxByIface[iface]
 				diffs[fmt.Sprintf("%s[%d]", disksInputName, idx)] = p.PropertyDiff{Kind: p.Add}
-			case proxmox.DiskShrunk:
-				return nil, fmt.Errorf(
-					"disk %s: shrinking disks is not supported by Proxmox; "+
-						"increase the size or replace the resource",
-					iface,
-				)
-			case proxmox.DiskStorageChanged:
-				return nil, fmt.Errorf(
-					"disk %s: storage migration is not supported yet; "+
-						"recreate the disk on the target storage",
-					iface,
-				)
-			case proxmox.DiskResized, proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged:
+			case proxmox.DiskShrunk, proxmox.DiskStorageChanged,
+				proxmox.DiskResized, proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged:
 				needsPropertyDiff = true
 				desired, current = change.Desired, change.Current
 			case proxmox.DiskRemoved, proxmox.DiskUnchanged:
@@ -662,7 +731,7 @@ func disksDiff(inputDisks, stateDisks []*proxmox.Disk) (map[string]p.PropertyDif
 		}
 	}
 
-	return diffs, nil
+	return diffs
 }
 
 // diskPropertyDiffs returns per-property diff entries for a disk that has changed.
@@ -870,11 +939,7 @@ func (vm *VM) Diff(
 			inputDisks, okIn := inField.Interface().([]*proxmox.Disk)
 			stateDisks, okState := stateField.Interface().([]*proxmox.Disk)
 			if okIn && okState {
-				diskDiffs, err := disksDiff(inputDisks, stateDisks)
-				if err != nil {
-					return p.DiffResponse{}, err
-				}
-				maps.Copy(diff, diskDiffs)
+				maps.Copy(diff, disksDiff(inputDisks, stateDisks))
 			}
 		case inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice:
 			// Handle remaining slices (e.g. Tags []string)
