@@ -261,6 +261,9 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 				if tt.wantErrContains != "" {
 					assert.Contains(t, err.Error(), tt.wantErrContains)
 				}
+				// A rejected disk change must not have applied any mutating call first.
+				assert.Empty(t, removedDisks, "no disk should be removed when Update errors")
+				assert.Empty(t, resizedDisks, "no disk should be resized when Update errors")
 				return
 			}
 

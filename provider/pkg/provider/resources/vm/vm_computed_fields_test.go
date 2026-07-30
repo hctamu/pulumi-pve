@@ -1145,3 +1145,191 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 	require.NotNil(t, updateResp.Output.EfiDisk.FileID, "EFI FileID must propagate from state to Update output")
 	assert.Equal(t, efiFileID, *updateResp.Output.EfiDisk.FileID)
 }
+
+func TestCheckDiskShrink(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		desired      []*proxmox.Disk
+		current      []*proxmox.Disk
+		wantFailures int
+	}{
+		{
+			name: "shrink is rejected",
+			desired: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			current: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
+			},
+			wantFailures: 1,
+		},
+		{
+			name: "grow is allowed",
+			desired: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
+			},
+			current: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "new disk (no prior state) is allowed",
+			desired: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			current:      nil,
+			wantFailures: 0,
+		},
+		{
+			name: "one shrunk among several disks is rejected, others ignored",
+			desired: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 10, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi1"},
+			},
+			current: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi1"},
+			},
+			wantFailures: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			failures := checkDiskShrink(tt.desired, tt.current)
+			assert.Len(t, failures, tt.wantFailures)
+			for _, f := range failures {
+				assert.Equal(t, "disks", f.Property)
+			}
+		})
+	}
+}
+
+func TestCheckDiskFileIDConflict(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		desired      []*proxmox.Disk
+		current      []*proxmox.Disk
+		wantFailures int
+	}{
+		{
+			name: "explicit fileID differing from state is rejected",
+			desired: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-1")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			current: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantFailures: 1,
+		},
+		{
+			name: "fileID omitted is allowed",
+			desired: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			current: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "matching explicit fileID is allowed",
+			desired: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			current: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("local-lvm:vm-100-disk-0")},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantFailures: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			failures := checkDiskFileIDConflict(tt.desired, tt.current)
+			assert.Len(t, failures, tt.wantFailures)
+			for _, f := range failures {
+				assert.Equal(t, "disks", f.Property)
+			}
+		})
+	}
+}
+
+func TestCheckDuplicateDiskInterfaces(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		disks        []*proxmox.Disk
+		wantFailures int
+	}{
+		{
+			name: "unique interfaces are allowed",
+			disks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi1"},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "duplicate interface is rejected",
+			disks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "scsi0"},
+			},
+			wantFailures: 1,
+		},
+		{
+			name: "triple duplicate reports one failure per repeat",
+			disks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
+			},
+			wantFailures: 2,
+		},
+		{
+			name:         "empty disks is allowed",
+			disks:        nil,
+			wantFailures: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			failures := checkDuplicateDiskInterfaces(tt.disks)
+			assert.Len(t, failures, tt.wantFailures)
+			for _, f := range failures {
+				assert.Equal(t, "disks", f.Property)
+			}
+		})
+	}
+}
