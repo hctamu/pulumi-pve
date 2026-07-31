@@ -89,14 +89,14 @@ func TestVMDiffComputedFields(t *testing.T) {
 					Name:  "test-vm",
 					VMID:  tt.inputVMID,
 					Node:  tt.inputNode,
-					Disks: []*proxmox.Disk{},
+					Disks: proxmox.DiskList{},
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
 						Name:  "test-vm",
 						VMID:  tt.stateVMID,
 						Node:  tt.stateNode,
-						Disks: []*proxmox.Disk{},
+						Disks: proxmox.DiskList{},
 					},
 				},
 			}
@@ -175,7 +175,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 					CPU: &proxmox.CPU{
 						Cores: tt.inputCores,
 					},
-					Disks: []*proxmox.Disk{},
+					Disks: proxmox.DiskList{},
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
@@ -184,7 +184,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 						CPU: &proxmox.CPU{
 							Cores: tt.stateCores,
 						},
-						Disks: []*proxmox.Disk{},
+						Disks: proxmox.DiskList{},
 					},
 				},
 			}
@@ -209,7 +209,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 			CPU: &proxmox.CPU{
 				Cores: testutils.Ptr(4),
 			},
-			Disks: []*proxmox.Disk{
+			Disks: proxmox.DiskList{
 				{Size: 50, Interface: "scsi0"},
 			},
 			EfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
@@ -221,7 +221,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 				CPU: &proxmox.CPU{
 					Cores: testutils.Ptr(2),
 				},
-				Disks: []*proxmox.Disk{
+				Disks: proxmox.DiskList{
 					{Size: 40, Interface: "scsi0"},
 				},
 				EfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType2M},

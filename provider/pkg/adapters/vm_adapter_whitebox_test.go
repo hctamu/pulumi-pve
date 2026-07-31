@@ -2333,7 +2333,7 @@ func TestWhiteboxVMReadTags(t *testing.T) {
 			result, err := convertVMConfigToInputs(vm, nil)
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.wantTags, result.Tags)
+			assert.Equal(t, tt.wantTags, []string(result.Tags))
 		})
 	}
 }
@@ -2373,7 +2373,7 @@ func TestWhiteboxVMReadTagsWhitespaceFromAPI(t *testing.T) {
 			result, err := convertVMConfigToInputs(vm, nil)
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.wantTags, result.Tags,
+			assert.Equal(t, tt.wantTags, []string(result.Tags),
 				"whitespace-only Tags string from API should produce nil tags, not %v", result.Tags)
 		})
 	}

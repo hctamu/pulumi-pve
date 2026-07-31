@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"reflect"
 	"time"
 
@@ -30,9 +29,6 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
-
-// disksInputName is the pulumi property name used for disk diff tracking.
-const disksInputName = "disks"
 
 // VM represents a Proxmox virtual machine resource.
 type VM struct {
@@ -653,230 +649,6 @@ func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
 	return false
 }
 
-// disksDiff compares desired and current disk slices using interface-based identity and
-// returns a map of property diffs keyed by "disks[N]" or "disks[N].property". Unsupported
-// operations (shrink, storage migration) are surfaced as normal diffs here; rejecting them
-// is Check's responsibility, not Diff's.
-//
-// Per-property diffs are emitted for changed disks so that Pulumi does not treat
-// computed fields (e.g. filename) as removed when the user omits them from inputs.
-func disksDiff(inputDisks, stateDisks []*proxmox.Disk) map[string]p.PropertyDiff {
-	// Build interface → index maps for both slices so we can emit "disks[N]" keys.
-	inputIdxByIface := make(map[string]int, len(inputDisks))
-	for idx, disk := range inputDisks {
-		if disk != nil {
-			inputIdxByIface[disk.Interface] = idx
-		}
-	}
-	stateIdxByIface := make(map[string]int, len(stateDisks))
-	for idx, disk := range stateDisks {
-		if disk != nil {
-			stateIdxByIface[disk.Interface] = idx
-		}
-	}
-
-	changes := proxmox.CompareDisksByInterface(inputDisks, stateDisks)
-	diffs := make(map[string]p.PropertyDiff)
-
-	// Different interfaces can collide on the same "disks[N]" key when an interface is
-	// renamed: e.g. scsi0 (removed, was index 0 in state) -> scsi1 (added, index 0 in
-	// inputs) both target "disks[0]". Since changes is a map, iteration order across the
-	// two interfaces is random; writing all Deletes first and Adds second (below)
-	// guarantees Add always wins the collision instead of it being non-deterministic.
-	for iface, ifaceChanges := range changes {
-		for _, change := range ifaceChanges {
-			if change.Type == proxmox.DiskRemoved {
-				idx := stateIdxByIface[iface]
-				diffs[fmt.Sprintf("%s[%d]", disksInputName, idx)] = p.PropertyDiff{Kind: p.Delete}
-			}
-		}
-	}
-
-	for iface, ifaceChanges := range changes {
-		var needsPropertyDiff bool
-		var desired, current *proxmox.Disk
-
-		for _, change := range ifaceChanges {
-			switch change.Type {
-			case proxmox.DiskAdded:
-				idx := inputIdxByIface[iface]
-				diffs[fmt.Sprintf("%s[%d]", disksInputName, idx)] = p.PropertyDiff{Kind: p.Add}
-			case proxmox.DiskShrunk, proxmox.DiskStorageChanged,
-				proxmox.DiskResized, proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged:
-				needsPropertyDiff = true
-				desired, current = change.Desired, change.Current
-			case proxmox.DiskRemoved, proxmox.DiskUnchanged:
-				// Removed handled above; unchanged emits nothing to avoid false positives
-				// on computed fields like filename.
-			}
-		}
-
-		if needsPropertyDiff {
-			idx := inputIdxByIface[iface]
-			prefix := fmt.Sprintf("%s[%d]", disksInputName, idx)
-			for propKey, propDiff := range diskPropertyDiffs(prefix, desired, current) {
-				diffs[propKey] = propDiff
-			}
-		}
-	}
-
-	return diffs
-}
-
-// diskPropertyDiffs returns per-property diff entries for a disk that has changed.
-// prefix is the base path, e.g. "disks[0]". Only fields that actually differ are
-// included. filename (fileId) is only emitted when both sides are non-nil and
-// different, matching the "computed if absent" semantics of that field.
-func diskPropertyDiffs(prefix string, des, cur *proxmox.Disk) map[string]p.PropertyDiff {
-	diffs := make(map[string]p.PropertyDiff)
-	changed := func(key string) {
-		diffs[prefix+"."+key] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	if des == nil || cur == nil {
-		return diffs
-	}
-
-	if des.Size != cur.Size {
-		changed("size")
-	}
-	if des.Storage != cur.Storage {
-		changed("storage")
-	}
-	// filename is computed by Proxmox when absent in inputs; only flag it when
-	// the user explicitly provided a value and it differs from the current one.
-	if des.FileID != nil && cur.FileID != nil && *des.FileID != *cur.FileID {
-		changed("filename")
-	}
-	if !utils.PtrEqual(des.Cache, cur.Cache) {
-		changed("cache")
-	}
-	if !utils.PtrEqual(des.Aio, cur.Aio) {
-		changed("aio")
-	}
-	if !utils.PtrEqual(des.Discard, cur.Discard) {
-		changed("discard")
-	}
-	if !utils.PtrEqual(des.IOThread, cur.IOThread) {
-		changed("iothread")
-	}
-	if !utils.PtrEqual(des.SSD, cur.SSD) {
-		changed("ssd")
-	}
-	if !utils.PtrEqual(des.Backup, cur.Backup) {
-		changed("backup")
-	}
-	if !utils.PtrEqual(des.Replicate, cur.Replicate) {
-		changed("replicate")
-	}
-	if !utils.PtrEqual(des.ReadOnly, cur.ReadOnly) {
-		changed("ro")
-	}
-	if des.Format != nil && cur.Format != nil && *des.Format != *cur.Format {
-		changed("format")
-	}
-	if !utils.PtrEqual(des.Serial, cur.Serial) {
-		changed("serial")
-	}
-	if !utils.PtrEqual(des.WWN, cur.WWN) {
-		changed("wwn")
-	}
-	if !utils.PtrEqual(des.Media, cur.Media) {
-		changed("media")
-	}
-	if !utils.PtrEqual(des.Queues, cur.Queues) {
-		changed("queues")
-	}
-	if !utils.PtrEqual(des.Snapshot, cur.Snapshot) {
-		changed("snapshot")
-	}
-	if !utils.PtrEqual(des.Shared, cur.Shared) {
-		changed("shared")
-	}
-	if !utils.PtrEqual(des.RError, cur.RError) {
-		changed("rerror")
-	}
-	if !utils.PtrEqual(des.WError, cur.WError) {
-		changed("werror")
-	}
-	if !utils.PtrEqual(des.ScsiBlock, cur.ScsiBlock) {
-		changed("scsiblock")
-	}
-	if proxmox.BandwidthChanged(des.Bandwidth, cur.Bandwidth) {
-		changed("bandwidth")
-	}
-
-	return diffs
-}
-
-// compareEfiDiskFields compares two EfiDisk instances and returns a map of property diffs
-// for each changed field. This provides granular diff information instead of treating
-// the entire efidisk as a single changed property.
-func compareEfiDiskFields(inputEfi, stateEfi *proxmox.EfiDisk) map[string]p.PropertyDiff {
-	diffs := make(map[string]p.PropertyDiff)
-
-	// Compare Storage
-	if inputEfi.Storage != stateEfi.Storage {
-		diffs["efidisk.storage"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	// Compare EfiType
-	if inputEfi.EfiType != stateEfi.EfiType {
-		diffs["efidisk.efitype"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	// Compare PreEnrolledKeys
-	switch {
-	case inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys != nil:
-		if *inputEfi.PreEnrolledKeys != *stateEfi.PreEnrolledKeys {
-			diffs["efidisk.preEnrolledKeys"] = p.PropertyDiff{Kind: p.Update}
-		}
-	case inputEfi.PreEnrolledKeys != nil && stateEfi.PreEnrolledKeys == nil:
-		diffs["efidisk.preEnrolledKeys"] = p.PropertyDiff{Kind: p.Update}
-	case inputEfi.PreEnrolledKeys == nil && stateEfi.PreEnrolledKeys != nil:
-		diffs["efidisk.preEnrolledKeys"] = p.PropertyDiff{Kind: p.Update}
-	}
-
-	// Only compare FileID if input explicitly set it (not nil)
-	if inputEfi.FileID != nil && stateEfi.FileID != nil {
-		if *inputEfi.FileID != *stateEfi.FileID {
-			diffs["efidisk.fileId"] = p.PropertyDiff{Kind: p.Update}
-		}
-	} else if inputEfi.FileID != nil && stateEfi.FileID == nil {
-		diffs["efidisk.fileId"] = p.PropertyDiff{Kind: p.Update}
-	}
-	// If input.FileID is nil but state.FileID has value, ignore it (computed field)
-
-	return diffs
-}
-
-// handleEfiDiskDiff processes EfiDisk field comparison.
-// Returns a map of property diffs.
-func handleEfiDiskDiff(inField, stateField reflect.Value) (map[string]p.PropertyDiff, error) {
-	inNil := inField.IsNil()
-	stateNil := stateField.IsNil()
-	efiDiffs := make(map[string]p.PropertyDiff)
-
-	// EfiDisk added or removed
-	if inNil != stateNil {
-		efiDiffs[proxmox.EfiDiskInputName] = p.PropertyDiff{Kind: p.Update}
-		return efiDiffs, nil
-	}
-
-	// Both non-nil: compare with granular diffs
-	if !inNil && !stateNil {
-		inputEfi, okIn := inField.Interface().(*proxmox.EfiDisk)
-		stateEfi, okState := stateField.Interface().(*proxmox.EfiDisk)
-		if !okIn || !okState {
-			return nil, errors.New("failed to assert EfiDisk types during diff")
-		}
-
-		efiDiffs = compareEfiDiskFields(inputEfi, stateEfi)
-	}
-
-	return efiDiffs, nil
-}
-
 // Diff implements a custom diff so that computed fields like vmId (and node when auto-selected)
 // do not force spurious updates when they were not explicitly set by the user. All other
 // properties follow a pointer/value comparison semantics: changed value -> Update; for vmId a
@@ -913,26 +685,15 @@ func (vm *VM) Diff(
 		inField := inVal.Field(i)
 		stateField := stateVal.Field(i)
 
-		var propertyDiff *p.PropertyDiff
+		if differ, ok := inField.Interface().(proxmox.FieldDiffer); ok {
+			for key, propertyDiff := range differ.DiffFrom(name, stateField.Interface()) {
+				diff[key] = propertyDiff
+			}
+			continue
+		}
 
+		var propertyDiff *p.PropertyDiff
 		switch {
-		case name == proxmox.EfiDiskInputName:
-			var efiDiff map[string]p.PropertyDiff
-			efiDiff, diffErr := handleEfiDiskDiff(inField, stateField)
-			if diffErr != nil {
-				return p.DiffResponse{}, diffErr
-			}
-			// Handle EfiDisk with granular diff support
-			maps.Copy(diff, efiDiff)
-		case name == disksInputName:
-			inputDisks, okIn := inField.Interface().([]*proxmox.Disk)
-			stateDisks, okState := stateField.Interface().([]*proxmox.Disk)
-			if okIn && okState {
-				maps.Copy(diff, disksDiff(inputDisks, stateDisks))
-			}
-		case inField.Kind() == reflect.Slice || stateField.Kind() == reflect.Slice:
-			// Handle remaining slices (e.g. Tags []string)
-			propertyDiff = compareSliceFields(name, inField, stateField)
 		case inField.Kind() == reflect.Pointer || stateField.Kind() == reflect.Pointer:
 			// Handle pointer fields with special cases
 			propertyDiff = comparePointerFields(name, inField, stateField, computed)
@@ -991,29 +752,6 @@ func comparePointerFields(
 		return &p.PropertyDiff{Kind: kind}
 	}
 
-	return nil
-}
-
-// compareSliceFields compares slice fields and returns a PropertyDiff if they differ.
-// Disk slices are handled separately via disksDiff() in Diff(). Returns nil if no difference.
-func compareSliceFields(name string, inField, stateField reflect.Value) *p.PropertyDiff {
-	// Compare tags order-insensitively: Proxmox returns tags sorted alphabetically regardless
-	// of the order the user specified, so ["web","prod"] and ["prod","web"] are the same set.
-	if name == "tags" {
-		inputTags, okIn := inField.Interface().([]string)
-		stateTags, okState := stateField.Interface().([]string)
-		if okIn && okState {
-			if utils.StringSliceChanged(inputTags, stateTags) {
-				return &p.PropertyDiff{Kind: p.Update}
-			}
-			return nil
-		}
-	}
-
-	// Compare other slices with DeepEqual
-	if !reflect.DeepEqual(inField.Interface(), stateField.Interface()) {
-		return &p.PropertyDiff{Kind: p.Update}
-	}
 	return nil
 }
 

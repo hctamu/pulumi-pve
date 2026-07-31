@@ -35,8 +35,8 @@ func TestVMDiffTags(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		inputTags    []string
-		stateTags    []string
+		inputTags    proxmox.TagList
+		stateTags    proxmox.TagList
 		expectChange bool
 	}{
 		{
@@ -208,7 +208,12 @@ func TestVMCreatePassesTags(t *testing.T) {
 
 			resp, err := vmResource.Create(context.Background(), req)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedTags, resp.Output.Tags, "expected output state tags to match normalised mock response")
+			assert.Equal(
+				t,
+				tt.expectedTags,
+				[]string(resp.Output.Tags),
+				"expected output state tags to match normalised mock response",
+			)
 		})
 	}
 }
@@ -291,7 +296,7 @@ func TestVMReadReturnsTags(t *testing.T) {
 
 			resp, err := vmResource.Read(context.Background(), req)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedTags, resp.State.Tags, "expected state tags from Read")
+			assert.Equal(t, tt.expectedTags, []string(resp.State.Tags), "expected state tags from Read")
 		})
 	}
 }
@@ -375,7 +380,7 @@ func TestVMReadPreservesUserTagOrder(t *testing.T) {
 
 			resp, err := vmResource.Read(context.Background(), req)
 			require.NoError(t, err)
-			assert.Equal(t, tt.expectedTags, resp.Inputs.Tags, "expected preserved inputs to have user tag order")
+			assert.Equal(t, tt.expectedTags, []string(resp.Inputs.Tags), "expected preserved inputs to have user tag order")
 		})
 	}
 }
