@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
@@ -212,6 +213,168 @@ type Disk struct {
 	ScsiBlock *bool          `pulumi:"scsiblock,optional"` // Use scsi-block I/O path instead of virtio-scsi (scsi only).
 }
 
+// DiskList is a list of VM disks compared by stable disk interface identity.
+type DiskList []*Disk
+
+// DiffFrom returns granular diffs for disk additions, removals, and changed properties.
+func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff {
+	stateDisks, _ := state.(DiskList)
+	inputIdxByIface := make(map[string]int, len(disks))
+	for idx, disk := range disks {
+		if disk != nil {
+			inputIdxByIface[disk.Interface] = idx
+		}
+	}
+	stateIdxByIface := make(map[string]int, len(stateDisks))
+	for idx, disk := range stateDisks {
+		if disk != nil {
+			stateIdxByIface[disk.Interface] = idx
+		}
+	}
+
+	changes := CompareDisksByInterface(disks, stateDisks)
+	diffs := make(map[string]p.PropertyDiff)
+	for iface, ifaceChanges := range changes {
+		for _, change := range ifaceChanges {
+			if change.Type == DiskRemoved {
+				diffs[fmt.Sprintf("%s[%d]", name, stateIdxByIface[iface])] = p.PropertyDiff{Kind: p.Delete}
+			}
+		}
+	}
+
+	for iface, ifaceChanges := range changes {
+		var needsPropertyDiff bool
+		var desired, current *Disk
+		for _, change := range ifaceChanges {
+			switch change.Type {
+			case DiskAdded:
+				diffs[fmt.Sprintf("%s[%d]", name, inputIdxByIface[iface])] = p.PropertyDiff{Kind: p.Add}
+			case DiskShrunk, DiskStorageChanged, DiskResized, DiskFlagsChanged, DiskFileIDChanged:
+				needsPropertyDiff = true
+				desired, current = change.Desired, change.Current
+			case DiskRemoved, DiskUnchanged:
+			}
+		}
+		if needsPropertyDiff {
+			prefix := fmt.Sprintf("%s[%d]", name, inputIdxByIface[iface])
+			for property, propertyDiff := range diskPropertyDiffs(prefix, desired, current) {
+				diffs[property] = propertyDiff
+			}
+		}
+	}
+	return diffs
+}
+
+// ValidateDiffFrom rejects disk changes Proxmox cannot apply safely.
+func (disks DiskList) ValidateDiffFrom(state any) error {
+	stateDisks, _ := state.(DiskList)
+	for iface, ifaceChanges := range CompareDisksByInterface(disks, stateDisks) {
+		for _, change := range ifaceChanges {
+			switch change.Type {
+			case DiskShrunk:
+				return fmt.Errorf(
+					"disk %s: shrinking disks is not supported by Proxmox; increase the size or replace the resource",
+					iface,
+				)
+			case DiskStorageChanged:
+				return fmt.Errorf(
+					"disk %s: storage migration is not supported yet; recreate the disk on the target storage",
+					iface,
+				)
+			case DiskUnchanged, DiskAdded, DiskRemoved, DiskResized, DiskFlagsChanged, DiskFileIDChanged:
+			}
+		}
+	}
+	return nil
+}
+
+func diskPropertyDiffs(prefix string, desired, current *Disk) map[string]p.PropertyDiff {
+	diffs := make(map[string]p.PropertyDiff)
+	changed := func(field string) { diffs[prefix+"."+field] = p.PropertyDiff{Kind: p.Update} }
+	if desired == nil || current == nil {
+		return diffs
+	}
+	if desired.Size != current.Size {
+		changed("size")
+	}
+	if desired.Storage != current.Storage {
+		changed("storage")
+	}
+	if desired.FileID != nil && current.FileID != nil && *desired.FileID != *current.FileID {
+		changed("filename")
+	}
+	if !utils.PtrEqual(desired.Cache, current.Cache) {
+		changed("cache")
+	}
+	if !utils.PtrEqual(desired.Aio, current.Aio) {
+		changed("aio")
+	}
+	if !utils.PtrEqual(desired.Discard, current.Discard) {
+		changed("discard")
+	}
+	if !utils.PtrEqual(desired.IOThread, current.IOThread) {
+		changed("iothread")
+	}
+	if !utils.PtrEqual(desired.SSD, current.SSD) {
+		changed("ssd")
+	}
+	if !utils.PtrEqual(desired.Backup, current.Backup) {
+		changed("backup")
+	}
+	if !utils.PtrEqual(desired.Replicate, current.Replicate) {
+		changed("replicate")
+	}
+	if !utils.PtrEqual(desired.ReadOnly, current.ReadOnly) {
+		changed("ro")
+	}
+	if desired.Format != nil && current.Format != nil && *desired.Format != *current.Format {
+		changed("format")
+	}
+	if !utils.PtrEqual(desired.Serial, current.Serial) {
+		changed("serial")
+	}
+	if !utils.PtrEqual(desired.WWN, current.WWN) {
+		changed("wwn")
+	}
+	if !utils.PtrEqual(desired.Media, current.Media) {
+		changed("media")
+	}
+	if !utils.PtrEqual(desired.Queues, current.Queues) {
+		changed("queues")
+	}
+	if !utils.PtrEqual(desired.Snapshot, current.Snapshot) {
+		changed("snapshot")
+	}
+	if !utils.PtrEqual(desired.Shared, current.Shared) {
+		changed("shared")
+	}
+	if !utils.PtrEqual(desired.RError, current.RError) {
+		changed("rerror")
+	}
+	if !utils.PtrEqual(desired.WError, current.WError) {
+		changed("werror")
+	}
+	if !utils.PtrEqual(desired.ScsiBlock, current.ScsiBlock) {
+		changed("scsiblock")
+	}
+	if BandwidthChanged(desired.Bandwidth, current.Bandwidth) {
+		changed("bandwidth")
+	}
+	return diffs
+}
+
+// TagList is a list of VM tags compared without regard to order.
+type TagList []string
+
+// DiffFrom returns an update when tag membership changes.
+func (tags TagList) DiffFrom(name string, state any) map[string]p.PropertyDiff {
+	stateTags, _ := state.(TagList)
+	if utils.StringSliceChanged(tags, stateTags) {
+		return map[string]p.PropertyDiff{name: {Kind: p.Update}}
+	}
+	return nil
+}
+
 // Annotate provides documentation for the Disk type.
 func (disk *Disk) Annotate(a infer.Annotator) {
 	a.Describe(&disk, "Disk configuration for the virtual machine.")
@@ -285,6 +448,36 @@ type EfiDisk struct {
 	DiskBase
 	EfiType         EfiType `pulumi:"efitype"`
 	PreEnrolledKeys *bool   `pulumi:"preEnrolledKeys,optional"`
+}
+
+// DiffFrom returns granular diffs for EFI disk changes while ignoring a computed FileID.
+func (efiDisk *EfiDisk) DiffFrom(name string, state any) map[string]p.PropertyDiff {
+	stateEfiDisk, _ := state.(*EfiDisk)
+	if efiDisk == nil && stateEfiDisk == nil {
+		return nil
+	}
+	if efiDisk == nil || stateEfiDisk == nil {
+		return map[string]p.PropertyDiff{name: {Kind: p.Update}}
+	}
+	return efiDisk.diffFields(name, stateEfiDisk)
+}
+
+func (efiDisk *EfiDisk) diffFields(name string, state *EfiDisk) map[string]p.PropertyDiff {
+	diffs := make(map[string]p.PropertyDiff)
+	changed := func(field string) { diffs[name+"."+field] = p.PropertyDiff{Kind: p.Update} }
+	if efiDisk.Storage != state.Storage {
+		changed("storage")
+	}
+	if efiDisk.EfiType != state.EfiType {
+		changed("efitype")
+	}
+	if !utils.PtrEqual(efiDisk.PreEnrolledKeys, state.PreEnrolledKeys) {
+		changed("preEnrolledKeys")
+	}
+	if efiDisk.FileID != nil && (state.FileID == nil || *efiDisk.FileID != *state.FileID) {
+		changed("fileId")
+	}
+	return diffs
 }
 
 // Annotate provides documentation for the EfiDisk type.
@@ -601,14 +794,14 @@ type VMInputs struct {
 	Hotplug     *string  `pulumi:"hotplug,optional"`
 	Template    *int     `pulumi:"template,optional"`
 	Autostart   *int     `pulumi:"autostart,optional"`
-	Tags        []string `pulumi:"tags,optional"`
+	Tags        TagList  `pulumi:"tags,optional"`
 	OSType      *string  `pulumi:"ostype,optional"`
 	Machine     *string  `pulumi:"machine,optional"`
 	EfiDisk     *EfiDisk `pulumi:"efidisk,optional"`
 	CPU         *CPU     `pulumi:"cpu,optional"`
 	Memory      *int     `pulumi:"memory,optional"`
 	Balloon     *int     `pulumi:"balloon,optional"`
-	Disks       []*Disk  `pulumi:"disks"`
+	Disks       DiskList `pulumi:"disks"`
 	Clone       *Clone   `pulumi:"clone,optional"`
 }
 
@@ -644,3 +837,11 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 type VMOutputs struct {
 	VMInputs
 }
+
+var (
+	_ FieldDiffer = (*EfiDisk)(nil)
+	_ FieldDiffer = DiskList(nil)
+	_ FieldDiffer = TagList(nil)
+	_ FieldDiffer = PeerList(nil)
+	_ FieldDiffer = NodeList(nil)
+)

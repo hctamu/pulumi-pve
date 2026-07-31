@@ -35,8 +35,8 @@ func TestVMDiffDisksChange(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		inputDisks     []*proxmox.Disk
-		stateDisks     []*proxmox.Disk
+		inputDisks     proxmox.DiskList
+		stateDisks     proxmox.DiskList
 		expectChange   bool
 		expectDiffKeys map[string]p.DiffKind
 	}{

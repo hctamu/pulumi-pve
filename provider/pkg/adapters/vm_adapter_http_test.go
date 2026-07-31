@@ -191,7 +191,8 @@ func TestVMAdapterCreateVMSendsTags(t *testing.T) {
 			var mu sync.Mutex
 			var capturedCreateBody map[string]interface{}
 
-			server := newVMHTTPMockServer(t, nodeName, vmID,
+			server := newVMHTTPMockServer(
+				t, nodeName, vmID,
 				func() string { return "" },
 				func(method, path string, body map[string]interface{}) {
 					if path == "/nodes/"+nodeName+"/qemu" && method == http.MethodPost {
@@ -304,7 +305,8 @@ func TestVMAdapterUpdateConfigSendsDiffTags(t *testing.T) {
 			var capturedConfigBody map[string]interface{}
 			var configPostCalled bool
 
-			server := newVMHTTPMockServer(t, nodeName, vmID,
+			server := newVMHTTPMockServer(
+				t, nodeName, vmID,
 				func() string { return "prod" },
 				func(method, path string, body map[string]interface{}) {
 					if path == "/nodes/"+nodeName+"/qemu/100/config" && method == http.MethodPost {
@@ -526,7 +528,8 @@ func TestVMAdapterCreateVMSendsAllFields(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -588,7 +591,8 @@ func TestVMAdapterCreateVMSendsCPU(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -669,7 +673,8 @@ func TestVMAdapterCreateVMSendsDisks(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -715,7 +720,8 @@ func TestVMAdapterCreateVMSendsEfiDisk(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -763,7 +769,8 @@ func TestVMAdapterGetReadsConfig(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} {
 			return map[string]interface{}{
 				"name":        "my-vm",
@@ -790,7 +797,7 @@ func TestVMAdapterGetReadsConfig(t *testing.T) {
 	assert.Equal(t, "my-vm", result.Name)
 	assert.Equal(t, 4096, *result.Memory)
 	assert.Equal(t, "a test vm", *result.Description)
-	assert.Equal(t, []string{"prod", "web"}, result.Tags)
+	assert.Equal(t, []string{"prod", "web"}, []string(result.Tags))
 	assert.Equal(t, "host", *result.CPU.Type)
 	assert.Equal(t, 2, *result.CPU.Cores)
 	assert.Equal(t, 1, *result.Autostart)
@@ -809,7 +816,8 @@ func TestVMAdapterGetReadsDisks(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} {
 			return map[string]interface{}{
 				"scsi0": "ceph-ha:vm-100-disk-0,size=20G",
@@ -848,7 +856,8 @@ func TestVMAdapterGetReadsEfiDisk(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} {
 			return map[string]interface{}{
 				"efidisk0": "local-lvm:vm-100-disk-0,efitype=4m,pre-enrolled-keys=1,size=1M",
@@ -901,7 +910,8 @@ func TestVMAdapterGetReadsTags(t *testing.T) {
 			vmID := 100
 
 			var capture vmHTTPCapture
-			server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+			server := newExtendedVMMockServer(
+				t, nodeName, vmIDStr,
 				func() map[string]interface{} {
 					return map[string]interface{}{"tags": tt.tagsResponse}
 				},
@@ -914,7 +924,7 @@ func TestVMAdapterGetReadsTags(t *testing.T) {
 			result, err := vmAdapter.Get(context.Background(), vmID, &node, nil)
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.expectedTags, result.Tags)
+			assert.Equal(t, tt.expectedTags, []string(result.Tags))
 		})
 	}
 }
@@ -933,7 +943,8 @@ func TestVMAdapterDeleteSendsCorrectRequest(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -963,7 +974,8 @@ func TestVMAdapterApplyConfigSendsOptions(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -1000,7 +1012,8 @@ func TestVMAdapterApplyConfigMinimalInputs(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -1055,7 +1068,8 @@ func TestVMAdapterCloneVMSendsRequest(t *testing.T) {
 
 			var capture vmHTTPCapture
 			// Server must handle the source VM (102) for findVM
-			server := newExtendedVMMockServer(t, nodeName, sourceVMIDStr,
+			server := newExtendedVMMockServer(
+				t, nodeName, sourceVMIDStr,
 				func() map[string]interface{} { return map[string]interface{}{} },
 				&capture,
 			)
@@ -1128,7 +1142,8 @@ func TestVMAdapterCloneVMValidation(t *testing.T) {
 			const vmIDStr = "100"
 
 			var capture vmHTTPCapture
-			server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+			server := newExtendedVMMockServer(
+				t, nodeName, vmIDStr,
 				func() map[string]interface{} { return map[string]interface{}{} },
 				&capture,
 			)
@@ -1156,7 +1171,8 @@ func TestVMAdapterResizeDisk(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -1184,7 +1200,8 @@ func TestVMAdapterRemoveDisk(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -1212,7 +1229,8 @@ func TestVMAdapterRemoveEfiDisk(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} { return map[string]interface{}{} },
 		&capture,
 	)
@@ -1243,7 +1261,8 @@ func TestVMAdapterGetCurrentDisks(t *testing.T) {
 	vmID := 100
 
 	var capture vmHTTPCapture
-	server := newExtendedVMMockServer(t, nodeName, vmIDStr,
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
 		func() map[string]interface{} {
 			return map[string]interface{}{
 				"scsi0":    "ceph-ha:vm-100-disk-0,size=20G",

@@ -972,7 +972,7 @@ func TestPreserveCreateState_KeepsFileIDs(t *testing.T) {
 				Tags: []string{"gamma", "beta", "alpha"},
 			},
 			check: func(t *testing.T, result proxmox.VMInputs) {
-				require.Equal(t, []string{"gamma", "beta", "alpha"}, result.Tags)
+				require.Equal(t, []string{"gamma", "beta", "alpha"}, []string(result.Tags))
 			},
 		},
 	}
