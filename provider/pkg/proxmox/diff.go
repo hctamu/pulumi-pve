@@ -33,12 +33,6 @@ type FieldDiffer interface {
 	DiffFrom(name string, state any) map[string]p.PropertyDiff
 }
 
-// FieldDiffValidator is implemented by fields that reject unsupported changes
-// before their custom diff is returned.
-type FieldDiffValidator interface {
-	ValidateDiffFrom(state any) error
-}
-
 // PeerList is an order-sensitive list of VXLAN peers.
 type PeerList []string
 
