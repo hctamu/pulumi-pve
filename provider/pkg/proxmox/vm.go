@@ -216,9 +216,18 @@ type Disk struct {
 // DiskList is a list of VM disks compared by stable disk interface identity.
 type DiskList []*Disk
 
-// DiffFrom returns granular diffs for disk additions, removals, and changed properties.
+// DiffFrom returns granular diffs for disk additions, removals, and changed properties
+// using disk interface names as stable identity instead of slice positions. Unsupported
+// operations (shrink, storage migration) are surfaced as normal diffs here; validation
+// belongs outside DiffFrom so callers can report the change at the appropriate lifecycle
+// stage.
+//
+// Per-property diffs are emitted for changed disks so Pulumi does not treat computed fields
+// such as filename as removed when the user omits them from inputs.
 func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff {
 	stateDisks, _ := state.(DiskList)
+
+	// Build interface-to-index maps so detailed diff keys retain their original slice paths.
 	inputIdxByIface := make(map[string]int, len(disks))
 	for idx, disk := range disks {
 		if disk != nil {
@@ -234,6 +243,10 @@ func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff
 
 	changes := CompareDisksByInterface(disks, stateDisks)
 	diffs := make(map[string]p.PropertyDiff)
+
+	// Different interfaces can collide on one detailed-diff key when an interface is
+	// renamed, for example scsi0 (removed at state index 0) to scsi1 (added at input index
+	// 0). Process removals first and additions second so Add deterministically wins.
 	for iface, ifaceChanges := range changes {
 		for _, change := range ifaceChanges {
 			if change.Type == DiskRemoved {
@@ -253,6 +266,8 @@ func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff
 				needsPropertyDiff = true
 				desired, current = change.Desired, change.Current
 			case DiskRemoved, DiskUnchanged:
+				// Removed entries were handled above; unchanged entries emit nothing to avoid
+				// false positives for computed fields such as filename.
 			}
 		}
 		if needsPropertyDiff {
@@ -265,29 +280,9 @@ func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff
 	return diffs
 }
 
-// ValidateDiffFrom rejects disk changes Proxmox cannot apply safely.
-func (disks DiskList) ValidateDiffFrom(state any) error {
-	stateDisks, _ := state.(DiskList)
-	for iface, ifaceChanges := range CompareDisksByInterface(disks, stateDisks) {
-		for _, change := range ifaceChanges {
-			switch change.Type {
-			case DiskShrunk:
-				return fmt.Errorf(
-					"disk %s: shrinking disks is not supported by Proxmox; increase the size or replace the resource",
-					iface,
-				)
-			case DiskStorageChanged:
-				return fmt.Errorf(
-					"disk %s: storage migration is not supported yet; recreate the disk on the target storage",
-					iface,
-				)
-			case DiskUnchanged, DiskAdded, DiskRemoved, DiskResized, DiskFlagsChanged, DiskFileIDChanged:
-			}
-		}
-	}
-	return nil
-}
-
+// diskPropertyDiffs returns per-property diff entries for a changed disk. filename is only
+// emitted when both sides are non-nil and different, matching its computed-if-absent
+// semantics.
 func diskPropertyDiffs(prefix string, desired, current *Disk) map[string]p.PropertyDiff {
 	diffs := make(map[string]p.PropertyDiff)
 	changed := func(field string) { diffs[prefix+"."+field] = p.PropertyDiff{Kind: p.Update} }
@@ -300,6 +295,8 @@ func diskPropertyDiffs(prefix string, desired, current *Disk) map[string]p.Prope
 	if desired.Storage != current.Storage {
 		changed("storage")
 	}
+	// filename is computed by Proxmox when absent in inputs; only flag it when the user
+	// explicitly provided a value and it differs from the current one.
 	if desired.FileID != nil && current.FileID != nil && *desired.FileID != *current.FileID {
 		changed("filename")
 	}
