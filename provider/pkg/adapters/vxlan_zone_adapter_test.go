@@ -207,7 +207,7 @@ func TestVxlanZoneAdapterGet(t *testing.T) {
 			assert.Equal(t, 1450, *outputs.MTU)
 			require.NotNil(t, outputs.VXLANPort)
 			assert.Equal(t, 4789, *outputs.VXLANPort)
-			assert.Equal(t, []string{"node1", "node2"}, outputs.Nodes)
+			assert.Equal(t, proxmox.NodeList{"node1", "node2"}, outputs.Nodes)
 			require.NotNil(t, outputs.DNS)
 			assert.Equal(t, "pdns", *outputs.DNS)
 			require.NotNil(t, outputs.DNSZone)

@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 	"github.com/pulumi/pulumi/sdk/v3/go/property"
 
@@ -405,7 +406,7 @@ func TestVxlanZoneRead(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectID, resp.ID)
 			if tt.checkPeers {
-				assert.Equal(t, []string{"10.0.0.1", "10.0.0.2"}, resp.State.Peers)
+				assert.Equal(t, proxmox.PeerList{"10.0.0.1", "10.0.0.2"}, resp.State.Peers)
 			}
 		})
 	}
@@ -593,11 +594,10 @@ func TestVxlanZoneDiff(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		inputs      proxmox.VxlanZoneInputs
-		state       proxmox.VxlanZoneOutputs
-		wantChanges bool
-		wantKeys    []string
+		name     string
+		inputs   proxmox.VxlanZoneInputs
+		state    proxmox.VxlanZoneOutputs
+		wantDiff map[string]p.PropertyDiff
 	}{
 		{
 			name: "no changes",
@@ -611,10 +611,10 @@ func TestVxlanZoneDiff(t *testing.T) {
 				Peers: []string{"10.0.0.1", "10.0.0.2"},
 				Nodes: []string{"node1", "node2"},
 			}},
-			wantChanges: false,
+			wantDiff: map[string]p.PropertyDiff{},
 		},
 		{
-			name: "peers reordered — no change",
+			name: "peers reordered",
 			inputs: proxmox.VxlanZoneInputs{
 				Name:  "vxlan-1",
 				Peers: []string{"10.0.0.2", "10.0.0.1"},
@@ -623,7 +623,9 @@ func TestVxlanZoneDiff(t *testing.T) {
 				Name:  "vxlan-1",
 				Peers: []string{"10.0.0.1", "10.0.0.2"},
 			}},
-			wantChanges: false,
+			wantDiff: map[string]p.PropertyDiff{
+				"peers": {Kind: p.Update},
+			},
 		},
 		{
 			name: "nodes reordered — no change",
@@ -635,7 +637,7 @@ func TestVxlanZoneDiff(t *testing.T) {
 				Name:  "vxlan-1",
 				Nodes: []string{"node1", "node2"},
 			}},
-			wantChanges: false,
+			wantDiff: map[string]p.PropertyDiff{},
 		},
 		{
 			name: "peers changed",
@@ -647,8 +649,9 @@ func TestVxlanZoneDiff(t *testing.T) {
 				Name:  "vxlan-1",
 				Peers: []string{"10.0.0.1", "10.0.0.2"},
 			}},
-			wantChanges: true,
-			wantKeys:    []string{"peers"},
+			wantDiff: map[string]p.PropertyDiff{
+				"peers": {Kind: p.Update},
+			},
 		},
 		{
 			name: "nodes changed",
@@ -660,8 +663,9 @@ func TestVxlanZoneDiff(t *testing.T) {
 				Name:  "vxlan-1",
 				Nodes: []string{"node1", "node2"},
 			}},
-			wantChanges: true,
-			wantKeys:    []string{"nodes"},
+			wantDiff: map[string]p.PropertyDiff{
+				"nodes": {Kind: p.Update},
+			},
 		},
 		{
 			name: "name changed triggers replace",
@@ -671,8 +675,9 @@ func TestVxlanZoneDiff(t *testing.T) {
 			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
 				Name: "vxlan-1",
 			}},
-			wantChanges: true,
-			wantKeys:    []string{"name"},
+			wantDiff: map[string]p.PropertyDiff{
+				"name": {Kind: p.UpdateReplace},
+			},
 		},
 		{
 			name: "mtu changed",
@@ -684,8 +689,41 @@ func TestVxlanZoneDiff(t *testing.T) {
 				Name: "vxlan-1",
 				MTU:  intPtr(1500),
 			}},
-			wantChanges: true,
-			wantKeys:    []string{"mtu"},
+			wantDiff: map[string]p.PropertyDiff{
+				"mtu": {Kind: p.Update},
+			},
+		},
+		{
+			name: "generic fields changed",
+			inputs: proxmox.VxlanZoneInputs{
+				Name:       "vxlan-1",
+				Fabric:     stringPtr("fabric-new"),
+				MTU:        intPtr(1400),
+				VXLANPort:  intPtr(4790),
+				DNS:        stringPtr("dns-new"),
+				DNSZone:    stringPtr("new.example.com"),
+				ReverseDNS: stringPtr("reverse-new"),
+				IPAM:       stringPtr("ipam-new"),
+			},
+			state: proxmox.VxlanZoneOutputs{VxlanZoneInputs: proxmox.VxlanZoneInputs{
+				Name:       "vxlan-1",
+				Fabric:     stringPtr("fabric-old"),
+				MTU:        intPtr(1500),
+				VXLANPort:  intPtr(4789),
+				DNS:        stringPtr("dns-old"),
+				DNSZone:    stringPtr("old.example.com"),
+				ReverseDNS: stringPtr("reverse-old"),
+				IPAM:       stringPtr("ipam-old"),
+			}},
+			wantDiff: map[string]p.PropertyDiff{
+				"fabric":     {Kind: p.Update},
+				"mtu":        {Kind: p.Update},
+				"vxlanPort":  {Kind: p.Update},
+				"dns":        {Kind: p.Update},
+				"dnsZone":    {Kind: p.Update},
+				"reverseDns": {Kind: p.Update},
+				"ipam":       {Kind: p.Update},
+			},
 		},
 	}
 
@@ -703,10 +741,8 @@ func TestVxlanZoneDiff(t *testing.T) {
 				},
 			)
 			require.NoError(t, err)
-			assert.Equal(t, tt.wantChanges, resp.HasChanges)
-			for _, key := range tt.wantKeys {
-				assert.Contains(t, resp.DetailedDiff, key)
-			}
+			assert.Equal(t, len(tt.wantDiff) > 0, resp.HasChanges)
+			assert.Equal(t, tt.wantDiff, resp.DetailedDiff)
 		})
 	}
 }
