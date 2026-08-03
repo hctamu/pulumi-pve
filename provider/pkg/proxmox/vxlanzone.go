@@ -42,10 +42,10 @@ type VxlanZoneOperations interface {
 type VxlanZoneInputs struct {
 	Name       string   `pulumi:"name"                provider:"replaceOnChanges"`
 	Fabric     *string  `pulumi:"fabric,optional"`
-	Peers      []string `pulumi:"peers,optional"`
+	Peers      PeerList `pulumi:"peers,optional"`
 	MTU        *int     `pulumi:"mtu,optional"`
 	VXLANPort  *int     `pulumi:"vxlanPort,optional"`
-	Nodes      []string `pulumi:"nodes,optional"`
+	Nodes      NodeList `pulumi:"nodes,optional"`
 	DNS        *string  `pulumi:"dns,optional"`
 	DNSZone    *string  `pulumi:"dnsZone,optional"`
 	ReverseDNS *string  `pulumi:"reverseDns,optional"`

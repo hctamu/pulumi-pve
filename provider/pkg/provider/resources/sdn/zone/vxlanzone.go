@@ -19,13 +19,13 @@ package zone
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
-	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
 )
 
 // Ensure VxlanZone implements the required interfaces.
@@ -162,48 +162,43 @@ func (sdnVxlanZone *VxlanZone) Read(
 	return response, nil
 }
 
-// Diff computes the diff between old and new inputs, treating nodes and peers as
-// order-insensitive sets (Proxmox returns them in lexical order regardless of input order).
+// Diff computes field-level changes between old and new inputs.
 func (sdnVxlanZone *VxlanZone) Diff(
 	ctx context.Context,
 	request infer.DiffRequest[proxmox.VxlanZoneInputs, proxmox.VxlanZoneOutputs],
 ) (p.DiffResponse, error) {
 	p.GetLogger(ctx).Debugf("Diff SDN VXLAN zone: %s", request.ID)
 
-	in := request.Inputs
-	st := request.State.VxlanZoneInputs
-
 	diff := map[string]p.PropertyDiff{}
+	inputs := reflect.ValueOf(request.Inputs)
+	state := reflect.ValueOf(request.State.VxlanZoneInputs)
+	inputType := inputs.Type()
 
-	if in.Name != st.Name {
-		diff["name"] = p.PropertyDiff{Kind: p.UpdateReplace}
-	}
-	if !ptrEqual(in.Fabric, st.Fabric) {
-		diff["fabric"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if utils.StringSliceChanged(in.Peers, st.Peers) {
-		diff["peers"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if !ptrEqual(in.MTU, st.MTU) {
-		diff["mtu"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if !ptrEqual(in.VXLANPort, st.VXLANPort) {
-		diff["vxlanPort"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if utils.StringSliceChanged(in.Nodes, st.Nodes) {
-		diff["nodes"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if !ptrEqual(in.DNS, st.DNS) {
-		diff["dns"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if !ptrEqual(in.DNSZone, st.DNSZone) {
-		diff["dnsZone"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if !ptrEqual(in.ReverseDNS, st.ReverseDNS) {
-		diff["reverseDns"] = p.PropertyDiff{Kind: p.Update}
-	}
-	if !ptrEqual(in.IPAM, st.IPAM) {
-		diff["ipam"] = p.PropertyDiff{Kind: p.Update}
+	for fieldIndex := 0; fieldIndex < inputType.NumField(); fieldIndex++ {
+		field := inputType.Field(fieldIndex)
+		name := pulumiPropertyName(field.Tag.Get("pulumi"))
+		if name == "" {
+			continue
+		}
+
+		inputField := inputs.Field(fieldIndex)
+		stateField := state.Field(fieldIndex)
+		if differ, ok := inputField.Interface().(proxmox.FieldDiffer); ok {
+			for key, propertyDiff := range differ.DiffFrom(name, stateField.Interface()) {
+				diff[key] = propertyDiff
+			}
+			continue
+		}
+
+		if reflect.DeepEqual(inputField.Interface(), stateField.Interface()) {
+			continue
+		}
+
+		kind := p.Update
+		if strings.Contains(field.Tag.Get("provider"), "replaceOnChanges") {
+			kind = p.UpdateReplace
+		}
+		diff[name] = p.PropertyDiff{Kind: kind}
 	}
 
 	return p.DiffResponse{
@@ -213,16 +208,11 @@ func (sdnVxlanZone *VxlanZone) Diff(
 	}, nil
 }
 
-// ptrEqual returns true when two comparable pointer values are equal (both nil, or both
-// non-nil with equal dereferenced values).
-func ptrEqual[T comparable](a, b *T) bool {
-	if a == nil && b == nil {
-		return true
+func pulumiPropertyName(tag string) string {
+	if propertyName, _, found := strings.Cut(tag, ","); found {
+		return propertyName
 	}
-	if a == nil || b == nil {
-		return false
-	}
-	return *a == *b
+	return tag
 }
 
 // Check validates zone name format and that exactly one of fabric or peers is provided.

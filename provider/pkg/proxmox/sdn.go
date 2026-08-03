@@ -17,7 +17,41 @@ package proxmox
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
+
+	p "github.com/pulumi/pulumi-go-provider"
+
+	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
+)
+
+// PeerList is an order-sensitive list of VXLAN peers.
+type PeerList []string
+
+// DiffFrom returns an update when peer order or membership changes.
+func (peers PeerList) DiffFrom(name string, state any) map[string]p.PropertyDiff {
+	statePeers, _ := state.(PeerList)
+	if !reflect.DeepEqual(peers, statePeers) {
+		return map[string]p.PropertyDiff{name: {Kind: p.Update}}
+	}
+	return nil
+}
+
+// NodeList is an order-insensitive list of SDN nodes.
+type NodeList []string
+
+// DiffFrom returns an update when node membership changes.
+func (nodes NodeList) DiffFrom(name string, state any) map[string]p.PropertyDiff {
+	stateNodes, _ := state.(NodeList)
+	if utils.StringSliceChanged(nodes, stateNodes) {
+		return map[string]p.PropertyDiff{name: {Kind: p.Update}}
+	}
+	return nil
+}
+
+var (
+	_ FieldDiffer = PeerList(nil)
+	_ FieldDiffer = NodeList(nil)
 )
 
 // sdnNameRegexp enforces the Proxmox SDN identifier rule: start with a letter, alphanumeric only, max 8 chars.

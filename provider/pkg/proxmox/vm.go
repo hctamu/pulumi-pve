@@ -839,6 +839,4 @@ var (
 	_ FieldDiffer = (*EfiDisk)(nil)
 	_ FieldDiffer = DiskList(nil)
 	_ FieldDiffer = TagList(nil)
-	_ FieldDiffer = PeerList(nil)
-	_ FieldDiffer = NodeList(nil)
 )
