@@ -137,6 +137,26 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
 		},
 		{
+			name: "resize existing disk and add another in one update",
+			desiredDisks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 15, Interface: "scsi1"},
+			},
+			stateDisks: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantRemoveDisks: nil,
+			wantResizeCalls: []resizeCall{{"scsi0", 50}},
+			wantFileIDs: map[string]*string{
+				"scsi0": testutils.Ptr(fileID0),
+				"scsi1": nil,
+			},
+		},
+		{
 			name: "resize disk with conflicting explicit fileID errors",
 			desiredDisks: []*proxmox.Disk{
 				{
@@ -447,6 +467,39 @@ func TestVMUpdateRereadsAfterDiskChange(t *testing.T) {
 				},
 			},
 			wantGetCalled: false,
+		},
+		{
+			name: "disk resized: Get is called and output keeps resized disk FileID",
+			inputs: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
+				Disks: []*proxmox.Disk{
+					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
+				},
+			},
+			state: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+						Size:      20,
+						Interface: "scsi0",
+					},
+				},
+			},
+			getResult: proxmox.VMInputs{
+				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
+				Disks: []*proxmox.Disk{
+					{
+						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+						Size:      50,
+						Interface: "scsi0",
+					},
+				},
+			},
+			wantGetCalled: true,
+			wantDisksByIface: map[string]*string{
+				"scsi0": testutils.Ptr(fileID0),
+			},
 		},
 	}
 
