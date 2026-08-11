@@ -82,12 +82,7 @@
         "cores": {
           "type": "integer",
           "description": "Number of CPU cores per socket.",
-          "default": 1,
-          "defaultInfo": {
-            "environment": [
-              "Number of CPU cores"
-            ]
-          }
+          "default": 1
         },
         "flagsDisabled": {
           "type": "array",
@@ -132,7 +127,8 @@
         },
         "sockets": {
           "type": "integer",
-          "description": "Number of CPU sockets."
+          "description": "Number of CPU sockets.",
+          "default": 1
         },
         "type": {
           "type": "string",
@@ -1107,7 +1103,8 @@
       "properties": {
         "autostart": {
           "type": "integer",
-          "description": "Automatically start the VM when the host boots (1 to enable, 0 to disable)."
+          "description": "Automatically start the VM when the host boots (1 to enable, 0 to disable).",
+          "default": 0
         },
         "balloon": {
           "type": "integer",
@@ -1138,7 +1135,8 @@
         },
         "hotplug": {
           "type": "string",
-          "description": "Comma-separated list of hotplug features (network, disk, cpu, memory, usb)."
+          "description": "Comma-separated list of hotplug features (network, disk, cpu, memory, usb).",
+          "default": "disk,network,usb"
         },
         "machine": {
           "type": "string",
@@ -1146,7 +1144,8 @@
         },
         "memory": {
           "type": "integer",
-          "description": "Memory size in megabytes."
+          "description": "Memory size in megabytes.",
+          "default": 512
         },
         "name": {
           "type": "string",
@@ -1158,7 +1157,8 @@
         },
         "ostype": {
           "type": "string",
-          "description": "Guest operating system type (e.g., l26, win11, other)."
+          "description": "Guest operating system type (e.g., l26, win11, other).",
+          "default": "other"
         },
         "tags": {
           "type": "array",
@@ -1169,7 +1169,8 @@
         },
         "template": {
           "type": "integer",
-          "description": "Mark the VM as a template (1) or a regular VM (0)."
+          "description": "Mark the VM as a template (1) or a regular VM (0).",
+          "default": 0
         },
         "vmId": {
           "type": "integer",
@@ -1184,7 +1185,8 @@
       "inputProperties": {
         "autostart": {
           "type": "integer",
-          "description": "Automatically start the VM when the host boots (1 to enable, 0 to disable)."
+          "description": "Automatically start the VM when the host boots (1 to enable, 0 to disable).",
+          "default": 0
         },
         "balloon": {
           "type": "integer",
@@ -1215,7 +1217,8 @@
         },
         "hotplug": {
           "type": "string",
-          "description": "Comma-separated list of hotplug features (network, disk, cpu, memory, usb)."
+          "description": "Comma-separated list of hotplug features (network, disk, cpu, memory, usb).",
+          "default": "disk,network,usb"
         },
         "machine": {
           "type": "string",
@@ -1223,7 +1226,8 @@
         },
         "memory": {
           "type": "integer",
-          "description": "Memory size in megabytes."
+          "description": "Memory size in megabytes.",
+          "default": 512
         },
         "name": {
           "type": "string",
@@ -1235,7 +1239,8 @@
         },
         "ostype": {
           "type": "string",
-          "description": "Guest operating system type (e.g., l26, win11, other)."
+          "description": "Guest operating system type (e.g., l26, win11, other).",
+          "default": "other"
         },
         "tags": {
           "type": "array",
@@ -1246,7 +1251,8 @@
         },
         "template": {
           "type": "integer",
-          "description": "Mark the VM as a template (1) or a regular VM (0)."
+          "description": "Mark the VM as a template (1) or a regular VM (0).",
+          "default": 0
         },
         "vmId": {
           "type": "integer",

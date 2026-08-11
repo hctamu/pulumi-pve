@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
@@ -1205,6 +1206,80 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 	require.NotNil(t, updateResp.Output.EfiDisk)
 	require.NotNil(t, updateResp.Output.EfiDisk.FileID, "EFI FileID must propagate from state to Update output")
 	assert.Equal(t, efiFileID, *updateResp.Output.EfiDisk.FileID)
+}
+
+func TestCheckAppliesVMDefaults(t *testing.T) {
+	t.Parallel()
+
+	resource := &VM{}
+
+	minimalDisk := property.New(
+		property.NewMap(map[string]property.Value{
+			"storage":   property.New("local-lvm"),
+			"size":      property.New(10.0),
+			"interface": property.New("scsi0"),
+		}),
+	)
+
+	tests := []struct {
+		name         string
+		newInputs    property.Map
+		assertInputs func(t *testing.T, inputs proxmox.VMInputs)
+	}{
+		{
+			name: "minimal inputs get vm-level defaults",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("defaults-minimal-vm"),
+				"disks": property.New(property.NewArray([]property.Value{minimalDisk})),
+			}),
+			assertInputs: func(t *testing.T, inputs proxmox.VMInputs) {
+				require.NotNil(t, inputs.Hotplug)
+				assert.Equal(t, "disk,network,usb", *inputs.Hotplug)
+
+				require.NotNil(t, inputs.Template)
+				assert.Equal(t, 0, *inputs.Template)
+
+				require.NotNil(t, inputs.Autostart)
+				assert.Equal(t, 0, *inputs.Autostart)
+
+				require.NotNil(t, inputs.OSType)
+				assert.Equal(t, "other", *inputs.OSType)
+
+				require.NotNil(t, inputs.Memory)
+				assert.Equal(t, 512, *inputs.Memory)
+
+				assert.Nil(t, inputs.CPU, "cpu should remain nil when omitted")
+			},
+		},
+		{
+			name: "cpu defaults apply when cpu object exists",
+			newInputs: property.NewMap(map[string]property.Value{
+				"name":  property.New("defaults-cpu-vm"),
+				"disks": property.New(property.NewArray([]property.Value{minimalDisk})),
+				"cpu":   property.New(property.NewMap(map[string]property.Value{})),
+			}),
+			assertInputs: func(t *testing.T, inputs proxmox.VMInputs) {
+				require.NotNil(t, inputs.CPU)
+				require.NotNil(t, inputs.CPU.Cores)
+				assert.Equal(t, 1, *inputs.CPU.Cores)
+
+				require.NotNil(t, inputs.CPU.Sockets)
+				assert.Equal(t, 1, *inputs.CPU.Sockets)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp, err := resource.Check(context.Background(), infer.CheckRequest{NewInputs: tt.newInputs})
+			require.NoError(t, err)
+			require.Empty(t, resp.Failures)
+
+			tt.assertInputs(t, resp.Inputs)
+		})
+	}
 }
 
 func TestCheckDiskShrink(t *testing.T) {
