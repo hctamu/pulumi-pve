@@ -115,21 +115,21 @@ export class VM extends pulumi.CustomResource {
             if (args?.name === undefined && !opts.urn) {
                 throw new Error("Missing required property 'name'");
             }
-            resourceInputs["autostart"] = args?.autostart;
+            resourceInputs["autostart"] = (args?.autostart) ?? 0;
             resourceInputs["balloon"] = args?.balloon;
             resourceInputs["clone"] = args?.clone;
             resourceInputs["cpu"] = args ? pulumi.output(args.cpu).apply(v => v === undefined ? undefined : inputs.proxmox.cpuargsProvideDefaults(v)) : undefined;
             resourceInputs["description"] = args?.description;
             resourceInputs["disks"] = args?.disks;
             resourceInputs["efidisk"] = args?.efidisk;
-            resourceInputs["hotplug"] = args?.hotplug;
+            resourceInputs["hotplug"] = (args?.hotplug) ?? "disk,network,usb";
             resourceInputs["machine"] = args?.machine;
-            resourceInputs["memory"] = args?.memory;
+            resourceInputs["memory"] = (args?.memory) ?? 512;
             resourceInputs["name"] = args?.name;
             resourceInputs["node"] = args?.node;
-            resourceInputs["ostype"] = args?.ostype;
+            resourceInputs["ostype"] = (args?.ostype) ?? "other";
             resourceInputs["tags"] = args?.tags;
-            resourceInputs["template"] = args?.template;
+            resourceInputs["template"] = (args?.template) ?? 0;
             resourceInputs["vmId"] = args?.vmId;
         } else {
             resourceInputs["autostart"] = undefined /*out*/;

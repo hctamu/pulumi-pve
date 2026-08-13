@@ -560,7 +560,8 @@ public final class CPUArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         public CPUArgs build() {
-            $.cores = Codegen.integerProp("cores").output().arg($.cores).env("Number of CPU cores").def(1).getNullable();
+            $.cores = Codegen.integerProp("cores").output().arg($.cores).def(1).getNullable();
+            $.sockets = Codegen.integerProp("sockets").output().arg($.sockets).def(1).getNullable();
             return $;
         }
     }

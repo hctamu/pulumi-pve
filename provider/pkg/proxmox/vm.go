@@ -118,13 +118,26 @@ func (cpu *CPU) Annotate(a infer.Annotator) {
 	a.Describe(&cpu.HVVendorID, "Hyper-V vendor ID presented to the guest (up to 12 characters).")
 	a.Describe(&cpu.PhysBits, "Number of physical address bits exposed to the guest (e.g., 36, 40, 48).")
 	a.Describe(&cpu.Cores, "Number of CPU cores per socket.")
+	a.SetDefault(&cpu.Cores, 1)
 	a.Describe(&cpu.Sockets, "Number of CPU sockets.")
+	a.SetDefault(&cpu.Sockets, 1)
 	a.Describe(&cpu.Limit, "CPU usage limit as a fraction of one core (e.g., 1.5 caps at 150%).")
 	a.Describe(&cpu.Units, "CPU weight for the scheduler relative to other VMs (higher = more CPU time).")
 	a.Describe(&cpu.Vcpus, "Number of hotplugged vCPUs (must be <= cores * sockets).")
 	a.Describe(&cpu.Numa, "Enable NUMA topology.")
 	a.Describe(&cpu.NumaNodes, "NUMA node topology configuration.")
-	a.SetDefault(&cpu.Cores, 1, "Number of CPU cores")
+}
+
+// DefaultCPU returns a CPU struct populated with Proxmox default values.
+// Used by the resource Check() to ensure nested CPU defaults are applied
+// even when the user omits the cpu block entirely.
+func DefaultCPU() *CPU {
+	cores := 1
+	sockets := 1
+	return &CPU{
+		Cores:   &cores,
+		Sockets: &sockets,
+	}
 }
 
 // Annotate provides documentation for the NumaNode type.
@@ -810,14 +823,19 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Node, "Proxmox node where the VM resides.")
 	a.Describe(&inputs.VMID, "Unique numeric identifier for the virtual machine (auto-assigned if omitted).")
 	a.Describe(&inputs.Hotplug, "Comma-separated list of hotplug features (network, disk, cpu, memory, usb).")
+	a.SetDefault(&inputs.Hotplug, "disk,network,usb")
 	a.Describe(&inputs.Template, "Mark the VM as a template (1) or a regular VM (0).")
+	a.SetDefault(&inputs.Template, 0)
 	a.Describe(&inputs.Autostart, "Automatically start the VM when the host boots (1 to enable, 0 to disable).")
+	a.SetDefault(&inputs.Autostart, 0)
 	a.Describe(&inputs.Tags, "Tags associated with the virtual machine.")
 	a.Describe(&inputs.OSType, "Guest operating system type (e.g., l26, win11, other).")
+	a.SetDefault(&inputs.OSType, "other")
 	a.Describe(&inputs.Machine, "Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).")
 	a.Describe(&inputs.EfiDisk, "EFI disk configuration (required when bios is set to ovmf).")
 	a.Describe(&inputs.CPU, "CPU configuration including type, topology, and feature flags.")
 	a.Describe(&inputs.Memory, "Memory size in megabytes.")
+	a.SetDefault(&inputs.Memory, 512)
 	a.Describe(&inputs.Balloon, "Minimum memory for ballooning in megabytes (0 disables the balloon device).")
 	a.Describe(
 		&inputs.Disks,

@@ -87,7 +87,7 @@ class CPU(dict):
         :param _builtins.int vcpus: Number of hotplugged vCPUs (must be <= cores * sockets).
         """
         if cores is None:
-            cores = (_utilities.get_env_int('Number of CPU cores') or 1)
+            cores = 1
         if cores is not None:
             pulumi.set(__self__, "cores", cores)
         if flags_disabled is not None:
@@ -106,6 +106,8 @@ class CPU(dict):
             pulumi.set(__self__, "numa_nodes", numa_nodes)
         if phys_bits is not None:
             pulumi.set(__self__, "phys_bits", phys_bits)
+        if sockets is None:
+            sockets = 1
         if sockets is not None:
             pulumi.set(__self__, "sockets", sockets)
         if type is not None:

@@ -269,6 +269,11 @@ namespace Hctamu.Pve.Vm
 
         public VMArgs()
         {
+            Autostart = 0;
+            Hotplug = "disk,network,usb";
+            Memory = 512;
+            Ostype = "other";
+            Template = 0;
         }
         public static new VMArgs Empty => new VMArgs();
     }

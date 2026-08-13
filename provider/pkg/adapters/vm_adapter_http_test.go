@@ -380,6 +380,10 @@ type vmCapturedReq struct {
 	body   map[string]interface{}
 }
 
+type vmHTTPOverrides struct {
+	resizeHandler func(http.ResponseWriter, *http.Request)
+}
+
 func (capture *vmHTTPCapture) add(method, path string, body map[string]interface{}) {
 	capture.mu.Lock()
 	defer capture.mu.Unlock()
@@ -406,6 +410,17 @@ func newExtendedVMMockServer(
 	vmIDStr string,
 	configData func() map[string]interface{},
 	capture *vmHTTPCapture,
+) *httptest.Server {
+	return newExtendedVMMockServerWithOverrides(t, nodeName, vmIDStr, configData, capture, nil)
+}
+
+func newExtendedVMMockServerWithOverrides(
+	t *testing.T,
+	nodeName string,
+	vmIDStr string,
+	configData func() map[string]interface{},
+	capture *vmHTTPCapture,
+	overrides *vmHTTPOverrides,
 ) *httptest.Server {
 	t.Helper()
 
@@ -488,6 +503,10 @@ func newExtendedVMMockServer(
 
 		// Resize PUT.
 		case strings.HasSuffix(r.URL.Path, "/resize") && r.Method == http.MethodPut:
+			if overrides != nil && overrides.resizeHandler != nil {
+				overrides.resizeHandler(w, r)
+				return
+			}
 			data(w, upid("qmresize"))
 
 		// Unlink PUT.
@@ -1186,6 +1205,41 @@ func TestVMAdapterResizeDisk(t *testing.T) {
 	req := capture.find(http.MethodPut, "/resize")
 	require.NotNil(t, req, "expected PUT to resize endpoint")
 	assert.Equal(t, "/nodes/"+nodeName+"/qemu/"+vmIDStr+"/resize", req.path)
+	assert.Equal(t, "scsi0", req.body["disk"])
+	assert.Equal(t, "40G", req.body["size"])
+}
+
+func TestVMAdapterResizeDiskTaskFailure(t *testing.T) {
+	t.Parallel()
+
+	const nodeName = "pve-node"
+	const vmIDStr = "100"
+	vmID := 100
+
+	var capture vmHTTPCapture
+	server := newExtendedVMMockServerWithOverrides(
+		t,
+		nodeName,
+		vmIDStr,
+		func() map[string]interface{} { return map[string]interface{}{} },
+		&capture,
+		&vmHTTPOverrides{
+			resizeHandler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": nil})
+			},
+		},
+	)
+	defer server.Close()
+
+	node := nodeName
+	vmAdapter := newConnectedVMAdapter(t, server.URL)
+	err := vmAdapter.ResizeDisk(context.Background(), vmID, &node, "scsi0", 40)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to resize disk scsi0 on VM 100")
+
+	req := capture.find(http.MethodPut, "/resize")
+	require.NotNil(t, req, "expected PUT to resize endpoint")
 	assert.Equal(t, "scsi0", req.body["disk"])
 	assert.Equal(t, "40G", req.body["size"])
 }

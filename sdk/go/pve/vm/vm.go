@@ -63,8 +63,23 @@ func NewVM(ctx *pulumi.Context,
 	if args.Name == nil {
 		return nil, errors.New("invalid value for required argument 'Name'")
 	}
+	if args.Autostart == nil {
+		args.Autostart = pulumi.IntPtr(0)
+	}
 	if args.Cpu != nil {
 		args.Cpu = args.Cpu.ToCPUPtrOutput().ApplyT(func(v *proxmox.CPU) *proxmox.CPU { return v.Defaults() }).(proxmox.CPUPtrOutput)
+	}
+	if args.Hotplug == nil {
+		args.Hotplug = pulumi.StringPtr("disk,network,usb")
+	}
+	if args.Memory == nil {
+		args.Memory = pulumi.IntPtr(512)
+	}
+	if args.Ostype == nil {
+		args.Ostype = pulumi.StringPtr("other")
+	}
+	if args.Template == nil {
+		args.Template = pulumi.IntPtr(0)
 	}
 	replaceOnChanges := pulumi.ReplaceOnChanges([]string{
 		"vmId",
