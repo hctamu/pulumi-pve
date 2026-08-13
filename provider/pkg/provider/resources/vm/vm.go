@@ -57,6 +57,14 @@ func (vm *VM) Check(
 		return infer.CheckResponse[proxmox.VMInputs]{Inputs: inputs, Failures: failures}, err
 	}
 
+	// infer.DefaultCheck only applies nested struct defaults when the parent object is
+	// present in the input. When the user omits cpu: entirely, CPU is nil and
+	// CPU.Annotate() (where SetDefault lives) is never called. Initialize CPU with its
+	// defaults here so they are always sent to Proxmox regardless of user omission.
+	if inputs.CPU == nil {
+		inputs.CPU = proxmox.DefaultCPU()
+	}
+
 	for _, disk := range inputs.Disks {
 		if validationErr := proxmox.ValidateDiskFlags(disk); validationErr != nil {
 			failures = append(failures, p.CheckFailure{

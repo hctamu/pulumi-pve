@@ -1248,7 +1248,13 @@ func TestCheckAppliesVMDefaults(t *testing.T) {
 				require.NotNil(t, inputs.Memory)
 				assert.Equal(t, 512, *inputs.Memory)
 
-				assert.Nil(t, inputs.CPU, "cpu should remain nil when omitted")
+				// CPU is initialized with Proxmox defaults even when omitted by the user,
+				// so that cores/sockets are always sent to Proxmox on create.
+				require.NotNil(t, inputs.CPU, "cpu should be initialized with defaults when omitted")
+				require.NotNil(t, inputs.CPU.Cores)
+				assert.Equal(t, 1, *inputs.CPU.Cores)
+				require.NotNil(t, inputs.CPU.Sockets)
+				assert.Equal(t, 1, *inputs.CPU.Sockets)
 			},
 		},
 		{

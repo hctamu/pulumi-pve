@@ -128,6 +128,18 @@ func (cpu *CPU) Annotate(a infer.Annotator) {
 	a.Describe(&cpu.NumaNodes, "NUMA node topology configuration.")
 }
 
+// DefaultCPU returns a CPU struct populated with Proxmox default values.
+// Used by the resource Check() to ensure nested CPU defaults are applied
+// even when the user omits the cpu block entirely.
+func DefaultCPU() *CPU {
+	cores := 1
+	sockets := 1
+	return &CPU{
+		Cores:   &cores,
+		Sockets: &sockets,
+	}
+}
+
 // Annotate provides documentation for the NumaNode type.
 func (numaNode *NumaNode) Annotate(a infer.Annotator) {
 	a.Describe(&numaNode, "NUMA node topology configuration for the virtual machine.")
