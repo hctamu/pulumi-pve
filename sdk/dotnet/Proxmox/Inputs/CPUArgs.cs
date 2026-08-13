@@ -114,7 +114,8 @@ namespace Hctamu.Pve.Proxmox.Inputs
 
         public CPUArgs()
         {
-            Cores = Utilities.GetEnvInt32("Number of CPU cores") ?? 1;
+            Cores = 1;
+            Sockets = 1;
         }
         public static new CPUArgs Empty => new CPUArgs();
     }

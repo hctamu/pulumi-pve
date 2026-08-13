@@ -50,10 +50,12 @@ func (val *CPU) Defaults() *CPU {
 	}
 	tmp := *val
 	if tmp.Cores == nil {
-		if d := internal.GetEnvOrDefault(1, internal.ParseEnvInt, "Number of CPU cores"); d != nil {
-			cores_ := d.(int)
-			tmp.Cores = &cores_
-		}
+		cores_ := 1
+		tmp.Cores = &cores_
+	}
+	if tmp.Sockets == nil {
+		sockets_ := 1
+		tmp.Sockets = &sockets_
 	}
 	return &tmp
 }
@@ -106,9 +108,10 @@ func (val *CPUArgs) Defaults() *CPUArgs {
 	}
 	tmp := *val
 	if tmp.Cores == nil {
-		if d := internal.GetEnvOrDefault(1, internal.ParseEnvInt, "Number of CPU cores"); d != nil {
-			tmp.Cores = pulumi.IntPtr(d.(int))
-		}
+		tmp.Cores = pulumi.IntPtr(1)
+	}
+	if tmp.Sockets == nil {
+		tmp.Sockets = pulumi.IntPtr(1)
 	}
 	return &tmp
 }

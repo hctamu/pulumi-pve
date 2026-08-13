@@ -58,6 +58,8 @@ class VMArgs:
         """
         pulumi.set(__self__, "disks", disks)
         pulumi.set(__self__, "name", name)
+        if autostart is None:
+            autostart = 0
         if autostart is not None:
             pulumi.set(__self__, "autostart", autostart)
         if balloon is not None:
@@ -70,18 +72,26 @@ class VMArgs:
             pulumi.set(__self__, "description", description)
         if efidisk is not None:
             pulumi.set(__self__, "efidisk", efidisk)
+        if hotplug is None:
+            hotplug = 'disk,network,usb'
         if hotplug is not None:
             pulumi.set(__self__, "hotplug", hotplug)
         if machine is not None:
             pulumi.set(__self__, "machine", machine)
+        if memory is None:
+            memory = 512
         if memory is not None:
             pulumi.set(__self__, "memory", memory)
         if node is not None:
             pulumi.set(__self__, "node", node)
+        if ostype is None:
+            ostype = 'other'
         if ostype is not None:
             pulumi.set(__self__, "ostype", ostype)
         if tags is not None:
             pulumi.set(__self__, "tags", tags)
+        if template is None:
+            template = 0
         if template is not None:
             pulumi.set(__self__, "template", template)
         if vm_id is not None:
@@ -374,6 +384,8 @@ class VM(pulumi.CustomResource):
                 raise TypeError('__props__ is only valid when passed in combination with a valid opts.id to get an existing resource')
             __props__ = VMArgs.__new__(VMArgs)
 
+            if autostart is None:
+                autostart = 0
             __props__.__dict__["autostart"] = autostart
             __props__.__dict__["balloon"] = balloon
             __props__.__dict__["clone"] = clone
@@ -383,15 +395,23 @@ class VM(pulumi.CustomResource):
                 raise TypeError("Missing required property 'disks'")
             __props__.__dict__["disks"] = disks
             __props__.__dict__["efidisk"] = efidisk
+            if hotplug is None:
+                hotplug = 'disk,network,usb'
             __props__.__dict__["hotplug"] = hotplug
             __props__.__dict__["machine"] = machine
+            if memory is None:
+                memory = 512
             __props__.__dict__["memory"] = memory
             if name is None and not opts.urn:
                 raise TypeError("Missing required property 'name'")
             __props__.__dict__["name"] = name
             __props__.__dict__["node"] = node
+            if ostype is None:
+                ostype = 'other'
             __props__.__dict__["ostype"] = ostype
             __props__.__dict__["tags"] = tags
+            if template is None:
+                template = 0
             __props__.__dict__["template"] = template
             __props__.__dict__["vm_id"] = vm_id
         replace_on_changes = pulumi.ResourceOptions(replace_on_changes=["vmId"])

@@ -71,7 +71,8 @@ export namespace proxmox {
     export function cpuProvideDefaults(val: CPU): CPU {
         return {
             ...val,
-            cores: (val.cores) ?? (utilities.getEnvNumber("Number of CPU cores") || 1),
+            cores: (val.cores) ?? 1,
+            sockets: (val.sockets) ?? 1,
         };
     }
 

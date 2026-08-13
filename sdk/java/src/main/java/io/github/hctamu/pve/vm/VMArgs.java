@@ -5,6 +5,7 @@ package io.github.hctamu.pve.vm;
 
 import com.pulumi.core.Output;
 import com.pulumi.core.annotations.Import;
+import com.pulumi.core.internal.Codegen;
 import com.pulumi.exceptions.MissingRequiredPropertyException;
 import io.github.hctamu.pve.proxmox.inputs.CPUArgs;
 import io.github.hctamu.pve.proxmox.inputs.CloneArgs;
@@ -658,12 +659,17 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         public VMArgs build() {
+            $.autostart = Codegen.integerProp("autostart").output().arg($.autostart).def(0).getNullable();
             if ($.disks == null) {
                 throw new MissingRequiredPropertyException("VMArgs", "disks");
             }
+            $.hotplug = Codegen.stringProp("hotplug").output().arg($.hotplug).def("disk,network,usb").getNullable();
+            $.memory = Codegen.integerProp("memory").output().arg($.memory).def(512).getNullable();
             if ($.name == null) {
                 throw new MissingRequiredPropertyException("VMArgs", "name");
             }
+            $.ostype = Codegen.stringProp("ostype").output().arg($.ostype).def("other").getNullable();
+            $.template = Codegen.integerProp("template").output().arg($.template).def(0).getNullable();
             return $;
         }
     }
