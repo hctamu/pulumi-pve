@@ -834,6 +834,8 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Machine, "Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).")
 	a.Describe(&inputs.EfiDisk, "EFI disk configuration (required when bios is set to ovmf).")
 	a.Describe(&inputs.CPU, "CPU configuration including type, topology, and feature flags.")
+	// CPU and complex values cannot be set through Annotate().
+	// Therefore parent cpu object defaults are materialized in Check() if not initialized by user.
 	a.Describe(&inputs.Memory, "Memory size in megabytes.")
 	a.SetDefault(&inputs.Memory, 512)
 	a.Describe(&inputs.Balloon, "Minimum memory for ballooning in megabytes (0 disables the balloon device).")
