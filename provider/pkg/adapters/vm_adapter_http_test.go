@@ -382,6 +382,7 @@ type vmCapturedReq struct {
 
 type vmHTTPOverrides struct {
 	resizeHandler func(http.ResponseWriter, *http.Request)
+	moveHandler   func(http.ResponseWriter, *http.Request)
 }
 
 func (capture *vmHTTPCapture) add(method, path string, body map[string]interface{}) {
@@ -509,6 +510,14 @@ func newExtendedVMMockServerWithOverrides(
 			}
 			data(w, upid("qmresize"))
 
+		// Move disk POST.
+		case strings.HasSuffix(r.URL.Path, "/move_disk") && r.Method == http.MethodPost:
+			if overrides != nil && overrides.moveHandler != nil {
+				overrides.moveHandler(w, r)
+				return
+			}
+			data(w, upid("qmmovedisk"))
+
 		// Unlink PUT.
 		case strings.HasSuffix(r.URL.Path, "/unlink") && r.Method == http.MethodPut:
 			data(w, upid("qmunlink"))
@@ -578,7 +587,7 @@ func TestVMAdapterCreateVMSendsAllFields(t *testing.T) {
 		Hotplug:     &hotplug,
 		Template:    &template,
 		Tags:        []string{"prod", "web"},
-		Disks:       []*proxmox.Disk{},
+		Disks:       testutils.DiskMap(),
 	}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
@@ -647,7 +656,7 @@ func TestVMAdapterCreateVMSendsCPU(t *testing.T) {
 				{Cpus: "0-1", HostNodes: testutils.Ptr("0"), Memory: testutils.Ptr(2048), Policy: testutils.Ptr("preferred")},
 			},
 		},
-		Disks: []*proxmox.Disk{},
+		Disks: testutils.DiskMap(),
 	}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
@@ -705,10 +714,10 @@ func TestVMAdapterCreateVMSendsDisks(t *testing.T) {
 		Name: "disk-vm",
 		Node: &node,
 		VMID: &id,
-		Disks: []*proxmox.Disk{
-			{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 20, Interface: "scsi0"},
-			{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 10, Interface: "sata0"},
-		},
+		Disks: testutils.DiskMap(
+			&proxmox.Disk{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 20, Interface: "scsi0"},
+			&proxmox.Disk{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 10, Interface: "sata0"},
+		),
 	}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
@@ -757,7 +766,7 @@ func TestVMAdapterCreateVMSendsEfiDisk(t *testing.T) {
 			EfiType:         proxmox.EfiType4M,
 			PreEnrolledKeys: testutils.Ptr(false),
 		},
-		Disks: []*proxmox.Disk{},
+		Disks: testutils.DiskMap(),
 	}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
@@ -848,21 +857,67 @@ func TestVMAdapterGetReadsDisks(t *testing.T) {
 	defer server.Close()
 
 	node := nodeName
-	userDisks := []*proxmox.Disk{
-		{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 20, Interface: "scsi0"},
-		{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 10, Interface: "sata0"},
-	}
+	userDisks := testutils.DiskMap(
+		&proxmox.Disk{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 20, Interface: "scsi0"},
+		&proxmox.Disk{DiskBase: proxmox.DiskBase{Storage: "ceph-ha"}, Size: 10, Interface: "sata0"},
+	)
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
 	result, err := vmAdapter.Get(context.Background(), vmID, &node, userDisks)
 	require.NoError(t, err)
 
 	require.Len(t, result.Disks, 2)
-	assert.Equal(t, "scsi0", result.Disks[0].Interface)
-	assert.Equal(t, "ceph-ha", result.Disks[0].Storage)
-	assert.Equal(t, 20, result.Disks[0].Size)
-	assert.Equal(t, "sata0", result.Disks[1].Interface)
-	assert.Equal(t, 10, result.Disks[1].Size)
+	resultDisks := testutils.DiskSlice(result.Disks)
+	assert.Equal(t, "scsi0", resultDisks[0].Interface)
+	assert.Equal(t, "ceph-ha", resultDisks[0].Storage)
+	assert.Equal(t, 20, resultDisks[0].Size)
+	assert.Equal(t, "sata0", resultDisks[1].Interface)
+	assert.Equal(t, 10, resultDisks[1].Size)
+}
+
+// TestVMAdapterGetAssignsDeterministicLogicalDiskNamesOnImport verifies that
+// import/read without user disk hints assigns deterministic logical keys using
+// filename-first identity with interface fallback.
+func TestVMAdapterGetAssignsDeterministicLogicalDiskNamesOnImport(t *testing.T) {
+	t.Parallel()
+
+	const nodeName = "pve-node"
+	const vmIDStr = "100"
+	vmID := 100
+
+	var capture vmHTTPCapture
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
+		func() map[string]interface{} {
+			return map[string]interface{}{
+				"scsi0": "ceph-ha:vm-100-disk-1,size=20G",
+				"sata0": "ceph-ha:vm-100-disk-0,size=10G",
+			}
+		},
+		&capture,
+	)
+	defer server.Close()
+
+	node := nodeName
+	vmAdapter := newConnectedVMAdapter(t, server.URL)
+	result, err := vmAdapter.Get(context.Background(), vmID, &node, nil)
+	require.NoError(t, err)
+
+	require.Len(t, result.Disks, 2)
+
+	disk1, hasDisk1 := result.Disks["disk-1"]
+	require.True(t, hasDisk1)
+	require.NotNil(t, disk1)
+	assert.Equal(t, "sata0", disk1.Interface)
+	require.NotNil(t, disk1.FileID)
+	assert.Equal(t, "vm-100-disk-0", *disk1.FileID)
+
+	disk2, hasDisk2 := result.Disks["disk-2"]
+	require.True(t, hasDisk2)
+	require.NotNil(t, disk2)
+	assert.Equal(t, "scsi0", disk2.Interface)
+	require.NotNil(t, disk2.FileID)
+	assert.Equal(t, "vm-100-disk-1", *disk2.FileID)
 }
 
 // TestVMAdapterGetReadsEfiDisk verifies that Get parses the efidisk0 field
@@ -1007,7 +1062,7 @@ func TestVMAdapterApplyConfigSendsOptions(t *testing.T) {
 		Name:   "apply-vm",
 		Memory: &mem,
 		Tags:   []string{"staging"},
-		Disks:  []*proxmox.Disk{},
+		Disks:  testutils.DiskMap(),
 	}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
@@ -1039,7 +1094,7 @@ func TestVMAdapterApplyConfigMinimalInputs(t *testing.T) {
 	defer server.Close()
 
 	node := nodeName
-	inputs := proxmox.VMInputs{Disks: []*proxmox.Disk{}, Name: "testVM"}
+	inputs := proxmox.VMInputs{Disks: testutils.DiskMap(), Name: "testVM"}
 
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
 	err := vmAdapter.ApplyConfig(context.Background(), vmID, &node, inputs, 60*time.Second)
@@ -1105,7 +1160,7 @@ func TestVMAdapterCloneVMSendsRequest(t *testing.T) {
 					FullClone: tt.fullClone,
 					Timeout:   120,
 				},
-				Disks: []*proxmox.Disk{},
+				Disks: testutils.DiskMap(),
 			}
 
 			vmAdapter := newConnectedVMAdapter(t, server.URL)
@@ -1271,6 +1326,70 @@ func TestVMAdapterRemoveDisk(t *testing.T) {
 	assert.Equal(t, "/nodes/"+nodeName+"/qemu/"+vmIDStr+"/unlink", req.path)
 	assert.Equal(t, "sata0", req.body["idlist"])
 	assert.Equal(t, "1", req.body["force"])
+}
+
+// TestVMAdapterMoveDisk verifies that MoveDisk sends
+// POST /nodes/{node}/qemu/{vmid}/move_disk with disk and target-disk fields.
+func TestVMAdapterMoveDisk(t *testing.T) {
+	t.Parallel()
+
+	const nodeName = "pve-node"
+	const vmIDStr = "100"
+	vmID := 100
+
+	var capture vmHTTPCapture
+	server := newExtendedVMMockServer(
+		t, nodeName, vmIDStr,
+		func() map[string]interface{} { return map[string]interface{}{} },
+		&capture,
+	)
+	defer server.Close()
+
+	node := nodeName
+	vmAdapter := newConnectedVMAdapter(t, server.URL)
+	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	require.NoError(t, err)
+
+	req := capture.find(http.MethodPost, "/move_disk")
+	require.NotNil(t, req, "expected POST to move_disk endpoint")
+	assert.Equal(t, "/nodes/"+nodeName+"/qemu/"+vmIDStr+"/move_disk", req.path)
+	assert.Equal(t, "sata0", req.body["disk"])
+	assert.Equal(t, "scsi1", req.body["target-disk"])
+}
+
+func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
+	t.Parallel()
+
+	const nodeName = "pve-node"
+	const vmIDStr = "100"
+	vmID := 100
+
+	var capture vmHTTPCapture
+	server := newExtendedVMMockServerWithOverrides(
+		t,
+		nodeName,
+		vmIDStr,
+		func() map[string]interface{} { return map[string]interface{}{} },
+		&capture,
+		&vmHTTPOverrides{
+			moveHandler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": nil})
+			},
+		},
+	)
+	defer server.Close()
+
+	node := nodeName
+	vmAdapter := newConnectedVMAdapter(t, server.URL)
+	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to move disk sata0 to scsi1 on VM 100")
+
+	req := capture.find(http.MethodPost, "/move_disk")
+	require.NotNil(t, req, "expected POST to move_disk endpoint")
+	assert.Equal(t, "sata0", req.body["disk"])
+	assert.Equal(t, "scsi1", req.body["target-disk"])
 }
 
 // TestVMAdapterRemoveEfiDisk verifies that RemoveEfiDisk sends

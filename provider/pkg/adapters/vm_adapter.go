@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -145,7 +146,7 @@ func (adapter *VMAdapter) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
-	userDisks []*proxmox.Disk,
+	userDisks proxmox.DiskMap,
 ) (proxmox.VMInputs, error) {
 	virtualMachine, _, _, err := adapter.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
@@ -322,6 +323,45 @@ func (adapter *VMAdapter) RemoveDisk(
 	return nil
 }
 
+// MoveDisk moves an existing disk to another interface slot without recreating the volume.
+func (adapter *VMAdapter) MoveDisk(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	diskInterface string,
+	targetInterface string,
+) error {
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
+	if err != nil {
+		return err
+	}
+
+	task, err := virtualMachine.MoveDisk(ctx, diskInterface, &api.VirtualMachineMoveDiskOptions{
+		TargetDisk: targetInterface,
+	})
+	if err != nil {
+		return fmt.Errorf(
+			"failed to move disk %s to %s on VM %d: %w",
+			diskInterface,
+			targetInterface,
+			vmID,
+			err,
+		)
+	}
+
+	if err = adapter.client.WaitForTask(ctx, string(task.UPID), 60*time.Second, 0); err != nil {
+		return fmt.Errorf(
+			"failed to wait for move disk task %s->%s on VM %d: %w",
+			diskInterface,
+			targetInterface,
+			vmID,
+			err,
+		)
+	}
+
+	return nil
+}
+
 // RemoveEfiDisk removes the EFI disk from a VM.
 func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
 	virtualMachine, err := adapter.findVM(ctx, vmID, node)
@@ -342,13 +382,14 @@ func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *str
 }
 
 // convertVMConfigToInputs converts a VirtualMachine API response to VMInputs (state).
-// userDisks is used solely as an ordering hint: disks present in userDisks are listed
-// first (in user-specified order), followed by any additional disks found in the API.
+// userDisks is used solely as a logical-name hint: disks present in userDisks keep
+// their current names when they still match a live disk, and any extra live disks are
+// assigned synthetic disk-N names.
 // Input preservation (clearing computed fields the user did not supply) is the
 // responsibility of the caller.
 func convertVMConfigToInputs(
 	vm *api.VirtualMachine,
-	userDisks []*proxmox.Disk,
+	userDisks proxmox.DiskMap,
 ) (stateInputs proxmox.VMInputs, err error) {
 	// go-proxmox does not populate TagsSlice from the JSON tags field during HTTP responses.
 	// Call SplitTags to ensure TagsSlice is derived from the Tags string when not already set.
@@ -373,35 +414,47 @@ func convertVMConfigToInputs(
 		return stateInputs, err
 	}
 
-	stateDisks := []*proxmox.Disk{}
+	stateDisks := make(proxmox.DiskMap, len(diskMap))
 	checkedDisks := make(map[string]bool, len(userDisks))
+	userDiskNames := make([]string, 0, len(userDisks))
+	for diskName := range userDisks {
+		userDiskNames = append(userDiskNames, diskName)
+	}
+	sort.Strings(userDiskNames)
 
-	// First: process disks in user-specified order
-	for _, userDisk := range userDisks {
+	for _, diskName := range userDiskNames {
+		userDisk := userDisks[diskName]
 		if userDisk == nil || userDisk.Interface == "" {
 			continue
 		}
-		if _, exists := diskMap[userDisk.Interface]; !exists {
-			continue // disk no longer present in API
+		diskParams, exists := diskMap[userDisk.Interface]
+		if !exists {
+			continue
 		}
 		disk := &proxmox.Disk{Interface: userDisk.Interface}
 		checkedDisks[userDisk.Interface] = true
-		if err := ParseDiskConfig(disk, diskMap[userDisk.Interface]); err != nil {
+		if err := ParseDiskConfig(disk, diskParams); err != nil {
 			return stateInputs, err
 		}
-		stateDisks = append(stateDisks, disk)
+		stateDisks[diskName] = disk
 	}
 
-	// Then: append any disks from API not covered by user's input
-	for diskInterface, diskParams := range diskMap {
+	remainingDisks := make([]*proxmox.Disk, 0, len(diskMap))
+	for diskInterface := range diskMap {
 		if checkedDisks[diskInterface] {
 			continue
 		}
-		disk := proxmox.Disk{Interface: diskInterface}
-		if err := ParseDiskConfig(&disk, diskParams); err != nil {
+
+		disk := &proxmox.Disk{Interface: diskInterface}
+		if err := ParseDiskConfig(disk, diskMap[diskInterface]); err != nil {
 			return stateInputs, err
 		}
-		stateDisks = append(stateDisks, &disk)
+		remainingDisks = append(remainingDisks, disk)
+	}
+
+	for _, remainingDisk := range proxmox.DiskMapToSlice(proxmox.DiskMapFromSliceByIdentity(remainingDisks)) {
+		diskName := proxmox.NextDiskName(stateDisks)
+		stateDisks[diskName] = remainingDisk
 	}
 
 	var efiDisk *proxmox.EfiDisk
@@ -493,7 +546,7 @@ func buildVMOptions(inputs proxmox.VMInputs) []api.VirtualMachineOption {
 		)
 	}
 
-	for _, disk := range inputs.Disks {
+	for _, disk := range proxmox.DiskMapToSlice(inputs.Disks) {
 		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
 		options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
 	}
@@ -537,7 +590,7 @@ func buildVMOptionsDiff(inputs proxmox.VMInputs, currentInputs *proxmox.VMInputs
 			currentByIface[disk.Interface] = disk
 		}
 	}
-	for _, disk := range inputs.Disks {
+	for _, disk := range proxmox.DiskMapToSlice(inputs.Disks) {
 		if disk == nil {
 			continue
 		}

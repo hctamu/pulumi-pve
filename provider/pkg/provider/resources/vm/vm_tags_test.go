@@ -184,12 +184,12 @@ func TestVMCreatePassesTags(t *testing.T) {
 					createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 						return nil
 					},
-					getFunc: func(_ context.Context, vmID int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+					getFunc: func(_ context.Context, vmID int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 						return proxmox.VMInputs{
 							VMID:  &vmID,
 							Node:  &node,
 							Tags:  tt.mockReturnTags,
-							Disks: []*proxmox.Disk{},
+							Disks: testutils.DiskMap(),
 						}, nil
 					},
 				},
@@ -202,7 +202,7 @@ func TestVMCreatePassesTags(t *testing.T) {
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.inputTags,
-					Disks: []*proxmox.Disk{},
+					Disks: testutils.DiskMap(),
 				},
 			}
 
@@ -266,12 +266,12 @@ func TestVMReadReturnsTags(t *testing.T) {
 			vmResource := &vm.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: node, DefaultVMID: id},
 				VMOps: &mockVMOperations{
-					getFunc: func(_ context.Context, vmID int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+					getFunc: func(_ context.Context, vmID int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 						return proxmox.VMInputs{
 							VMID:  &vmID,
 							Node:  &node,
 							Tags:  tt.mockTags,
-							Disks: []*proxmox.Disk{},
+							Disks: testutils.DiskMap(),
 						}, nil
 					},
 				},
@@ -283,13 +283,13 @@ func TestVMReadReturnsTags(t *testing.T) {
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.inputTags,
-					Disks: []*proxmox.Disk{},
+					Disks: testutils.DiskMap(),
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
 						VMID:  &id,
 						Node:  &node,
-						Disks: []*proxmox.Disk{},
+						Disks: testutils.DiskMap(),
 					},
 				},
 			}
@@ -350,12 +350,12 @@ func TestVMReadPreservesUserTagOrder(t *testing.T) {
 			vmResource := &vm.VM{
 				Client: &testutils.MockProxmoxClient{DefaultNode: node, DefaultVMID: id},
 				VMOps: &mockVMOperations{
-					getFunc: func(_ context.Context, vmID int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+					getFunc: func(_ context.Context, vmID int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 						return proxmox.VMInputs{
 							VMID:  &vmID,
 							Node:  &node,
 							Tags:  tt.apiTags,
-							Disks: []*proxmox.Disk{},
+							Disks: testutils.DiskMap(),
 						}, nil
 					},
 				},
@@ -367,13 +367,13 @@ func TestVMReadPreservesUserTagOrder(t *testing.T) {
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.userInputTags,
-					Disks: []*proxmox.Disk{},
+					Disks: testutils.DiskMap(),
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
 						VMID:  &id,
 						Node:  &node,
-						Disks: []*proxmox.Disk{},
+						Disks: testutils.DiskMap(),
 					},
 				},
 			}
@@ -433,12 +433,12 @@ func TestVMUpdatePassesTags(t *testing.T) {
 						receivedNewTags = inputs.Tags
 						return nil
 					},
-					getFunc: func(_ context.Context, vmID int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+					getFunc: func(_ context.Context, vmID int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 						return proxmox.VMInputs{
 							VMID:  &vmID,
 							Node:  &node,
 							Tags:  tt.newTags,
-							Disks: []*proxmox.Disk{},
+							Disks: testutils.DiskMap(),
 						}, nil
 					},
 				},
@@ -451,7 +451,7 @@ func TestVMUpdatePassesTags(t *testing.T) {
 					VMID:  &id,
 					Node:  &node,
 					Tags:  tt.newTags,
-					Disks: []*proxmox.Disk{},
+					Disks: testutils.DiskMap(),
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
@@ -459,7 +459,7 @@ func TestVMUpdatePassesTags(t *testing.T) {
 						VMID:  &id,
 						Node:  &node,
 						Tags:  tt.oldTags,
-						Disks: []*proxmox.Disk{},
+						Disks: testutils.DiskMap(),
 					},
 				},
 			}

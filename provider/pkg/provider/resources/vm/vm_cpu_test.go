@@ -408,9 +408,10 @@ type mockVMOperations struct {
 	) (map[string]proxmox.Disk, *proxmox.EfiDisk, error)
 	resizeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int) error
 	removeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string) error
+	moveDiskFunc      func(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
 	removeEfiDiskFunc func(ctx context.Context, vmID int, node *string) error
 	getFunc           func(
-		ctx context.Context, vmID int, node *string, userDisks []*proxmox.Disk,
+		ctx context.Context, vmID int, node *string, userDisks proxmox.DiskMap,
 	) (proxmox.VMInputs, error)
 	updateConfigFunc func(
 		ctx context.Context, vmID int, node *string,
@@ -471,6 +472,19 @@ func (mock *mockVMOperations) RemoveDisk(
 	return nil
 }
 
+func (mock *mockVMOperations) MoveDisk(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	diskInterface string,
+	targetInterface string,
+) error {
+	if mock.moveDiskFunc != nil {
+		return mock.moveDiskFunc(ctx, vmID, node, diskInterface, targetInterface)
+	}
+	return nil
+}
+
 func (mock *mockVMOperations) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
 	if mock.removeEfiDiskFunc != nil {
 		return mock.removeEfiDiskFunc(ctx, vmID, node)
@@ -479,7 +493,7 @@ func (mock *mockVMOperations) RemoveEfiDisk(ctx context.Context, vmID int, node 
 }
 
 func (mock *mockVMOperations) Get(
-	ctx context.Context, vmID int, node *string, userDisks []*proxmox.Disk,
+	ctx context.Context, vmID int, node *string, userDisks proxmox.DiskMap,
 ) (proxmox.VMInputs, error) {
 	if mock.getFunc != nil {
 		return mock.getFunc(ctx, vmID, node, userDisks)
@@ -511,7 +525,7 @@ func TestVMReadWithCPU(t *testing.T) {
 	nodeName := "pve-node"
 
 	mockOps := &mockVMOperations{
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
 				Name: "test-vm",
@@ -590,7 +604,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 				updateConfigCalled = true
 				return nil
 			},
-			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: &id,
 					Name: "test-vm",
@@ -604,7 +618,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
 			Name:    "test-vm",
-			Disks:   []*proxmox.Disk{},
+			Disks:   testutils.DiskMap(),
 			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
 				Type:  testutils.Ptr("host"),
@@ -616,7 +630,7 @@ func TestVMUpdateCPUSuccess(t *testing.T) {
 				VMID:    testutils.Ptr(vmID),
 				Name:    "test-vm",
 				Node:    &nodeName,
-				Disks:   []*proxmox.Disk{},
+				Disks:   testutils.DiskMap(),
 				EfiDisk: &proxmox.EfiDisk{},
 				CPU: &proxmox.CPU{
 					Type:  testutils.Ptr("host"),
@@ -640,7 +654,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 
 	vmRes := &vm.VM{
 		VMOps: &mockVMOperations{
-			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: &id,
 					Name: "test-vm",
@@ -662,7 +676,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 		Inputs: proxmox.VMInputs{
 			VMID:    testutils.Ptr(vmID),
 			Name:    "test-vm",
-			Disks:   []*proxmox.Disk{},
+			Disks:   testutils.DiskMap(),
 			EfiDisk: &proxmox.EfiDisk{},
 			CPU: &proxmox.CPU{
 				Type:  testutils.Ptr("host"),
@@ -679,7 +693,7 @@ func TestVMUpdateCPUWithNUMA(t *testing.T) {
 				VMID:    testutils.Ptr(vmID),
 				Name:    "test-vm",
 				Node:    &nodeName,
-				Disks:   []*proxmox.Disk{},
+				Disks:   testutils.DiskMap(),
 				EfiDisk: &proxmox.EfiDisk{},
 				CPU: &proxmox.CPU{
 					Type:  testutils.Ptr("host"),
@@ -709,7 +723,7 @@ func TestVMCreateWithCPU(t *testing.T) {
 			capturedInputs = inputs
 			return nil
 		},
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
 				Name: "test-vm",
@@ -754,7 +768,7 @@ func TestVMCreateWithCPU(t *testing.T) {
 					{Cpus: "8-15", Memory: testutils.Ptr(2048)},
 				},
 			},
-			Disks: []*proxmox.Disk{},
+			Disks: testutils.DiskMap(),
 		},
 	}
 

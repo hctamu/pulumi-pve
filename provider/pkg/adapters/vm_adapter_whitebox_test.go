@@ -1222,7 +1222,7 @@ func TestWhiteboxBuildOptionsDiskOrdering(t *testing.T) {
 
 			// Create VM inputs with the test disks
 			inputs := proxmox.VMInputs{
-				Disks: tc.disks,
+				Disks: testutils.DiskMap(tc.disks...),
 			}
 
 			// Build options
@@ -1280,7 +1280,7 @@ func TestWhiteboxBuildOptionsConsistentOrdering(t *testing.T) {
 	}
 
 	inputs := proxmox.VMInputs{
-		Disks: disks,
+		Disks: testutils.DiskMap(disks...),
 	}
 
 	// Build options multiple times
@@ -1378,7 +1378,7 @@ func TestWhiteboxVMCreateDiskOrderingIntegration(t *testing.T) {
 			inputs := proxmox.VMInputs{
 				Name:  name,
 				VMID:  &vmid,
-				Disks: tc.disks,
+				Disks: testutils.DiskMap(tc.disks...),
 			}
 
 			// Call BuildOptions just like the Create function does (line 90 in vm.go)
@@ -1437,7 +1437,7 @@ func TestWhiteboxVMCreateDiskOptionsConsistency(t *testing.T) {
 	inputs := proxmox.VMInputs{
 		Name:  name,
 		VMID:  &vmid,
-		Disks: disks,
+		Disks: testutils.DiskMap(disks...),
 	}
 
 	// Multiple calls should produce identical ordering
@@ -1515,7 +1515,7 @@ func TestWhiteboxVMCreateDiskOrderingEndToEnd(t *testing.T) {
 		inputs := proxmox.VMInputs{
 			Name:  name,
 			VMID:  &vmid,
-			Disks: testCase.disks,
+			Disks: testutils.DiskMap(testCase.disks...),
 		}
 
 		t.Logf("Test case: %s", testCase.description)
@@ -1739,7 +1739,7 @@ func TestWhiteboxVMCreateDiskOrderPreservation(t *testing.T) {
 			inputs := proxmox.VMInputs{
 				Name:  name,
 				VMID:  &vmid,
-				Disks: tc.inputDisks,
+				Disks: testutils.DiskMap(tc.inputDisks...),
 			}
 
 			// Test BuildVMOptions which is called during VM creation
@@ -1852,7 +1852,7 @@ func TestWhiteboxVMCreateDiskOrderWithSeam(t *testing.T) {
 		inputs := proxmox.VMInputs{
 			Name:  name,
 			VMID:  &vmid,
-			Disks: orderedDisks,
+			Disks: testutils.DiskMap(orderedDisks...),
 		}
 
 		// Call BuildVMOptions multiple times to ensure consistency
@@ -1970,7 +1970,7 @@ func TestWhiteboxVMCreateDiskOrderWithSeam(t *testing.T) {
 				vmid := 300
 				inputs := proxmox.VMInputs{
 					VMID:  &vmid,
-					Disks: scenario.disks,
+					Disks: testutils.DiskMap(scenario.disks...),
 				}
 
 				options := buildVMOptions(inputs)
@@ -2096,7 +2096,7 @@ func TestWhiteboxVMReadDiskOrderPreservation(t *testing.T) {
 
 			// Create current input with the ordered disks
 			currentInput := proxmox.VMInputs{
-				Disks: tc.currentInputDisks,
+				Disks: testutils.DiskMap(tc.currentInputDisks...),
 			}
 
 			// Call ConvertVMConfigToInputs with current input to preserve order
@@ -2106,23 +2106,24 @@ func TestWhiteboxVMReadDiskOrderPreservation(t *testing.T) {
 			t.Logf("Test case: %s", tc.description)
 			t.Logf("Current input order: %v", getDiskInterfaces(tc.currentInputDisks))
 			t.Logf("VM config disks: %v", getMapKeys(tc.vmConfigDisks))
-			t.Logf("Result disk order: %v", getDiskInterfaces(result.Disks))
+			resultDisks := testutils.DiskSlice(result.Disks)
+			t.Logf("Result disk order: %v", getDiskInterfaces(resultDisks))
 
 			// Verify the disk order matches expected
-			actualOrder := getDiskInterfaces(result.Disks)
+			actualOrder := getDiskInterfaces(resultDisks)
 			assert.Equal(t, tc.expectedDiskOrder, actualOrder,
 				"ConvertVMConfigToInputs should preserve disk order: %s", tc.description)
 
 			// Verify each disk has correct configuration
 			for i, expectedInterface := range tc.expectedDiskOrder {
-				if i < len(result.Disks) {
-					assert.Equal(t, expectedInterface, result.Disks[i].Interface,
+				if i < len(resultDisks) {
+					assert.Equal(t, expectedInterface, resultDisks[i].Interface,
 						"Disk %d interface should match expected", i)
 
 					// Check that disk was properly parsed from config
 					expectedConfig, exists := tc.vmConfigDisks[expectedInterface]
 					assert.True(t, exists, "Expected interface %s should exist in VM config", expectedInterface)
-					assert.NotEmpty(t, result.Disks[i].Storage,
+					assert.NotEmpty(t, resultDisks[i].Storage,
 						"Disk %d storage should be parsed from config: %s", i, expectedConfig)
 				}
 			}
@@ -2469,7 +2470,7 @@ func BenchmarkWhiteboxBuildOptionsDiskOrdering(b *testing.B) {
 			inputs := proxmox.VMInputs{
 				Name:  name,
 				VMID:  &vmid,
-				Disks: disks,
+				Disks: testutils.DiskMap(disks...),
 			}
 
 			b.ResetTimer()
@@ -2499,7 +2500,7 @@ func BenchmarkWhiteboxBuildOptionsConsistency(b *testing.B) {
 	inputs := proxmox.VMInputs{
 		Name:  name,
 		VMID:  &vmid,
-		Disks: disks,
+		Disks: testutils.DiskMap(disks...),
 	}
 
 	b.ResetTimer()
@@ -2584,7 +2585,7 @@ func TestWhiteboxBuildVMOptionsDiskSerialization(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			options := buildVMOptions(proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.disk}})
+			options := buildVMOptions(proxmox.VMInputs{Disks: testutils.DiskMap(&tt.disk)})
 			require.Len(t, options, 1)
 			assert.Equal(t, tt.disk.Interface, options[0].Name)
 			assert.Equal(t, tt.expected, options[0].Value)
@@ -2644,8 +2645,8 @@ func TestWhiteboxBuildVMOptionsDiffDiskChanges(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			options := buildVMOptionsDiff(
-				proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.desired}},
-				&proxmox.VMInputs{Disks: []*proxmox.Disk{&tt.current}},
+				proxmox.VMInputs{Disks: testutils.DiskMap(&tt.desired)},
+				&proxmox.VMInputs{Disks: testutils.DiskMap(&tt.current)},
 			)
 			if !tt.wantOption {
 				assert.Empty(t, options)

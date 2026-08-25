@@ -122,7 +122,7 @@ func TestDiskListDiffFrom(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Interface: "scsi0", Size: 20},
 			},
 			expected: map[string]p.PropertyDiff{
-				"disks[1]": {Kind: p.Add},
+				"disks[1]": {Kind: p.Add, InputDiff: true},
 			},
 		},
 		{
@@ -135,7 +135,7 @@ func TestDiskListDiffFrom(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Interface: "scsi1", Size: 40},
 			},
 			expected: map[string]p.PropertyDiff{
-				"disks[1]": {Kind: p.Delete},
+				"disks[1]": {Kind: p.Delete, InputDiff: true},
 			},
 		},
 		{
@@ -157,9 +157,9 @@ func TestDiskListDiffFrom(t *testing.T) {
 				},
 			},
 			expected: map[string]p.PropertyDiff{
-				"disks[0].cache":   {Kind: p.Update},
-				"disks[0].size":    {Kind: p.Update},
-				"disks[0].storage": {Kind: p.Update},
+				"disks[0].cache":   {Kind: p.Update, InputDiff: true},
+				"disks[0].size":    {Kind: p.Update, InputDiff: true},
+				"disks[0].storage": {Kind: p.Update, InputDiff: true},
 			},
 		},
 	}
@@ -168,6 +168,289 @@ func TestDiskListDiffFrom(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.expected, tt.disks.DiffFrom("disks", tt.state))
+		})
+	}
+}
+
+func TestDiskMapDiffFrom(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		disks    proxmox.DiskMap
+		state    proxmox.DiskMap
+		expected map[string]p.PropertyDiff
+	}{
+		{
+			name: "added and removed names produce separate entries",
+			disks: proxmox.DiskMap{
+				"new-name": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "scsi1",
+					Size:      20,
+				},
+			},
+			state: proxmox.DiskMap{
+				"old-name": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "scsi0",
+					Size:      20,
+				},
+			},
+			expected: map[string]p.PropertyDiff{
+				"disks[\"old-name\"]": {Kind: p.Delete, InputDiff: true},
+				"disks[\"new-name\"]": {Kind: p.Add, InputDiff: true},
+			},
+		},
+		{
+			name: "same-name interface change is explicit property update",
+			disks: proxmox.DiskMap{
+				"database": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "sata2",
+					Size:      100,
+				},
+			},
+			state: proxmox.DiskMap{
+				"database": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "sata0",
+					Size:      100,
+				},
+			},
+			expected: map[string]p.PropertyDiff{
+				"disks[\"database\"].interface": {Kind: p.Update, InputDiff: true},
+			},
+		},
+		{
+			name: "same-name disk resize includes quoted map path",
+			disks: proxmox.DiskMap{
+				"database": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "sata0",
+					Size:      120,
+				},
+			},
+			state: proxmox.DiskMap{
+				"database": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "sata0",
+					Size:      100,
+				},
+			},
+			expected: map[string]p.PropertyDiff{
+				"disks[\"database\"].size": {Kind: p.Update, InputDiff: true},
+			},
+		},
+		{
+			name: "rename-only logical key is delete plus add",
+			disks: proxmox.DiskMap{
+				"aaaa": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "scsi0",
+					Size:      100,
+				},
+			},
+			state: proxmox.DiskMap{
+				"disk-1": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "scsi0",
+					Size:      100,
+				},
+			},
+			expected: map[string]p.PropertyDiff{
+				"disks[\"disk-1\"]": {Kind: p.Delete, InputDiff: true},
+				"disks[\"aaaa\"]":   {Kind: p.Add, InputDiff: true},
+			},
+		},
+		{
+			name: "rename with property change is still delete plus add",
+			disks: proxmox.DiskMap{
+				"bbbb": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "scsi1",
+					Size:      120,
+				},
+			},
+			state: proxmox.DiskMap{
+				"disk-2": &proxmox.Disk{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Interface: "scsi1",
+					Size:      100,
+				},
+			},
+			expected: map[string]p.PropertyDiff{
+				"disks[\"disk-2\"]": {Kind: p.Delete, InputDiff: true},
+				"disks[\"bbbb\"]":   {Kind: p.Add, InputDiff: true},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, tt.disks.DiffFrom("disks", tt.state))
+		})
+	}
+}
+
+func TestDiskMapDiffFromLegacyListState(t *testing.T) {
+	t.Parallel()
+
+	desired := proxmox.DiskMap{
+		"disk-1": {
+			DiskBase:  proxmox.DiskBase{Storage: "ceph-ha"},
+			Interface: "scsi0",
+			Size:      10,
+		},
+		"disk-2": {
+			DiskBase:  proxmox.DiskBase{Storage: "ceph-ha"},
+			Interface: "scsi1",
+			Size:      10,
+			Cache:     testutils.Ptr("none"),
+		},
+	}
+
+	legacyState := proxmox.DiskList{
+		{
+			DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: testutils.Ptr("vm-106-disk-0")},
+			Interface: "scsi0",
+			Size:      8,
+		},
+		{
+			DiskBase:  proxmox.DiskBase{Storage: "ceph-ha", FileID: testutils.Ptr("vm-106-disk-1")},
+			Interface: "scsi1",
+			Size:      10,
+			Cache:     testutils.Ptr("none"),
+		},
+	}
+
+	assert.Equal(t, map[string]p.PropertyDiff{
+		"disks[\"disk-1\"].size": {Kind: p.Update, InputDiff: true},
+	}, desired.DiffFrom("disks", legacyState))
+}
+
+func TestNextDiskName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		existing proxmox.DiskMap
+		expected string
+	}{
+		{
+			name:     "empty map starts from disk-1",
+			existing: proxmox.DiskMap{},
+			expected: "disk-1",
+		},
+		{
+			name: "fills smallest numeric gap",
+			existing: proxmox.DiskMap{
+				"disk-1": nil,
+				"disk-3": nil,
+			},
+			expected: "disk-2",
+		},
+		{
+			name: "ignores non-standard names while allocating",
+			existing: proxmox.DiskMap{
+				"database": nil,
+				"disk-1":   nil,
+			},
+			expected: "disk-2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.expected, proxmox.NextDiskName(tt.existing))
+		})
+	}
+}
+
+func TestCheckDiskInterfaceMove(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		diskName    string
+		fromIface   string
+		toIface     string
+		otherDisks  proxmox.DiskMap
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:      "same-bus scsi move is allowed",
+			diskName:  "db",
+			fromIface: "scsi0",
+			toIface:   "scsi1",
+			wantErr:   false,
+		},
+		{
+			name:      "same-bus sata move is allowed",
+			diskName:  "db",
+			fromIface: "sata0",
+			toIface:   "sata2",
+			wantErr:   false,
+		},
+		{
+			name:        "cross-bus scsi to sata is rejected",
+			diskName:    "db",
+			fromIface:   "scsi0",
+			toIface:     "sata0",
+			wantErr:     true,
+			errContains: "crosses bus families",
+		},
+		{
+			name:        "cross-bus virtio to scsi is rejected",
+			diskName:    "db",
+			fromIface:   "virtio0",
+			toIface:     "scsi0",
+			wantErr:     true,
+			errContains: "crosses bus families",
+		},
+		{
+			name:      "target slot free is allowed",
+			diskName:  "db",
+			fromIface: "scsi0",
+			toIface:   "scsi3",
+			otherDisks: proxmox.DiskMap{
+				"logs": {Interface: "scsi1", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			wantErr: false,
+		},
+		{
+			name:      "target slot claimed by other disk is rejected",
+			diskName:  "db",
+			fromIface: "scsi0",
+			toIface:   "scsi1",
+			otherDisks: proxmox.DiskMap{
+				"logs": {Interface: "scsi1", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			wantErr:     true,
+			errContains: "already claimed by disk",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			desired := proxmox.DiskMap{
+				tt.diskName: {Interface: tt.toIface, Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			}
+			for k, v := range tt.otherDisks {
+				desired[k] = v
+			}
+			err := proxmox.CheckDiskInterfaceMove(tt.diskName, tt.fromIface, tt.toIface, desired)
+			if tt.wantErr {
+				if assert.Error(t, err) {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
