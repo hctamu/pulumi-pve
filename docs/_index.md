@@ -58,13 +58,16 @@ resources:
       cpu: "EPYC-v3"
       memory: 32
       disks:
-        - storage: "ceph-ha"
+        boot-disk:
+          storage: "ceph-ha"
           size: 20
           interface: "scsi0"
-        - storage: "ceph-ha"
+        data-disk:
+          storage: "ceph-ha"
           size: 17
           interface: "scsi1"
-        - storage: "ceph-ha"
+        extra-disk:
+          storage: "ceph-ha"
           size: 20
           interface: "sata0"
       clone:
@@ -144,13 +147,16 @@ resources:
       cpu: "EPYC-v3"
       memory: 32
       disks:
-        - storage: "ceph-ha"
+        boot-disk:
+          storage: "ceph-ha"
           size: 20
           interface: "scsi0"
-        - storage: "ceph-ha"
+        data-disk:
+          storage: "ceph-ha"
           size: 17
           interface: "scsi1"
-        - storage: "ceph-ha"
+        extra-disk:
+          storage: "ceph-ha"
           size: 20
           interface: "sata0"
       clone:
@@ -168,7 +174,7 @@ resources:
 The Pulumi PVE Provider documentation includes the following sections to help you get started:
 
 - [Installation](#installation): Learn how to install the Pulumi PVE Provider.
-- [Configuration](./installation-configuration.mdonfiguration): Understand how to configure the provider for your Proxmox VE instance.
+- [Configuration](./installation-configuration.md): Understand how to configure the provider for your Proxmox VE instance.
 - [Implemented Resources](#implemented-resources): Explore the resources currently supported by the provider.
 - [Examples](#examples): See examples of how to use the provider in your Pulumi projects.
 

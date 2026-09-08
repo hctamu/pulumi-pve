@@ -1127,7 +1127,7 @@
           "additionalProperties": {
             "$ref": "#/types/pve:proxmox:Disk"
           },
-          "description": "Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot within the same bus family (e.g., scsi0 → scsi1 is allowed; scsi0 → sata0 is rejected at preview). When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-1, disk-2, etc. during state migration."
+          "description": "Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration."
         },
         "efidisk": {
           "$ref": "#/types/pve:proxmox:EfiDisk",
@@ -1209,7 +1209,7 @@
           "additionalProperties": {
             "$ref": "#/types/pve:proxmox:Disk"
           },
-          "description": "Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot within the same bus family (e.g., scsi0 → scsi1 is allowed; scsi0 → sata0 is rejected at preview). When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-1, disk-2, etc. during state migration."
+          "description": "Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration."
         },
         "efidisk": {
           "$ref": "#/types/pve:proxmox:EfiDisk",

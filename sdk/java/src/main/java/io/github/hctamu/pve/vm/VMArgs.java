@@ -14,6 +14,7 @@ import io.github.hctamu.pve.proxmox.inputs.EfiDiskArgs;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
@@ -99,17 +100,17 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+     * Map of disk configurations keyed by a stable logical name (e.g. &#34;database&#34;, &#34;logs&#34;). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
      * 
      */
     @Import(name="disks", required=true)
-    private Output<List<DiskArgs>> disks;
+    private Output<Map<String,DiskArgs>> disks;
 
     /**
-     * @return List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+     * @return Map of disk configurations keyed by a stable logical name (e.g. &#34;database&#34;, &#34;logs&#34;). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
      * 
      */
-    public Output<List<DiskArgs>> disks() {
+    public Output<Map<String,DiskArgs>> disks() {
         return this.disks;
     }
 
@@ -408,34 +409,24 @@ public final class VMArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param disks List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+         * @param disks Map of disk configurations keyed by a stable logical name (e.g. &#34;database&#34;, &#34;logs&#34;). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
          * 
          * @return builder
          * 
          */
-        public Builder disks(Output<List<DiskArgs>> disks) {
+        public Builder disks(Output<Map<String,DiskArgs>> disks) {
             $.disks = disks;
             return this;
         }
 
         /**
-         * @param disks List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+         * @param disks Map of disk configurations keyed by a stable logical name (e.g. &#34;database&#34;, &#34;logs&#34;). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
          * 
          * @return builder
          * 
          */
-        public Builder disks(List<DiskArgs> disks) {
+        public Builder disks(Map<String,DiskArgs> disks) {
             return disks(Output.of(disks));
-        }
-
-        /**
-         * @param disks List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
-         * 
-         * @return builder
-         * 
-         */
-        public Builder disks(DiskArgs... disks) {
-            return disks(List.of(disks));
         }
 
         /**

@@ -20,7 +20,7 @@ __all__ = ['VMArgs', 'VM']
 @pulumi.input_type
 class VMArgs:
     def __init__(__self__, *,
-                 disks: pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]],
+                 disks: pulumi.Input[Mapping[str, pulumi.Input['_proxmox.DiskArgs']]],
                  name: pulumi.Input[_builtins.str],
                  autostart: pulumi.Input[Optional[_builtins.int]] = None,
                  balloon: pulumi.Input[Optional[_builtins.int]] = None,
@@ -39,7 +39,7 @@ class VMArgs:
         """
         The set of arguments for constructing a VM resource.
 
-        :param pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]] disks: List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+        :param pulumi.Input[Mapping[str, pulumi.Input['_proxmox.DiskArgs']]] disks: Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
         :param pulumi.Input[_builtins.str] name: Name of the virtual machine.
         :param pulumi.Input[_builtins.int] autostart: Automatically start the VM when the host boots (1 to enable, 0 to disable).
         :param pulumi.Input[_builtins.int] balloon: Minimum memory for ballooning in megabytes (0 disables the balloon device).
@@ -99,14 +99,14 @@ class VMArgs:
 
     @_builtins.property
     @pulumi.getter
-    def disks(self) -> pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]]:
+    def disks(self) -> pulumi.Input[Mapping[str, pulumi.Input['_proxmox.DiskArgs']]]:
         """
-        List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+        Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
         """
         return pulumi.get(self, "disks")
 
     @disks.setter
-    def disks(self, value: pulumi.Input[Sequence[pulumi.Input['_proxmox.DiskArgs']]]):
+    def disks(self, value: pulumi.Input[Mapping[str, pulumi.Input['_proxmox.DiskArgs']]]):
         pulumi.set(self, "disks", value)
 
     @_builtins.property
@@ -301,7 +301,7 @@ class VM(pulumi.CustomResource):
                  clone: pulumi.Input[Optional[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']]] = None,
                  cpu: pulumi.Input[Optional[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']]] = None,
                  description: pulumi.Input[Optional[_builtins.str]] = None,
-                 disks: pulumi.Input[Optional[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
+                 disks: pulumi.Input[Optional[Mapping[str, pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
                  efidisk: pulumi.Input[Optional[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']]] = None,
                  hotplug: pulumi.Input[Optional[_builtins.str]] = None,
                  machine: pulumi.Input[Optional[_builtins.str]] = None,
@@ -323,7 +323,7 @@ class VM(pulumi.CustomResource):
         :param pulumi.Input[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']] clone: Clone configuration for creating the VM from a source template or VM.
         :param pulumi.Input[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']] cpu: CPU configuration including type, topology, and feature flags.
         :param pulumi.Input[_builtins.str] description: Description or notes for the virtual machine.
-        :param pulumi.Input[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]] disks: List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+        :param pulumi.Input[Mapping[str, pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]] disks: Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
         :param pulumi.Input[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']] efidisk: EFI disk configuration (required when bios is set to ovmf).
         :param pulumi.Input[_builtins.str] hotplug: Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
         :param pulumi.Input[_builtins.str] machine: Machine type for the VM (e.g., pc, q35, pc-i440fx-8.1).
@@ -364,7 +364,7 @@ class VM(pulumi.CustomResource):
                  clone: pulumi.Input[Optional[Union['_proxmox.CloneArgs', '_proxmox.CloneArgsDict']]] = None,
                  cpu: pulumi.Input[Optional[Union['_proxmox.CPUArgs', '_proxmox.CPUArgsDict']]] = None,
                  description: pulumi.Input[Optional[_builtins.str]] = None,
-                 disks: pulumi.Input[Optional[Sequence[pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
+                 disks: pulumi.Input[Optional[Mapping[str, pulumi.Input[Union['_proxmox.DiskArgs', '_proxmox.DiskArgsDict']]]]] = None,
                  efidisk: pulumi.Input[Optional[Union['_proxmox.EfiDiskArgs', '_proxmox.EfiDiskArgsDict']]] = None,
                  hotplug: pulumi.Input[Optional[_builtins.str]] = None,
                  machine: pulumi.Input[Optional[_builtins.str]] = None,
@@ -498,9 +498,9 @@ class VM(pulumi.CustomResource):
 
     @_builtins.property
     @pulumi.getter
-    def disks(self) -> pulumi.Output[Sequence['_proxmox.outputs.Disk']]:
+    def disks(self) -> pulumi.Output[Mapping[str, '_proxmox.outputs.Disk']]:
         """
-        List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+        Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
         """
         return pulumi.get(self, "disks")
 

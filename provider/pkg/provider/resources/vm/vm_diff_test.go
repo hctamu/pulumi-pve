@@ -232,7 +232,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	assert.Contains(t, resp.DetailedDiff, "name")
 	assert.Contains(t, resp.DetailedDiff, "memory")
 	assert.Contains(t, resp.DetailedDiff, "cpu")
-	assert.Contains(t, resp.DetailedDiff, "disks[\"disk-1\"].size")
+	assert.Contains(t, resp.DetailedDiff, "disks[\"disk-0\"].size")
 	// EfiDisk now produces granular diffs
 	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
 

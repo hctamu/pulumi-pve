@@ -129,14 +129,14 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
     }
 
     /**
-     * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+     * Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
      * 
      */
     @Import(name="interface", required=true)
     private Output<String> interface_;
 
     /**
-     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+     * @return Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
      * 
      */
     public Output<String> interface_() {
@@ -562,7 +562,7 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
          * 
          * @return builder
          * 
@@ -573,7 +573,7 @@ public final class DiskArgs extends com.pulumi.resources.ResourceArgs {
         }
 
         /**
-         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+         * @param interface_ Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
          * 
          * @return builder
          * 

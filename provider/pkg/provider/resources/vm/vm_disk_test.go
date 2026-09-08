@@ -49,7 +49,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"].size": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-0\"].size": p.Update},
 		},
 		{
 			name: "disk resized and flags changed simultaneously",
@@ -66,8 +66,8 @@ func TestVMDiffDisksChange(t *testing.T) {
 			},
 			expectChange: true,
 			expectDiffKeys: map[string]p.DiffKind{
-				"disks[\"disk-1\"].size":  p.Update,
-				"disks[\"disk-1\"].cache": p.Update,
+				"disks[\"disk-0\"].size":  p.Update,
+				"disks[\"disk-0\"].cache": p.Update,
 			},
 		},
 		{
@@ -95,8 +95,8 @@ func TestVMDiffDisksChange(t *testing.T) {
 			},
 			expectChange: true,
 			expectDiffKeys: map[string]p.DiffKind{
-				"disks[\"disk-1\"].cache":    p.Update,
-				"disks[\"disk-1\"].filename": p.Update,
+				"disks[\"disk-0\"].cache":    p.Update,
+				"disks[\"disk-0\"].filename": p.Update,
 			},
 		},
 		{
@@ -109,7 +109,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"].interface": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-0\"].interface": p.Update},
 		},
 		{
 			name: "disk added",
@@ -121,7 +121,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-2\"]": p.Add},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"]": p.Add},
 		},
 		{
 			name: "disk removed",
@@ -133,7 +133,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi1"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-2\"]": p.Delete},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"]": p.Delete},
 		},
 		{
 			name: "file id changed",
@@ -148,7 +148,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				Interface: "scsi0",
 			}},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"].filename": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-0\"].filename": p.Update},
 		},
 		{
 			name: "nil fileID in input is not a change",
@@ -189,7 +189,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 40, Interface: "scsi0"},
 			},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"].size": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-0\"].size": p.Update},
 		},
 		{
 			name: "disk storage changed is a normal diff, not a Diff-time error",
@@ -204,7 +204,7 @@ func TestVMDiffDisksChange(t *testing.T) {
 				Interface: "scsi0",
 			}},
 			expectChange:   true,
-			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-1\"].storage": p.Update},
+			expectDiffKeys: map[string]p.DiffKind{"disks[\"disk-0\"].storage": p.Update},
 		},
 	}
 

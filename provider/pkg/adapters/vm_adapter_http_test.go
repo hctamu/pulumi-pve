@@ -905,14 +905,14 @@ func TestVMAdapterGetAssignsDeterministicLogicalDiskNamesOnImport(t *testing.T) 
 
 	require.Len(t, result.Disks, 2)
 
-	disk1, hasDisk1 := result.Disks["disk-1"]
+	disk1, hasDisk1 := result.Disks["disk-0"]
 	require.True(t, hasDisk1)
 	require.NotNil(t, disk1)
 	assert.Equal(t, "sata0", disk1.Interface)
 	require.NotNil(t, disk1.FileID)
 	assert.Equal(t, "vm-100-disk-0", *disk1.FileID)
 
-	disk2, hasDisk2 := result.Disks["disk-2"]
+	disk2, hasDisk2 := result.Disks["disk-1"]
 	require.True(t, hasDisk2)
 	require.NotNil(t, disk2)
 	assert.Equal(t, "scsi0", disk2.Interface)
@@ -1329,7 +1329,7 @@ func TestVMAdapterRemoveDisk(t *testing.T) {
 }
 
 // TestVMAdapterMoveDisk verifies that MoveDisk sends
-// POST /nodes/{node}/qemu/{vmid}/move_disk with disk and target-disk fields.
+// POST /nodes/{node}/qemu/{vmid}/move_disk with disk, target-disk, and target-vmid fields.
 func TestVMAdapterMoveDisk(t *testing.T) {
 	t.Parallel()
 
@@ -1355,6 +1355,7 @@ func TestVMAdapterMoveDisk(t *testing.T) {
 	assert.Equal(t, "/nodes/"+nodeName+"/qemu/"+vmIDStr+"/move_disk", req.path)
 	assert.Equal(t, "sata0", req.body["disk"])
 	assert.Equal(t, "scsi1", req.body["target-disk"])
+	assert.Equal(t, float64(vmID), req.body["target-vmid"])
 }
 
 func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
@@ -1390,6 +1391,7 @@ func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
 	require.NotNil(t, req, "expected POST to move_disk endpoint")
 	assert.Equal(t, "sata0", req.body["disk"])
 	assert.Equal(t, "scsi1", req.body["target-disk"])
+	assert.Equal(t, float64(vmID), req.body["target-vmid"])
 }
 
 // TestVMAdapterRemoveEfiDisk verifies that RemoveEfiDisk sends

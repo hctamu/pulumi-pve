@@ -346,7 +346,7 @@ class Disk(dict):
         """
         Disk configuration for the virtual machine.
 
-        :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+        :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         :param _builtins.int size: Disk size in gigabytes.
         :param _builtins.str storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
         :param _builtins.str aio: Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
@@ -418,7 +418,7 @@ class Disk(dict):
     @pulumi.getter
     def interface(self) -> _builtins.str:
         """
-        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         """
         return pulumi.get(self, "interface")
 

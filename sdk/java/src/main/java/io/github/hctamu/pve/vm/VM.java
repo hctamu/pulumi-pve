@@ -16,6 +16,7 @@ import io.github.hctamu.pve.vm.VMArgs;
 import java.lang.Integer;
 import java.lang.String;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
@@ -92,17 +93,17 @@ public class VM extends com.pulumi.resources.CustomResource {
         return Codegen.optional(this.description);
     }
     /**
-     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+     * Map of disk configurations keyed by a stable logical name (e.g. &#34;database&#34;, &#34;logs&#34;). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
      * 
      */
-    @Export(name="disks", refs={List.class,Disk.class}, tree="[0,1]")
-    private Output<List<Disk>> disks;
+    @Export(name="disks", refs={Map.class,String.class,Disk.class}, tree="[0,1,2]")
+    private Output<Map<String,Disk>> disks;
 
     /**
-     * @return List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+     * @return Map of disk configurations keyed by a stable logical name (e.g. &#34;database&#34;, &#34;logs&#34;). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
      * 
      */
-    public Output<List<Disk>> disks() {
+    public Output<Map<String,Disk>> disks() {
         return this.disks;
     }
     /**

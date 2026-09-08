@@ -644,7 +644,7 @@ type Disk struct {
 	Filename *string `pulumi:"filename"`
 	// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
 	Format *string `pulumi:"format"`
-	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
 	Interface string `pulumi:"interface"`
 	// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
 	Iothread *bool `pulumi:"iothread"`
@@ -705,7 +705,7 @@ type DiskArgs struct {
 	Filename pulumi.StringPtrInput `pulumi:"filename"`
 	// Disk image format: raw, qcow2, vmdk, etc. Relevant primarily for file-based storage (local, NFS); block-based storage (LVM, Ceph) ignores this field and may not return it on read. Changing the format of an existing disk is not supported by Proxmox.
 	Format pulumi.StringPtrInput `pulumi:"format"`
-	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+	// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
 	Interface pulumi.StringInput `pulumi:"interface"`
 	// Enable a dedicated I/O thread for this disk. Only supported on scsi and virtio interfaces.
 	Iothread pulumi.BoolPtrInput `pulumi:"iothread"`
@@ -751,29 +751,29 @@ func (i DiskArgs) ToDiskOutputWithContext(ctx context.Context) DiskOutput {
 	return pulumi.ToOutputWithContext(ctx, i).(DiskOutput)
 }
 
-// DiskArrayInput is an input type that accepts DiskArray and DiskArrayOutput values.
-// You can construct a concrete instance of `DiskArrayInput` via:
+// DiskMapInput is an input type that accepts DiskMap and DiskMapOutput values.
+// You can construct a concrete instance of `DiskMapInput` via:
 //
-//	DiskArray{ DiskArgs{...} }
-type DiskArrayInput interface {
+//	DiskMap{ "key": DiskArgs{...} }
+type DiskMapInput interface {
 	pulumi.Input
 
-	ToDiskArrayOutput() DiskArrayOutput
-	ToDiskArrayOutputWithContext(context.Context) DiskArrayOutput
+	ToDiskMapOutput() DiskMapOutput
+	ToDiskMapOutputWithContext(context.Context) DiskMapOutput
 }
 
-type DiskArray []DiskInput
+type DiskMap map[string]DiskInput
 
-func (DiskArray) ElementType() reflect.Type {
-	return reflect.TypeOf((*[]Disk)(nil)).Elem()
+func (DiskMap) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]Disk)(nil)).Elem()
 }
 
-func (i DiskArray) ToDiskArrayOutput() DiskArrayOutput {
-	return i.ToDiskArrayOutputWithContext(context.Background())
+func (i DiskMap) ToDiskMapOutput() DiskMapOutput {
+	return i.ToDiskMapOutputWithContext(context.Background())
 }
 
-func (i DiskArray) ToDiskArrayOutputWithContext(ctx context.Context) DiskArrayOutput {
-	return pulumi.ToOutputWithContext(ctx, i).(DiskArrayOutput)
+func (i DiskMap) ToDiskMapOutputWithContext(ctx context.Context) DiskMapOutput {
+	return pulumi.ToOutputWithContext(ctx, i).(DiskMapOutput)
 }
 
 // Disk configuration for the virtual machine.
@@ -826,7 +826,7 @@ func (o DiskOutput) Format() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Disk) *string { return v.Format }).(pulumi.StringPtrOutput)
 }
 
-// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
 func (o DiskOutput) Interface() pulumi.StringOutput {
 	return o.ApplyT(func(v Disk) string { return v.Interface }).(pulumi.StringOutput)
 }
@@ -906,23 +906,23 @@ func (o DiskOutput) Wwn() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v Disk) *string { return v.Wwn }).(pulumi.StringPtrOutput)
 }
 
-type DiskArrayOutput struct{ *pulumi.OutputState }
+type DiskMapOutput struct{ *pulumi.OutputState }
 
-func (DiskArrayOutput) ElementType() reflect.Type {
-	return reflect.TypeOf((*[]Disk)(nil)).Elem()
+func (DiskMapOutput) ElementType() reflect.Type {
+	return reflect.TypeOf((*map[string]Disk)(nil)).Elem()
 }
 
-func (o DiskArrayOutput) ToDiskArrayOutput() DiskArrayOutput {
+func (o DiskMapOutput) ToDiskMapOutput() DiskMapOutput {
 	return o
 }
 
-func (o DiskArrayOutput) ToDiskArrayOutputWithContext(ctx context.Context) DiskArrayOutput {
+func (o DiskMapOutput) ToDiskMapOutputWithContext(ctx context.Context) DiskMapOutput {
 	return o
 }
 
-func (o DiskArrayOutput) Index(i pulumi.IntInput) DiskOutput {
-	return pulumi.All(o, i).ApplyT(func(vs []interface{}) Disk {
-		return vs[0].([]Disk)[vs[1].(int)]
+func (o DiskMapOutput) MapIndex(k pulumi.StringInput) DiskOutput {
+	return pulumi.All(o, k).ApplyT(func(vs []interface{}) Disk {
+		return vs[0].(map[string]Disk)[vs[1].(string)]
 	}).(DiskOutput)
 }
 
@@ -1590,7 +1590,7 @@ func init() {
 	pulumi.RegisterInputType(reflect.TypeOf((*CloneInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*ClonePtrInput)(nil)).Elem(), CloneArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskInput)(nil)).Elem(), DiskArgs{})
-	pulumi.RegisterInputType(reflect.TypeOf((*DiskArrayInput)(nil)).Elem(), DiskArray{})
+	pulumi.RegisterInputType(reflect.TypeOf((*DiskMapInput)(nil)).Elem(), DiskMap{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskBandwidthInput)(nil)).Elem(), DiskBandwidthArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*DiskBandwidthPtrInput)(nil)).Elem(), DiskBandwidthArgs{})
 	pulumi.RegisterInputType(reflect.TypeOf((*EfiDiskInput)(nil)).Elem(), EfiDiskArgs{})
@@ -1603,7 +1603,7 @@ func init() {
 	pulumi.RegisterOutputType(CloneOutput{})
 	pulumi.RegisterOutputType(ClonePtrOutput{})
 	pulumi.RegisterOutputType(DiskOutput{})
-	pulumi.RegisterOutputType(DiskArrayOutput{})
+	pulumi.RegisterOutputType(DiskMapOutput{})
 	pulumi.RegisterOutputType(DiskBandwidthOutput{})
 	pulumi.RegisterOutputType(DiskBandwidthPtrOutput{})
 	pulumi.RegisterOutputType(EfiDiskOutput{})

@@ -262,9 +262,9 @@ func (adapter *VMAdapter) GetCurrentDisks(
 		return nil, nil, err
 	}
 
-	diskMap := virtualMachine.VirtualMachineConfig.MergeDisks()
-	result := make(map[string]proxmox.Disk, len(diskMap))
-	for iface, config := range diskMap {
+	disksByInterface := virtualMachine.VirtualMachineConfig.MergeDisks()
+	result := make(map[string]proxmox.Disk, len(disksByInterface))
+	for iface, config := range disksByInterface {
 		disk := proxmox.Disk{Interface: iface}
 		if err := ParseDiskConfig(&disk, config); err != nil {
 			return nil, nil, fmt.Errorf("failed to parse disk %s: %w", iface, err)
@@ -338,6 +338,7 @@ func (adapter *VMAdapter) MoveDisk(
 
 	task, err := virtualMachine.MoveDisk(ctx, diskInterface, &api.VirtualMachineMoveDiskOptions{
 		TargetDisk: targetInterface,
+		TargetVMID: vmID,
 	})
 	if err != nil {
 		return fmt.Errorf(
@@ -407,51 +408,76 @@ func convertVMConfigToInputs(
 	}
 
 	vmConfig := vm.VirtualMachineConfig
-	diskMap := vmConfig.MergeDisks()
+	disksByInterface := vmConfig.MergeDisks()
 
 	parsedCPU, err := parseCPUFromVMConfig(vmConfig)
 	if err != nil {
 		return stateInputs, err
 	}
 
-	stateDisks := make(proxmox.DiskMap, len(diskMap))
+	// Parse live Proxmox disks once so later matching logic can reuse the same
+	// normalized Disk values instead of reparsing config strings repeatedly.
+	currentDisks := make(proxmox.DiskMap, len(disksByInterface))
+	// FileID is the strongest identity hint across manual interface moves.
+	// Keep a reverse lookup from FileID -> live interface for matching.
+	currentDiskByFileID := make(map[string]string, len(disksByInterface))
+	for diskInterface, diskConfig := range disksByInterface {
+		disk := &proxmox.Disk{Interface: diskInterface}
+		if err := ParseDiskConfig(disk, diskConfig); err != nil {
+			return stateInputs, err
+		}
+		currentDisks[diskInterface] = disk
+		if disk.FileID != nil && *disk.FileID != "" {
+			currentDiskByFileID[*disk.FileID] = diskInterface
+		}
+	}
+
+	stateDisks := make(proxmox.DiskMap, len(disksByInterface))
 	checkedDisks := make(map[string]bool, len(userDisks))
 	userDiskNames := make([]string, 0, len(userDisks))
 	for diskName := range userDisks {
 		userDiskNames = append(userDiskNames, diskName)
 	}
+	// Keep traversal deterministic so tie-cases are stable across refresh runs.
 	sort.Strings(userDiskNames)
 
+	// First pass: preserve existing logical names from user/state hints.
+	// Match by FileID first, then fall back to interface when FileID is absent.
 	for _, diskName := range userDiskNames {
 		userDisk := userDisks[diskName]
 		if userDisk == nil || userDisk.Interface == "" {
 			continue
 		}
-		diskParams, exists := diskMap[userDisk.Interface]
-		if !exists {
+		matchedInterface := ""
+		if userDisk.FileID != nil && *userDisk.FileID != "" {
+			matchedInterface = currentDiskByFileID[*userDisk.FileID]
+		}
+		if matchedInterface == "" {
+			if _, exists := currentDisks[userDisk.Interface]; exists {
+				matchedInterface = userDisk.Interface
+			}
+		}
+		if matchedInterface == "" || checkedDisks[matchedInterface] {
 			continue
 		}
-		disk := &proxmox.Disk{Interface: userDisk.Interface}
-		checkedDisks[userDisk.Interface] = true
-		if err := ParseDiskConfig(disk, diskParams); err != nil {
-			return stateInputs, err
-		}
-		stateDisks[diskName] = disk
+		// Reserve the matched live interface so one live disk cannot be claimed
+		// by multiple logical names.
+		checkedDisks[matchedInterface] = true
+		stateDisks[diskName] = currentDisks[matchedInterface]
 	}
 
-	remainingDisks := make([]*proxmox.Disk, 0, len(diskMap))
-	for diskInterface := range diskMap {
+	// Second pass: include live disks not matched by hints (for example GUI-added
+	// disks) so refresh/read does not silently drop them.
+	remainingDisks := make([]*proxmox.Disk, 0, len(disksByInterface))
+	for diskInterface, disk := range currentDisks {
 		if checkedDisks[diskInterface] {
 			continue
-		}
-
-		disk := &proxmox.Disk{Interface: diskInterface}
-		if err := ParseDiskConfig(disk, diskMap[diskInterface]); err != nil {
-			return stateInputs, err
 		}
 		remainingDisks = append(remainingDisks, disk)
 	}
 
+	// Assign synthetic disk-N names in deterministic identity order so state is
+	// stable regardless of map iteration order.
 	for _, remainingDisk := range proxmox.DiskMapToSlice(proxmox.DiskMapFromSliceByIdentity(remainingDisks)) {
 		diskName := proxmox.NextDiskName(stateDisks)
 		stateDisks[diskName] = remainingDisk

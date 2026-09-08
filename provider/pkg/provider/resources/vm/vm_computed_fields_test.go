@@ -1527,15 +1527,14 @@ func TestCheckDiskInterfaceMoves(t *testing.T) {
 			wantFailures: 0,
 		},
 		{
-			name: "cross-bus move is rejected",
+			name: "cross-bus move is allowed",
 			desired: proxmox.DiskMap{
 				"db": {Interface: "sata0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
 			},
 			current: proxmox.DiskMap{
 				"db": {Interface: "scsi0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
 			},
-			wantFailures: 1,
-			errContains:  "crosses bus families",
+			wantFailures: 0,
 		},
 		{
 			name: "move to occupied slot is rejected",

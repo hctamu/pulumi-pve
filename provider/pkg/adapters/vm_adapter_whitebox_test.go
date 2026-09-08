@@ -2053,6 +2053,25 @@ func TestWhiteboxVMReadDiskOrderPreservation(t *testing.T) {
 			description:       "Read should preserve existing order and append new disks",
 		},
 		{
+			name: "Prefer fileID over interface when disk moved by hand",
+			currentInputDisks: []*proxmox.Disk{
+				{
+					Interface: "scsi0",
+					DiskBase: proxmox.DiskBase{
+						Storage: lvmStorage,
+						FileID:  testutils.Ptr("vm-100-disk-0"),
+					},
+					Size: 32,
+				},
+			},
+			vmConfigDisks: map[string]string{
+				"sata1": "local-lvm:vm-100-disk-0,size=32G",
+				"scsi0": "local-lvm:vm-100-disk-9,size=64G",
+			},
+			expectedDiskOrder: []string{"sata1", "scsi0"},
+			description:       "Read should preserve logical name by fileID even when interface changed by hand",
+		},
+		{
 			name: "Handle missing disks from VM config",
 			currentInputDisks: []*proxmox.Disk{
 				{

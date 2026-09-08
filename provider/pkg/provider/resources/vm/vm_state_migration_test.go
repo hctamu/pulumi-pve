@@ -58,8 +58,8 @@ func TestMigrateLegacyVMOutputs(t *testing.T) {
 	migratedDisks := testutils.DiskSlice(migrated.Disks)
 	assert.Equal(t, "scsi0", migratedDisks[0].Interface)
 	assert.Equal(t, "scsi1", migratedDisks[1].Interface)
+	assert.Contains(t, migrated.Disks, "disk-0")
 	assert.Contains(t, migrated.Disks, "disk-1")
-	assert.Contains(t, migrated.Disks, "disk-2")
 }
 
 func TestMigrateLegacyVMOutputsUsesFilenameFirstIdentity(t *testing.T) {
@@ -95,19 +95,19 @@ func TestMigrateLegacyVMOutputsUsesFilenameFirstIdentity(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result.Result)
 
+	disk0, ok := result.Result.Disks["disk-0"]
+	require.True(t, ok)
+	require.NotNil(t, disk0)
+	assert.Equal(t, "scsi0", disk0.Interface)
+	require.NotNil(t, disk0.FileID)
+	assert.Equal(t, "local-lvm:vm-101-disk-0", *disk0.FileID)
+
 	disk1, ok := result.Result.Disks["disk-1"]
 	require.True(t, ok)
 	require.NotNil(t, disk1)
-	assert.Equal(t, "scsi0", disk1.Interface)
+	assert.Equal(t, "scsi1", disk1.Interface)
 	require.NotNil(t, disk1.FileID)
-	assert.Equal(t, "local-lvm:vm-101-disk-0", *disk1.FileID)
-
-	disk2, ok := result.Result.Disks["disk-2"]
-	require.True(t, ok)
-	require.NotNil(t, disk2)
-	assert.Equal(t, "scsi1", disk2.Interface)
-	require.NotNil(t, disk2.FileID)
-	assert.Equal(t, "local-lvm:vm-101-disk-1", *disk2.FileID)
+	assert.Equal(t, "local-lvm:vm-101-disk-1", *disk1.FileID)
 }
 
 func TestUpdateAfterLegacyMigrationDoesNotMutateDisks(t *testing.T) {
@@ -180,8 +180,8 @@ func TestUpdateAfterLegacyMigrationDoesNotMutateDisks(t *testing.T) {
 			Node: legacy.Node,
 			VMID: legacy.VMID,
 			Disks: proxmox.DiskMap{
-				"disk-1": {DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
-				"disk-2": {DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 64, Interface: "scsi1"},
+				"disk-0": {DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32, Interface: "scsi0"},
+				"disk-1": {DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 64, Interface: "scsi1"},
 			},
 		},
 		State: *migrationResult.Result,

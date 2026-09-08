@@ -320,6 +320,8 @@ func checkDiskInterfaceMoves(desired, current proxmox.DiskMap) []p.CheckFailure 
 		if desiredDisk.Interface == currentDisk.Interface {
 			continue
 		}
+		// Reject unsafe moves before apply. Update expects the same logical disk to be
+		// moved in place, not recreated behind the user's back.
 		if err := proxmox.CheckDiskInterfaceMove(
 			diskName, currentDisk.Interface, desiredDisk.Interface, desired,
 		); err != nil {
@@ -473,6 +475,7 @@ func (vm *VM) reconcileDisks(
 ) error {
 	currentByName := current
 
+	// Collect actions first so the API calls stay in a Proxmox-safe order.
 	var moveActions []diskMoveAction
 	var resizeActions []diskResizeAction
 	var removeActions []diskRemoveAction
@@ -535,6 +538,7 @@ func (vm *VM) reconcileDisks(
 	}
 
 	for _, moveAction := range moveActions {
+		// Moves run before deletes so slot changes keep the underlying volume.
 		if err := vm.VMOps.MoveDisk(ctx, vmID, node, moveAction.fromInterface, moveAction.targetInterface); err != nil {
 			return fmt.Errorf(
 				"failed to move disk %s (%s -> %s): %w",
@@ -547,12 +551,14 @@ func (vm *VM) reconcileDisks(
 	}
 
 	for _, removeAction := range removeActions {
+		// Deletes only run after moves, so rename/re-slot cases do not drop data.
 		if err := vm.VMOps.RemoveDisk(ctx, vmID, node, removeAction.interfaceID); err != nil {
 			return fmt.Errorf("failed to remove disk %s: %w", removeAction.diskName, err)
 		}
 	}
 
 	for _, resizeAction := range resizeActions {
+		// Resizes are last because they only apply to disks still present after moves.
 		if err := vm.VMOps.ResizeDisk(ctx, vmID, node, resizeAction.interfaceID, resizeAction.sizeGB); err != nil {
 			return fmt.Errorf("failed to resize disk %s: %w", resizeAction.diskName, err)
 		}
@@ -587,7 +593,7 @@ func (vm *VM) Read(
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, errors.New("VMOperations not configured")
 	}
 
-	stateInputs, err := vm.VMOps.Get(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks)
+	stateInputs, err := vm.VMOps.Get(ctx, *vmID, request.Inputs.Node, request.State.Disks)
 	if err != nil {
 		l.Errorf("Error reading VM %v: %v", *vmID, err)
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, err

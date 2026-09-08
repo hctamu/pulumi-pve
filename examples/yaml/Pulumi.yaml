@@ -26,6 +26,7 @@ resources:
       alias: "my vnet"    # optional
       vlanaware: false    # optional; allow guest VLANs to trunk through
       isolatePorts: false # optional; isolate all bridge interfaces
+  
   myZone:
     type: pve:sdn/zone:VxlanZone
     properties: ${zone}
@@ -41,25 +42,26 @@ resources:
         - ${myVnet}
         - ${myZone}
 
-  # myFile:
-  #   type: pve:file:File
-  #   properties:
-  #     datastoreId: cephfs
-  #     contentType: snippets
-  #     sourceRaw:
-  #       fileData: |
-  #         hello world
-  #       fileName: testfile011.yaml
+  myFile:
+    type: pve:file:File
+    properties:
+      datastoreId: cephfs
+      contentType: snippets
+      sourceRaw:
+        fileData: |
+          hello world
+        fileName: testfile011.yaml
 
-  # myPool:
-  #   type: pve:pool:Pool
-  #   properties:
-  #     name: testpool
-  #     comment: "a test pool"
-  #     storage:
-  #       - cephfs
-  #     vms:
-  #       - 100
+  myPool:
+    type: pve:pool:Pool
+    properties:
+      name: testpool
+      comment: "a test pool"
+      storage:
+        - cephfs
+      vms:
+        - 100
+
   myVM:
     type: pve:vm:VM
     properties:
@@ -69,8 +71,8 @@ resources:
       vmId: 119
       memory: 2048
       disks:
-        # scsi0: changed flags + bandwidth
-        - storage: "ceph-ha"
+        disk-0:
+          storage: "ceph-ha"
           size: 17
           interface: "scsi0"
           cache: "none"
@@ -79,16 +81,16 @@ resources:
             mbpsRd: 200.0
             mbpsWr: 100.0
             mbpsRdMax: 400.0
-        # scsi1: updated iops
-        - storage: "ceph-ha"
+        disk-1:
+          storage: "ceph-ha"
           size: 17
           interface: "scsi1"
           bandwidth:
             iopsRd: 2000
             iopsWr: 1000
             iopsRdMax: 4000
-        # sata0: remove ssd, restore backup
-        - storage: "ceph-ha"
+        disk-2:
+          storage: "ceph-ha"
           size: 10
           interface: "sata0"
       clone:
