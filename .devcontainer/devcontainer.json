@@ -10,13 +10,13 @@
 	},
 	"initializeCommand": "mkdir -p ~/.local/share/opencode ~/.ssh && touch ~/.auth_storage.json && touch ~/.secrets",
 	"mounts": [
-		"source=${localEnv:HOME}/.auth_storage.json,target=/home/vscode/.auth_storage.json,type=bind",
-		"source=${localEnv:HOME}/.secrets,target=/home/vscode/.secrets,type=bind,readonly",
-		"source=${localEnv:HOME}/.local/share/opencode,target=/home/vscode/.local/share/opencode,type=bind"
+		"source=${localEnv:HOME}/.auth_storage.json,target=/root/.auth_storage.json,type=bind",
+		"source=${localEnv:HOME}/.secrets,target=/root/.secrets,type=bind,readonly",
+		"source=${localEnv:HOME}/.local/share/opencode,target=/root/.local/share/opencode,type=bind"
 	],
 	"remoteEnv": {
-		"XDG_CACHE_HOME": "/home/vscode/.cache",
-		"XDG_CONFIG_HOME": "/home/vscode/.config"
+		"XDG_CACHE_HOME": "/root/.cache",
+		"XDG_CONFIG_HOME": "/root/.config"
 	},
 	// For this to work the user needs to have a valid SSH key in their home directory called id_ed25519.pub
 	"postStartCommand": "git config --global gpg.format ssh; git config --global user.signingkey /vscode/.ssh/id_ed25519.pub; git config --global commit.gpgsign true; git config --global core.excludesFile ~/.gitignore_global; touch ~/.gitignore_global",
@@ -24,7 +24,7 @@
 		"--name", "pulumi-pve",
 		"-v", "${localEnv:HOME}/.ssh/id_ed25519.pub:/vscode/.ssh/id_ed25519.pub:Z"
 		],
-  "remoteUser": "vscode",
+	"remoteUser": "root",
 	"customizations": {
 			"vscode": {
 				"extensions": [
@@ -42,6 +42,7 @@
 					"pulumi.pulumi-vscode-tools",
           "emeraldwalk.runonsave",
           "anthropic.claude-code",
+          "FedaykinDev.openchamber",
           "sst-dev.opencode"
 				],
         "settings": {
