@@ -126,6 +126,23 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 			wantFileIDs:     map[string]*string{"scsi1": testutils.Ptr(fileID0)},
 		},
 		{
+			name: "logical-key rename on same interface does not inherit old fileID",
+			desiredDisks: []*proxmox.Disk{
+				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			stateDisks: []*proxmox.Disk{
+				{
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			wantRemoveDisks: []string{"scsi0"},
+			wantResizeCalls: nil,
+			wantMoveCalls:   nil,
+			wantFileIDs:     map[string]*string{"scsi0": nil},
+		},
+		{
 			name: "remove disk calls RemoveDisk then UpdateConfig",
 			desiredDisks: []*proxmox.Disk{
 				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
@@ -335,6 +352,15 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 						Disks: testutils.DiskMap(tt.stateDisks...),
 					},
 				},
+			}
+
+			if tt.name == "logical-key rename on same interface does not inherit old fileID" {
+				req.Inputs.Disks = proxmox.DiskMap{
+					"postgres": tt.desiredDisks[0],
+				}
+				req.State.Disks = proxmox.DiskMap{
+					"database": tt.stateDisks[0],
+				}
 			}
 
 			vmInstance := &vmResource.VM{VMOps: ops}

@@ -726,19 +726,17 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 }
 
 // copyMissingDiskFileIDs copies FileIDs from state to inputs when user omitted them,
-// preventing unnecessary disk recreation during Update. Matching by disk Interface.
+// preventing unnecessary disk recreation during Update. Matching by logical disk key.
 func copyMissingDiskFileIDs(inputs *proxmox.VMInputs, state proxmox.VMInputs) {
 	// Regular disks
 	if len(inputs.Disks) > 0 && len(state.Disks) > 0 {
-		stateByInterface := proxmox.DiskMapByInterface(state.Disks)
-
-		for _, inputDisk := range inputs.Disks {
+		for diskName, inputDisk := range inputs.Disks {
 			if inputDisk == nil || inputDisk.Interface == "" {
 				continue
 			}
 			if inputDisk.FileID == nil {
 				// Only copy when user did not supply a value
-				if stateDisk, ok := stateByInterface[inputDisk.Interface]; ok && stateDisk.FileID != nil {
+				if stateDisk, ok := state.Disks[diskName]; ok && stateDisk != nil && stateDisk.FileID != nil {
 					inputDisk.FileID = stateDisk.FileID
 				}
 			}

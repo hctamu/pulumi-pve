@@ -296,6 +296,45 @@ func TestUpdateCopiesDiskFileIDsFromState(t *testing.T) {
 	}
 }
 
+func TestUpdateDoesNotCopyDiskFileIDsAcrossLogicalRename(t *testing.T) {
+	t.Parallel()
+
+	vm := &VM{}
+	stateVMID := 210
+	stateNode := "pve-node-rename"
+
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID:     "vm-210",
+		DryRun: true,
+		Inputs: proxmox.VMInputs{
+			Disks: proxmox.DiskMap{
+				"postgres": {
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      32,
+				},
+			},
+		},
+		State: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{
+			VMID: &stateVMID,
+			Node: &stateNode,
+			Disks: proxmox.DiskMap{
+				"database": {
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-210-disk-0")},
+					Size:      32,
+				},
+			},
+		}},
+	}
+
+	resp, err := vm.Update(context.Background(), req)
+	require.NoError(t, err)
+
+	require.NotNil(t, resp.Output.Disks["postgres"])
+	assert.Nil(t, resp.Output.Disks["postgres"].FileID)
+}
+
 func TestUpdateCopiesEfiFileIDFromState(t *testing.T) {
 	t.Parallel()
 
