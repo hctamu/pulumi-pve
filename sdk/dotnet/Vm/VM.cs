@@ -44,10 +44,10 @@ namespace Hctamu.Pve.Vm
         public Output<string?> Description { get; private set; } = null!;
 
         /// <summary>
-        /// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+        /// Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
         /// </summary>
         [Output("disks")]
-        public Output<ImmutableArray<Hctamu.Pve.Proxmox.Outputs.Disk>> Disks { get; private set; } = null!;
+        public Output<ImmutableDictionary<string, Hctamu.Pve.Proxmox.Outputs.Disk>> Disks { get; private set; } = null!;
 
         /// <summary>
         /// EFI disk configuration (required when bios is set to ovmf).
@@ -190,14 +190,14 @@ namespace Hctamu.Pve.Vm
         public Input<string>? Description { get; set; }
 
         [Input("disks", required: true)]
-        private InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>? _disks;
+        private InputMap<Hctamu.Pve.Proxmox.Inputs.DiskArgs>? _disks;
 
         /// <summary>
-        /// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+        /// Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
         /// </summary>
-        public InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs> Disks
+        public InputMap<Hctamu.Pve.Proxmox.Inputs.DiskArgs> Disks
         {
-            get => _disks ?? (_disks = new InputList<Hctamu.Pve.Proxmox.Inputs.DiskArgs>());
+            get => _disks ?? (_disks = new InputMap<Hctamu.Pve.Proxmox.Inputs.DiskArgs>());
             set => _disks = value;
         }
 

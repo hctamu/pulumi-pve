@@ -207,7 +207,7 @@
         },
         "interface": {
           "type": "string",
-          "description": "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox."
+          "description": "Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk."
         },
         "iothread": {
           "type": "boolean",
@@ -1123,11 +1123,11 @@
           "description": "Description or notes for the virtual machine."
         },
         "disks": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "$ref": "#/types/pve:proxmox:Disk"
           },
-          "description": "List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned."
+          "description": "Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration."
         },
         "efidisk": {
           "$ref": "#/types/pve:proxmox:EfiDisk",
@@ -1205,11 +1205,11 @@
           "description": "Description or notes for the virtual machine."
         },
         "disks": {
-          "type": "array",
-          "items": {
+          "type": "object",
+          "additionalProperties": {
             "$ref": "#/types/pve:proxmox:Disk"
           },
-          "description": "List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned."
+          "description": "Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration."
         },
         "efidisk": {
           "$ref": "#/types/pve:proxmox:EfiDisk",

@@ -44,9 +44,10 @@ type mockVMOps struct {
 	) (map[string]proxmox.Disk, *proxmox.EfiDisk, error)
 	resizeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int) error
 	removeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string) error
+	moveDiskFunc      func(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
 	removeEfiDiskFunc func(ctx context.Context, vmID int, node *string) error
 	getFunc           func(
-		ctx context.Context, vmID int, node *string, userDisks []*proxmox.Disk,
+		ctx context.Context, vmID int, node *string, userDisks proxmox.DiskMap,
 	) (proxmox.VMInputs, error)
 	updateConfigFunc func(
 		ctx context.Context, vmID int, node *string,
@@ -105,6 +106,19 @@ func (mock *mockVMOps) RemoveDisk(
 	return nil
 }
 
+func (mock *mockVMOps) MoveDisk(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	diskInterface string,
+	targetInterface string,
+) error {
+	if mock.moveDiskFunc != nil {
+		return mock.moveDiskFunc(ctx, vmID, node, diskInterface, targetInterface)
+	}
+	return nil
+}
+
 func (mock *mockVMOps) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
 	if mock.removeEfiDiskFunc != nil {
 		return mock.removeEfiDiskFunc(ctx, vmID, node)
@@ -116,7 +130,7 @@ func (mock *mockVMOps) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
-	userDisks []*proxmox.Disk,
+	userDisks proxmox.DiskMap,
 ) (proxmox.VMInputs, error) {
 	if mock.getFunc != nil {
 		return mock.getFunc(ctx, vmID, node, userDisks)
@@ -241,26 +255,26 @@ func TestUpdateCopiesDiskFileIDsFromState(t *testing.T) {
 		DryRun: true,
 		Inputs: proxmox.VMInputs{
 			// Disks omit FileID but have same interfaces
-			Disks: []*proxmox.Disk{
-				{Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32},
-				{Interface: "scsi1", DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 64},
-			},
+			Disks: testutils.DiskMap(
+				&proxmox.Disk{Interface: "scsi0", DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 32},
+				&proxmox.Disk{Interface: "scsi1", DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 64},
+			),
 		},
 		State: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{
 			VMID: &stateVMID,
 			Node: &stateNode,
-			Disks: []*proxmox.Disk{
-				{
+			Disks: testutils.DiskMap(
+				&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-200-disk-0")},
 					Size:      32,
 				},
-				{
+				&proxmox.Disk{
 					Interface: "scsi1",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-200-disk-1")},
 					Size:      64,
 				},
-			},
+			),
 		}},
 	}
 
@@ -273,12 +287,52 @@ func TestUpdateCopiesDiskFileIDsFromState(t *testing.T) {
 
 	// FileIDs should be copied for both disks
 	require.Len(t, resp.Output.Disks, 2)
-	if assert.NotNil(t, resp.Output.Disks[0].FileID) {
-		assert.Equal(t, "vm-200-disk-0", *resp.Output.Disks[0].FileID)
+	outputDisks := testutils.DiskSlice(resp.Output.Disks)
+	if assert.NotNil(t, outputDisks[0].FileID) {
+		assert.Equal(t, "vm-200-disk-0", *outputDisks[0].FileID)
 	}
-	if assert.NotNil(t, resp.Output.Disks[1].FileID) {
-		assert.Equal(t, "vm-200-disk-1", *resp.Output.Disks[1].FileID)
+	if assert.NotNil(t, outputDisks[1].FileID) {
+		assert.Equal(t, "vm-200-disk-1", *outputDisks[1].FileID)
 	}
+}
+
+func TestUpdateDoesNotCopyDiskFileIDsAcrossLogicalRename(t *testing.T) {
+	t.Parallel()
+
+	vm := &VM{}
+	stateVMID := 210
+	stateNode := "pve-node-rename"
+
+	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+		ID:     "vm-210",
+		DryRun: true,
+		Inputs: proxmox.VMInputs{
+			Disks: proxmox.DiskMap{
+				"postgres": {
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      32,
+				},
+			},
+		},
+		State: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{
+			VMID: &stateVMID,
+			Node: &stateNode,
+			Disks: proxmox.DiskMap{
+				"database": {
+					Interface: "scsi0",
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-210-disk-0")},
+					Size:      32,
+				},
+			},
+		}},
+	}
+
+	resp, err := vm.Update(context.Background(), req)
+	require.NoError(t, err)
+
+	require.NotNil(t, resp.Output.Disks["postgres"])
+	assert.Nil(t, resp.Output.Disks["postgres"].FileID)
 }
 
 func TestUpdateCopiesEfiFileIDFromState(t *testing.T) {
@@ -328,24 +382,24 @@ func TestUpdateDoesNotOverwriteUserProvidedFileIDs(t *testing.T) {
 		ID:     "vm-400",
 		DryRun: true,
 		Inputs: proxmox.VMInputs{
-			Disks: []*proxmox.Disk{
-				{
+			Disks: testutils.DiskMap(
+				&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("custom-file")},
 					Size:      32,
 				},
-			},
+			),
 		},
 		State: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{
 			VMID: &stateVMID,
 			Node: &stateNode,
-			Disks: []*proxmox.Disk{
-				{
+			Disks: testutils.DiskMap(
+				&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr("vm-400-disk-0")},
 					Size:      32,
 				},
-			},
+			),
 		}},
 	}
 
@@ -354,8 +408,9 @@ func TestUpdateDoesNotOverwriteUserProvidedFileIDs(t *testing.T) {
 
 	// User-provided FileID should remain unchanged
 	require.Len(t, resp.Output.Disks, 1)
-	if assert.NotNil(t, resp.Output.Disks[0].FileID) {
-		assert.Equal(t, "custom-file", *resp.Output.Disks[0].FileID)
+	outputDisks := testutils.DiskSlice(resp.Output.Disks)
+	if assert.NotNil(t, outputDisks[0].FileID) {
+		assert.Equal(t, "custom-file", *outputDisks[0].FileID)
 	}
 }
 
@@ -371,16 +426,16 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 
 	ops := &mockVMOps{
 		getFunc: func(
-			_ context.Context, id int, node *string, _ []*proxmox.Disk,
+			_ context.Context, id int, node *string, _ proxmox.DiskMap,
 		) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
 					Size:      32,
-				}},
+				}),
 				EfiDisk: &proxmox.EfiDisk{
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
@@ -394,11 +449,11 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 		ID: "200",
 		Inputs: proxmox.VMInputs{
 			Node: &nodeName,
-			Disks: []*proxmox.Disk{{
+			Disks: testutils.DiskMap(&proxmox.Disk{
 				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 				Interface: "scsi0",
 				Size:      32,
-			}},
+			}),
 		},
 		State: proxmox.VMOutputs{VMInputs: proxmox.VMInputs{VMID: testutils.Ptr(vmID)}},
 	}
@@ -418,7 +473,7 @@ func TestVMReadComputedAndPreserved_NoPrevIDs(t *testing.T) {
 	require.NotNil(t, resp.Inputs.Node)
 	assert.Equal(t, nodeName, *resp.Inputs.Node)
 	require.Len(t, resp.Inputs.Disks, 1)
-	assert.Nil(t, resp.Inputs.Disks[0].FileID)
+	assert.Nil(t, testutils.DiskSlice(resp.Inputs.Disks)[0].FileID)
 	// EFI was added on Proxmox; include it in preserved inputs with computed values
 	require.NotNil(t, resp.Inputs.EfiDisk)
 	require.NotNil(t, resp.Inputs.EfiDisk.FileID)
@@ -435,16 +490,16 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 
 	ops := &mockVMOps{
 		getFunc: func(
-			_ context.Context, id int, node *string, _ []*proxmox.Disk,
+			_ context.Context, id int, node *string, _ proxmox.DiskMap,
 		) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 					Size:      32,
-				}},
+				}),
 				EfiDisk: &proxmox.EfiDisk{
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
@@ -459,11 +514,11 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 		Inputs: proxmox.VMInputs{
 			VMID: testutils.Ptr(vmID),
 			Node: &nodeName,
-			Disks: []*proxmox.Disk{{
+			Disks: testutils.DiskMap(&proxmox.Disk{
 				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 				Interface: "scsi0",
 				Size:      32,
-			}},
+			}),
 			EfiDisk: &proxmox.EfiDisk{
 				DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
 				EfiType:  proxmox.EfiType4M,
@@ -487,7 +542,7 @@ func TestVMReadComputedAndPreserved_WithPrevIDs(t *testing.T) {
 	require.NotNil(t, resp.Inputs.Node)
 	assert.Equal(t, nodeName, *resp.Inputs.Node)
 	require.Len(t, resp.Inputs.Disks, 1)
-	assert.Nil(t, resp.Inputs.Disks[0].FileID)
+	assert.Nil(t, testutils.DiskSlice(resp.Inputs.Disks)[0].FileID)
 	require.NotNil(t, resp.Inputs.EfiDisk)
 	assert.Nil(t, resp.Inputs.EfiDisk.FileID)
 }
@@ -506,16 +561,16 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
-		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
 				Name: "test-vm",
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 					Interface: "scsi0",
 					Size:      32,
-				}},
+				}),
 				EfiDisk: &proxmox.EfiDisk{
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
@@ -530,11 +585,11 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 		Inputs: proxmox.VMInputs{
 			Name: "test-vm",
 			Node: &nodeName,
-			Disks: []*proxmox.Disk{{
+			Disks: testutils.DiskMap(&proxmox.Disk{
 				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 				Interface: "scsi0",
 				Size:      32,
-			}},
+			}),
 			EfiDisk: &proxmox.EfiDisk{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, EfiType: proxmox.EfiType4M},
 		},
 	}
@@ -553,8 +608,9 @@ func TestVMCreateOutputsContainComputedValues(t *testing.T) {
 
 	// Disk FileID is saved in state from the API read-back
 	require.Len(t, resp.Output.Disks, 1)
-	require.NotNil(t, resp.Output.Disks[0].FileID)
-	assert.Equal(t, diskFileID, *resp.Output.Disks[0].FileID)
+	outputDisks := testutils.DiskSlice(resp.Output.Disks)
+	require.NotNil(t, outputDisks[0].FileID)
+	assert.Equal(t, diskFileID, *outputDisks[0].FileID)
 
 	// EFI disk FileID is saved in state from the API read-back
 	require.NotNil(t, resp.Output.EfiDisk)
@@ -607,7 +663,7 @@ func TestVMReadPreservesCloneFromInputs(t *testing.T) {
 			t.Parallel()
 
 			ops := &mockVMOps{
-				getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+				getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 					// API returns state without clone info
 					return proxmox.VMInputs{
 						VMID: &id,
@@ -770,7 +826,7 @@ func TestVMReadStatePreservesZeroValueFields(t *testing.T) {
 	nodeName := "pve-node"
 
 	ops := &mockVMOps{
-		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			// Simulate API: returns nil for all zero-value fields
 			return proxmox.VMInputs{
 				VMID:      &id,
@@ -845,25 +901,26 @@ func TestPreserveCreateState_KeepsFileIDs(t *testing.T) {
 			state: proxmox.VMInputs{
 				VMID: testutils.Ptr(100),
 				Node: &nodeName,
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 					Size:      32,
-				}},
+				}),
 			},
 			userInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(100),
 				Node: &nodeName,
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 					Size:      32,
-				}},
+				}),
 			},
 			check: func(t *testing.T, result proxmox.VMInputs) {
 				require.Len(t, result.Disks, 1)
-				require.NotNil(t, result.Disks[0].FileID, "Create state must keep disk FileID")
-				assert.Equal(t, diskFileID, *result.Disks[0].FileID)
+				resultDisks := testutils.DiskSlice(result.Disks)
+				require.NotNil(t, resultDisks[0].FileID, "Create state must keep disk FileID")
+				assert.Equal(t, diskFileID, *resultDisks[0].FileID)
 			},
 		},
 		{
@@ -1005,24 +1062,28 @@ func TestPreserveInputs_ClearsFileIDs(t *testing.T) {
 			state: proxmox.VMInputs{
 				VMID: testutils.Ptr(200),
 				Node: &nodeName,
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 					Size:      32,
-				}},
+				}),
 			},
 			userInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(200),
 				Node: &nodeName,
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 					Size:      32,
-				}},
+				}),
 			},
 			check: func(t *testing.T, result proxmox.VMInputs) {
 				require.Len(t, result.Disks, 1)
-				assert.Nil(t, result.Disks[0].FileID, "Read inputs must clear disk FileID when user omitted it")
+				assert.Nil(
+					t,
+					testutils.DiskSlice(result.Disks)[0].FileID,
+					"Read inputs must clear disk FileID when user omitted it",
+				)
 			},
 		},
 		{
@@ -1081,25 +1142,26 @@ func TestPreserveInputs_ClearsFileIDs(t *testing.T) {
 			state: proxmox.VMInputs{
 				VMID: testutils.Ptr(200),
 				Node: &nodeName,
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 					Size:      32,
-				}},
+				}),
 			},
 			userInputs: proxmox.VMInputs{
 				VMID: testutils.Ptr(200),
 				Node: &nodeName,
-				Disks: []*proxmox.Disk{{
+				Disks: testutils.DiskMap(&proxmox.Disk{
 					Interface: "scsi0",
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 					Size:      32,
-				}},
+				}),
 			},
 			check: func(t *testing.T, result proxmox.VMInputs) {
 				require.Len(t, result.Disks, 1)
-				require.NotNil(t, result.Disks[0].FileID, "Read inputs must keep FileID when user provided it")
-				assert.Equal(t, diskFileID, *result.Disks[0].FileID)
+				resultDisks := testutils.DiskSlice(result.Disks)
+				require.NotNil(t, resultDisks[0].FileID, "Read inputs must keep FileID when user provided it")
+				assert.Equal(t, diskFileID, *resultDisks[0].FileID)
 			},
 		},
 	}
@@ -1125,18 +1187,18 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
-		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: &id,
 				Node: testutils.Ptr(nodeName),
 				Name: "lifecycle-vm",
-				Disks: []*proxmox.Disk{
-					{
+				Disks: testutils.DiskMap(
+					&proxmox.Disk{
 						Interface: "scsi0",
 						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &diskFileID},
 						Size:      32,
 					},
-				},
+				),
 				EfiDisk: &proxmox.EfiDisk{
 					DiskBase: proxmox.DiskBase{Storage: "local-lvm", FileID: &efiFileID},
 					EfiType:  proxmox.EfiType4M,
@@ -1153,11 +1215,11 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 		Inputs: proxmox.VMInputs{
 			Name: "lifecycle-vm",
 			Node: &nodeName,
-			Disks: []*proxmox.Disk{{
+			Disks: testutils.DiskMap(&proxmox.Disk{
 				Interface: "scsi0",
 				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 				Size:      32,
-			}},
+			}),
 			EfiDisk: &proxmox.EfiDisk{
 				DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
 				EfiType:  proxmox.EfiType4M,
@@ -1170,8 +1232,9 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 
 	// Verify FileIDs are stored in state after Create
 	require.Len(t, createResp.Output.Disks, 1)
-	require.NotNil(t, createResp.Output.Disks[0].FileID, "disk FileID must be in state after Create")
-	assert.Equal(t, diskFileID, *createResp.Output.Disks[0].FileID)
+	createOutputDisks := testutils.DiskSlice(createResp.Output.Disks)
+	require.NotNil(t, createOutputDisks[0].FileID, "disk FileID must be in state after Create")
+	assert.Equal(t, diskFileID, *createOutputDisks[0].FileID)
 	require.NotNil(t, createResp.Output.EfiDisk)
 	require.NotNil(t, createResp.Output.EfiDisk.FileID, "EFI FileID must be in state after Create")
 	assert.Equal(t, efiFileID, *createResp.Output.EfiDisk.FileID)
@@ -1183,11 +1246,11 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 		Inputs: proxmox.VMInputs{
 			Name: "lifecycle-vm",
 			Node: &nodeName,
-			Disks: []*proxmox.Disk{{
+			Disks: testutils.DiskMap(&proxmox.Disk{
 				Interface: "scsi0",
 				DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 				Size:      32,
-			}},
+			}),
 			EfiDisk: &proxmox.EfiDisk{
 				DiskBase: proxmox.DiskBase{Storage: "local-lvm"},
 				EfiType:  proxmox.EfiType4M,
@@ -1201,8 +1264,9 @@ func TestCreateFullLifecycle_FileIDsInState(t *testing.T) {
 
 	// FileIDs should be copied from state into update output
 	require.Len(t, updateResp.Output.Disks, 1)
-	require.NotNil(t, updateResp.Output.Disks[0].FileID, "disk FileID must propagate from state to Update output")
-	assert.Equal(t, diskFileID, *updateResp.Output.Disks[0].FileID)
+	updateOutputDisks := testutils.DiskSlice(updateResp.Output.Disks)
+	require.NotNil(t, updateOutputDisks[0].FileID, "disk FileID must propagate from state to Update output")
+	assert.Equal(t, diskFileID, *updateOutputDisks[0].FileID)
 	require.NotNil(t, updateResp.Output.EfiDisk)
 	require.NotNil(t, updateResp.Output.EfiDisk.FileID, "EFI FileID must propagate from state to Update output")
 	assert.Equal(t, efiFileID, *updateResp.Output.EfiDisk.FileID)
@@ -1220,6 +1284,11 @@ func TestCheckAppliesVMDefaults(t *testing.T) {
 			"interface": property.New("scsi0"),
 		}),
 	)
+	minimalDisks := property.New(
+		property.NewMap(map[string]property.Value{
+			"disk-1": minimalDisk,
+		}),
+	)
 
 	tests := []struct {
 		name         string
@@ -1230,7 +1299,7 @@ func TestCheckAppliesVMDefaults(t *testing.T) {
 			name: "minimal inputs get vm-level defaults",
 			newInputs: property.NewMap(map[string]property.Value{
 				"name":  property.New("defaults-minimal-vm"),
-				"disks": property.New(property.NewArray([]property.Value{minimalDisk})),
+				"disks": minimalDisks,
 			}),
 			assertInputs: func(t *testing.T, inputs proxmox.VMInputs) {
 				require.NotNil(t, inputs.Hotplug)
@@ -1261,7 +1330,7 @@ func TestCheckAppliesVMDefaults(t *testing.T) {
 			name: "cpu defaults apply when cpu object exists",
 			newInputs: property.NewMap(map[string]property.Value{
 				"name":  property.New("defaults-cpu-vm"),
-				"disks": property.New(property.NewArray([]property.Value{minimalDisk})),
+				"disks": minimalDisks,
 				"cpu":   property.New(property.NewMap(map[string]property.Value{})),
 			}),
 			assertInputs: func(t *testing.T, inputs proxmox.VMInputs) {
@@ -1342,7 +1411,7 @@ func TestCheckDiskShrink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			failures := checkDiskShrink(tt.desired, tt.current)
+			failures := checkDiskShrink(testutils.DiskMap(tt.desired...), testutils.DiskMap(tt.current...))
 			assert.Len(t, failures, tt.wantFailures)
 			for _, f := range failures {
 				assert.Equal(t, "disks", f.Property)
@@ -1415,7 +1484,7 @@ func TestCheckDiskFileIDConflict(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			failures := checkDiskFileIDConflict(tt.desired, tt.current)
+			failures := checkDiskFileIDConflict(testutils.DiskMap(tt.desired...), testutils.DiskMap(tt.current...))
 			assert.Len(t, failures, tt.wantFailures)
 			for _, f := range failures {
 				assert.Equal(t, "disks", f.Property)
@@ -1467,10 +1536,129 @@ func TestCheckDuplicateDiskInterfaces(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			failures := checkDuplicateDiskInterfaces(tt.disks)
+			failures := checkDuplicateDiskInterfaces(testutils.DiskMap(tt.disks...))
 			assert.Len(t, failures, tt.wantFailures)
 			for _, f := range failures {
 				assert.Equal(t, "disks", f.Property)
+			}
+		})
+	}
+}
+
+func TestCheckDiskInterfaceMoves(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		desired      proxmox.DiskMap
+		current      proxmox.DiskMap
+		wantFailures int
+		errContains  string
+	}{
+		{
+			name: "same-bus move is allowed",
+			desired: proxmox.DiskMap{
+				"db": {Interface: "scsi1", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			current: proxmox.DiskMap{
+				"db": {Interface: "scsi0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "cross-bus move is allowed",
+			desired: proxmox.DiskMap{
+				"db": {Interface: "sata0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			current: proxmox.DiskMap{
+				"db": {Interface: "scsi0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "move to occupied slot is rejected",
+			desired: proxmox.DiskMap{
+				"db":   {Interface: "scsi1", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+				"logs": {Interface: "scsi1", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			current: proxmox.DiskMap{
+				"db":   {Interface: "scsi0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+				"logs": {Interface: "scsi1", Size: 10, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			wantFailures: 1,
+			errContains:  "already claimed",
+		},
+		{
+			name: "no interface change is fine",
+			desired: proxmox.DiskMap{
+				"db": {Interface: "scsi0", Size: 30, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			current: proxmox.DiskMap{
+				"db": {Interface: "scsi0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "new disk (no current) is fine",
+			desired: proxmox.DiskMap{
+				"db": {Interface: "scsi0", Size: 20, DiskBase: proxmox.DiskBase{Storage: "local-lvm"}},
+			},
+			current:      proxmox.DiskMap{},
+			wantFailures: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			failures := checkDiskInterfaceMoves(tt.desired, tt.current)
+			assert.Len(t, failures, tt.wantFailures)
+			for _, failure := range failures {
+				assert.Equal(t, "disks", failure.Property)
+				if tt.errContains != "" {
+					assert.Contains(t, failure.Reason, tt.errContains)
+				}
+			}
+		})
+	}
+}
+
+func TestCheckDiskNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		disks        proxmox.DiskMap
+		wantFailures int
+	}{
+		{
+			name: "non-empty names are allowed",
+			disks: proxmox.DiskMap{
+				"database": {DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			wantFailures: 0,
+		},
+		{
+			name: "empty name is rejected",
+			disks: proxmox.DiskMap{
+				"": {DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			},
+			wantFailures: 1,
+		},
+		{
+			name:         "nil map is allowed",
+			disks:        nil,
+			wantFailures: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			failures := checkDiskNames(tt.disks)
+			assert.Len(t, failures, tt.wantFailures)
+			for _, failure := range failures {
+				assert.Equal(t, "disks", failure.Property)
 			}
 		})
 	}

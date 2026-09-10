@@ -26,8 +26,8 @@ type VM struct {
 	Cpu proxmox.CPUPtrOutput `pulumi:"cpu"`
 	// Description or notes for the virtual machine.
 	Description pulumi.StringPtrOutput `pulumi:"description"`
-	// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
-	Disks proxmox.DiskArrayOutput `pulumi:"disks"`
+	// Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
+	Disks proxmox.DiskMapOutput `pulumi:"disks"`
 	// EFI disk configuration (required when bios is set to ovmf).
 	Efidisk proxmox.EfiDiskPtrOutput `pulumi:"efidisk"`
 	// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
@@ -128,8 +128,8 @@ type vmArgs struct {
 	Cpu *proxmox.CPU `pulumi:"cpu"`
 	// Description or notes for the virtual machine.
 	Description *string `pulumi:"description"`
-	// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
-	Disks []proxmox.Disk `pulumi:"disks"`
+	// Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
+	Disks map[string]proxmox.Disk `pulumi:"disks"`
 	// EFI disk configuration (required when bios is set to ovmf).
 	Efidisk *proxmox.EfiDisk `pulumi:"efidisk"`
 	// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
@@ -164,8 +164,8 @@ type VMArgs struct {
 	Cpu proxmox.CPUPtrInput
 	// Description or notes for the virtual machine.
 	Description pulumi.StringPtrInput
-	// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
-	Disks proxmox.DiskArrayInput
+	// Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
+	Disks proxmox.DiskMapInput
 	// EFI disk configuration (required when bios is set to ovmf).
 	Efidisk proxmox.EfiDiskPtrInput
 	// Comma-separated list of hotplug features (network, disk, cpu, memory, usb).
@@ -300,9 +300,9 @@ func (o VMOutput) Description() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v *VM) pulumi.StringPtrOutput { return v.Description }).(pulumi.StringPtrOutput)
 }
 
-// List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
-func (o VMOutput) Disks() proxmox.DiskArrayOutput {
-	return o.ApplyT(func(v *VM) proxmox.DiskArrayOutput { return v.Disks }).(proxmox.DiskArrayOutput)
+// Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk moves the disk to the new slot using Proxmox move_disk, which preserves the existing volume and its data when the target slot is accepted by Proxmox. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
+func (o VMOutput) Disks() proxmox.DiskMapOutput {
+	return o.ApplyT(func(v *VM) proxmox.DiskMapOutput { return v.Disks }).(proxmox.DiskMapOutput)
 }
 
 // EFI disk configuration (required when bios is set to ovmf).

@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -25,6 +26,8 @@ import (
 
 	p "github.com/pulumi/pulumi-go-provider"
 	"github.com/pulumi/pulumi-go-provider/infer"
+	"github.com/pulumi/pulumi/sdk/v3/go/common/resource"
+	"github.com/pulumi/pulumi/sdk/v3/go/property"
 
 	"github.com/hctamu/pulumi-pve/provider/pkg/proxmox"
 	"github.com/hctamu/pulumi-pve/provider/pkg/utils"
@@ -43,8 +46,143 @@ var (
 	_ = infer.CustomUpdate[proxmox.VMInputs, proxmox.VMOutputs]((*VM)(nil))
 	_ = infer.CustomDiff[proxmox.VMInputs, proxmox.VMOutputs]((*VM)(nil))
 	_ = infer.CustomCheck[proxmox.VMInputs]((*VM)(nil))
+	_ = infer.CustomStateMigrations[proxmox.VMOutputs]((*VM)(nil))
 	_ = infer.Annotated((*proxmox.VMInputs)(nil))
 )
+
+type legacyVMInputs struct {
+	Name        string           `pulumi:"name"`
+	Description *string          `pulumi:"description,optional"`
+	Node        *string          `pulumi:"node,optional"`
+	VMID        *int             `pulumi:"vmId,optional"        provider:"replaceOnChanges"`
+	Hotplug     *string          `pulumi:"hotplug,optional"`
+	Template    *int             `pulumi:"template,optional"`
+	Autostart   *int             `pulumi:"autostart,optional"`
+	Tags        proxmox.TagList  `pulumi:"tags,optional"`
+	OSType      *string          `pulumi:"ostype,optional"`
+	Machine     *string          `pulumi:"machine,optional"`
+	EfiDisk     *proxmox.EfiDisk `pulumi:"efidisk,optional"`
+	CPU         *proxmox.CPU     `pulumi:"cpu,optional"`
+	Memory      *int             `pulumi:"memory,optional"`
+	Balloon     *int             `pulumi:"balloon,optional"`
+	Disks       any              `pulumi:"disks"`
+	Clone       *proxmox.Clone   `pulumi:"clone,optional"`
+}
+
+type legacyVMOutputs struct {
+	legacyVMInputs
+}
+
+// StateMigrations upgrades legacy VM state where disks were stored as a list.
+func (vm *VM) StateMigrations(context.Context) []infer.StateMigrationFunc[proxmox.VMOutputs] {
+	return []infer.StateMigrationFunc[proxmox.VMOutputs]{
+		infer.StateMigration(migrateLegacyVMOutputsFromPropertyMap),
+		infer.StateMigration(migrateLegacyVMOutputs),
+	}
+}
+
+func migrateLegacyVMOutputsFromPropertyMap(
+	ctx context.Context,
+	state property.Map,
+) (infer.MigrationResult[proxmox.VMOutputs], error) {
+	rawState := resource.ToResourcePropertyMap(state).Mappable()
+	rawDisks, hasDisks := rawState["disks"]
+	if !hasDisks {
+		return infer.MigrationResult[proxmox.VMOutputs]{}, nil
+	}
+
+	if _, isLegacyList := rawDisks.([]any); !isLegacyList {
+		return infer.MigrationResult[proxmox.VMOutputs]{}, nil
+	}
+
+	payload, err := json.Marshal(rawState)
+	if err != nil {
+		return infer.MigrationResult[proxmox.VMOutputs]{}, fmt.Errorf("marshal legacy VM state: %w", err)
+	}
+
+	var legacy legacyVMOutputs
+	if err := json.Unmarshal(payload, &legacy); err != nil {
+		return infer.MigrationResult[proxmox.VMOutputs]{}, fmt.Errorf("decode legacy VM state: %w", err)
+	}
+
+	return migrateLegacyVMOutputs(ctx, legacy)
+}
+
+func migrateLegacyVMOutputs(
+	_ context.Context,
+	legacy legacyVMOutputs,
+) (infer.MigrationResult[proxmox.VMOutputs], error) {
+	legacyDisks, shouldMigrate, err := decodeLegacyDiskList(legacy.Disks)
+	if err != nil {
+		return infer.MigrationResult[proxmox.VMOutputs]{}, err
+	}
+	if !shouldMigrate {
+		return infer.MigrationResult[proxmox.VMOutputs]{}, nil
+	}
+
+	migrated := proxmox.VMOutputs{
+		VMInputs: proxmox.VMInputs{
+			Name:        legacy.Name,
+			Description: legacy.Description,
+			Node:        legacy.Node,
+			VMID:        legacy.VMID,
+			Hotplug:     legacy.Hotplug,
+			Template:    legacy.Template,
+			Autostart:   legacy.Autostart,
+			Tags:        legacy.Tags,
+			OSType:      legacy.OSType,
+			Machine:     legacy.Machine,
+			EfiDisk:     legacy.EfiDisk,
+			CPU:         legacy.CPU,
+			Memory:      legacy.Memory,
+			Balloon:     legacy.Balloon,
+			Disks:       proxmox.DiskMapFromSliceByIdentity(legacyDisks),
+			Clone:       legacy.Clone,
+		},
+	}
+
+	return infer.MigrationResult[proxmox.VMOutputs]{Result: &migrated}, nil
+}
+
+func decodeLegacyDiskList(rawDisks any) (proxmox.DiskList, bool, error) {
+	if rawDisks == nil {
+		return nil, false, nil
+	}
+
+	switch disks := rawDisks.(type) {
+	case proxmox.DiskList:
+		return disks, true, nil
+	case []any:
+		payload, err := json.Marshal(disks)
+		if err != nil {
+			return nil, false, fmt.Errorf("marshal legacy disk list: %w", err)
+		}
+		var decoded proxmox.DiskList
+		if err := json.Unmarshal(payload, &decoded); err != nil {
+			return nil, false, fmt.Errorf("decode legacy disk list: %w", err)
+		}
+		return decoded, true, nil
+	case map[string]any:
+		return nil, false, nil
+	default:
+		payload, err := json.Marshal(disks)
+		if err != nil {
+			return nil, false, fmt.Errorf("marshal legacy disks value: %w", err)
+		}
+
+		var asList proxmox.DiskList
+		if err := json.Unmarshal(payload, &asList); err == nil {
+			return asList, true, nil
+		}
+
+		var asMap map[string]*proxmox.Disk
+		if err := json.Unmarshal(payload, &asMap); err == nil {
+			return nil, false, nil
+		}
+
+		return nil, false, errors.New("unsupported disks shape for state migration")
+	}
+}
 
 // Check validates VM inputs before any API calls are made. It runs on both
 // `pulumi preview` and `pulumi up`, so invalid inputs are rejected early.
@@ -72,19 +210,36 @@ func (vm *VM) Check(
 		}
 	}
 
+	failures = append(failures, checkDiskNames(inputs.Disks)...)
 	failures = append(failures, checkDuplicateDiskInterfaces(inputs.Disks)...)
 
 	oldInputs, _, _ := infer.DefaultCheck[proxmox.VMInputs](context.Background(), req.OldInputs)
 	failures = append(failures, checkDiskShrink(inputs.Disks, oldInputs.Disks)...)
 	failures = append(failures, checkDiskFileIDConflict(inputs.Disks, oldInputs.Disks)...)
+	failures = append(failures, checkDiskInterfaceMoves(inputs.Disks, oldInputs.Disks)...)
 
 	return infer.CheckResponse[proxmox.VMInputs]{Inputs: inputs, Failures: failures}, nil
+}
+
+// checkDiskNames validates logical disk names (map keys) are non-empty.
+func checkDiskNames(disks proxmox.DiskMap) []p.CheckFailure {
+	var failures []p.CheckFailure
+	for diskName := range disks {
+		if diskName != "" {
+			continue
+		}
+		failures = append(failures, p.CheckFailure{
+			Property: "disks",
+			Reason:   "disk logical names must be non-empty",
+		})
+	}
+	return failures
 }
 
 // checkDuplicateDiskInterfaces returns a CheckFailure for every disk whose Interface
 // repeats one already seen. Duplicate interfaces would silently collide when keyed by
 // interface during diffing and reconciliation (only the last one survives).
-func checkDuplicateDiskInterfaces(disks []*proxmox.Disk) []p.CheckFailure {
+func checkDuplicateDiskInterfaces(disks proxmox.DiskMap) []p.CheckFailure {
 	seen := make(map[string]struct{}, len(disks))
 	var failures []p.CheckFailure
 	for _, disk := range disks {
@@ -109,20 +264,22 @@ func checkDuplicateDiskInterfaces(disks []*proxmox.Disk) []p.CheckFailure {
 // checkDiskFileIDConflict returns a CheckFailure for every disk whose explicit FileID
 // differs from its current (state) FileID. Changing a disk's underlying volume binding
 // is not supported; the disk must be recreated instead.
-func checkDiskFileIDConflict(desired, current []*proxmox.Disk) []p.CheckFailure {
+func checkDiskFileIDConflict(desired, current proxmox.DiskMap) []p.CheckFailure {
 	var failures []p.CheckFailure
-	for iface, ifaceChanges := range proxmox.CompareDisksByInterface(desired, current) {
-		for _, change := range ifaceChanges {
-			if change.Type == proxmox.DiskFileIDChanged {
-				failures = append(failures, p.CheckFailure{
-					Property: "disks",
-					Reason: fmt.Sprintf(
-						"disk %s: changing the volume binding (fileID) is not supported; "+
-							"remove the fileId field or recreate the disk",
-						iface,
-					),
-				})
-			}
+	for diskName, desiredDisk := range desired {
+		currentDisk, exists := current[diskName]
+		if !exists || desiredDisk == nil || currentDisk == nil {
+			continue
+		}
+		if desiredDisk.FileID != nil && currentDisk.FileID != nil && *desiredDisk.FileID != *currentDisk.FileID {
+			failures = append(failures, p.CheckFailure{
+				Property: "disks",
+				Reason: fmt.Sprintf(
+					"disk %s: changing the volume binding (fileID) is not supported; "+
+						"remove the fileId field or recreate the disk",
+					diskName,
+				),
+			})
 		}
 	}
 	return failures
@@ -130,20 +287,48 @@ func checkDiskFileIDConflict(desired, current []*proxmox.Disk) []p.CheckFailure 
 
 // checkDiskShrink returns a CheckFailure for every disk whose desired size is smaller than
 // its current size. Proxmox does not support shrinking a disk in place.
-func checkDiskShrink(desired, current []*proxmox.Disk) []p.CheckFailure {
+func checkDiskShrink(desired, current proxmox.DiskMap) []p.CheckFailure {
 	var failures []p.CheckFailure
-	for iface, ifaceChanges := range proxmox.CompareDisksByInterface(desired, current) {
-		for _, change := range ifaceChanges {
-			if change.Type == proxmox.DiskShrunk {
-				failures = append(failures, p.CheckFailure{
-					Property: "disks",
-					Reason: fmt.Sprintf(
-						"disk %s: shrinking disks is not supported by Proxmox; "+
-							"increase the size or replace the resource",
-						iface,
-					),
-				})
-			}
+	for diskName, desiredDisk := range desired {
+		currentDisk, exists := current[diskName]
+		if !exists || desiredDisk == nil || currentDisk == nil {
+			continue
+		}
+		if desiredDisk.Size < currentDisk.Size {
+			failures = append(failures, p.CheckFailure{
+				Property: "disks",
+				Reason: fmt.Sprintf(
+					"disk %s: shrinking disks is not supported by Proxmox; "+
+						"increase the size or replace the resource",
+					diskName,
+				),
+			})
+		}
+	}
+	return failures
+}
+
+// checkDiskInterfaceMoves returns a CheckFailure for every disk where the interface
+// changed in an unsafe or unsupported way relative to its current (state) value.
+func checkDiskInterfaceMoves(desired, current proxmox.DiskMap) []p.CheckFailure {
+	var failures []p.CheckFailure
+	for diskName, desiredDisk := range desired {
+		currentDisk, exists := current[diskName]
+		if !exists || desiredDisk == nil || currentDisk == nil {
+			continue
+		}
+		if desiredDisk.Interface == currentDisk.Interface {
+			continue
+		}
+		// Reject unsafe moves before apply. Update expects the same logical disk to be
+		// moved in place, not recreated behind the user's back.
+		if err := proxmox.CheckDiskInterfaceMove(
+			diskName, currentDisk.Interface, desiredDisk.Interface, desired,
+		); err != nil {
+			failures = append(failures, p.CheckFailure{
+				Property: "disks",
+				Reason:   err.Error(),
+			})
 		}
 	}
 	return failures
@@ -243,7 +428,9 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 		return fmt.Errorf("failed to get current disks after clone: %w", err)
 	}
 
-	if err := vm.reconcileDisks(ctx, vmID, node, inputs.Disks, currentDisks); err != nil {
+	currentByName := proxmox.DiskMapFromCurrentInterfaces(currentDisks, inputs.Disks)
+
+	if err := vm.reconcileDisks(ctx, vmID, node, inputs.Disks, currentByName); err != nil {
 		return err
 	}
 
@@ -260,76 +447,123 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 	return nil
 }
 
-// propagateFileID copies current FileID when desired.FileID is nil.
-// Returns an error if the user tries to modify an existing FileID binding.
-func propagateFileID(change *proxmox.DiskChange) error {
-	if change.Current == nil || change.Current.FileID == nil || change.Desired == nil {
-		return nil
-	}
-	if change.Desired.FileID == nil {
-		change.Desired.FileID = change.Current.FileID
-		return nil
-	}
-	if *change.Desired.FileID != *change.Current.FileID {
-		return fmt.Errorf(
-			"disk %s: changing the volume binding (fileID) is not supported; "+
-				"remove the fileId field or recreate the disk",
-			change.Interface,
-		)
-	}
-	return nil
-}
-
 // reconcileDisks reconciles desired disks against current state: removes absent disks,
 // resizes grown disks, and propagates FileIDs. Matching is keyed by disk Interface.
+type diskMoveAction struct {
+	diskName        string
+	fromInterface   string
+	targetInterface string
+}
+
+type diskResizeAction struct {
+	diskName    string
+	interfaceID string
+	sizeGB      int
+}
+
+type diskRemoveAction struct {
+	diskName    string
+	interfaceID string
+}
+
 func (vm *VM) reconcileDisks(
 	ctx context.Context,
 	vmID int,
 	node *string,
-	desired []*proxmox.Disk,
-	currentMap map[string]proxmox.Disk,
+	desired proxmox.DiskMap,
+	current proxmox.DiskMap,
 ) error {
-	// Convert value map to pointer slice for CompareDisksByInterface.
-	currentSlice := make([]*proxmox.Disk, 0, len(currentMap))
-	for iface := range currentMap {
-		diskValue := currentMap[iface]
-		currentSlice = append(currentSlice, &diskValue)
-	}
+	currentByName := current
 
-	changes := proxmox.CompareDisksByInterface(desired, currentSlice)
-	for _, ifaceChanges := range changes {
-		for i := range ifaceChanges {
-			change := &ifaceChanges[i]
-			// Validate before any mutating call below: a rejected FileID change must
-			// not leave a resize (or other API call) already applied.
-			if err := propagateFileID(change); err != nil {
-				return err
-			}
-			switch change.Type {
-			case proxmox.DiskShrunk:
+	// Collect actions first so the API calls stay in a Proxmox-safe order.
+	var moveActions []diskMoveAction
+	var resizeActions []diskResizeAction
+	var removeActions []diskRemoveAction
+
+	for diskName, currentDisk := range currentByName {
+		desiredDisk, exists := desired[diskName]
+		if !exists && currentDisk != nil {
+			removeActions = append(removeActions, diskRemoveAction{
+				diskName:    diskName,
+				interfaceID: currentDisk.Interface,
+			})
+			continue
+		}
+
+		if desiredDisk == nil || currentDisk == nil {
+			continue
+		}
+
+		if currentDisk.FileID != nil {
+			if desiredDisk.FileID == nil {
+				desiredDisk.FileID = currentDisk.FileID
+			} else if *desiredDisk.FileID != *currentDisk.FileID {
 				return fmt.Errorf(
-					"disk %s: shrinking disks is not supported by Proxmox; "+
-						"increase the size or replace the resource",
-					change.Interface,
+					"disk %s: changing the volume binding (fileID) is not supported; "+
+						"remove the fileId field or recreate the disk",
+					diskName,
 				)
-			case proxmox.DiskStorageChanged:
-				return fmt.Errorf(
-					"disk %s: storage migration is not supported yet; "+
-						"recreate the disk on the target storage",
-					change.Interface,
-				)
-			case proxmox.DiskRemoved:
-				if err := vm.VMOps.RemoveDisk(ctx, vmID, node, change.Interface); err != nil {
-					return fmt.Errorf("failed to remove disk %s: %w", change.Interface, err)
-				}
-			case proxmox.DiskResized:
-				if err := vm.VMOps.ResizeDisk(ctx, vmID, node, change.Interface, change.Desired.Size); err != nil {
-					return fmt.Errorf("failed to resize disk %s: %w", change.Interface, err)
-				}
-			case proxmox.DiskAdded, proxmox.DiskFlagsChanged, proxmox.DiskFileIDChanged, proxmox.DiskUnchanged:
 			}
 		}
+
+		if desiredDisk.Size < currentDisk.Size {
+			return fmt.Errorf(
+				"disk %s: shrinking disks is not supported by Proxmox; increase the size or replace the resource",
+				diskName,
+			)
+		}
+
+		if desiredDisk.Storage != currentDisk.Storage {
+			return fmt.Errorf(
+				"disk %s: storage migration is not supported yet; recreate the disk on the target storage",
+				diskName,
+			)
+		}
+
+		if desiredDisk.Interface != currentDisk.Interface {
+			moveActions = append(moveActions, diskMoveAction{
+				diskName:        diskName,
+				fromInterface:   currentDisk.Interface,
+				targetInterface: desiredDisk.Interface,
+			})
+		}
+
+		if desiredDisk.Size > currentDisk.Size {
+			resizeActions = append(resizeActions, diskResizeAction{
+				diskName:    diskName,
+				interfaceID: desiredDisk.Interface,
+				sizeGB:      desiredDisk.Size,
+			})
+		}
 	}
+
+	for _, moveAction := range moveActions {
+		// Moves run before deletes so slot changes keep the underlying volume.
+		if err := vm.VMOps.MoveDisk(ctx, vmID, node, moveAction.fromInterface, moveAction.targetInterface); err != nil {
+			return fmt.Errorf(
+				"failed to move disk %s (%s -> %s): %w",
+				moveAction.diskName,
+				moveAction.fromInterface,
+				moveAction.targetInterface,
+				err,
+			)
+		}
+	}
+
+	for _, removeAction := range removeActions {
+		// Deletes only run after moves, so rename/re-slot cases do not drop data.
+		if err := vm.VMOps.RemoveDisk(ctx, vmID, node, removeAction.interfaceID); err != nil {
+			return fmt.Errorf("failed to remove disk %s: %w", removeAction.diskName, err)
+		}
+	}
+
+	for _, resizeAction := range resizeActions {
+		// Resizes are last because they only apply to disks still present after moves.
+		if err := vm.VMOps.ResizeDisk(ctx, vmID, node, resizeAction.interfaceID, resizeAction.sizeGB); err != nil {
+			return fmt.Errorf("failed to resize disk %s: %w", resizeAction.diskName, err)
+		}
+	}
+
 	return nil
 }
 
@@ -359,7 +593,7 @@ func (vm *VM) Read(
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, errors.New("VMOperations not configured")
 	}
 
-	stateInputs, err := vm.VMOps.Get(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks)
+	stateInputs, err := vm.VMOps.Get(ctx, *vmID, request.Inputs.Node, request.State.Disks)
 	if err != nil {
 		l.Errorf("Error reading VM %v: %v", *vmID, err)
 		return infer.ReadResponse[proxmox.VMInputs, proxmox.VMOutputs]{}, err
@@ -423,14 +657,9 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 		}
 	}
 
-	userByInterface := make(map[string]*proxmox.Disk, len(userInputs.Disks))
-	for _, disk := range userInputs.Disks {
-		if disk != nil && disk.Interface != "" {
-			userByInterface[disk.Interface] = disk
-		}
-	}
-	preservedDisks := make([]*proxmox.Disk, 0, len(state.Disks))
-	for _, disk := range state.Disks {
+	userByInterface := proxmox.DiskMapByInterface(userInputs.Disks)
+	preservedDisks := make(proxmox.DiskMap, len(state.Disks))
+	for diskName, disk := range state.Disks {
 		if disk == nil {
 			continue
 		}
@@ -447,7 +676,7 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 			userDisk.Format != nil && preservedDisk.Format == nil {
 			preservedDisk.Format = userDisk.Format
 		}
-		preservedDisks = append(preservedDisks, &preservedDisk)
+		preservedDisks[diskName] = &preservedDisk
 	}
 	preserved.Disks = preservedDisks
 
@@ -497,24 +726,17 @@ func applyPreservation(state, userInputs proxmox.VMInputs, clearComputed bool) p
 }
 
 // copyMissingDiskFileIDs copies FileIDs from state to inputs when user omitted them,
-// preventing unnecessary disk recreation during Update. Matching by disk Interface.
+// preventing unnecessary disk recreation during Update. Matching by logical disk key.
 func copyMissingDiskFileIDs(inputs *proxmox.VMInputs, state proxmox.VMInputs) {
 	// Regular disks
 	if len(inputs.Disks) > 0 && len(state.Disks) > 0 {
-		stateByInterface := make(map[string]*proxmox.Disk, len(state.Disks))
-		for _, stateDisk := range state.Disks {
-			if stateDisk != nil && stateDisk.Interface != "" {
-				stateByInterface[stateDisk.Interface] = stateDisk
-			}
-		}
-
-		for _, inputDisk := range inputs.Disks {
+		for diskName, inputDisk := range inputs.Disks {
 			if inputDisk == nil || inputDisk.Interface == "" {
 				continue
 			}
 			if inputDisk.FileID == nil {
 				// Only copy when user did not supply a value
-				if stateDisk, ok := stateByInterface[inputDisk.Interface]; ok && stateDisk.FileID != nil {
+				if stateDisk, ok := state.Disks[diskName]; ok && stateDisk != nil && stateDisk.FileID != nil {
 					inputDisk.FileID = stateDisk.FileID
 				}
 			}
@@ -585,13 +807,7 @@ func (vm *VM) Update(
 	// Only reconcile disks if they changed; use state disks as baseline to avoid re-fetching.
 	disksChanged := disksNeedReconciliation(request.Inputs, request.State.VMInputs)
 	if disksChanged {
-		currentMap := make(map[string]proxmox.Disk, len(request.State.Disks))
-		for _, disk := range request.State.Disks {
-			if disk != nil {
-				currentMap[disk.Interface] = *disk
-			}
-		}
-		if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, currentMap); err != nil {
+		if err := vm.reconcileDisks(ctx, *vmID, request.Inputs.Node, request.Inputs.Disks, request.State.Disks); err != nil {
 			return response, err
 		}
 	}
@@ -644,14 +860,29 @@ func (vm *VM) Delete(
 // storage change, shrink, or FileID change). When it returns false, GetCurrentDisks
 // and reconcileDisks can be skipped safely during Update.
 func disksNeedReconciliation(inputs, state proxmox.VMInputs) bool {
-	changes := proxmox.CompareDisksByInterface(inputs.Disks, state.Disks)
-	for _, ifaceChanges := range changes {
-		for _, change := range ifaceChanges {
-			if change.Type != proxmox.DiskUnchanged {
-				return true
+	current := state.Disks
+	for diskName, desiredDisk := range inputs.Disks {
+		currentDisk, exists := current[diskName]
+		if !exists {
+			return true
+		}
+
+		changes := proxmox.CompareDisksByInterface([]*proxmox.Disk{desiredDisk}, []*proxmox.Disk{currentDisk})
+		for _, ifaceChanges := range changes {
+			for _, change := range ifaceChanges {
+				if change.Type != proxmox.DiskUnchanged {
+					return true
+				}
 			}
 		}
 	}
+
+	for diskName := range current {
+		if _, exists := inputs.Disks[diskName]; !exists {
+			return true
+		}
+	}
+
 	return false
 }
 

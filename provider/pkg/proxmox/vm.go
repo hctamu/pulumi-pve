@@ -17,7 +17,9 @@ package proxmox
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	p "github.com/pulumi/pulumi-go-provider"
@@ -50,19 +52,22 @@ type VMOperations interface {
 	// RemoveDisk unlinks/removes a specific disk from a VM.
 	RemoveDisk(ctx context.Context, vmID int, node *string, diskInterface string) error
 
+	// MoveDisk moves a disk to another interface slot without recreating the volume.
+	MoveDisk(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
+
 	// RemoveEfiDisk removes the EFI disk from a VM.
 	RemoveEfiDisk(ctx context.Context, vmID int, node *string) error
 
 	// Get retrieves the current state of a virtual machine from the API.
-	// userDisks is used as an ordering hint so that the returned disk slice
-	// follows the same order as the user's prior inputs.
+	// userDisks is used as a logical-name hint so that returned disks preserve
+	// user-facing names when they still match the same live disk.
 	// Input preservation (clearing computed fields the user did not supply) is
 	// the responsibility of the caller (resource layer).
 	Get(
 		ctx context.Context,
 		vmID int,
 		node *string,
-		userDisks []*Disk,
+		userDisks DiskMap,
 	) (VMInputs, error)
 
 	// UpdateConfig applies configuration changes to an existing virtual machine.
@@ -229,6 +234,252 @@ type Disk struct {
 // DiskList is a list of VM disks compared by stable disk interface identity.
 type DiskList []*Disk
 
+// DiskMap is a logical-name-keyed disk collection.
+//
+// Map key is stable disk identity in provider state and diff paths. It is not a
+// Proxmox API field.
+type DiskMap map[string]*Disk
+
+// DiffFrom returns granular diffs for disk additions, removals, and changed
+// properties using logical map keys as stable identity.
+func (disks DiskMap) DiffFrom(name string, state any) map[string]p.PropertyDiff {
+	stateDisks := coerceDiskMapState(state)
+	diffs := make(map[string]p.PropertyDiff)
+
+	// Delete pass first so removed keys stay explicit even when the same slot is
+	// reused by a different disk name in the new config.
+	for _, diskName := range sortedDiskMapKeys(stateDisks) {
+		if _, ok := disks[diskName]; !ok {
+			diffs[diskMapPath(name, diskName)] = p.PropertyDiff{Kind: p.Delete, InputDiff: true}
+		}
+	}
+
+	// Add/update pass second so new keys and field-level updates share the same
+	// stable map-key path in preview output.
+	for _, diskName := range sortedDiskMapKeys(disks) {
+		desired := disks[diskName]
+		current, exists := stateDisks[diskName]
+		prefix := diskMapPath(name, diskName)
+
+		if !exists {
+			diffs[prefix] = p.PropertyDiff{Kind: p.Add, InputDiff: true}
+			continue
+		}
+
+		for property, propertyDiff := range diskPropertyDiffs(prefix, desired, current) {
+			diffs[property] = propertyDiff
+		}
+	}
+
+	return diffs
+}
+
+// coerceDiskMapState normalizes legacy/state disk shapes into DiskMap so
+// diffing remains stable across schema migrations.
+func coerceDiskMapState(state any) DiskMap {
+	switch typed := state.(type) {
+	case nil:
+		return DiskMap{}
+	case DiskMap:
+		return typed
+	case map[string]*Disk:
+		return DiskMap(typed)
+	case map[string]Disk:
+		// JSON round-trip normalizes the value map into the pointer-backed shape used by
+		// DiskMap, which keeps legacy state coercion simple and deterministic.
+		payload, err := json.Marshal(typed)
+		if err != nil {
+			return DiskMap{}
+		}
+		var mapped DiskMap
+		if err := json.Unmarshal(payload, &mapped); err == nil {
+			return mapped
+		}
+		return DiskMap{}
+	case DiskList:
+		return DiskMapFromSlice(typed)
+	case []*Disk:
+		return DiskMapFromSlice(typed)
+	}
+
+	return DiskMap{}
+}
+
+// NextDiskName returns the smallest available numbered logical disk key.
+//
+// Keys are always generated as disk-N (0-based), for example disk-0, disk-1.
+func NextDiskName(existing DiskMap) string {
+	if len(existing) == 0 {
+		return "disk-0"
+	}
+
+	for index := 0; ; index++ {
+		candidate := fmt.Sprintf("disk-%d", index)
+		if _, exists := existing[candidate]; !exists {
+			return candidate
+		}
+	}
+}
+
+func sortedDiskMapKeys(disks DiskMap) []string {
+	keys := make([]string, 0, len(disks))
+	for diskName := range disks {
+		keys = append(keys, diskName)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func diskMapPath(name, diskName string) string {
+	return fmt.Sprintf("%s[%q]", name, diskName)
+}
+
+// DiskMapToSlice returns disks sorted by logical name for deterministic
+// iteration when map ordering would be unstable.
+func DiskMapToSlice(disks DiskMap) []*Disk {
+	result := make([]*Disk, 0, len(disks))
+	for _, diskName := range sortedDiskMapKeys(disks) {
+		result = append(result, disks[diskName])
+	}
+	return result
+}
+
+// DiskMapFromSlice converts a legacy disk slice into a logical-name map using
+// deterministic disk-N keys.
+func DiskMapFromSlice(disks []*Disk) DiskMap {
+	result := make(DiskMap, len(disks))
+	for _, disk := range disks {
+		diskName := NextDiskName(result)
+		result[diskName] = disk
+	}
+	return result
+}
+
+// diskIdentityCandidate is a sortable view of legacy disks used to assign stable
+// disk-N names before building the final DiskMap.
+type diskIdentityCandidate struct {
+	disk          *Disk
+	originalIndex int
+	primaryKey    string
+	secondaryKey  string
+}
+
+// DiskMapFromSliceByIdentity converts a legacy disk slice into a logical-name map using
+// stable identity ordering.
+//
+// Ordering priority:
+//  1. FileID/filename (when present)
+//  2. Interface (fallback when FileID is absent)
+//  3. Original slice order (final deterministic tie-breaker)
+func DiskMapFromSliceByIdentity(disks []*Disk) DiskMap {
+	if len(disks) == 0 {
+		return DiskMap{}
+	}
+
+	// Sort old list state before assigning disk-N keys so migration keeps the
+	// same logical names for the same underlying volumes.
+	candidates := make([]diskIdentityCandidate, 0, len(disks))
+	for index, disk := range disks {
+		primaryKey := "2:"
+		secondaryKey := ""
+		if disk != nil {
+			if disk.FileID != nil && *disk.FileID != "" {
+				primaryKey = "0:" + *disk.FileID
+				secondaryKey = disk.Interface
+			} else if disk.Interface != "" {
+				primaryKey = "1:" + disk.Interface
+			}
+		}
+
+		candidates = append(candidates, diskIdentityCandidate{
+			disk:          disk,
+			originalIndex: index,
+			primaryKey:    primaryKey,
+			secondaryKey:  secondaryKey,
+		})
+	}
+
+	// Sort by strongest identity first, then interface, then original order so
+	// disk-N names stay stable when legacy state is migrated.
+	sort.Slice(candidates, func(left, right int) bool {
+		if candidates[left].primaryKey != candidates[right].primaryKey {
+			return candidates[left].primaryKey < candidates[right].primaryKey
+		}
+		if candidates[left].secondaryKey != candidates[right].secondaryKey {
+			return candidates[left].secondaryKey < candidates[right].secondaryKey
+		}
+		return candidates[left].originalIndex < candidates[right].originalIndex
+	})
+
+	// Build final map in sorted order so generated disk-N keys follow the same
+	// stable identity ordering on every migration.
+	result := make(DiskMap, len(candidates))
+	for _, candidate := range candidates {
+		diskName := NextDiskName(result)
+		result[diskName] = candidate.disk
+	}
+
+	return result
+}
+
+// DiskMapByInterface returns a lookup map from interface name to disk value.
+// Nil entries and empty interfaces are skipped.
+func DiskMapByInterface(disks DiskMap) map[string]*Disk {
+	byInterface := make(map[string]*Disk, len(disks))
+	for _, disk := range disks {
+		if disk == nil || disk.Interface == "" {
+			continue
+		}
+		byInterface[disk.Interface] = disk
+	}
+	return byInterface
+}
+
+// DiskMapFromCurrentInterfaces assigns logical names to live disks keyed by
+// interface. Existing logical names are preserved when the interface still
+// matches; newly discovered disks receive the next available disk-N key.
+func DiskMapFromCurrentInterfaces(current map[string]Disk, existing DiskMap) DiskMap {
+	result := make(DiskMap, len(current))
+	notMatchedInterfaces := make(map[string]struct{}, len(current))
+
+	// First pass preserves names for live disks that still match an existing
+	// interface, so refresh does not rename disks that already belong to state.
+	for _, diskName := range sortedDiskMapKeys(existing) {
+		existingDisk := existing[diskName]
+		if existingDisk == nil || existingDisk.Interface == "" {
+			continue
+		}
+		liveDisk, exists := current[existingDisk.Interface]
+		if !exists {
+			continue
+		}
+		diskCopy := liveDisk
+		result[diskName] = &diskCopy
+		notMatchedInterfaces[existingDisk.Interface] = struct{}{}
+	}
+
+	// Second pass assigns fresh disk-N names to any live interfaces that did not
+	// match existing state, which keeps GUI-added disks visible after refresh.
+	interfaces := make([]string, 0, len(current))
+	for diskInterface := range current {
+		if _, matched := notMatchedInterfaces[diskInterface]; matched {
+			continue
+		}
+		interfaces = append(interfaces, diskInterface)
+	}
+	sort.Strings(interfaces)
+
+	// Walk unmatched interfaces in sorted order so newly discovered disks get
+	// deterministic names regardless of map iteration order.
+	for _, diskInterface := range interfaces {
+		diskName := NextDiskName(result)
+		diskCopy := current[diskInterface]
+		result[diskName] = &diskCopy
+	}
+
+	return result
+}
+
 // DiffFrom returns granular diffs for disk additions, removals, and changed properties
 // using disk interface names as stable identity instead of slice positions. Unsupported
 // operations (shrink, storage migration) are surfaced as normal diffs here; validation
@@ -260,21 +511,23 @@ func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff
 	// Different interfaces can collide on one detailed-diff key when an interface is
 	// renamed, for example scsi0 (removed at state index 0) to scsi1 (added at input index
 	// 0). Process removals first and additions second so Add deterministically wins.
+	// First pass only emits deletes, so rename-like changes stay readable in preview.
 	for iface, ifaceChanges := range changes {
 		for _, change := range ifaceChanges {
 			if change.Type == DiskRemoved {
-				diffs[fmt.Sprintf("%s[%d]", name, stateIdxByIface[iface])] = p.PropertyDiff{Kind: p.Delete}
+				diffs[fmt.Sprintf("%s[%d]", name, stateIdxByIface[iface])] = p.PropertyDiff{Kind: p.Delete, InputDiff: true}
 			}
 		}
 	}
 
+	// Second pass handles adds and property updates for interfaces that still exist.
 	for iface, ifaceChanges := range changes {
 		var needsPropertyDiff bool
 		var desired, current *Disk
 		for _, change := range ifaceChanges {
 			switch change.Type {
 			case DiskAdded:
-				diffs[fmt.Sprintf("%s[%d]", name, inputIdxByIface[iface])] = p.PropertyDiff{Kind: p.Add}
+				diffs[fmt.Sprintf("%s[%d]", name, inputIdxByIface[iface])] = p.PropertyDiff{Kind: p.Add, InputDiff: true}
 			case DiskShrunk, DiskStorageChanged, DiskResized, DiskFlagsChanged, DiskFileIDChanged:
 				needsPropertyDiff = true
 				desired, current = change.Desired, change.Current
@@ -298,9 +551,14 @@ func (disks DiskList) DiffFrom(name string, state any) map[string]p.PropertyDiff
 // semantics.
 func diskPropertyDiffs(prefix string, desired, current *Disk) map[string]p.PropertyDiff {
 	diffs := make(map[string]p.PropertyDiff)
-	changed := func(field string) { diffs[prefix+"."+field] = p.PropertyDiff{Kind: p.Update} }
+	changed := func(field string) {
+		diffs[prefix+"."+field] = p.PropertyDiff{Kind: p.Update, InputDiff: true}
+	}
 	if desired == nil || current == nil {
 		return diffs
+	}
+	if desired.Interface != current.Interface {
+		changed("interface")
 	}
 	if desired.Size != current.Size {
 		changed("size")
@@ -394,9 +652,11 @@ func (disk *Disk) Annotate(a infer.Annotator) {
 	a.Describe(
 		&disk.Interface,
 		"Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). "+
-			"This field is the stable identity key for the disk: changing it is treated as "+
-			"removing the old disk (permanently deleting the image) and adding a new empty disk. "+
-			"To move data between slots, perform the migration manually in Proxmox.",
+			"Changing this field on an existing disk (same map key) moves the volume to the new slot "+
+			"using the Proxmox move_disk API — the volume and its data are preserved. "+
+			"Moves within the same bus family are supported (e.g., scsi0 → scsi1). "+
+			"Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. "+
+			"The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.",
 	)
 	a.Describe(&disk.Cache, "Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. "+
 		"Omit to use the Proxmox default (no explicit cache setting).")
@@ -557,6 +817,36 @@ func diskIfaceType(iface string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("unsupported disk interface: %q", iface)
+}
+
+// CheckDiskInterfaceMove validates a proposed interface change for an existing disk (same
+// logical name, different interface value). It returns an error when the move is provably
+// unsafe or unsupported so that `pulumi preview` fails fast.
+//
+// Rules enforced statically (no live API call needed):
+//   - The target interface must not already be occupied by another disk in the desired map.
+//     (Duplicate-interface check catches the common case; this covers cross-disk swaps.)
+func CheckDiskInterfaceMove(diskName, fromIface, toIface string, desiredDisks DiskMap) error {
+	if _, err := diskIfaceType(fromIface); err != nil {
+		return fmt.Errorf("disk %s: current interface %q is invalid: %w", diskName, fromIface, err)
+	}
+	if _, err := diskIfaceType(toIface); err != nil {
+		return fmt.Errorf("disk %s: target interface %q is invalid: %w", diskName, toIface, err)
+	}
+	// Verify the target slot is not occupied by a different disk in the desired config.
+	for otherName, disk := range desiredDisks {
+		if disk == nil || otherName == diskName {
+			continue
+		}
+		if disk.Interface == toIface {
+			return fmt.Errorf(
+				"disk %s: target interface %q is already claimed by disk %q; "+
+					"resolve the slot conflict before moving",
+				diskName, toIface, otherName,
+			)
+		}
+	}
+	return nil
 }
 
 // ValidateDiskFlags returns an error if any flag on disk is incompatible with its
@@ -728,6 +1018,8 @@ func CompareDisksByInterface(desired, current []*Disk) map[string][]DiskChange {
 		}
 
 		if len(ifaceChanges) == 0 {
+			// Unchanged disks still get a sentinel entry so the caller can preserve
+			// stable identity without guessing from map iteration order.
 			ifaceChanges = append(ifaceChanges, DiskChange{
 				Interface: iface,
 				Type:      DiskUnchanged,
@@ -811,7 +1103,7 @@ type VMInputs struct {
 	CPU         *CPU     `pulumi:"cpu,optional"`
 	Memory      *int     `pulumi:"memory,optional"`
 	Balloon     *int     `pulumi:"balloon,optional"`
-	Disks       DiskList `pulumi:"disks"`
+	Disks       DiskMap  `pulumi:"disks"`
 	Clone       *Clone   `pulumi:"clone,optional"`
 }
 
@@ -841,11 +1133,18 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 	a.Describe(&inputs.Balloon, "Minimum memory for ballooning in megabytes (0 disables the balloon device).")
 	a.Describe(
 		&inputs.Disks,
-		"List of disk configurations attached to the virtual machine. "+
-			"Each disk is identified by its interface slot (e.g., scsi0). "+
-			"Disks can be added or removed freely, and sizes can only be increased. "+
-			"Changing the interface field of an existing disk is data-destructive: "+
-			"the old disk image is permanently deleted and a new empty disk is provisioned.",
+		"Map of disk configurations keyed by a stable logical name (e.g. \"database\", \"logs\"). "+
+			"The map key is the primary disk identity: "+
+			"renaming a key removes the old disk and creates a new one. "+
+			"Each disk declares its Proxmox interface slot (e.g., scsi0). "+
+			"Disk sizes can only be increased. "+
+			"Changing the interface field of an existing disk moves the disk to the new slot "+
+			"using Proxmox move_disk, which preserves the existing volume and its data "+
+			"when the target slot is accepted by Proxmox. "+
+			"During refresh and read, disks that exist in Proxmox but not in state are "+
+			"assigned fresh disk-N names so GUI-added disks stay visible. "+
+			"When migrating from an older provider version (list-style disks), "+
+			"disks are assigned deterministic names disk-0, disk-1, etc. during state migration.",
 	)
 	a.Describe(&inputs.Clone, "Clone configuration for creating the VM from a source template or VM.")
 }
@@ -858,5 +1157,6 @@ type VMOutputs struct {
 var (
 	_ FieldDiffer = (*EfiDisk)(nil)
 	_ FieldDiffer = DiskList(nil)
+	_ FieldDiffer = DiskMap(nil)
 	_ FieldDiffer = TagList(nil)
 )

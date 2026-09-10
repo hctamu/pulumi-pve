@@ -89,14 +89,14 @@ func TestVMDiffComputedFields(t *testing.T) {
 					Name:  "test-vm",
 					VMID:  tt.inputVMID,
 					Node:  tt.inputNode,
-					Disks: proxmox.DiskList{},
+					Disks: testutils.DiskMap(),
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
 						Name:  "test-vm",
 						VMID:  tt.stateVMID,
 						Node:  tt.stateNode,
-						Disks: proxmox.DiskList{},
+						Disks: testutils.DiskMap(),
 					},
 				},
 			}
@@ -175,7 +175,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 					CPU: &proxmox.CPU{
 						Cores: tt.inputCores,
 					},
-					Disks: proxmox.DiskList{},
+					Disks: testutils.DiskMap(),
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
@@ -184,7 +184,7 @@ func TestVMDiffPointerFields(t *testing.T) {
 						CPU: &proxmox.CPU{
 							Cores: tt.stateCores,
 						},
-						Disks: proxmox.DiskList{},
+						Disks: testutils.DiskMap(),
 					},
 				},
 			}
@@ -209,9 +209,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 			CPU: &proxmox.CPU{
 				Cores: testutils.Ptr(4),
 			},
-			Disks: proxmox.DiskList{
-				{Size: 50, Interface: "scsi0"},
-			},
+			Disks:   testutils.DiskMap(&proxmox.Disk{Size: 50, Interface: "scsi0"}),
 			EfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType4M},
 		},
 		State: proxmox.VMOutputs{
@@ -221,9 +219,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 				CPU: &proxmox.CPU{
 					Cores: testutils.Ptr(2),
 				},
-				Disks: proxmox.DiskList{
-					{Size: 40, Interface: "scsi0"},
-				},
+				Disks:   testutils.DiskMap(&proxmox.Disk{Size: 40, Interface: "scsi0"}),
 				EfiDisk: &proxmox.EfiDisk{EfiType: proxmox.EfiType2M},
 			},
 		},
@@ -236,7 +232,7 @@ func TestVMDiffMultipleChanges(t *testing.T) {
 	assert.Contains(t, resp.DetailedDiff, "name")
 	assert.Contains(t, resp.DetailedDiff, "memory")
 	assert.Contains(t, resp.DetailedDiff, "cpu")
-	assert.Contains(t, resp.DetailedDiff, "disks[0].size") // granular per-index, per-property key
+	assert.Contains(t, resp.DetailedDiff, "disks[\"disk-0\"].size")
 	// EfiDisk now produces granular diffs
 	assert.Contains(t, resp.DetailedDiff, "efidisk.efitype")
 
