@@ -383,6 +383,8 @@ type vmCapturedReq struct {
 type vmHTTPOverrides struct {
 	resizeHandler func(http.ResponseWriter, *http.Request)
 	moveHandler   func(http.ResponseWriter, *http.Request)
+	unlinkHandler func(http.ResponseWriter, *http.Request)
+	configHandler func(http.ResponseWriter, *http.Request)
 }
 
 func (capture *vmHTTPCapture) add(method, path string, body map[string]interface{}) {
@@ -500,6 +502,10 @@ func newExtendedVMMockServerWithOverrides(
 
 		// Config POST (update or apply).
 		case r.URL.Path == vmConfigPath && r.Method == http.MethodPost:
+			if overrides != nil && overrides.configHandler != nil {
+				overrides.configHandler(w, r)
+				return
+			}
 			data(w, upid("qmconfig"))
 
 		// Resize PUT.
@@ -520,6 +526,10 @@ func newExtendedVMMockServerWithOverrides(
 
 		// Unlink PUT.
 		case strings.HasSuffix(r.URL.Path, "/unlink") && r.Method == http.MethodPut:
+			if overrides != nil && overrides.unlinkHandler != nil {
+				overrides.unlinkHandler(w, r)
+				return
+			}
 			data(w, upid("qmunlink"))
 
 		// Delete VM.
@@ -558,7 +568,11 @@ func TestVMAdapterCreateVMSendsAllFields(t *testing.T) {
 	var capture vmHTTPCapture
 	server := newExtendedVMMockServer(
 		t, nodeName, vmIDStr,
-		func() map[string]interface{} { return map[string]interface{}{} },
+		func() map[string]interface{} {
+			return map[string]interface{}{
+				"sata0": "local-lvm:vm-100-disk-0,size=20G",
+			}
+		},
 		&capture,
 	)
 	defer server.Close()
@@ -621,7 +635,11 @@ func TestVMAdapterCreateVMSendsCPU(t *testing.T) {
 	var capture vmHTTPCapture
 	server := newExtendedVMMockServer(
 		t, nodeName, vmIDStr,
-		func() map[string]interface{} { return map[string]interface{}{} },
+		func() map[string]interface{} {
+			return map[string]interface{}{
+				"sata0": "local-lvm:vm-100-disk-0,size=20G",
+			}
+		},
 		&capture,
 	)
 	defer server.Close()
@@ -1370,7 +1388,11 @@ func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
 		t,
 		nodeName,
 		vmIDStr,
-		func() map[string]interface{} { return map[string]interface{}{} },
+		func() map[string]interface{} {
+			return map[string]interface{}{
+				"sata0": "local-lvm:vm-100-disk-0,size=20G",
+			}
+		},
 		&capture,
 		&vmHTTPOverrides{
 			moveHandler: func(w http.ResponseWriter, _ *http.Request) {
@@ -1392,6 +1414,111 @@ func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
 	assert.Equal(t, "sata0", req.body["disk"])
 	assert.Equal(t, "scsi1", req.body["target-disk"])
 	assert.Equal(t, float64(vmID), req.body["target-vmid"])
+}
+
+func TestVMAdapterMoveDiskFallsBackToDetachAttachOnSameVMConstraint(t *testing.T) {
+	t.Parallel()
+
+	const nodeName = "pve-node"
+	const vmIDStr = "100"
+	vmID := 100
+
+	var capture vmHTTPCapture
+	server := newExtendedVMMockServerWithOverrides(
+		t,
+		nodeName,
+		vmIDStr,
+		func() map[string]interface{} {
+			return map[string]interface{}{
+				"sata0": "local-lvm:vm-100-disk-0,size=20G",
+			}
+		},
+		&capture,
+		&vmHTTPOverrides{
+			moveHandler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"errors": map[string]interface{}{
+						"target-vmid": "must be different than source VMID to reassign disk",
+					},
+				})
+			},
+		},
+	)
+	defer server.Close()
+
+	node := nodeName
+	vmAdapter := newConnectedVMAdapter(t, server.URL)
+	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	require.NoError(t, err)
+
+	moveReq := capture.find(http.MethodPost, "/move_disk")
+	require.NotNil(t, moveReq, "expected POST to move_disk endpoint")
+	assert.Equal(t, "sata0", moveReq.body["disk"])
+	assert.Equal(t, "scsi1", moveReq.body["target-disk"])
+	assert.Equal(t, float64(vmID), moveReq.body["target-vmid"])
+
+	unlinkReq := capture.find(http.MethodPut, "/unlink")
+	require.NotNil(t, unlinkReq, "expected fallback PUT to unlink endpoint")
+	assert.Equal(t, "sata0", unlinkReq.body["idlist"])
+	if force, hasForce := unlinkReq.body["force"]; hasForce {
+		assert.Equal(t, "0", force)
+	}
+
+	configReq := capture.find(http.MethodPost, "/config")
+	require.NotNil(t, configReq, "expected fallback POST to config endpoint")
+	assert.Equal(t, "local-lvm:vm-100-disk-0,size=20G", configReq.body["scsi1"])
+}
+
+func TestVMAdapterMoveDiskFallbackHandlesNilTasksWithoutPanic(t *testing.T) {
+	t.Parallel()
+
+	const nodeName = "pve-node"
+	const vmIDStr = "100"
+	vmID := 100
+
+	var capture vmHTTPCapture
+	server := newExtendedVMMockServerWithOverrides(
+		t,
+		nodeName,
+		vmIDStr,
+		func() map[string]interface{} {
+			return map[string]interface{}{
+				"sata0": "local-lvm:vm-100-disk-0,size=20G",
+			}
+		},
+		&capture,
+		&vmHTTPOverrides{
+			moveHandler: func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
+					"errors": map[string]interface{}{
+						"target-vmid": "must be different than source VMID to reassign disk",
+					},
+				})
+			},
+			unlinkHandler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": nil})
+			},
+			configHandler: func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{"data": nil})
+			},
+		},
+	)
+	defer server.Close()
+
+	node := nodeName
+	vmAdapter := newConnectedVMAdapter(t, server.URL)
+	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	require.NoError(t, err)
+
+	unlinkReq := capture.find(http.MethodPut, "/unlink")
+	require.NotNil(t, unlinkReq, "expected fallback PUT to unlink endpoint")
+
+	configReq := capture.find(http.MethodPost, "/config")
+	require.NotNil(t, configReq, "expected fallback POST to config endpoint")
 }
 
 // TestVMAdapterRemoveEfiDisk verifies that RemoveEfiDisk sends

@@ -341,23 +341,121 @@ func (adapter *VMAdapter) MoveDisk(
 		TargetVMID: vmID,
 	})
 	if err != nil {
-		return fmt.Errorf(
-			"failed to move disk %s to %s on VM %d: %w",
+		if !isMoveDiskFallbackCompatibleError(err) {
+			return fmt.Errorf(
+				"failed to move disk %s to %s on VM %d: %w",
+				diskInterface,
+				targetInterface,
+				vmID,
+				err,
+			)
+		}
+
+		disksByInterface := virtualMachine.VirtualMachineConfig.MergeDisks()
+		sourceDiskConfig, sourceExists := disksByInterface[diskInterface]
+		if !sourceExists {
+			return fmt.Errorf(
+				"failed to move disk %s to %s on VM %d: source interface not found in current VM config",
+				diskInterface,
+				targetInterface,
+				vmID,
+			)
+		}
+
+		if fallbackErr := adapter.reassignDiskInterface(
+			ctx,
+			virtualMachine,
+			vmID,
 			diskInterface,
 			targetInterface,
-			vmID,
-			err,
-		)
+			sourceDiskConfig,
+		); fallbackErr != nil {
+			return fmt.Errorf(
+				"failed to move disk %s to %s on VM %d: %w",
+				diskInterface,
+				targetInterface,
+				vmID,
+				fallbackErr,
+			)
+		}
+
+		return nil
 	}
 
-	if err = adapter.client.WaitForTask(ctx, string(task.UPID), 60*time.Second, 0); err != nil {
-		return fmt.Errorf(
-			"failed to wait for move disk task %s->%s on VM %d: %w",
-			diskInterface,
-			targetInterface,
-			vmID,
-			err,
-		)
+	if task != nil {
+		if err = adapter.client.WaitForTask(ctx, string(task.UPID), 60*time.Second, 0); err != nil {
+			return fmt.Errorf(
+				"failed to wait for move disk task %s->%s on VM %d: %w",
+				diskInterface,
+				targetInterface,
+				vmID,
+				err,
+			)
+		}
+	}
+
+	return nil
+}
+
+func isMoveDiskFallbackCompatibleError(err error) bool {
+	errText := strings.ToLower(err.Error())
+
+	if strings.Contains(errText, "both 'storage' and 'target-vmid' missing") {
+		return true
+	}
+
+	if strings.Contains(errText, "target-vmid") && strings.Contains(errText, "must be different than source vmid") {
+		return true
+	}
+
+	if strings.Contains(errText, "can't move to the same storage with same format") {
+		return true
+	}
+
+	return false
+}
+
+func (adapter *VMAdapter) reassignDiskInterface(
+	ctx context.Context,
+	virtualMachine *api.VirtualMachine,
+	vmID int,
+	diskInterface string,
+	targetInterface string,
+	sourceDiskConfig string,
+) error {
+	if diskInterface == targetInterface {
+		return nil
+	}
+
+	unlinkTask, err := virtualMachine.UnlinkDisk(ctx, diskInterface, false)
+	if err != nil {
+		return fmt.Errorf("failed to unlink disk %s on VM %d during fallback reassign: %w", diskInterface, vmID, err)
+	}
+
+	if unlinkTask != nil {
+		if err = adapter.client.WaitForTask(ctx, string(unlinkTask.UPID), 60*time.Second, 0); err != nil {
+			return fmt.Errorf("failed to wait for unlink task %s on VM %d: %w", diskInterface, vmID, err)
+		}
+	}
+
+	configTask, err := virtualMachine.Config(
+		ctx,
+		api.VirtualMachineOption{Name: targetInterface, Value: sourceDiskConfig},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to reattach disk %s as %s on VM %d: %w", diskInterface, targetInterface, vmID, err)
+	}
+
+	if configTask != nil {
+		if err = adapter.client.WaitForTask(ctx, string(configTask.UPID), 60*time.Second, 0); err != nil {
+			return fmt.Errorf(
+				"failed to wait for reattach task %s->%s on VM %d: %w",
+				diskInterface,
+				targetInterface,
+				vmID,
+				err,
+			)
+		}
 	}
 
 	return nil
