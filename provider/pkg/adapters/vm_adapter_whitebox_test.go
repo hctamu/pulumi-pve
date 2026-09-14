@@ -2493,7 +2493,7 @@ func BenchmarkWhiteboxBuildOptionsDiskOrdering(b *testing.B) {
 			}
 
 			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_ = buildVMOptions(inputs)
 			}
 		})
@@ -2523,7 +2523,7 @@ func BenchmarkWhiteboxBuildOptionsConsistency(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		options := buildVMOptions(inputs)
 
 		// Extract disk options to simulate real usage

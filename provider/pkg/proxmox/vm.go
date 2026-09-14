@@ -246,28 +246,22 @@ func (disks DiskMap) DiffFrom(name string, state any) map[string]p.PropertyDiff 
 	stateDisks := coerceDiskMapState(state)
 	diffs := make(map[string]p.PropertyDiff)
 
-	// Delete pass first so removed keys stay explicit even when the same slot is
-	// reused by a different disk name in the new config.
-	for _, diskName := range sortedDiskMapKeys(stateDisks) {
-		if _, ok := disks[diskName]; !ok {
-			diffs[diskMapPath(name, diskName)] = p.PropertyDiff{Kind: p.Delete, InputDiff: true}
-		}
-	}
-
-	// Add/update pass second so new keys and field-level updates share the same
-	// stable map-key path in preview output.
-	for _, diskName := range sortedDiskMapKeys(disks) {
-		desired := disks[diskName]
-		current, exists := stateDisks[diskName]
+	// Walk the union of desired/state keys once so adds, deletes, and updates are
+	// emitted deterministically without separate map traversals.
+	for _, diskName := range sortedDiskMapUnionKeys(disks, stateDisks) {
+		desired, desiredExists := disks[diskName]
+		current, currentExists := stateDisks[diskName]
 		prefix := diskMapPath(name, diskName)
 
-		if !exists {
+		switch {
+		case !desiredExists:
+			diffs[prefix] = p.PropertyDiff{Kind: p.Delete, InputDiff: true}
+		case !currentExists:
 			diffs[prefix] = p.PropertyDiff{Kind: p.Add, InputDiff: true}
-			continue
-		}
-
-		for property, propertyDiff := range diskPropertyDiffs(prefix, desired, current) {
-			diffs[property] = propertyDiff
+		default:
+			for property, propertyDiff := range diskPropertyDiffs(prefix, desired, current) {
+				diffs[property] = propertyDiff
+			}
 		}
 	}
 
@@ -324,6 +318,23 @@ func NextDiskName(existing DiskMap) string {
 func sortedDiskMapKeys(disks DiskMap) []string {
 	keys := make([]string, 0, len(disks))
 	for diskName := range disks {
+		keys = append(keys, diskName)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedDiskMapUnionKeys(left, right DiskMap) []string {
+	uniqueKeys := make(map[string]struct{}, len(left))
+	for diskName := range left {
+		uniqueKeys[diskName] = struct{}{}
+	}
+	for diskName := range right {
+		uniqueKeys[diskName] = struct{}{}
+	}
+
+	keys := make([]string, 0, len(uniqueKeys))
+	for diskName := range uniqueKeys {
 		keys = append(keys, diskName)
 	}
 	sort.Strings(keys)
