@@ -409,11 +409,7 @@ type mockVMOperations struct {
 	resizeDiskFunc func(
 		ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int,
 	) error
-	removeDiskFunc        func(ctx context.Context, vmID int, node *string, diskInterface string) error
-	moveDiskInterfaceFunc func(
-		ctx context.Context, vmID int, node *string, diskInterface string,
-		targetInterface string,
-	) error
+	removeDiskFunc          func(ctx context.Context, vmID int, node *string, diskInterface string) error
 	reconcileDisksBatchFunc func(
 		ctx context.Context, vmID int, node *string,
 		desiredDisks proxmox.DiskMap, currentDisks proxmox.DiskMap,
@@ -477,19 +473,6 @@ func (mock *mockVMOperations) RemoveDisk(
 ) error {
 	if mock.removeDiskFunc != nil {
 		return mock.removeDiskFunc(ctx, vmID, node, diskInterface)
-	}
-	return nil
-}
-
-func (mock *mockVMOperations) MoveDiskInterface(
-	ctx context.Context,
-	vmID int,
-	node *string,
-	diskInterface string,
-	targetInterface string,
-) error {
-	if mock.moveDiskInterfaceFunc != nil {
-		return mock.moveDiskInterfaceFunc(ctx, vmID, node, diskInterface, targetInterface)
 	}
 	return nil
 }

@@ -52,10 +52,6 @@ type VMOperations interface {
 	// RemoveDisk unlinks/removes a specific disk from a VM.
 	RemoveDisk(ctx context.Context, vmID int, node *string, diskInterface string) error
 
-	// MoveDiskInterface moves a disk to another interface on the same VM without recreating the volume.
-	// This is an intra-VM interface change (e.g., scsi0 → scsi1), not a cross-VM move.
-	MoveDiskInterface(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
-
 	// ReconcileDisksBatch atomically moves/removes disks and applies all changes in batch.
 	// Unlinks all disks that need to move or be removed, then applies a single Config() call
 	// with the desired disk state. This handles disk swaps (scsi0↔scsi1) and eliminates
@@ -679,10 +675,11 @@ func (disk *Disk) Annotate(a infer.Annotator) {
 	a.Describe(
 		&disk.Interface,
 		"Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). "+
-			"Changing this field on an existing disk (same map key) moves the volume to the new slot "+
-			"using the Proxmox move_disk API — the volume and its data are preserved. "+
-			"Moves within the same bus family are supported (e.g., scsi0 → scsi1). "+
-			"Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. "+
+			"Changing this field on an existing disk is handled by batch reconciliation during update. "+
+			"The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. "+
+			"Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. "+
+			"Examples: scsi0 → scsi1, scsi0 → sata0. "+
+			"Preview only rejects moves that conflict with another disk already claiming the target slot. "+
 			"The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.",
 	)
 	a.Describe(&disk.Cache, "Cache mode for the disk: none, writethrough, writeback, unsafe, or directsync. "+
@@ -1165,9 +1162,9 @@ func (inputs *VMInputs) Annotate(a infer.Annotator) {
 			"renaming a key removes the old disk and creates a new one. "+
 			"Each disk declares its Proxmox interface slot (e.g., scsi0). "+
 			"Disk sizes can only be increased. "+
-			"Changing the interface field of an existing disk moves the disk to the new slot "+
-			"using Proxmox move_disk, which preserves the existing volume and its data "+
-			"when the target slot is accepted by Proxmox. "+
+			"Changing the interface field of an existing disk is handled by batch reconciliation during update. "+
+			"The old slot is unlinked and the disk is reattached to the new slot in one batch. "+
+			"Cross-bus moves are allowed when the target slot is free and Proxmox accepts the reattach. "+
 			"During refresh and read, disks that exist in Proxmox but not in state are "+
 			"assigned fresh disk-N names so GUI-added disks stay visible. "+
 			"When migrating from an older provider version (list-style disks), "+

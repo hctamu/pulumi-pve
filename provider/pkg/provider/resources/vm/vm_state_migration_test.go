@@ -145,7 +145,6 @@ func TestUpdateAfterLegacyMigrationDoesNotMutateDisks(t *testing.T) {
 
 	var removeDiskCalls int
 	var resizeDiskCalls int
-	var moveDiskInterfaceCalls int
 	var getCalls int
 	var updateConfigCalls int
 
@@ -156,10 +155,6 @@ func TestUpdateAfterLegacyMigrationDoesNotMutateDisks(t *testing.T) {
 		},
 		resizeDiskFunc: func(_ context.Context, _ int, _ *string, _ string, _ int) error {
 			resizeDiskCalls++
-			return nil
-		},
-		moveDiskInterfaceFunc: func(_ context.Context, _ int, _ *string, _ string, _ string) error {
-			moveDiskInterfaceCalls++
 			return nil
 		},
 		getFunc: func(_ context.Context, vmID int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
@@ -192,7 +187,6 @@ func TestUpdateAfterLegacyMigrationDoesNotMutateDisks(t *testing.T) {
 	assert.Equal(t, 1, updateConfigCalls)
 	assert.Zero(t, removeDiskCalls, "migration follow-up update must not remove disks")
 	assert.Zero(t, resizeDiskCalls, "migration follow-up update must not resize disks")
-	assert.Zero(t, moveDiskInterfaceCalls, "migration follow-up update must not move disks")
 	assert.Zero(t, getCalls, "unchanged migrated disks should not trigger a re-read")
 }
 

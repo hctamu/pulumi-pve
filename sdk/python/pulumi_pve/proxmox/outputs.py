@@ -346,7 +346,7 @@ class Disk(dict):
         """
         Disk configuration for the virtual machine.
 
-        :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
+        :param _builtins.str interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk is handled by batch reconciliation during update. The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. Examples: scsi0 → scsi1, scsi0 → sata0. Preview only rejects moves that conflict with another disk already claiming the target slot. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         :param _builtins.int size: Disk size in gigabytes.
         :param _builtins.str storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
         :param _builtins.str aio: Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
@@ -418,7 +418,7 @@ class Disk(dict):
     @pulumi.getter
     def interface(self) -> _builtins.str:
         """
-        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
+        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk is handled by batch reconciliation during update. The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. Examples: scsi0 → scsi1, scsi0 → sata0. Preview only rejects moves that conflict with another disk already claiming the target slot. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         """
         return pulumi.get(self, "interface")
 

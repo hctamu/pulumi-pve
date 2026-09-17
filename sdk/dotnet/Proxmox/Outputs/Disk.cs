@@ -46,7 +46,7 @@ namespace Hctamu.Pve.Proxmox.Outputs
         /// </summary>
         public readonly string? Format;
         /// <summary>
-        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk (same map key) moves the volume to the new slot using the Proxmox move_disk API — the volume and its data are preserved. Moves within the same bus family are supported (e.g., scsi0 → scsi1). Cross-bus moves (e.g., scsi0 → sata0) are rejected at preview time because they would recreate the volume. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
+        /// Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk is handled by batch reconciliation during update. The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. Examples: scsi0 → scsi1, scsi0 → sata0. Preview only rejects moves that conflict with another disk already claiming the target slot. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         /// </summary>
         public readonly string Interface;
         /// <summary>
