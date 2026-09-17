@@ -406,9 +406,18 @@ type mockVMOperations struct {
 	getCurrentDisksFunc func(
 		ctx context.Context, vmID int, node *string,
 	) (map[string]proxmox.Disk, *proxmox.EfiDisk, error)
-	resizeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int) error
-	removeDiskFunc    func(ctx context.Context, vmID int, node *string, diskInterface string) error
-	moveDiskFunc      func(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
+	resizeDiskFunc func(
+		ctx context.Context, vmID int, node *string, diskInterface string, sizeGB int,
+	) error
+	removeDiskFunc        func(ctx context.Context, vmID int, node *string, diskInterface string) error
+	moveDiskInterfaceFunc func(
+		ctx context.Context, vmID int, node *string, diskInterface string,
+		targetInterface string,
+	) error
+	reconcileDisksBatchFunc func(
+		ctx context.Context, vmID int, node *string,
+		desiredDisks proxmox.DiskMap, currentDisks proxmox.DiskMap,
+	) error
 	removeEfiDiskFunc func(ctx context.Context, vmID int, node *string) error
 	getFunc           func(
 		ctx context.Context, vmID int, node *string, userDisks proxmox.DiskMap,
@@ -472,15 +481,28 @@ func (mock *mockVMOperations) RemoveDisk(
 	return nil
 }
 
-func (mock *mockVMOperations) MoveDisk(
+func (mock *mockVMOperations) MoveDiskInterface(
 	ctx context.Context,
 	vmID int,
 	node *string,
 	diskInterface string,
 	targetInterface string,
 ) error {
-	if mock.moveDiskFunc != nil {
-		return mock.moveDiskFunc(ctx, vmID, node, diskInterface, targetInterface)
+	if mock.moveDiskInterfaceFunc != nil {
+		return mock.moveDiskInterfaceFunc(ctx, vmID, node, diskInterface, targetInterface)
+	}
+	return nil
+}
+
+func (mock *mockVMOperations) ReconcileDisksBatch(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	desiredDisks proxmox.DiskMap,
+	currentDisks proxmox.DiskMap,
+) error {
+	if mock.reconcileDisksBatchFunc != nil {
+		return mock.reconcileDisksBatchFunc(ctx, vmID, node, desiredDisks, currentDisks)
 	}
 	return nil
 }

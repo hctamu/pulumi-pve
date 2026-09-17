@@ -52,8 +52,21 @@ type VMOperations interface {
 	// RemoveDisk unlinks/removes a specific disk from a VM.
 	RemoveDisk(ctx context.Context, vmID int, node *string, diskInterface string) error
 
-	// MoveDisk moves a disk to another interface slot without recreating the volume.
-	MoveDisk(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
+	// MoveDiskInterface moves a disk to another interface on the same VM without recreating the volume.
+	// This is an intra-VM interface change (e.g., scsi0 → scsi1), not a cross-VM move.
+	MoveDiskInterface(ctx context.Context, vmID int, node *string, diskInterface string, targetInterface string) error
+
+	// ReconcileDisksBatch atomically moves/removes disks and applies all changes in batch.
+	// Unlinks all disks that need to move or be removed, then applies a single Config() call
+	// with the desired disk state. This handles disk swaps (scsi0↔scsi1) and eliminates
+	// redundant API calls compared to per-disk operations.
+	ReconcileDisksBatch(
+		ctx context.Context,
+		vmID int,
+		node *string,
+		desiredDisks DiskMap,
+		currentDisks DiskMap,
+	) error
 
 	// RemoveEfiDisk removes the EFI disk from a VM.
 	RemoveEfiDisk(ctx context.Context, vmID int, node *string) error
@@ -315,6 +328,7 @@ func NextDiskName(existing DiskMap) string {
 	}
 }
 
+// sortedDiskMapKeys returns the sorted logical disk names from a DiskMap for deterministic iteration.
 func sortedDiskMapKeys(disks DiskMap) []string {
 	keys := make([]string, 0, len(disks))
 	for diskName := range disks {
@@ -324,6 +338,7 @@ func sortedDiskMapKeys(disks DiskMap) []string {
 	return keys
 }
 
+// sortedDiskMapUnionKeys returns the sorted union of logical disk names from two DiskMaps.
 func sortedDiskMapUnionKeys(left, right DiskMap) []string {
 	uniqueKeys := make(map[string]struct{}, len(left))
 	for diskName := range left {
@@ -341,6 +356,7 @@ func sortedDiskMapUnionKeys(left, right DiskMap) []string {
 	return keys
 }
 
+// diskMapPath returns a Pulumi resource path for a disk within a VM inputs object.
 func diskMapPath(name, diskName string) string {
 	return fmt.Sprintf("%s[%q]", name, diskName)
 }

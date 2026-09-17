@@ -449,21 +449,10 @@ func (vm *VM) reconcileDisksAfterClone(ctx context.Context, inputs *proxmox.VMIn
 
 // reconcileDisks reconciles desired disks against current state: removes absent disks,
 // resizes grown disks, and propagates FileIDs. Matching is keyed by disk Interface.
-type diskMoveAction struct {
-	diskName        string
-	fromInterface   string
-	targetInterface string
-}
-
 type diskResizeAction struct {
 	diskName    string
 	interfaceID string
 	sizeGB      int
-}
-
-type diskRemoveAction struct {
-	diskName    string
-	interfaceID string
 }
 
 func (vm *VM) reconcileDisks(
@@ -475,18 +464,14 @@ func (vm *VM) reconcileDisks(
 ) error {
 	currentByName := current
 
-	// Collect actions first so the API calls stay in a Proxmox-safe order.
-	var moveActions []diskMoveAction
+	// Collect resize actions separately (handled after batch reconciliation).
 	var resizeActions []diskResizeAction
-	var removeActions []diskRemoveAction
 
+	// Validate configuration changes and collect resize operations.
 	for diskName, currentDisk := range currentByName {
 		desiredDisk, exists := desired[diskName]
 		if !exists && currentDisk != nil {
-			removeActions = append(removeActions, diskRemoveAction{
-				diskName:    diskName,
-				interfaceID: currentDisk.Interface,
-			})
+			// Disk will be removed by ReconcileDisksBatch.
 			continue
 		}
 
@@ -494,6 +479,7 @@ func (vm *VM) reconcileDisks(
 			continue
 		}
 
+		// Preserve FileID from state if user didn't provide one.
 		if currentDisk.FileID != nil {
 			if desiredDisk.FileID == nil {
 				desiredDisk.FileID = currentDisk.FileID
@@ -506,6 +492,7 @@ func (vm *VM) reconcileDisks(
 			}
 		}
 
+		// Validate size constraints.
 		if desiredDisk.Size < currentDisk.Size {
 			return fmt.Errorf(
 				"disk %s: shrinking disks is not supported by Proxmox; increase the size or replace the resource",
@@ -513,6 +500,7 @@ func (vm *VM) reconcileDisks(
 			)
 		}
 
+		// Validate storage is not changing.
 		if desiredDisk.Storage != currentDisk.Storage {
 			return fmt.Errorf(
 				"disk %s: storage migration is not supported yet; recreate the disk on the target storage",
@@ -520,14 +508,7 @@ func (vm *VM) reconcileDisks(
 			)
 		}
 
-		if desiredDisk.Interface != currentDisk.Interface {
-			moveActions = append(moveActions, diskMoveAction{
-				diskName:        diskName,
-				fromInterface:   currentDisk.Interface,
-				targetInterface: desiredDisk.Interface,
-			})
-		}
-
+		// Collect resize operations (these run after moves/removes).
 		if desiredDisk.Size > currentDisk.Size {
 			resizeActions = append(resizeActions, diskResizeAction{
 				diskName:    diskName,
@@ -537,28 +518,14 @@ func (vm *VM) reconcileDisks(
 		}
 	}
 
-	for _, moveAction := range moveActions {
-		// Moves run before deletes so slot changes keep the underlying volume.
-		if err := vm.VMOps.MoveDisk(ctx, vmID, node, moveAction.fromInterface, moveAction.targetInterface); err != nil {
-			return fmt.Errorf(
-				"failed to move disk %s (%s -> %s): %w",
-				moveAction.diskName,
-				moveAction.fromInterface,
-				moveAction.targetInterface,
-				err,
-			)
-		}
+	// Perform batch disk reconciliation (unlink all moving/removed disks, then Config() with desired state).
+	// This handles disk swaps (e.g., scsi0↔scsi1) and eliminates redundant API calls.
+	if err := vm.VMOps.ReconcileDisksBatch(ctx, vmID, node, desired, current); err != nil {
+		return fmt.Errorf("failed to reconcile disks: %w", err)
 	}
 
-	for _, removeAction := range removeActions {
-		// Deletes only run after moves, so rename/re-slot cases do not drop data.
-		if err := vm.VMOps.RemoveDisk(ctx, vmID, node, removeAction.interfaceID); err != nil {
-			return fmt.Errorf("failed to remove disk %s: %w", removeAction.diskName, err)
-		}
-	}
-
+	// Resize disks after moves/removes so resizes apply to the final interface.
 	for _, resizeAction := range resizeActions {
-		// Resizes are last because they only apply to disks still present after moves.
 		if err := vm.VMOps.ResizeDisk(ctx, vmID, node, resizeAction.interfaceID, resizeAction.sizeGB); err != nil {
 			return fmt.Errorf("failed to resize disk %s: %w", resizeAction.diskName, err)
 		}

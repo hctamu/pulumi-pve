@@ -323,8 +323,9 @@ func (adapter *VMAdapter) RemoveDisk(
 	return nil
 }
 
-// MoveDisk moves an existing disk to another interface slot without recreating the volume.
-func (adapter *VMAdapter) MoveDisk(
+// MoveDiskInterface moves a disk to another interface on the same VM without recreating the volume.
+// This is an intra-VM interface change (e.g., scsi0 → scsi1), not a cross-VM move.
+func (adapter *VMAdapter) MoveDiskInterface(
 	ctx context.Context,
 	vmID int,
 	node *string,
@@ -338,7 +339,6 @@ func (adapter *VMAdapter) MoveDisk(
 
 	task, err := virtualMachine.MoveDisk(ctx, diskInterface, &api.VirtualMachineMoveDiskOptions{
 		TargetDisk: targetInterface,
-		TargetVMID: vmID,
 	})
 	if err != nil {
 		if !isMoveDiskFallbackCompatibleError(err) {
@@ -362,7 +362,7 @@ func (adapter *VMAdapter) MoveDisk(
 			)
 		}
 
-		if fallbackErr := adapter.reassignDiskInterface(
+		if fallbackErr := adapter.fallbackMoveDiskToInterface(
 			ctx,
 			virtualMachine,
 			vmID,
@@ -397,6 +397,8 @@ func (adapter *VMAdapter) MoveDisk(
 	return nil
 }
 
+// isMoveDiskFallbackCompatibleError reports whether err is a known Proxmox move_disk rejection
+// that is compatible with the fallback detach+attach path.
 func isMoveDiskFallbackCompatibleError(err error) bool {
 	errText := strings.ToLower(err.Error())
 
@@ -415,7 +417,9 @@ func isMoveDiskFallbackCompatibleError(err error) bool {
 	return false
 }
 
-func (adapter *VMAdapter) reassignDiskInterface(
+// fallbackMoveDiskToInterface detaches a disk from its current interface and reattaches it to the target interface.
+// Used as a fallback when Proxmox move_disk API rejects the operation (e.g., some versions/configurations).
+func (adapter *VMAdapter) fallbackMoveDiskToInterface(
 	ctx context.Context,
 	virtualMachine *api.VirtualMachine,
 	vmID int,
@@ -452,6 +456,110 @@ func (adapter *VMAdapter) reassignDiskInterface(
 				"failed to wait for reattach task %s->%s on VM %d: %w",
 				diskInterface,
 				targetInterface,
+				vmID,
+				err,
+			)
+		}
+	}
+
+	return nil
+}
+
+// ReconcileDisksBatch atomically unlinks all disks that need to move/be removed and reattaches
+// desired state in a single Config() call. This handles disk swaps and eliminates redundant API calls.
+func (adapter *VMAdapter) ReconcileDisksBatch(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	desiredDisks proxmox.DiskMap,
+	currentDisks proxmox.DiskMap,
+) error {
+	l := p.GetLogger(ctx)
+
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
+	if err != nil {
+		return err
+	}
+
+	// Identify which disks need to move or be removed.
+	// For moved disks: unlink with force=false so data is preserved.
+	// For removed disks: unlink with force=true to delete the volume.
+	interfacesToUnlink := make(map[string]bool) // interface -> shouldForce
+
+	// Find disks to remove (in current but not in desired)
+	for iface := range currentDisks {
+		if _, exists := desiredDisks[iface]; !exists {
+			interfacesToUnlink[iface] = true // force=true, delete the volume
+		}
+	}
+
+	// Find disks to move (interface changed between current and desired)
+	for name, desiredDisk := range desiredDisks {
+		currentDisk, exists := currentDisks[name]
+		if !exists || currentDisk == nil || desiredDisk == nil {
+			continue
+		}
+		if currentDisk.Interface != desiredDisk.Interface {
+			interfacesToUnlink[currentDisk.Interface] = false // force=false, preserve data
+		}
+	}
+
+	// Unlink all disks that need to move or be removed.
+	for iface, shouldForce := range interfacesToUnlink {
+		l.Debugf("Unlinking disk %s (force=%v) on VM %d", iface, shouldForce, vmID)
+		unlinkTask, err := virtualMachine.UnlinkDisk(ctx, iface, shouldForce)
+		if err != nil {
+			return fmt.Errorf(
+				"failed to unlink disk %s on VM %d during batch reconcile: %w",
+				iface,
+				vmID,
+				err,
+			)
+		}
+
+		if unlinkTask != nil {
+			if err = adapter.client.WaitForTask(ctx, string(unlinkTask.UPID), 60*time.Second, 0); err != nil {
+				return fmt.Errorf(
+					"failed to wait for unlink task %s on VM %d: %w",
+					iface,
+					vmID,
+					err,
+				)
+			}
+		}
+	}
+
+	// Build Config() options for all desired disks (including moved and new disks).
+	var configOptions []api.VirtualMachineOption
+
+	// Add all desired disks to the config using the same format as buildVMOptions.
+	for _, disk := range proxmox.DiskMapToSlice(desiredDisks) {
+		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
+		configOptions = append(configOptions, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+	}
+
+	// If there are no config options to apply, we're done.
+	if len(configOptions) == 0 {
+		l.Debugf("No disk config options to apply after batch reconcile; skipping Config call")
+		return nil
+	}
+
+	l.Debugf(
+		"Applying batch disk config on VM %d: unlinking %d disks, configuring %d disks",
+		vmID,
+		len(interfacesToUnlink),
+		len(configOptions),
+	)
+
+	configTask, err := virtualMachine.Config(ctx, configOptions...)
+	if err != nil {
+		return fmt.Errorf("failed to apply batch disk config on VM %d: %w", vmID, err)
+	}
+
+	if configTask != nil {
+		if err = adapter.client.WaitForTask(ctx, string(configTask.UPID), 60*time.Second, 0); err != nil {
+			return fmt.Errorf(
+				"failed to wait for batch disk config task on VM %d: %w",
 				vmID,
 				err,
 			)

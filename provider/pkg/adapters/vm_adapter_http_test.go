@@ -1346,9 +1346,9 @@ func TestVMAdapterRemoveDisk(t *testing.T) {
 	assert.Equal(t, "1", req.body["force"])
 }
 
-// TestVMAdapterMoveDisk verifies that MoveDisk sends
-// POST /nodes/{node}/qemu/{vmid}/move_disk with disk, target-disk, and target-vmid fields.
-func TestVMAdapterMoveDisk(t *testing.T) {
+// TestVMAdapterMoveDiskInterface verifies that MoveDiskInterface sends
+// POST /nodes/{node}/qemu/{vmid}/move_disk with disk and target-disk fields.
+func TestVMAdapterMoveDiskInterface(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "pve-node"
@@ -1365,7 +1365,7 @@ func TestVMAdapterMoveDisk(t *testing.T) {
 
 	node := nodeName
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
-	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	err := vmAdapter.MoveDiskInterface(context.Background(), vmID, &node, "sata0", "scsi1")
 	require.NoError(t, err)
 
 	req := capture.find(http.MethodPost, "/move_disk")
@@ -1373,10 +1373,9 @@ func TestVMAdapterMoveDisk(t *testing.T) {
 	assert.Equal(t, "/nodes/"+nodeName+"/qemu/"+vmIDStr+"/move_disk", req.path)
 	assert.Equal(t, "sata0", req.body["disk"])
 	assert.Equal(t, "scsi1", req.body["target-disk"])
-	assert.Equal(t, float64(vmID), req.body["target-vmid"])
 }
 
-func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
+func TestVMAdapterMoveDiskInterfaceTaskFailure(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "pve-node"
@@ -1405,7 +1404,7 @@ func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
 
 	node := nodeName
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
-	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	err := vmAdapter.MoveDiskInterface(context.Background(), vmID, &node, "sata0", "scsi1")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to move disk sata0 to scsi1 on VM 100")
 
@@ -1413,10 +1412,9 @@ func TestVMAdapterMoveDiskTaskFailure(t *testing.T) {
 	require.NotNil(t, req, "expected POST to move_disk endpoint")
 	assert.Equal(t, "sata0", req.body["disk"])
 	assert.Equal(t, "scsi1", req.body["target-disk"])
-	assert.Equal(t, float64(vmID), req.body["target-vmid"])
 }
 
-func TestVMAdapterMoveDiskFallsBackToDetachAttachOnSameVMConstraint(t *testing.T) {
+func TestVMAdapterMoveDiskInterfaceFallsBackToDetachAttachOnSameVMConstraint(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "pve-node"
@@ -1449,14 +1447,13 @@ func TestVMAdapterMoveDiskFallsBackToDetachAttachOnSameVMConstraint(t *testing.T
 
 	node := nodeName
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
-	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	err := vmAdapter.MoveDiskInterface(context.Background(), vmID, &node, "sata0", "scsi1")
 	require.NoError(t, err)
 
 	moveReq := capture.find(http.MethodPost, "/move_disk")
 	require.NotNil(t, moveReq, "expected POST to move_disk endpoint")
 	assert.Equal(t, "sata0", moveReq.body["disk"])
 	assert.Equal(t, "scsi1", moveReq.body["target-disk"])
-	assert.Equal(t, float64(vmID), moveReq.body["target-vmid"])
 
 	unlinkReq := capture.find(http.MethodPut, "/unlink")
 	require.NotNil(t, unlinkReq, "expected fallback PUT to unlink endpoint")
@@ -1470,7 +1467,7 @@ func TestVMAdapterMoveDiskFallsBackToDetachAttachOnSameVMConstraint(t *testing.T
 	assert.Equal(t, "local-lvm:vm-100-disk-0,size=20G", configReq.body["scsi1"])
 }
 
-func TestVMAdapterMoveDiskFallbackHandlesNilTasksWithoutPanic(t *testing.T) {
+func TestVMAdapterMoveDiskInterfaceFallbackHandlesNilTasksWithoutPanic(t *testing.T) {
 	t.Parallel()
 
 	const nodeName = "pve-node"
@@ -1511,7 +1508,7 @@ func TestVMAdapterMoveDiskFallbackHandlesNilTasksWithoutPanic(t *testing.T) {
 
 	node := nodeName
 	vmAdapter := newConnectedVMAdapter(t, server.URL)
-	err := vmAdapter.MoveDisk(context.Background(), vmID, &node, "sata0", "scsi1")
+	err := vmAdapter.MoveDiskInterface(context.Background(), vmID, &node, "sata0", "scsi1")
 	require.NoError(t, err)
 
 	unlinkReq := capture.find(http.MethodPut, "/unlink")
