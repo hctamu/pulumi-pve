@@ -205,7 +205,7 @@ func TestVMTagsLifeCycle(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	tagsCreate := property.New(property.NewArray([]property.Value{
 		property.New("prod"),
 		property.New("web"),
@@ -484,7 +484,7 @@ func TestVMMemoryLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -593,7 +593,7 @@ func TestVMCPULifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -708,7 +708,7 @@ func TestVMDescriptionLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -783,7 +783,7 @@ func TestVMComputedVMIDLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 
 	integration.LifeCycleTest{
 		Resource: "pve:vm:VM",
@@ -861,7 +861,7 @@ func TestVMAutostartLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -963,7 +963,7 @@ func TestVMHotplugLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -1061,7 +1061,7 @@ func TestVMOSTypeLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -1159,7 +1159,7 @@ func TestVMMachineLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)
@@ -1239,7 +1239,7 @@ func TestVMTemplateLifeCycle(t *testing.T) {
 
 	pulumiServer := newVMLifecyclePulumiServer(t, server.URL)
 
-	emptyDisks := property.New(property.NewArray([]property.Value{}))
+	emptyDisks := property.New(property.NewMap(map[string]property.Value{}))
 	vmID := property.New(lifecycleVMID)
 	node := property.New(lifecycleNodeName)
 	name := property.New(lifecycleVMName)

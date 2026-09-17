@@ -54,9 +54,9 @@ export class VM extends pulumi.CustomResource {
      */
     declare public readonly description: pulumi.Output<string | undefined>;
     /**
-     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+     * Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk is handled by batch reconciliation during update. The old slot is unlinked and the disk is reattached to the new slot in one batch. Cross-bus moves are allowed when the target slot is free and Proxmox accepts the reattach. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
      */
-    declare public readonly disks: pulumi.Output<outputs.proxmox.Disk[]>;
+    declare public readonly disks: pulumi.Output<{[key: string]: outputs.proxmox.Disk}>;
     /**
      * EFI disk configuration (required when bios is set to ovmf).
      */
@@ -181,9 +181,9 @@ export interface VMArgs {
      */
     description?: pulumi.Input<string | undefined>;
     /**
-     * List of disk configurations attached to the virtual machine. Each disk is identified by its interface slot (e.g., scsi0). Disks can be added or removed freely, and sizes can only be increased. Changing the interface field of an existing disk is data-destructive: the old disk image is permanently deleted and a new empty disk is provisioned.
+     * Map of disk configurations keyed by a stable logical name (e.g. "database", "logs"). The map key is the primary disk identity: renaming a key removes the old disk and creates a new one. Each disk declares its Proxmox interface slot (e.g., scsi0). Disk sizes can only be increased. Changing the interface field of an existing disk is handled by batch reconciliation during update. The old slot is unlinked and the disk is reattached to the new slot in one batch. Cross-bus moves are allowed when the target slot is free and Proxmox accepts the reattach. During refresh and read, disks that exist in Proxmox but not in state are assigned fresh disk-N names so GUI-added disks stay visible. When migrating from an older provider version (list-style disks), disks are assigned deterministic names disk-0, disk-1, etc. during state migration.
      */
-    disks: pulumi.Input<pulumi.Input<inputs.proxmox.DiskArgs>[]>;
+    disks: pulumi.Input<{[key: string]: pulumi.Input<inputs.proxmox.DiskArgs>}>;
     /**
      * EFI disk configuration (required when bios is set to ovmf).
      */

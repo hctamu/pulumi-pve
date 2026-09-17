@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -145,7 +146,7 @@ func (adapter *VMAdapter) Get(
 	ctx context.Context,
 	vmID int,
 	node *string,
-	userDisks []*proxmox.Disk,
+	userDisks proxmox.DiskMap,
 ) (proxmox.VMInputs, error) {
 	virtualMachine, _, _, err := adapter.client.FindVirtualMachine(ctx, vmID, node)
 	if err != nil {
@@ -261,9 +262,9 @@ func (adapter *VMAdapter) GetCurrentDisks(
 		return nil, nil, err
 	}
 
-	diskMap := virtualMachine.VirtualMachineConfig.MergeDisks()
-	result := make(map[string]proxmox.Disk, len(diskMap))
-	for iface, config := range diskMap {
+	disksByInterface := virtualMachine.VirtualMachineConfig.MergeDisks()
+	result := make(map[string]proxmox.Disk, len(disksByInterface))
+	for iface, config := range disksByInterface {
 		disk := proxmox.Disk{Interface: iface}
 		if err := ParseDiskConfig(&disk, config); err != nil {
 			return nil, nil, fmt.Errorf("failed to parse disk %s: %w", iface, err)
@@ -322,6 +323,110 @@ func (adapter *VMAdapter) RemoveDisk(
 	return nil
 }
 
+// ReconcileDisksBatch atomically unlinks all disks that need to move/be removed and reattaches
+// desired state in a single Config() call. This handles disk swaps and eliminates redundant API calls.
+func (adapter *VMAdapter) ReconcileDisksBatch(
+	ctx context.Context,
+	vmID int,
+	node *string,
+	desiredDisks proxmox.DiskMap,
+	currentDisks proxmox.DiskMap,
+) error {
+	l := p.GetLogger(ctx)
+
+	virtualMachine, err := adapter.findVM(ctx, vmID, node)
+	if err != nil {
+		return err
+	}
+
+	// Identify which disks need to move or be removed.
+	// For moved disks: unlink with force=false so data is preserved.
+	// For removed disks: unlink with force=true to delete the volume.
+	interfacesToUnlink := make(map[string]bool) // interface -> shouldForce
+
+	// Find disks to remove (in current but not in desired)
+	for iface := range currentDisks {
+		if _, exists := desiredDisks[iface]; !exists {
+			interfacesToUnlink[iface] = true // force=true, delete the volume
+		}
+	}
+
+	// Find disks to move (interface changed between current and desired)
+	for name, desiredDisk := range desiredDisks {
+		currentDisk, exists := currentDisks[name]
+		if !exists || currentDisk == nil || desiredDisk == nil {
+			continue
+		}
+		if currentDisk.Interface != desiredDisk.Interface {
+			interfacesToUnlink[currentDisk.Interface] = false // force=false, preserve data
+		}
+	}
+
+	// Unlink all disks that need to move or be removed.
+	for iface, shouldForce := range interfacesToUnlink {
+		l.Debugf("Unlinking disk %s (force=%v) on VM %d", iface, shouldForce, vmID)
+		unlinkTask, err := virtualMachine.UnlinkDisk(ctx, iface, shouldForce)
+		if err != nil {
+			return fmt.Errorf(
+				"failed to unlink disk %s on VM %d during batch reconcile: %w",
+				iface,
+				vmID,
+				err,
+			)
+		}
+
+		if unlinkTask != nil {
+			if err = adapter.client.WaitForTask(ctx, string(unlinkTask.UPID), 60*time.Second, 0); err != nil {
+				return fmt.Errorf(
+					"failed to wait for unlink task %s on VM %d: %w",
+					iface,
+					vmID,
+					err,
+				)
+			}
+		}
+	}
+
+	// Build Config() options for all desired disks (including moved and new disks).
+	var configOptions []api.VirtualMachineOption
+
+	// Add all desired disks to the config using the same format as buildVMOptions.
+	for _, disk := range proxmox.DiskMapToSlice(desiredDisks) {
+		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
+		configOptions = append(configOptions, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
+	}
+
+	// If there are no config options to apply, we're done.
+	if len(configOptions) == 0 {
+		l.Debugf("No disk config options to apply after batch reconcile; skipping Config call")
+		return nil
+	}
+
+	l.Debugf(
+		"Applying batch disk config on VM %d: unlinking %d disks, configuring %d disks",
+		vmID,
+		len(interfacesToUnlink),
+		len(configOptions),
+	)
+
+	configTask, err := virtualMachine.Config(ctx, configOptions...)
+	if err != nil {
+		return fmt.Errorf("failed to apply batch disk config on VM %d: %w", vmID, err)
+	}
+
+	if configTask != nil {
+		if err = adapter.client.WaitForTask(ctx, string(configTask.UPID), 60*time.Second, 0); err != nil {
+			return fmt.Errorf(
+				"failed to wait for batch disk config task on VM %d: %w",
+				vmID,
+				err,
+			)
+		}
+	}
+
+	return nil
+}
+
 // RemoveEfiDisk removes the EFI disk from a VM.
 func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *string) error {
 	virtualMachine, err := adapter.findVM(ctx, vmID, node)
@@ -342,13 +447,14 @@ func (adapter *VMAdapter) RemoveEfiDisk(ctx context.Context, vmID int, node *str
 }
 
 // convertVMConfigToInputs converts a VirtualMachine API response to VMInputs (state).
-// userDisks is used solely as an ordering hint: disks present in userDisks are listed
-// first (in user-specified order), followed by any additional disks found in the API.
+// userDisks is used solely as a logical-name hint: disks present in userDisks keep
+// their current names when they still match a live disk, and any extra live disks are
+// assigned synthetic disk-N names.
 // Input preservation (clearing computed fields the user did not supply) is the
 // responsibility of the caller.
 func convertVMConfigToInputs(
 	vm *api.VirtualMachine,
-	userDisks []*proxmox.Disk,
+	userDisks proxmox.DiskMap,
 ) (stateInputs proxmox.VMInputs, err error) {
 	// go-proxmox does not populate TagsSlice from the JSON tags field during HTTP responses.
 	// Call SplitTags to ensure TagsSlice is derived from the Tags string when not already set.
@@ -366,42 +472,79 @@ func convertVMConfigToInputs(
 	}
 
 	vmConfig := vm.VirtualMachineConfig
-	diskMap := vmConfig.MergeDisks()
+	disksByInterface := vmConfig.MergeDisks()
 
 	parsedCPU, err := parseCPUFromVMConfig(vmConfig)
 	if err != nil {
 		return stateInputs, err
 	}
 
-	stateDisks := []*proxmox.Disk{}
-	checkedDisks := make(map[string]bool, len(userDisks))
+	// Parse live Proxmox disks once so later matching logic can reuse the same
+	// normalized Disk values instead of reparsing config strings repeatedly.
+	currentDisks := make(proxmox.DiskMap, len(disksByInterface))
+	// FileID is the strongest identity hint across manual interface moves.
+	// Keep a reverse lookup from FileID -> live interface for matching.
+	currentDiskByFileID := make(map[string]string, len(disksByInterface))
+	for diskInterface, diskConfig := range disksByInterface {
+		disk := &proxmox.Disk{Interface: diskInterface}
+		if err := ParseDiskConfig(disk, diskConfig); err != nil {
+			return stateInputs, err
+		}
+		currentDisks[diskInterface] = disk
+		if disk.FileID != nil && *disk.FileID != "" {
+			currentDiskByFileID[*disk.FileID] = diskInterface
+		}
+	}
 
-	// First: process disks in user-specified order
-	for _, userDisk := range userDisks {
+	stateDisks := make(proxmox.DiskMap, len(disksByInterface))
+	checkedDisks := make(map[string]bool, len(userDisks))
+	userDiskNames := make([]string, 0, len(userDisks))
+	for diskName := range userDisks {
+		userDiskNames = append(userDiskNames, diskName)
+	}
+	// Keep traversal deterministic so tie-cases are stable across refresh runs.
+	sort.Strings(userDiskNames)
+
+	// First pass: preserve existing logical names from user/state hints.
+	// Match by FileID first, then fall back to interface when FileID is absent.
+	for _, diskName := range userDiskNames {
+		userDisk := userDisks[diskName]
 		if userDisk == nil || userDisk.Interface == "" {
 			continue
 		}
-		if _, exists := diskMap[userDisk.Interface]; !exists {
-			continue // disk no longer present in API
+		matchedInterface := ""
+		if userDisk.FileID != nil && *userDisk.FileID != "" {
+			matchedInterface = currentDiskByFileID[*userDisk.FileID]
 		}
-		disk := &proxmox.Disk{Interface: userDisk.Interface}
-		checkedDisks[userDisk.Interface] = true
-		if err := ParseDiskConfig(disk, diskMap[userDisk.Interface]); err != nil {
-			return stateInputs, err
+		if matchedInterface == "" {
+			if _, exists := currentDisks[userDisk.Interface]; exists {
+				matchedInterface = userDisk.Interface
+			}
 		}
-		stateDisks = append(stateDisks, disk)
+		if matchedInterface == "" || checkedDisks[matchedInterface] {
+			continue
+		}
+		// Reserve the matched live interface so one live disk cannot be claimed
+		// by multiple logical names.
+		checkedDisks[matchedInterface] = true
+		stateDisks[diskName] = currentDisks[matchedInterface]
 	}
 
-	// Then: append any disks from API not covered by user's input
-	for diskInterface, diskParams := range diskMap {
+	// Second pass: include live disks not matched by hints (for example GUI-added
+	// disks) so refresh/read does not silently drop them.
+	remainingDisks := make([]*proxmox.Disk, 0, len(disksByInterface))
+	for diskInterface, disk := range currentDisks {
 		if checkedDisks[diskInterface] {
 			continue
 		}
-		disk := proxmox.Disk{Interface: diskInterface}
-		if err := ParseDiskConfig(&disk, diskParams); err != nil {
-			return stateInputs, err
-		}
-		stateDisks = append(stateDisks, &disk)
+		remainingDisks = append(remainingDisks, disk)
+	}
+
+	// Assign synthetic disk-N names in deterministic identity order so state is
+	// stable regardless of map iteration order.
+	for _, remainingDisk := range proxmox.DiskMapToSlice(proxmox.DiskMapFromSliceByIdentity(remainingDisks)) {
+		diskName := proxmox.NextDiskName(stateDisks)
+		stateDisks[diskName] = remainingDisk
 	}
 
 	var efiDisk *proxmox.EfiDisk
@@ -493,7 +636,7 @@ func buildVMOptions(inputs proxmox.VMInputs) []api.VirtualMachineOption {
 		)
 	}
 
-	for _, disk := range inputs.Disks {
+	for _, disk := range proxmox.DiskMapToSlice(inputs.Disks) {
 		diskKey, diskConfig := ToProxmoxDiskKeyConfig(*disk)
 		options = append(options, api.VirtualMachineOption{Name: diskKey, Value: diskConfig})
 	}
@@ -537,7 +680,7 @@ func buildVMOptionsDiff(inputs proxmox.VMInputs, currentInputs *proxmox.VMInputs
 			currentByIface[disk.Interface] = disk
 		}
 	}
-	for _, disk := range inputs.Disks {
+	for _, disk := range proxmox.DiskMapToSlice(inputs.Disks) {
 		if disk == nil {
 			continue
 		}

@@ -208,13 +208,13 @@ func TestVMDiffEfiDiskChange(t *testing.T) {
 				Inputs: proxmox.VMInputs{
 					Name:    "test-vm",
 					EfiDisk: tt.inputEfiDisk,
-					Disks:   []*proxmox.Disk{}, // Empty disks to focus on EFI
+					Disks:   testutils.DiskMap(), // Empty disks to focus on EFI
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
 						Name:    "test-vm",
 						EfiDisk: tt.stateEfiDisk,
-						Disks:   []*proxmox.Disk{},
+						Disks:   testutils.DiskMap(),
 					},
 				},
 			}
@@ -254,7 +254,7 @@ func TestVMUpdateEfiDiskSuccess(t *testing.T) {
 				updateConfigCalled = true
 				return nil
 			},
-			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: &id,
 					Name: "test-vm",
@@ -307,7 +307,7 @@ func TestVMUpdateEfiDiskPreEnrolledKeysChange(t *testing.T) {
 
 	vmRes := &vmResource.VM{
 		VMOps: &mockVMOperations{
-			getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: &id,
 					Name: "test-vm",
@@ -362,7 +362,7 @@ func TestVMReadWithEfiDisk(t *testing.T) {
 	vmRes := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID},
 		VMOps: &mockVMOperations{
-			getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: testutils.Ptr(vmID),
 					Name: "test-vm",
@@ -404,7 +404,7 @@ func TestVMReadWithoutEfiDisk(t *testing.T) {
 	vmRes := &vmResource.VM{
 		Client: &testutils.MockProxmoxClient{DefaultNode: nodeName, DefaultVMID: vmID},
 		VMOps: &mockVMOperations{
-			getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+			getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 				return proxmox.VMInputs{
 					VMID: testutils.Ptr(vmID),
 					Name: "test-vm",
@@ -450,7 +450,7 @@ func TestVMCloneRemovesUnwantedEfiDisk(t *testing.T) {
 		applyConfigFunc: func(_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ time.Duration) error {
 			return nil
 		},
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{VMID: testutils.Ptr(newVMID)}, nil
 		},
 	}
@@ -497,7 +497,7 @@ func TestVMCloneAddsEfiDisk(t *testing.T) {
 			applyConfigInputs = inputs
 			return nil
 		},
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(newVMID),
 				EfiDisk: &proxmox.EfiDisk{
@@ -552,7 +552,7 @@ func TestVMCreateWithEfiDisk(t *testing.T) {
 			capturedInputs = inputs
 			return nil
 		},
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(newVMID),
 				Name: "test-vm-with-efi",

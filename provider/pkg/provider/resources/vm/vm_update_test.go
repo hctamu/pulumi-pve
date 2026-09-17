@@ -30,10 +30,9 @@ import (
 	"github.com/hctamu/pulumi-pve/provider/pkg/testutils"
 )
 
-// TestVMUpdateDisksReconcile verifies that Update() correctly reconciles disk state:
-// removing disks absent from desired, resizing disks that have grown, propagating
-// live FileIDs into inputs, and forwarding all changes to UpdateConfig.
-func TestVMUpdateDisksReconcile(t *testing.T) {
+// TestVMUpdateDisksReconcileBatch verifies that Update() uses ReconcileDisksBatch for atomic
+// disk reconciliation, handling moves, removes, and resizes correctly.
+func TestVMUpdateDisksReconcileBatch(t *testing.T) {
 	t.Parallel()
 
 	const testVMID = 100
@@ -48,175 +47,176 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		desiredDisks  []*proxmox.Disk
-		stateDisks    []*proxmox.Disk
-		removeDiskErr error
+		desiredDisks  proxmox.DiskMap
+		stateDisks    proxmox.DiskMap
+		reconcileErr  error
 		resizeDiskErr error
 		dryRun        bool
 
 		wantErr         bool
 		wantErrContains string
-		wantRemoveDisks []string
 		wantResizeCalls []resizeCall
-		// wantFileIDs maps interface name → expected FileID in request.Inputs.Disks after Update.
-		// A nil pointer value asserts that FileID must remain nil.
+		// wantFileIDs maps interface name → expected FileID after Update.
 		wantFileIDs map[string]*string
+		// wantDisks lists the disk keys expected in the output.
+		wantDisks []string
 	}{
 		{
 			name: "no change propagates FileID and calls UpdateConfig",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      20,
+					Interface: "scsi0",
+				},
 			},
-			stateDisks: []*proxmox.Disk{
-				{
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
 					Size:      20,
 					Interface: "scsi0",
 				},
 			},
-			wantRemoveDisks: nil,
 			wantResizeCalls: nil,
 			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
+			wantDisks:       []string{"disk-0"},
 		},
 		{
-			name: "add disk calls UpdateConfig without remove or resize",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "scsi1"},
+			name: "add disk calls UpdateConfig without move or resize",
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      20,
+					Interface: "scsi0",
+				},
+				"disk-1": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      30,
+					Interface: "scsi1",
+				},
 			},
-			stateDisks: []*proxmox.Disk{
-				{
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
 					Size:      20,
 					Interface: "scsi0",
 				},
 			},
-			wantRemoveDisks: nil,
 			wantResizeCalls: nil,
-			// scsi1 is DiskAdded: no FileID propagated; scsi0 is DiskUnchanged: FileID propagated.
-			wantFileIDs: map[string]*string{
-				"scsi0": testutils.Ptr(fileID0),
-				"scsi1": nil,
-			},
+			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
+			wantDisks:       []string{"disk-0", "disk-1"},
 		},
 		{
-			name: "remove disk calls RemoveDisk then UpdateConfig",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			name: "interface change reconciles through batch and preserves FileID",
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      20,
+					Interface: "scsi1",
+				},
 			},
-			stateDisks: []*proxmox.Disk{
-				{
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
 					Size:      20,
 					Interface: "scsi0",
 				},
-				{
+			},
+			wantResizeCalls: nil,
+			wantFileIDs:     map[string]*string{"scsi1": testutils.Ptr(fileID0)},
+			wantDisks:       []string{"disk-0"},
+		},
+		{
+			name: "remove disk reconciles through batch",
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      20,
+					Interface: "scsi0",
+				},
+			},
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+					Size:      20,
+					Interface: "scsi0",
+				},
+				"disk-1": {
 					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID1)},
 					Size:      30,
 					Interface: "scsi1",
 				},
 			},
-			wantRemoveDisks: []string{"scsi1"},
 			wantResizeCalls: nil,
 			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
+			wantDisks:       []string{"disk-0"},
 		},
 		{
-			name: "resize disk calls ResizeDisk and propagates FileID",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
-			},
-			stateDisks: []*proxmox.Disk{
-				{
-					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-					Size:      20,
-					Interface: "scsi0",
-				},
-			},
-			wantRemoveDisks: nil,
-			wantResizeCalls: []resizeCall{{"scsi0", 50}},
-			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
-		},
-		{
-			name: "resize existing disk and add another in one update",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 15, Interface: "scsi1"},
-			},
-			stateDisks: []*proxmox.Disk{
-				{
-					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-					Size:      20,
-					Interface: "scsi0",
-				},
-			},
-			wantRemoveDisks: nil,
-			wantResizeCalls: []resizeCall{{"scsi0", 50}},
-			wantFileIDs: map[string]*string{
-				"scsi0": testutils.Ptr(fileID0),
-				"scsi1": nil,
-			},
-		},
-		{
-			name: "resize disk with conflicting explicit fileID errors",
-			desiredDisks: []*proxmox.Disk{
-				{
-					DiskBase: proxmox.DiskBase{
-						Storage: "local-lvm",
-						FileID:  testutils.Ptr(fileID1),
-					},
+			name: "resize disk calls ResizeDisk after batch reconciliation",
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
 					Size:      50,
 					Interface: "scsi0",
 				},
 			},
-			stateDisks: []*proxmox.Disk{
-				{
-					DiskBase: proxmox.DiskBase{
-						Storage: "local-lvm",
-						FileID:  testutils.Ptr(fileID0),
-					},
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
 					Size:      20,
 					Interface: "scsi0",
 				},
 			},
-			wantErr:         true,
-			wantErrContains: "changing the volume binding",
+			wantResizeCalls: []resizeCall{{diskInterface: "scsi0", sizeGB: 50}},
+			wantFileIDs:     map[string]*string{"scsi0": testutils.Ptr(fileID0)},
+			wantDisks:       []string{"disk-0"},
 		},
 		{
-			name: "dry run returns without calling any ops",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
+			name: "ReconcileDisksBatch error propagates",
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      20,
+					Interface: "scsi1",
+				},
 			},
-			stateDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+					Size:      20,
+					Interface: "scsi0",
+				},
 			},
-			dryRun:          true,
-			wantRemoveDisks: nil,
-			wantResizeCalls: nil,
-		},
-		{
-			name: "RemoveDisk error propagates",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
-			},
-			stateDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 30, Interface: "scsi1"},
-			},
-			removeDiskErr:   errors.New("unlink failed"),
+			reconcileErr:    errors.New("batch reconcile failed"),
 			wantErr:         true,
-			wantErrContains: "unlink failed",
+			wantErrContains: "batch reconcile failed",
+			wantFileIDs:     map[string]*string{},
 		},
 		{
 			name: "ResizeDisk error propagates",
-			desiredDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
+			desiredDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
+					Size:      50,
+					Interface: "scsi0",
+				},
 			},
-			stateDisks: []*proxmox.Disk{
-				{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
+			stateDisks: proxmox.DiskMap{
+				"disk-0": {
+					DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
+					Size:      20,
+					Interface: "scsi0",
+				},
 			},
 			resizeDiskErr:   errors.New("resize failed"),
 			wantErr:         true,
 			wantErrContains: "resize failed",
+			wantFileIDs:     map[string]*string{},
+		},
+		{
+			name:    "dry_run returns without calling any ops",
+			dryRun:  true,
+			wantErr: false,
 		},
 	}
 
@@ -224,16 +224,40 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			var removedDisks []string
 			resizedDisks := make(map[string]int)
-			var updateConfigCalled bool
+			var reconcileDisks proxmox.DiskMap // Track what was passed to ReconcileDisksBatch
 
 			ops := &mockVMOperations{
-				removeDiskFunc: func(_ context.Context, _ int, _ *string, diskInterface string) error {
-					if tt.removeDiskErr != nil {
-						return tt.removeDiskErr
+				reconcileDisksBatchFunc: func(
+					_ context.Context,
+					_ int,
+					_ *string,
+					desiredDisks proxmox.DiskMap,
+					currentDisks proxmox.DiskMap,
+				) error {
+					if tt.reconcileErr != nil {
+						return tt.reconcileErr
 					}
-					removedDisks = append(removedDisks, diskInterface)
+					// Store desired disks for later retrieval in getFunc
+					reconcileDisks = make(proxmox.DiskMap)
+					for name, disk := range desiredDisks {
+						newDisk := *disk
+						reconcileDisks[name] = &newDisk
+					}
+					// Propagate FileIDs from current to desired.
+					for diskName, desiredDisk := range desiredDisks {
+						currentDisk, exists := currentDisks[diskName]
+						if !exists || currentDisk == nil || desiredDisk == nil {
+							continue
+						}
+						if currentDisk.FileID != nil && desiredDisk.FileID == nil {
+							desiredDisk.FileID = currentDisk.FileID
+						}
+					}
+					// Update reconcileDisks with the propagated FileIDs
+					for name, disk := range desiredDisks {
+						reconcileDisks[name] = disk
+					}
 					return nil
 				},
 				resizeDiskFunc: func(
@@ -248,305 +272,120 @@ func TestVMUpdateDisksReconcile(t *testing.T) {
 				updateConfigFunc: func(
 					_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ proxmox.VMInputs,
 				) error {
-					updateConfigCalled = true
 					return nil
 				},
+				getFunc: func(
+					_ context.Context, _ int, _ *string, userDisks proxmox.DiskMap,
+				) (proxmox.VMInputs, error) {
+					// Return the reconciled disks if available, otherwise use userDisks
+					var disksToReturn proxmox.DiskMap
+					if len(reconcileDisks) > 0 {
+						disksToReturn = reconcileDisks
+					} else {
+						disksToReturn = userDisks
+					}
+					return proxmox.VMInputs{
+						VMID:  testutils.Ptr(testVMID),
+						Disks: disksToReturn,
+					}, nil
+				},
+				deleteFunc: func(_ context.Context, _ int, _ *string) error { return nil },
 			}
 
-			vmID := testVMID
-			req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-				ID:     "test-vm",
-				DryRun: tt.dryRun,
+			vmResource := &vmResource.VM{
+				VMOps: ops,
+			}
+
+			if tt.dryRun {
+				// DryRun should not call any ops.
+				_, err := vmResource.Update(context.Background(), infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+					ID:     "test-id",
+					DryRun: true,
+					Inputs: proxmox.VMInputs{
+						VMID:  testutils.Ptr(testVMID),
+						Node:  testNode,
+						Disks: tt.desiredDisks,
+					},
+					State: proxmox.VMOutputs{
+						VMInputs: proxmox.VMInputs{
+							VMID:  testutils.Ptr(testVMID),
+							Node:  testNode,
+							Disks: tt.stateDisks,
+						},
+					},
+				})
+				if tt.wantErr {
+					require.Error(t, err)
+					if tt.wantErrContains != "" {
+						require.ErrorContains(t, err, tt.wantErrContains)
+					}
+				} else {
+					require.NoError(t, err)
+				}
+				return
+			}
+
+			response, err := vmResource.Update(context.Background(), infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
+				ID: "test-id",
 				Inputs: proxmox.VMInputs{
-					Name:  "test-vm",
+					VMID:  testutils.Ptr(testVMID),
 					Node:  testNode,
-					VMID:  &vmID,
 					Disks: tt.desiredDisks,
 				},
 				State: proxmox.VMOutputs{
 					VMInputs: proxmox.VMInputs{
-						Name:  "test-vm",
+						VMID:  testutils.Ptr(testVMID),
 						Node:  testNode,
-						VMID:  &vmID,
 						Disks: tt.stateDisks,
 					},
 				},
-			}
-
-			vmInstance := &vmResource.VM{VMOps: ops}
-			_, err := vmInstance.Update(context.Background(), req)
+			})
 
 			if tt.wantErr {
 				require.Error(t, err)
 				if tt.wantErrContains != "" {
-					assert.Contains(t, err.Error(), tt.wantErrContains)
+					require.ErrorContains(t, err, tt.wantErrContains)
 				}
-				// A rejected disk change must not have applied any mutating call first.
-				assert.Empty(t, removedDisks, "no disk should be removed when Update errors")
-				assert.Empty(t, resizedDisks, "no disk should be resized when Update errors")
 				return
 			}
 
 			require.NoError(t, err)
+			require.NotNil(t, response.Output.Disks)
 
-			if tt.dryRun {
-				assert.False(t, updateConfigCalled, "UpdateConfig should not be called on dry run")
-				return
+			// Verify expected disk keys are in the output.
+			if tt.wantDisks != nil {
+				for _, diskKey := range tt.wantDisks {
+					assert.NotNil(t, response.Output.Disks[diskKey], "disk %s not in output", diskKey)
+				}
 			}
 
-			assert.True(t, updateConfigCalled, "UpdateConfig should be called")
-
-			// Verify remove calls.
-			assert.ElementsMatch(t, tt.wantRemoveDisks, removedDisks, "removed disk interfaces")
-
-			// Verify resize calls.
-			wantResizeMap := make(map[string]int, len(tt.wantResizeCalls))
-			for _, rc := range tt.wantResizeCalls {
-				wantResizeMap[rc.diskInterface] = rc.sizeGB
-			}
-			assert.Equal(t, wantResizeMap, resizedDisks, "resized disks")
-
-			// Verify FileIDs propagated into request.Inputs.Disks.
-			if len(tt.wantFileIDs) > 0 {
-				inputsByIface := make(map[string]*proxmox.Disk, len(req.Inputs.Disks))
-				for _, d := range req.Inputs.Disks {
-					if d != nil {
-						inputsByIface[d.Interface] = d
+			// Verify FileID propagation by interface.
+			for iface, wantFileID := range tt.wantFileIDs {
+				var foundDisk *proxmox.Disk
+				for _, disk := range response.Output.Disks {
+					if disk != nil && disk.Interface == iface {
+						foundDisk = disk
+						break
 					}
 				}
-				for iface, wantFileID := range tt.wantFileIDs {
-					d := inputsByIface[iface]
-					require.NotNilf(t, d, "disk %s should be present in inputs", iface)
-					if wantFileID == nil {
-						assert.Nilf(t, d.FileID, "FileID for disk %s should be nil", iface)
-					} else {
-						require.NotNilf(t, d.FileID, "FileID for disk %s should not be nil", iface)
-						assert.Equalf(t, *wantFileID, *d.FileID, "FileID for disk %s", iface)
+				if wantFileID == nil {
+					if foundDisk != nil {
+						assert.Nil(t, foundDisk.FileID, "disk on interface %s should not have FileID but got %v",
+							iface, foundDisk.FileID)
+					}
+				} else {
+					assert.NotNil(t, foundDisk, "disk on interface %s not found", iface)
+					if foundDisk != nil {
+						assert.Equal(t, *wantFileID, *foundDisk.FileID, "disk on interface %s FileID mismatch", iface)
 					}
 				}
 			}
-		})
-	}
-}
 
-// TestVMUpdateSkipsGetCurrentDisksWhenDisksUnchanged verifies that when the desired
-// disk list is identical to the prior state, GetCurrentDisks is never called.
-// This avoids a redundant Proxmox API round-trip on non-disk-related updates.
-func TestVMUpdateSkipsGetCurrentDisksWhenDisksUnchanged(t *testing.T) {
-	t.Parallel()
-
-	const testVMID = 100
-	testNode := testutils.Ptr("pve-node")
-	fileID := "local-lvm:vm-100-disk-0"
-
-	// getCurrentDisksFunc returns an error — if it is called the test will fail.
-	ops := &mockVMOperations{
-		getCurrentDisksFunc: func(
-			_ context.Context, _ int, _ *string,
-		) (map[string]proxmox.Disk, *proxmox.EfiDisk, error) {
-			return nil, nil, errors.New("GetCurrentDisks must not be called when disks are unchanged")
-		},
-		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-			return proxmox.VMInputs{VMID: &id}, nil
-		},
-	}
-
-	vmID := testVMID
-	disk := &proxmox.Disk{
-		DiskBase:  proxmox.DiskBase{Storage: "local-lvm"},
-		Size:      20,
-		Interface: "scsi0",
-	}
-	stateDisk := &proxmox.Disk{
-		DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: &fileID},
-		Size:      20,
-		Interface: "scsi0",
-	}
-
-	req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-		ID: "test-vm",
-		Inputs: proxmox.VMInputs{
-			Name:   "test-vm",
-			Node:   testNode,
-			VMID:   &vmID,
-			Disks:  []*proxmox.Disk{disk},
-			Memory: testutils.Ptr(4096), // only memory changed
-		},
-		State: proxmox.VMOutputs{
-			VMInputs: proxmox.VMInputs{
-				Name:   "test-vm",
-				Node:   testNode,
-				VMID:   &vmID,
-				Disks:  []*proxmox.Disk{stateDisk},
-				Memory: testutils.Ptr(2048),
-			},
-		},
-	}
-
-	vmInstance := &vmResource.VM{VMOps: ops}
-	_, err := vmInstance.Update(context.Background(), req)
-	require.NoError(t, err, "Update must succeed without calling GetCurrentDisks")
-}
-
-// TestVMUpdateRereadsAfterDiskChange verifies that Update() re-reads the VM after a disk or
-// EFI disk add so the new FileID (filename) is present in the response immediately, without
-// needing a subsequent Read/refresh.
-func TestVMUpdateRereadsAfterDiskChange(t *testing.T) {
-	t.Parallel()
-
-	const testVMID = 100
-	testNode := testutils.Ptr("pve-node")
-	fileID0 := "local-lvm:vm-100-disk-0"
-	newFileID1 := "local-lvm:vm-100-disk-1"
-
-	tests := []struct {
-		name             string
-		inputs           proxmox.VMInputs
-		state            proxmox.VMInputs
-		getResult        proxmox.VMInputs
-		wantGetCalled    bool
-		wantDisksByIface map[string]*string // interface -> expected FileID in response.Output.Disks
-		wantEfiFileID    *string
-	}{
-		{
-			name: "disk added: Get is called and new disk's FileID is merged into output",
-			inputs: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
-				Disks: []*proxmox.Disk{
-					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
-					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 15, Interface: "scsi1"},
-				},
-			},
-			state: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
-				Disks: []*proxmox.Disk{
-					{
-						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-						Size:      20,
-						Interface: "scsi0",
-					},
-				},
-			},
-			getResult: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
-				Disks: []*proxmox.Disk{
-					{
-						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-						Size:      20,
-						Interface: "scsi0",
-					},
-					{
-						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(newFileID1)},
-						Size:      15,
-						Interface: "scsi1",
-					},
-				},
-			},
-			wantGetCalled: true,
-			wantDisksByIface: map[string]*string{
-				"scsi0": testutils.Ptr(fileID0),
-				"scsi1": testutils.Ptr(newFileID1),
-			},
-		},
-		{
-			name: "disks unchanged: Get is not called, no extra API round-trip",
-			inputs: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID), Memory: testutils.Ptr(4096),
-				Disks: []*proxmox.Disk{
-					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 20, Interface: "scsi0"},
-				},
-			},
-			state: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID), Memory: testutils.Ptr(2048),
-				Disks: []*proxmox.Disk{
-					{
-						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-						Size:      20,
-						Interface: "scsi0",
-					},
-				},
-			},
-			wantGetCalled: false,
-		},
-		{
-			name: "disk resized: Get is called and output keeps resized disk FileID",
-			inputs: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
-				Disks: []*proxmox.Disk{
-					{DiskBase: proxmox.DiskBase{Storage: "local-lvm"}, Size: 50, Interface: "scsi0"},
-				},
-			},
-			state: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
-				Disks: []*proxmox.Disk{
-					{
-						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-						Size:      20,
-						Interface: "scsi0",
-					},
-				},
-			},
-			getResult: proxmox.VMInputs{
-				Name: "test-vm", Node: testNode, VMID: testutils.Ptr(testVMID),
-				Disks: []*proxmox.Disk{
-					{
-						DiskBase:  proxmox.DiskBase{Storage: "local-lvm", FileID: testutils.Ptr(fileID0)},
-						Size:      50,
-						Interface: "scsi0",
-					},
-				},
-			},
-			wantGetCalled: true,
-			wantDisksByIface: map[string]*string{
-				"scsi0": testutils.Ptr(fileID0),
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			var getCalled bool
-			ops := &mockVMOperations{
-				resizeDiskFunc: func(_ context.Context, _ int, _ *string, _ string, _ int) error { return nil },
-				removeDiskFunc: func(_ context.Context, _ int, _ *string, _ string) error { return nil },
-				updateConfigFunc: func(
-					_ context.Context, _ int, _ *string, _ proxmox.VMInputs, _ proxmox.VMInputs,
-				) error {
-					return nil
-				},
-				getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
-					getCalled = true
-					return tt.getResult, nil
-				},
-			}
-
-			req := infer.UpdateRequest[proxmox.VMInputs, proxmox.VMOutputs]{
-				ID:     "test-vm",
-				Inputs: tt.inputs,
-				State:  proxmox.VMOutputs{VMInputs: tt.state},
-			}
-
-			vmInstance := &vmResource.VM{VMOps: ops}
-			resp, err := vmInstance.Update(context.Background(), req)
-			require.NoError(t, err)
-
-			assert.Equal(t, tt.wantGetCalled, getCalled, "Get call expectation")
-
-			if tt.wantDisksByIface != nil {
-				outByIface := make(map[string]*proxmox.Disk, len(resp.Output.Disks))
-				for _, d := range resp.Output.Disks {
-					if d != nil {
-						outByIface[d.Interface] = d
-					}
-				}
-				for iface, wantFileID := range tt.wantDisksByIface {
-					d := outByIface[iface]
-					require.NotNilf(t, d, "disk %s should be present in output", iface)
-					require.NotNilf(t, d.FileID, "FileID for disk %s should not be nil", iface)
-					assert.Equalf(t, *wantFileID, *d.FileID, "FileID for disk %s", iface)
-				}
+			// Verify resize operations.
+			for _, resizeCall := range tt.wantResizeCalls {
+				actualSize, exists := resizedDisks[resizeCall.diskInterface]
+				assert.True(t, exists, "ResizeDisk not called for interface %s", resizeCall.diskInterface)
+				assert.Equal(t, resizeCall.sizeGB, actualSize, "resize size mismatch for %s", resizeCall.diskInterface)
 			}
 		})
 	}

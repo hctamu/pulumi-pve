@@ -39,7 +39,7 @@ func TestVMReadPreservesNumaFalse(t *testing.T) {
 	nodeName := "pve-node"
 
 	mockOps := &mockVMOperations{
-		getFunc: func(_ context.Context, _ int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, _ int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			// Simulate what Proxmox returns: numa=0 means the field is nil in our domain model
 			return proxmox.VMInputs{
 				VMID: testutils.Ptr(vmID),
@@ -98,7 +98,7 @@ func TestVMCreatePreservesNumaFalse(t *testing.T) {
 		createVMFunc: func(_ context.Context, _ proxmox.VMInputs) error {
 			return nil
 		},
-		getFunc: func(_ context.Context, id int, _ *string, _ []*proxmox.Disk) (proxmox.VMInputs, error) {
+		getFunc: func(_ context.Context, id int, _ *string, _ proxmox.DiskMap) (proxmox.VMInputs, error) {
 			// Simulate what Proxmox returns: numa=0 means the field is nil in our domain model
 			return proxmox.VMInputs{
 				VMID: &id,
@@ -109,7 +109,7 @@ func TestVMCreatePreservesNumaFalse(t *testing.T) {
 					Sockets: testutils.Ptr(1),
 					Numa:    nil, // API returns nil when numa is 0 (disabled)
 				},
-				Disks: []*proxmox.Disk{},
+				Disks: testutils.DiskMap(),
 			}, nil
 		},
 	}
@@ -130,7 +130,7 @@ func TestVMCreatePreservesNumaFalse(t *testing.T) {
 				Sockets: testutils.Ptr(1),
 				Numa:    &numaFalse,
 			},
-			Disks: []*proxmox.Disk{},
+			Disks: testutils.DiskMap(),
 		},
 	}
 

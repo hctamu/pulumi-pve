@@ -602,7 +602,7 @@ class DiskArgsDict(TypedDict):
     """
     interface: pulumi.Input[_builtins.str]
     """
-    Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+    Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk is handled by batch reconciliation during update. The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. Examples: scsi0 → scsi1, scsi0 → sata0. Preview only rejects moves that conflict with another disk already claiming the target slot. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
     """
     size: pulumi.Input[_builtins.int]
     """
@@ -722,7 +722,7 @@ class DiskArgs:
         """
         Disk configuration for the virtual machine.
 
-        :param pulumi.Input[_builtins.str] interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+        :param pulumi.Input[_builtins.str] interface: Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk is handled by batch reconciliation during update. The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. Examples: scsi0 → scsi1, scsi0 → sata0. Preview only rejects moves that conflict with another disk already claiming the target slot. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         :param pulumi.Input[_builtins.int] size: Disk size in gigabytes.
         :param pulumi.Input[_builtins.str] storage: Target storage pool for the disk (e.g., local-lvm, ceph-pool).
         :param pulumi.Input[_builtins.str] aio: Asynchronous I/O mode: native, threads, or io_uring. Omit to use the Proxmox default.
@@ -794,7 +794,7 @@ class DiskArgs:
     @pulumi.getter
     def interface(self) -> pulumi.Input[_builtins.str]:
         """
-        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). This field is the stable identity key for the disk: changing it is treated as removing the old disk (permanently deleting the image) and adding a new empty disk. To move data between slots, perform the migration manually in Proxmox.
+        Disk interface type and slot (e.g., scsi0, virtio0, ide1, sata2). Changing this field on an existing disk is handled by batch reconciliation during update. The volume is unlinked from the old slot and reattached at the new slot as part of the update flow. Moves within the same bus family and cross-bus moves are supported when Proxmox accepts the target slot. Examples: scsi0 → scsi1, scsi0 → sata0. Preview only rejects moves that conflict with another disk already claiming the target slot. The map key (not this field) is the primary disk identity: renaming the map key deletes the old disk.
         """
         return pulumi.get(self, "interface")
 
